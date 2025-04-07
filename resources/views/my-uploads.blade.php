@@ -25,7 +25,6 @@
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded At</th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
@@ -50,13 +49,6 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {{ $upload->created_at->format('M j, Y H:i') }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                @if($upload->google_drive_file_id)
-                                                    <a href="https://drive.google.com/file/d/{{ $upload->google_drive_file_id }}/view" target="_blank" class="text-indigo-600 hover:text-indigo-900">View in Drive</a>
-                                                @else
-                                                    <span class="text-gray-400">Processing...</span>
-                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach

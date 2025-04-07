@@ -35,6 +35,11 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         ->middleware([AdminMiddleware::class])
         ->name('admin.dashboard');
 
+    // File management
+    Route::delete('/files/{file}', [DashboardController::class, 'destroy'])
+        ->middleware([AdminMiddleware::class])
+        ->name('admin.files.destroy');
+
     // Google Drive routes
     Route::middleware([AdminMiddleware::class])->group(function () {
         Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
