@@ -93,7 +93,7 @@ class UploadToGoogleDrive implements ShouldQueue
     public function handle()
     {
         try {
-            if (!Storage::exists('private/google-drive-token.json')) {
+            if (!Storage::exists('google-credentials.json')) {
                 throw new \Exception('Google Drive token not found. Please connect your Google Drive account.');
             }
 
@@ -105,7 +105,7 @@ class UploadToGoogleDrive implements ShouldQueue
             $client->setAccessType('offline');
 
             // Get the access token from storage
-            $token = json_decode(Storage::get('private/google-drive-token.json'), true);
+            $token = json_decode(Storage::get('google-credentials.json'), true);
             if (!$token) {
                 throw new \Exception('Invalid Google Drive token format.');
             }
@@ -116,7 +116,7 @@ class UploadToGoogleDrive implements ShouldQueue
             if ($client->isAccessTokenExpired()) {
                 if ($client->getRefreshToken()) {
                     $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
-                    Storage::put('private/google-drive-token.json', json_encode($client->getAccessToken()));
+                    Storage::put('google-credentials.json', json_encode($client->getAccessToken()));
                 } else {
                     throw new \Exception('Refresh token not available. Please reconnect your Google Drive account.');
                 }
