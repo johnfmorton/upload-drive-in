@@ -111,7 +111,6 @@
             console.log('[handleInputChange] Input changed. Browser updated fileInput.files to:', fileInput.files);
             // Browser has already updated fileInput.files. Just update the display.
             displayFiles();
-            e.target.value = null; // Reset input for selecting same file again
         }
 
         // --- File Management Logic ---
