@@ -96,16 +96,17 @@
         }
 
         function highlight(e) {
-            dropZone.classList.add('border-indigo-500');
+            dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
         }
 
         function unhighlight(e) {
-            dropZone.classList.remove('border-indigo-500');
+            dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
         }
 
         function handleDrop(e) {
             const dt = e.dataTransfer;
             const files = dt.files;
+            fileInput.files = files;
             handleFiles({ target: { files } });
         }
 
@@ -115,7 +116,7 @@
 
             files.forEach(file => {
                 const fileItem = document.createElement('div');
-                fileItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded';
+                fileItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded mb-2';
                 fileItem.innerHTML = `
                     <div class="flex items-center space-x-2">
                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
