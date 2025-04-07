@@ -34,20 +34,20 @@ class GoogleDriveController extends Controller
             $token = $this->client->fetchAccessTokenWithAuthCode($request->code);
 
             if (!isset($token['error'])) {
-                Storage::put('google-drive-token.json', json_encode($token));
-                return redirect()->route('dashboard')->with('success', 'Google Drive connected successfully.');
+                Storage::put('google-credentials.json', json_encode($token));
+                return redirect()->route('admin.dashboard')->with('success', 'Google Drive connected successfully.');
             }
         }
 
-        return redirect()->route('dashboard')->with('error', 'Failed to connect Google Drive.');
+        return redirect()->route('admin.dashboard')->with('error', 'Failed to connect Google Drive.');
     }
 
     public function disconnect()
     {
-        if (Storage::exists('google-drive-token.json')) {
-            Storage::delete('google-drive-token.json');
+        if (Storage::exists('google-credentials.json')) {
+            Storage::delete('google-credentials.json');
         }
-        return redirect()->route('dashboard')->with('success', 'Google Drive disconnected successfully.');
+        return redirect()->route('admin.dashboard')->with('success', 'Google Drive disconnected successfully.');
     }
 
     public function upload(Request $request)
@@ -62,7 +62,7 @@ class GoogleDriveController extends Controller
             $email = $request->email;
 
             // Get the stored token
-            $token = json_decode(Storage::get('google-drive-token.json'), true);
+            $token = json_decode(Storage::get('google-credentials.json'), true);
             $this->client->setAccessToken($token);
 
             // Upload the file
