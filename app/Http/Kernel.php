@@ -2,6 +2,7 @@
 
 namespace App\Http;
 
+use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
@@ -44,7 +45,7 @@ class Kernel extends HttpKernel
     ];
 
     /**
-     * The application's route middleware aliases.
+     * The application's middleware aliases.
      *
      * Aliases may be used instead of class names to assign middleware to routes and groups.
      *
@@ -62,15 +63,6 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'admin' => \App\Http\Middleware\AdminMiddleware::class,
-    ];
-
-    /**
-     * Register any other middleware.
-     *
-     * @var array<string, class-string|string>
-     */
-    protected $routeMiddleware = [
-        //
+        'admin' => AdminMiddleware::class,
     ];
 }
