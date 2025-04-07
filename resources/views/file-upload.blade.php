@@ -71,7 +71,7 @@
         const fileInput = document.getElementById('files');
         const fileList = document.getElementById('fileList');
         const uploadForm = document.getElementById('uploadForm');
-        // No separate fileStore needed, we rely on fileInput.files as the source of truth
+        let fileStore = new DataTransfer(); // Our persistent store for cumulative files
 
         // --- Drop Zone Event Listeners ---
         dropZone.addEventListener('dragenter', handleDragEnter, false);
@@ -100,73 +100,70 @@
             e.preventDefault();
             e.stopPropagation();
             dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
-            console.log('[handleDrop] Drop detected. Processing dropped files...');
-            mergeDroppedFilesAndUpdateInput(e.dataTransfer.files); // Call dedicated merge function for drop
+            console.log('[handleDrop] Drop detected. Processing files...');
+            addFilesToStore(e.dataTransfer.files); // Call the central add/merge function
         }
 
         // --- File Input Event Listener ---
         fileInput.addEventListener('change', handleInputChange, false);
 
         function handleInputChange(e) {
-            console.log('[handleInputChange] Input changed. Browser updated fileInput.files.');
-            // For dialog selection, the browser replaces the list in fileInput.files.
-            // We just need to update the visual display based on this new list.
-            displayFiles();
-            // Reset input value *after* display to allow selecting same file again
+            console.log('[handleInputChange] Input changed. Processing files from dialog...');
+            const filesFromInput = e.target.files;
+            addFilesToStore(filesFromInput); // Call the central add/merge function
+            // Reset input value *after* processing files
             e.target.value = null;
         }
 
         // --- File Management Logic ---
 
-        // Dedicated function to MERGE DROPPED files with existing, check duplicates, and update input
-        function mergeDroppedFilesAndUpdateInput(droppedFiles) {
-            console.log('[mergeDroppedFiles] Called with droppedFiles:', droppedFiles);
-            if (!droppedFiles || droppedFiles.length === 0) {
-                console.log('[mergeDroppedFiles] No dropped files provided.');
+        // Central function to add new files TO THE STORE, merge, deduplicate, and update display
+        function addFilesToStore(newFiles) {
+            console.log('[addFilesToStore] Called with newFiles:', newFiles);
+            if (!newFiles || newFiles.length === 0) {
+                console.log('[addFilesToStore] No new files provided.');
                 return;
             }
 
             const dt = new DataTransfer();
-            const existingFiles = Array.from(fileInput.files); // Files currently in the input
-            console.log('[mergeDroppedFiles] Existing files in input before merge:', existingFiles);
+            const existingFilesInStore = Array.from(fileStore.files);
+            console.log('[addFilesToStore] Existing files in fileStore before merge:', existingFilesInStore);
 
-            // Add existing files first
-            existingFiles.forEach(file => dt.items.add(file));
+            existingFilesInStore.forEach(file => dt.items.add(file));
 
             let addedCount = 0;
-            const existingKeys = existingFiles.map(f => `${f.name}-${f.size}`);
-            console.log('[mergeDroppedFiles] Existing file keys:', existingKeys);
+            const existingKeys = existingFilesInStore.map(f => `${f.name}-${f.size}`);
+            console.log('[addFilesToStore] Existing file keys from store:', existingKeys);
 
-            // Check newly DROPPED files against existing keys and add if unique
-            for (const fileToAdd of droppedFiles) {
+            for (const fileToAdd of newFiles) {
                  const fileKey = `${fileToAdd.name}-${fileToAdd.size}`;
-                 console.log(`[mergeDroppedFiles] Checking fileToAdd: ${fileToAdd.name}, Key: ${fileKey}`);
+                 console.log(`[addFilesToStore] Checking fileToAdd: ${fileToAdd.name}, Key: ${fileKey}`);
                  if (!existingKeys.includes(fileKey)) {
-                    console.log(`[mergeDroppedFiles] Adding unique dropped file: ${fileToAdd.name}`);
+                    console.log(`[addFilesToStore] Adding unique file: ${fileToAdd.name}`);
                     dt.items.add(fileToAdd);
                     addedCount++;
                  } else {
-                    console.log(`[mergeDroppedFiles] Dropped file is duplicate, skipping: ${fileToAdd.name}`);
+                    console.log(`[addFilesToStore] File is duplicate, skipping: ${fileToAdd.name}`);
                  }
             }
 
-            console.log(`[mergeDroppedFiles] New unique files added from drop: ${addedCount}`);
+            console.log(`[addFilesToStore] New unique files added: ${addedCount}`);
 
-            // Update input only if new unique files were added from the drop
+            // Update store ONLY if new unique files were added
             if(addedCount > 0) {
-                console.log('[mergeDroppedFiles] Updating fileInput.files:', dt.files);
-                fileInput.files = dt.files;
-                console.log('[mergeDroppedFiles] fileInput.files after update:', fileInput.files);
-                displayFiles(); // Refresh display after merging
+                fileStore = dt; // Update our persistent store
+                console.log('[addFilesToStore] Updated fileStore:', fileStore.files);
+                // *** DO NOT update fileInput.files here ***
+                displayFiles(); // Update the visual list based on the updated fileStore
             } else {
-                 console.log('[mergeDroppedFiles] No new unique files added from drop, input/display remains unchanged.');
+                 console.log('[addFilesToStore] No new unique files added, store/display remain unchanged.');
             }
         }
 
         function removeFile(index) {
-            console.log(`[removeFile] Removing file at index: ${index}`);
+            console.log(`[removeFile] Removing file at index: ${index} from fileStore.`);
             const dt = new DataTransfer();
-            const currentFiles = Array.from(fileInput.files);
+            const currentFiles = Array.from(fileStore.files);
             if (index < 0 || index >= currentFiles.length) {
                 console.error('[removeFile] Invalid index.');
                 return;
@@ -176,22 +173,25 @@
                     dt.items.add(currentFiles[i]);
                 }
             }
-            fileInput.files = dt.files;
-            console.log(`[removeFile] fileInput.files after removal: ${fileInput.files.length} files`);
-            displayFiles();
+            fileStore = dt; // Update the persistent store
+            // *** DO NOT update fileInput.files here ***
+            console.log(`[removeFile] Updated fileStore: ${fileStore.files.length} files`);
+            displayFiles(); // Update display based on the updated fileStore
         }
 
-        // --- Display Logic --- Reads directly from fileInput.files
+        // --- Display Logic --- Reads directly from fileStore
         function displayFiles() {
-            console.log(`[displayFiles] Rendering list based on fileInput.files. Count: ${fileInput.files.length}`);
-            fileList.innerHTML = '';
-            const filesToDisplay = Array.from(fileInput.files);
-            if (filesToDisplay.length === 0) {
+             // *** READ FROM fileStore ***
+             console.log(`[displayFiles] Rendering list based on fileStore. Count: ${fileStore.files.length}`);
+             fileList.innerHTML = '';
+             // *** READ FROM fileStore ***
+             const filesToDisplay = Array.from(fileStore.files);
+             if (filesToDisplay.length === 0) {
                 fileList.innerHTML = '<p class="text-sm text-gray-500 p-4 text-center">No files selected.</p>';
                 return;
-            }
-            filesToDisplay.forEach((file, index) => {
-                const fileItem = document.createElement('div');
+             }
+             filesToDisplay.forEach((file, index) => {
+                 const fileItem = document.createElement('div');
                 fileItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded mb-2 text-sm';
                 const fileInfoDiv = document.createElement('div');
                 fileInfoDiv.className = 'flex items-center space-x-2 overflow-hidden mr-2';
@@ -215,13 +215,13 @@
                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                     </svg>
                 `;
-                removeButton.addEventListener('click', () => removeFile(index));
+                removeButton.addEventListener('click', () => removeFile(index)); // removeFile operates on fileStore
                 fileActionsDiv.appendChild(fileSizeSpan);
                 fileActionsDiv.appendChild(removeButton);
                 fileItem.appendChild(fileInfoDiv);
                 fileItem.appendChild(fileActionsDiv);
                 fileList.appendChild(fileItem);
-            });
+             });
              console.log(`[displayFiles] Finished rendering list.`);
         }
 
@@ -240,22 +240,27 @@
              return div.innerHTML;
          }
 
-        // --- Form Submission --- Reads directly from fileInput.files
+        // --- Form Submission --- Checks fileStore, syncs fileInput before submit
         uploadForm.addEventListener('submit', function(e) {
-            const currentFileInputLength = fileInput.files.length;
-             console.log(`[onSubmit] Checking fileInput length: ${currentFileInputLength}`);
-            if (currentFileInputLength === 0) {
+            // *** CHECK fileStore ***
+            const currentFileStoreLength = fileStore.files.length;
+            console.log(`[onSubmit] Checking fileStore length: ${currentFileStoreLength}`);
+
+            if (currentFileStoreLength === 0) {
                 e.preventDefault();
-                console.warn('[onSubmit] Preventing submission: No files in input.');
+                console.warn('[onSubmit] Preventing submission: No files in fileStore.');
                 alert('Please select at least one file to upload.');
                  dropZone.classList.add('border-red-500');
                  setTimeout(() => dropZone.classList.remove('border-red-500'), 2000);
             } else {
-                 console.log('[onSubmit] Allowing submission.');
+                 // *** SYNC fileInput right before submission ***
+                 console.log('[onSubmit] Syncing fileInput.files with fileStore before allowing submission.');
+                 fileInput.files = fileStore.files;
+                 console.log(`[onSubmit] Allowing submission. Synced fileInput length: ${fileInput.files.length}`);
             }
         });
 
-        // Initial display state
+        // Initial display state based on fileStore (which is initially empty)
         displayFiles();
 
       }); // End DOMContentLoaded
