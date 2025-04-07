@@ -7,6 +7,8 @@ use Google\Service\Drive;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Models\FileUpload;
+use App\Jobs\UploadToGoogleDrive;
 
 class GoogleDriveController extends Controller
 {
@@ -52,6 +54,38 @@ class GoogleDriveController extends Controller
                     try {
                         $service->files->get($rootFolderId);
                         Log::info('Successfully verified root folder access', ['folder_id' => $rootFolderId]);
+
+                        // Process pending uploads after successful connection
+                        $pendingUploads = FileUpload::whereNull('google_drive_file_id')
+                            ->orWhere('google_drive_file_id', '')
+                            ->get();
+
+                        Log::info('Found pending uploads after Google Drive connection', ['count' => $pendingUploads->count()]);
+
+                        foreach ($pendingUploads as $upload) {
+                            try {
+                                Log::info('Processing upload after Google Drive connection', [
+                                    'file_id' => $upload->id,
+                                    'filename' => $upload->filename,
+                                    'original_filename' => $upload->original_filename,
+                                    'email' => $upload->email
+                                ]);
+
+                                UploadToGoogleDrive::dispatch($upload);
+                                Log::info('Dispatched Google Drive upload job', [
+                                    'file_id' => $upload->id,
+                                    'file' => $upload->original_filename,
+                                    'email' => $upload->email
+                                ]);
+                            } catch (\Exception $e) {
+                                Log::error('Failed to dispatch Google Drive upload job', [
+                                    'file' => $upload->original_filename,
+                                    'error' => $e->getMessage(),
+                                    'trace' => $e->getTraceAsString()
+                                ]);
+                            }
+                        }
+
                     } catch (\Exception $e) {
                         Log::error('Failed to access root folder', [
                             'error' => $e->getMessage(),
