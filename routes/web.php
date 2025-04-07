@@ -5,8 +5,7 @@ use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\PublicUploadController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileUploadController;
-use App\Http\Controllers\AuthenticatedSessionController;
-use App\Http\Middleware\AdminMiddleware;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -20,7 +19,7 @@ Route::middleware(['guest'])->group(function () {
 Route::middleware(['guest'])->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-        ->middleware('prevent.client.password.login');
+        ->middleware(\App\Http\Middleware\PreventClientPasswordLogin::class);
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
@@ -46,16 +45,16 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth'])->prefix('admin')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->middleware([AdminMiddleware::class])
+        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.dashboard');
 
     // File management
     Route::delete('/files/{file}', [DashboardController::class, 'destroy'])
-        ->middleware([AdminMiddleware::class])
+        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.files.destroy');
 
     // Google Drive routes
-    Route::middleware([AdminMiddleware::class])->group(function () {
+    Route::middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
         Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
         Route::get('/google-drive/callback', [GoogleDriveController::class, 'callback'])->name('google-drive.callback');
         Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google-drive.disconnect');
