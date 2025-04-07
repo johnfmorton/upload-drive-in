@@ -29,7 +29,8 @@ class FileUploadController extends Controller
                 $originalName = $file->getClientOriginalName();
                 $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
 
-                $path = $file->storeAs('uploads', $filename, 'public');
+                // Store the file in the public disk under uploads directory
+                $path = Storage::disk('public')->putFileAs('uploads', $file, $filename);
 
                 $fileUpload = FileUpload::create([
                     'email' => auth()->user()->email,

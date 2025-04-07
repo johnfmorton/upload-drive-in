@@ -19,6 +19,46 @@
                         </div>
                     </div>
 
+                    @if (session('success'))
+                        <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if (session('error'))
+                        <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
+                    <div class="mb-6 p-4 bg-white border rounded-lg">
+                        <h2 class="text-lg font-medium mb-2">Google Drive Connection</h2>
+                        @if(Storage::exists('google-drive-token.json'))
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    <span class="text-green-700">Connected to Google Drive</span>
+                                </div>
+                                <form method="POST" action="{{ route('google-drive.disconnect') }}" class="inline">
+                                    @csrf
+                                    <button type="submit" class="text-sm text-red-600 hover:text-red-900">
+                                        Disconnect
+                                    </button>
+                                </form>
+                            </div>
+                        @else
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-700">Connect your Google Drive account to enable file uploads</span>
+                                <a href="{{ route('google-drive.connect') }}"
+                                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                                    Connect Google Drive
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+
                     @if($files->isEmpty())
                         <div class="text-center py-12">
                             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

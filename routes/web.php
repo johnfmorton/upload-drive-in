@@ -14,23 +14,20 @@ Route::get('/verify-email/{code}/{email}', [PublicUploadController::class, 'veri
 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
-    Route::get('/dashboard', function () {
-        $uploads = \App\Models\FileUpload::orderBy('created_at', 'desc')->get();
-        return view('dashboard', compact('uploads'));
-    })->name('dashboard');
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Google Drive routes
     Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
     Route::get('/google-drive/callback', [GoogleDriveController::class, 'callback'])->name('google-drive.callback');
-    Route::post('/google-drive/upload', [GoogleDriveController::class, 'upload'])->name('google-drive.upload');
+    Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google-drive.disconnect');
 
+    // Profile routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    // File upload routes
     Route::get('/upload-files', [FileUploadController::class, 'create'])->name('upload-files');
     Route::post('/upload-files', [FileUploadController::class, 'store'])->name('upload-files.store');
 });
