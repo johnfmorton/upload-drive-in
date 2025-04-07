@@ -52,13 +52,13 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::delete('/files/{file}', [DashboardController::class, 'destroy'])
         ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.files.destroy');
+});
 
-    // Google Drive routes
-    Route::middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
-        Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
-        Route::get('/google-drive/callback', [GoogleDriveController::class, 'callback'])->name('google-drive.callback');
-        Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google-drive.disconnect');
-    });
+// Google Drive routes
+Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->group(function () {
+    Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
+    Route::get('/google-drive/callback', [GoogleDriveController::class, 'callback'])->name('google-drive.callback');
+    Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google-drive.disconnect');
 });
 
 // Profile routes
