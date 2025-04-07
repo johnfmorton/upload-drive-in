@@ -34,7 +34,7 @@
                                     <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                                         <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                     </svg>
-                                    <div class="flex text-sm text-gray-600">
+                                    <div class="flex text-sm text-gray-600 justify-center">
                                         <label for="files" class="relative cursor-pointer rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
                                             <span>Upload files</span>
                                             <input id="files" name="files[]" type="file" class="sr-only" multiple>
@@ -71,121 +71,101 @@
         const fileInput = document.getElementById('files');
         const fileList = document.getElementById('fileList');
         const uploadForm = document.getElementById('uploadForm');
-        let fileStore = new DataTransfer();
-
-        // --- Aggressive Global Drag/Drop Event Prevention ---
-        function preventDefaultsAndStopPropagation(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        // Attach to window AND documentElement for maximum coverage
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            window.addEventListener(eventName, preventDefaultsAndStopPropagation, false);
-            document.documentElement.addEventListener(eventName, preventDefaultsAndStopPropagation, false);
-        });
-
+        let fileStore = new DataTransfer(); // Holds file data, might be reset by HMR
 
         // --- Drop Zone Specific Highlighting & Handling ---
-        dropZone.addEventListener('dragenter', highlight, false);
-        dropZone.addEventListener('dragover', highlight, false); // Need this to allow drop
-        dropZone.addEventListener('dragleave', unhighlight, false);
-        dropZone.addEventListener('drop', handleDrop, false);
-
         function highlight(e) {
-             // Check if the related target is outside the drop zone when entering/over
-            if (!dropZone.contains(e.relatedTarget)) {
-                dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
-            }
+            dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
         }
-
         function unhighlight(e) {
-            // Check if the related target is outside the drop zone when leaving
-            if (!dropZone.contains(e.relatedTarget)) {
-                 dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
-            }
+            dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
         }
 
-        function handleDrop(e) {
-            // Stop propagation specifically for the drop zone drop event
+        dropZone.addEventListener('dragenter', (e) => {
             e.stopPropagation();
-            console.log('Drop event fired on dropZone. Files found:', e.dataTransfer.files.length); // *** Explicit Debug Log ***
+            e.preventDefault();
+            highlight(e);
+        }, false);
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            highlight(e);
+        }, false);
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (e.target === dropZone || !dropZone.contains(e.relatedTarget)) {
+                unhighlight(e);
+            }
+        }, false);
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            unhighlight(e);
             addFiles(e.dataTransfer.files);
-            unhighlight(e); // Ensure highlight is removed
-        }
+        }, false);
 
         // --- File Input Handling ---
         fileInput.addEventListener('change', handleInputChange, false);
 
         function handleInputChange(e) {
-            console.log('Input change event fired. Files selected:', e.target.files.length); // *** Explicit Debug Log ***
             addFiles(e.target.files);
-            e.target.value = null; // Reset input
+            e.target.value = null;
         }
 
+        // --- Core File Management & Display ---
         function addFiles(newFiles) {
-            console.log('addFiles called with', newFiles.length, 'files.'); // *** Explicit Debug Log ***
             if (!newFiles || newFiles.length === 0) return;
-
             let addedCount = 0;
+            const dt = new DataTransfer();
+            const existingFiles = Array.from(fileInput.files);
+            for (const file of existingFiles) {
+                dt.items.add(file);
+            }
+            const existingKeys = existingFiles.map(f => `${f.name}-${f.size}`);
             for (const file of newFiles) {
-                 let isDuplicate = false;
-                 for(let i=0; i < fileStore.items.length; i++){
-                     if(fileStore.items[i].kind === 'file') {
-                         const existingFile = fileStore.items[i].getAsFile();
-                         if(existingFile && existingFile.name === file.name && existingFile.size === file.size){
-                            isDuplicate = true;
-                            break;
-                         }
-                     }
-                 }
-                 if (!isDuplicate) {
-                    fileStore.items.add(file);
+                 const fileKey = `${file.name}-${file.size}`;
+                 if (!existingKeys.includes(fileKey)) {
+                    dt.items.add(file);
                     addedCount++;
+                    existingKeys.push(fileKey);
                  }
             }
-            console.log(`Added ${addedCount} new files. Total in store: ${fileStore.files.length}`); // *** Explicit Debug Log ***
-
             if(addedCount > 0) {
-                fileInput.files = fileStore.files;
+                fileInput.files = dt.files;
+                fileStore = dt;
                 displayFiles();
             }
         }
 
          function removeFile(index) {
-             console.log(`removeFile called for index: ${index}`); // *** Explicit Debug Log ***
              const dt = new DataTransfer();
-             const currentFiles = Array.from(fileStore.files);
-
+             const currentFiles = Array.from(fileInput.files);
              if (index < 0 || index >= currentFiles.length) {
-                console.error('Invalid index for removeFile:', index);
                 return;
              }
-
              for (let i = 0; i < currentFiles.length; i++) {
                  if (i !== index) {
                      dt.items.add(currentFiles[i]);
                  }
              }
-
              fileStore = dt;
              fileInput.files = fileStore.files;
              displayFiles();
          }
 
-
         function displayFiles() {
-            console.log(`displayFiles called. Rendering ${fileStore.files.length} files.`); // *** Explicit Debug Log ***
             fileList.innerHTML = '';
-
-            if (fileStore.files.length === 0) {
-                fileList.innerHTML = '<p class="text-sm text-gray-500 p-4 text-center">No files selected.</p>'; // Show a message when empty
+            if (fileInput.files.length === 0) {
+                fileList.innerHTML = '<p class="text-sm text-gray-500 p-4 text-center">No files selected.</p>';
                 return;
             }
-
-            Array.from(fileStore.files).forEach((file, index) => {
+            Array.from(fileInput.files).forEach((file, index) => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded mb-2 text-sm';
-
                 const fileInfoDiv = document.createElement('div');
                 fileInfoDiv.className = 'flex items-center space-x-2 overflow-hidden mr-2';
                 fileInfoDiv.innerHTML = `
@@ -194,14 +174,11 @@
                     </svg>
                     <span class="text-gray-700 truncate" title="${escapeHTML(file.name)}">${escapeHTML(file.name)}</span>
                 `;
-
                 const fileActionsDiv = document.createElement('div');
                 fileActionsDiv.className = 'flex items-center space-x-2 flex-shrink-0';
-
                 const fileSizeSpan = document.createElement('span');
                 fileSizeSpan.className = 'text-xs text-gray-500';
                 fileSizeSpan.textContent = formatFileSize(file.size);
-
                 const removeButton = document.createElement('button');
                 removeButton.type = 'button';
                 removeButton.className = 'text-red-500 hover:text-red-700 focus:outline-none p-1 rounded-full hover:bg-red-100 transition-colors duration-150';
@@ -212,13 +189,10 @@
                     </svg>
                 `;
                 removeButton.addEventListener('click', () => removeFile(index));
-
                 fileActionsDiv.appendChild(fileSizeSpan);
                 fileActionsDiv.appendChild(removeButton);
-
                 fileItem.appendChild(fileInfoDiv);
                 fileItem.appendChild(fileActionsDiv);
-
                 fileList.appendChild(fileItem);
             });
         }
@@ -238,22 +212,18 @@
              return div.innerHTML;
          }
 
-
         // --- Form Submission ---
         uploadForm.addEventListener('submit', function(e) {
-            fileInput.files = fileStore.files;
-            console.log(`Form submit initiated. Files in input: ${fileInput.files.length}`); // *** Explicit Debug Log ***
-
-            if (fileStore.files.length === 0) {
+            const currentFileInputLength = fileInput.files.length;
+            if (currentFileInputLength === 0) {
                 e.preventDefault();
-                console.log('Form submission prevented: No files.'); // *** Explicit Debug Log ***
                 alert('Please select at least one file to upload.');
                  dropZone.classList.add('border-red-500');
                  setTimeout(() => dropZone.classList.remove('border-red-500'), 2000);
             }
         });
 
-        // Initial display state (optional, can be useful)
+        // Initial display state
         displayFiles();
 
       }); // End DOMContentLoaded
