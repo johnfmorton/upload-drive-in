@@ -6,6 +6,7 @@ use Google\Client;
 use Google\Service\Drive;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class GoogleDriveController extends Controller
 {
@@ -18,6 +19,7 @@ class GoogleDriveController extends Controller
         $this->client->setClientSecret(config('services.google_drive.client_secret'));
         $this->client->setRedirectUri(config('services.google_drive.redirect_uri'));
         $this->client->addScope(Drive::DRIVE_FILE);
+        $this->client->addScope(Drive::DRIVE);
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
     }
@@ -31,15 +33,53 @@ class GoogleDriveController extends Controller
     public function callback(Request $request)
     {
         if ($request->has('code')) {
-            $token = $this->client->fetchAccessTokenWithAuthCode($request->code);
+            try {
+                Log::info('Google Drive callback received', ['code' => $request->code]);
 
-            if (!isset($token['error'])) {
-                Storage::put('google-credentials.json', json_encode($token));
-                return redirect()->route('admin.dashboard')->with('success', 'Google Drive connected successfully.');
+                // Exchange the authorization code for an access token
+                $token = $this->client->fetchAccessTokenWithAuthCode($request->code);
+
+                if (!isset($token['error'])) {
+                    Log::info('Token received successfully', ['token_type' => $token['token_type']]);
+
+                    // Store the token
+                    Storage::put('google-credentials.json', json_encode($token));
+
+                    // Test the connection by getting the root folder
+                    $service = new Drive($this->client);
+                    $rootFolderId = config('services.google_drive.root_folder_id');
+
+                    try {
+                        $service->files->get($rootFolderId);
+                        Log::info('Successfully verified root folder access', ['folder_id' => $rootFolderId]);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to access root folder', [
+                            'error' => $e->getMessage(),
+                            'folder_id' => $rootFolderId
+                        ]);
+                        throw $e;
+                    }
+
+                    return redirect()->route('admin.dashboard')
+                        ->with('success', 'Google Drive connected successfully.');
+                } else {
+                    Log::error('Token error received', ['error' => $token['error']]);
+                    throw new \Exception('Failed to get access token: ' . $token['error']);
+                }
+            } catch (\Exception $e) {
+                Log::error('Google Drive connection failed', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+
+                return redirect()->route('admin.dashboard')
+                    ->with('error', 'Failed to connect Google Drive: ' . $e->getMessage());
             }
         }
 
-        return redirect()->route('admin.dashboard')->with('error', 'Failed to connect Google Drive.');
+        Log::warning('No authorization code received in callback');
+        return redirect()->route('admin.dashboard')
+            ->with('error', 'Failed to connect Google Drive: No authorization code received.');
     }
 
     public function disconnect()
@@ -47,7 +87,8 @@ class GoogleDriveController extends Controller
         if (Storage::exists('google-credentials.json')) {
             Storage::delete('google-credentials.json');
         }
-        return redirect()->route('admin.dashboard')->with('success', 'Google Drive disconnected successfully.');
+        return redirect()->route('admin.dashboard')
+            ->with('success', 'Google Drive disconnected successfully.');
     }
 
     public function upload(Request $request)
