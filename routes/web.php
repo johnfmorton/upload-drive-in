@@ -5,13 +5,27 @@ use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\PublicUploadController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileUploadController;
+use App\Http\Controllers\AuthenticatedSessionController;
 use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::get('/', [PublicUploadController::class, 'index'])->name('home');
-Route::post('/validate-email', [PublicUploadController::class, 'validateEmail'])->name('validate-email');
-Route::get('/verify-email/{code}/{email}', [PublicUploadController::class, 'verifyEmail'])->name('verify-email');
+Route::middleware(['guest'])->group(function () {
+    Route::post('/validate-email', [PublicUploadController::class, 'validateEmail'])->name('validate-email');
+    Route::get('/verify-email/{code}/{email}', [PublicUploadController::class, 'verifyEmail'])->name('verify-email');
+});
+
+// Auth routes
+Route::middleware(['guest'])->group(function () {
+    Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+        ->middleware('prevent.client.password.login');
+});
+
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('logout');
 
 // Client routes
 Route::middleware(['auth'])->group(function () {
@@ -53,6 +67,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
 
-require __DIR__.'/auth.php';
+    // Email verification routes
+    Route::post('/email/verification-notification', function () {
+        auth()->user()->sendEmailVerificationNotification();
+        return back()->with('status', 'verification-link-sent');
+    })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+});

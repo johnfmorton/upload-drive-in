@@ -7,11 +7,17 @@ use App\Models\EmailValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Auth;
 
 class PublicUploadController extends Controller
 {
     public function index()
     {
+        // If user is logged in, redirect to upload files page
+        if (Auth::check()) {
+            return redirect()->route('upload-files');
+        }
+
         return view('public-upload');
     }
 
