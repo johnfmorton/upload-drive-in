@@ -10,6 +10,15 @@ use Illuminate\Support\Str;
 
 class FileUploadController extends Controller
 {
+    public function index()
+    {
+        $uploads = FileUpload::where('email', auth()->user()->email)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('my-uploads', compact('uploads'));
+    }
+
     public function create()
     {
         return view('file-upload');
