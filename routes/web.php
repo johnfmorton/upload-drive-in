@@ -5,6 +5,7 @@ use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\PublicUploadController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileUploadController;
+use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -28,14 +29,18 @@ Route::get('/dashboard', function () {
 })->middleware(['auth'])->name('dashboard');
 
 // Admin routes
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware(['auth'])->prefix('admin')->group(function () {
     // Dashboard
-    Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->middleware([AdminMiddleware::class])
+        ->name('admin.dashboard');
 
     // Google Drive routes
-    Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
-    Route::get('/google-drive/callback', [GoogleDriveController::class, 'callback'])->name('google-drive.callback');
-    Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google-drive.disconnect');
+    Route::middleware([AdminMiddleware::class])->group(function () {
+        Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
+        Route::get('/google-drive/callback', [GoogleDriveController::class, 'callback'])->name('google-drive.callback');
+        Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google-drive.disconnect');
+    });
 });
 
 // Profile routes
