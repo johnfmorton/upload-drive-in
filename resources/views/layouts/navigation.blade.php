@@ -16,6 +16,9 @@
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                             {{ __('Dashboard') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
+                            {{ __('Client Users') }}
+                        </x-nav-link>
                     @else
                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('my-uploads')">
                             {{ __('Your Files') }}
@@ -79,6 +82,9 @@
         @if (Auth::user()->isAdmin())
             <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                 {{ __('Dashboard') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
+                {{ __('Client Users') }}
             </x-responsive-nav-link>
         @else
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('my-uploads')">

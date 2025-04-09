@@ -52,6 +52,12 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::delete('/files/{file}', [DashboardController::class, 'destroy'])
         ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.files.destroy');
+
+    // User Management
+    Route::resource('/users', \App\Http\Controllers\Admin\AdminUserController::class)
+        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
+        ->only(['index']) // Initially, only list users
+        ->names('admin.users');
 });
 
 // Google Drive routes
