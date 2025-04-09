@@ -80,8 +80,8 @@
                              if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
                                 let form = document.createElement('form');
                                 form.method = 'POST';
-                                // Construct the action URL using the route name and user ID
-                                form.action = '{{ route("admin.users.destroy", "") }}/' + userId;
+                                // Construct the action URL manually
+                                form.action = '/admin/users/' + userId;
                                 form.style.display = 'none';
 
                                 let csrfInput = document.createElement('input');
