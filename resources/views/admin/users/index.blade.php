@@ -20,6 +20,9 @@
                             createdAt: true,
                             actions: true
                         }).as('adminUserColumns'),
+                        showDeleteModal: false,
+                        userToDeleteId: null,
+                        deleteFilesCheckbox: false,
 
                         get filteredAndSortedClients() {
                             let filtered = this.clientsData;
@@ -75,30 +78,48 @@
                             return new Date(dateString).toLocaleString(undefined, options);
                         },
 
-                        // Delete User Function (similar to file delete)
+                        // Initiate User Deletion - Show Modal
                         deleteUser(userId) {
-                             if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-                                let form = document.createElement('form');
-                                form.method = 'POST';
-                                // Construct the action URL manually
-                                form.action = '/admin/users/' + userId;
-                                form.style.display = 'none';
+                             this.userToDeleteId = userId;
+                             this.deleteFilesCheckbox = false; // Reset checkbox state
+                             this.showDeleteModal = true;
+                        },
 
-                                let csrfInput = document.createElement('input');
-                                csrfInput.type = 'hidden';
-                                csrfInput.name = '_token';
-                                csrfInput.value = '{{ csrf_token() }}'; // Get CSRF token
-                                form.appendChild(csrfInput);
+                        // Confirm and Submit Deletion
+                        confirmDeleteUser() {
+                            if (!this.userToDeleteId) return;
 
-                                let methodInput = document.createElement('input');
-                                methodInput.type = 'hidden';
-                                methodInput.name = '_method';
-                                methodInput.value = 'DELETE';
-                                form.appendChild(methodInput);
+                            let form = document.createElement('form');
+                            form.method = 'POST';
+                            // Construct the action URL manually
+                            form.action = '/admin/users/' + this.userToDeleteId;
+                            form.style.display = 'none';
 
-                                document.body.appendChild(form);
-                                form.submit();
-                            }
+                            let csrfInput = document.createElement('input');
+                            csrfInput.type = 'hidden';
+                            csrfInput.name = '_token';
+                            csrfInput.value = '{{ csrf_token() }}'; // Get CSRF token
+                            form.appendChild(csrfInput);
+
+                            let methodInput = document.createElement('input');
+                            methodInput.type = 'hidden';
+                            methodInput.name = '_method';
+                            methodInput.value = 'DELETE';
+                            form.appendChild(methodInput);
+
+                            // Add the delete_files input
+                            let deleteFilesInput = document.createElement('input');
+                            deleteFilesInput.type = 'hidden';
+                            deleteFilesInput.name = 'delete_files';
+                            deleteFilesInput.value = this.deleteFilesCheckbox ? '1' : '0';
+                            form.appendChild(deleteFilesInput);
+
+                            document.body.appendChild(form);
+                            form.submit();
+
+                            // Hide modal after submission attempt
+                            this.showDeleteModal = false;
+                            this.userToDeleteId = null;
                         }
 
                     }" class="max-w-full">
@@ -111,6 +132,33 @@
                             {{ session('success') }}
                         </div>
                      @endif
+
+                     <!-- Delete User Confirmation Modal -->
+                    <div x-show="showDeleteModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center" style="display: none;" @keydown.escape.window="showDeleteModal = false">
+                        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="showDeleteModal = false"></div>
+                        <div class="relative bg-white rounded-lg shadow-xl p-6 m-4 max-w-md w-full" @click.stop>
+                            <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">
+                                Confirm Deletion
+                            </h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500 mb-4">
+                                    Are you sure you want to delete this user? This action cannot be undone.
+                                </p>
+                                <label class="flex items-center space-x-2 mb-6">
+                                    <input type="checkbox" x-model="deleteFilesCheckbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                    <span class="text-sm text-gray-700">Also delete all uploaded files associated with this user?</span>
+                                </label>
+                            </div>
+                            <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse space-y-2 sm:space-y-0 sm:space-x-3 sm:space-x-reverse">
+                                <button @click="confirmDeleteUser()" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                    Delete User
+                                </button>
+                                <button @click="showDeleteModal = false; userToDeleteId = null;" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Column Visibility Controls -->
                     <div class="mb-4 p-4 border rounded bg-gray-50">
