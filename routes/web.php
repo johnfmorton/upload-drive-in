@@ -56,7 +56,7 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     // User Management
     Route::resource('/users', \App\Http\Controllers\Admin\AdminUserController::class)
         ->middleware(\App\Http\Middleware\AdminMiddleware::class)
-        ->only(['index']) // Initially, only list users
+        ->only(['index', 'destroy'])
         ->names('admin.users');
 });
 
