@@ -9,6 +9,8 @@ use App\Services\GoogleDriveService; // Import the new service
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str; // Added for random password
+use Illuminate\Support\Facades\Hash; // Added for hashing password
 // Remove Google Drive dependencies - they are now in the service
 // use Google\Client;
 // use Google\Service\Drive;
@@ -22,7 +24,14 @@ class AdminUserController extends Controller
      */
     public function index()
     {
-        $clients = User::where('role', 'client')->paginate(15); // Paginate client users
+        $clients = User::where('role', 'client')->paginate(15);
+
+        // Add the login URL to each client user
+        $clients->getCollection()->transform(function ($client) {
+            $client->login_url = $client->getLoginUrl();
+            return $client;
+        });
+
         return view('admin.users.index', compact('clients'));
     }
 
@@ -31,15 +40,40 @@ class AdminUserController extends Controller
      */
     public function create()
     {
-        //
+        // Generally not needed if creation form is on the index page
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a newly created client user in storage.
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+        ]);
+
+        try {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                // Assign a random, unusable password since login is via token
+                'password' => Hash::make(Str::random(32)),
+                'role' => 'client', // Explicitly set the role
+                'email_verified_at' => now(), // Mark as verified since admin creates it
+            ]);
+
+            // Optionally: Trigger an event or notification if needed
+            // event(new ClientUserCreatedByAdmin($user));
+
+            return redirect()->route('admin.users.index')
+                ->with('success', 'Client user created successfully. You can now provide them with their login link.');
+
+        } catch (Exception $e) {
+            Log::error("Error creating client user: " . $e->getMessage());
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Failed to create client user. Please check the logs.');
+        }
     }
 
     /**
