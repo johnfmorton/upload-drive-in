@@ -13,6 +13,9 @@ Route::get('/', [PublicUploadController::class, 'index'])->name('home');
 Route::middleware(['guest'])->group(function () {
     Route::post('/validate-email', [PublicUploadController::class, 'validateEmail'])->name('validate-email');
     Route::get('/verify-email/{code}/{email}', [PublicUploadController::class, 'verifyEmail'])->name('verify-email');
+    Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'loginViaToken'])
+        ->middleware('signed')
+        ->name('login.via.token');
 });
 
 // Auth routes
@@ -58,6 +61,9 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->only(['index', 'destroy'])
         ->names('admin.users');
+    Route::post('/users', [\App\Http\Controllers\Admin\AdminUserController::class, 'store'])
+        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
+        ->name('admin.users.store');
 });
 
 // Google Drive routes

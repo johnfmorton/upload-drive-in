@@ -7,6 +7,42 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+
+            <!-- Create User Form Section -->
+            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">
+                    Create New Client User
+                </h2>
+
+                @if ($errors->hasBag('createUser'))
+                    <div class="mb-4 p-4 bg-red-100 border border-red-200 text-red-700 rounded">
+                        <p class="font-bold">Please correct the following errors:</p>
+                        <ul>
+                            @foreach ($errors->createUser->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('admin.users.store') }}" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" name="name" id="name" value="{{ old('name') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                        <input type="email" name="email" id="email" value="{{ old('email') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 sm:text-sm">
+                    </div>
+                    <div>
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Create User
+                        </button>
+                    </div>
+                </form>
+            </div>
+
             <!-- Users Table Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <div x-data="{
@@ -18,11 +54,23 @@
                             name: true,
                             email: true,
                             createdAt: true,
+                            loginUrl: true, // Added Login URL column
                             actions: true
                         }).as('adminUserColumns'),
                         showDeleteModal: false,
                         userToDeleteId: null,
                         deleteFilesCheckbox: false,
+                        copiedUrlId: null, // Track which URL was just copied
+
+                        // Add loginUrl property to each client object
+                        init() {
+                            this.clientsData = this.clientsData.map(client => {
+                                client.loginUrl = client.login_url; // Assuming 'login_url' is passed from controller
+                                return client;
+                            });
+                            // Reset copied state on init
+                            this.copiedUrlId = null;
+                        },
 
                         get filteredAndSortedClients() {
                             let filtered = this.clientsData;
@@ -44,7 +92,8 @@
 
                                     // Handle specific types if needed
                                      if (this.sortColumn === 'created_at') {
-                                        // Dates are usually comparable as strings (ISO format)
+                                        valA = new Date(valA);
+                                        valB = new Date(valB);
                                     } else if (valA && typeof valA === 'string') {
                                         valA = valA.toLowerCase();
                                         valB = valB.toLowerCase();
@@ -76,6 +125,19 @@
                          formatDate(dateString) {
                             const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
                             return new Date(dateString).toLocaleString(undefined, options);
+                        },
+
+                        // Copy login URL to clipboard using Alpine.clipboard()
+                        copyLoginUrl(client) {
+                            // Use the globally available Alpine object to access clipboard
+                            navigator.clipboard.writeText(client.loginUrl);
+                            this.copiedUrlId = client.id;
+                            // Hide 'Copied!' message after 2 seconds
+                            setTimeout(() => {
+                                if (this.copiedUrlId === client.id) {
+                                     this.copiedUrlId = null;
+                                }
+                            }, 2000);
                         },
 
                         // Initiate User Deletion - Show Modal
@@ -122,7 +184,7 @@
                             this.userToDeleteId = null;
                         }
 
-                    }" class="max-w-full">
+                    }" x-init="init()" class="max-w-full">
                     <h2 class="text-lg font-medium text-gray-900 mb-4">
                         Client Users
                     </h2>
@@ -130,6 +192,11 @@
                      @if (session('success'))
                         <div class="mb-4 p-4 bg-green-100 border border-green-200 text-green-700 rounded">
                             {{ session('success') }}
+                        </div>
+                     @endif
+                     @if (session('error'))
+                        <div class="mb-4 p-4 bg-red-100 border border-red-200 text-red-700 rounded">
+                            {{ session('error') }}
                         </div>
                      @endif
 
@@ -163,7 +230,7 @@
                     <!-- Column Visibility Controls -->
                     <div class="mb-4 p-4 border rounded bg-gray-50">
                         <h3 class="text-md font-medium text-gray-700 mb-2">Show/Hide Columns:</h3>
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm"> <!-- Adjusted grid columns -->
                             <label class="flex items-center space-x-2">
                                 <input type="checkbox" x-model="columns.name" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
                                 <span>Name</span>
@@ -175,6 +242,10 @@
                             <label class="flex items-center space-x-2">
                                 <input type="checkbox" x-model="columns.createdAt" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
                                 <span>Created At</span>
+                            </label>
+                            <label class="flex items-center space-x-2"> <!-- Added Login URL toggle -->
+                                <input type="checkbox" x-model="columns.loginUrl" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <span>Login URL</span>
                             </label>
                              <label class="flex items-center space-x-2">
                                 <input type="checkbox" x-model="columns.actions" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
@@ -208,6 +279,9 @@
                                             Created At <span x-show="sortColumn === 'created_at'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
                                         </th>
                                     </template>
+                                    <template x-if="columns.loginUrl"> <!-- Added Login URL Header -->
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Login URL</th>
+                                    </template>
                                     <template x-if="columns.actions"><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th></template>
                                 </tr>
                             </thead>
@@ -217,6 +291,14 @@
                                         <template x-if="columns.name"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="client.name"></td></template>
                                         <template x-if="columns.email"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="client.email"></td></template>
                                          <template x-if="columns.createdAt"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(client.created_at)"></td></template>
+                                        <template x-if="columns.loginUrl"> <!-- Added Login URL Cell -->
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button @click="copyLoginUrl(client)" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                                    <span x-show="copiedUrlId !== client.id">Copy Login URL</span>
+                                                    <span x-show="copiedUrlId === client.id" class="text-green-600">Copied!</span>
+                                                </button>
+                                            </td>
+                                        </template>
                                         <template x-if="columns.actions">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                                                 {{-- Add Edit Link later when edit functionality is built --}}
@@ -248,7 +330,7 @@
                         </table>
                     </div>
                     <div class="mt-4">
-                        {{ $clients->links() }}
+                        {{ $clients->links() }} <!-- Ensure pagination links are displayed -->
                     </div>
                 </div>
             </div>
