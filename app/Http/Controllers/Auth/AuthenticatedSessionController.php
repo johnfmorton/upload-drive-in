@@ -9,6 +9,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use App\Models\User;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Log;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -44,5 +47,30 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    /**
+     * Log the user in via a signed token URL.
+     */
+    public function loginViaToken(Request $request, User $user): RedirectResponse
+    {
+        // The 'signed' middleware in the route definition already verifies the signature.
+        // We just need to make sure the user exists and is a client.
+
+        if (!$user || $user->role !== 'client') {
+            // Optional: Log this attempt
+            Log::warning("Attempt to use login token for invalid user or non-client user: {$user->id}");
+            return redirect()->route('home')->with('error', 'Invalid login link.');
+        }
+
+        // Log the user in
+        Auth::login($user);
+
+        // Regenerate session to prevent fixation
+        $request->session()->regenerate();
+
+        // Redirect to the intended page for clients (e.g., file upload)
+        return redirect()->route('upload-files')
+            ->with('success', 'Logged in successfully.');
     }
 }

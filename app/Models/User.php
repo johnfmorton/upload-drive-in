@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\URL;
 
 class User extends Authenticatable
 {
@@ -61,5 +62,26 @@ class User extends Authenticatable
     public function canLoginWithPassword()
     {
         return !$this->isClient();
+    }
+
+    /**
+     * Generate a temporary signed URL for client login.
+     *
+     * @return string
+     */
+    public function getLoginUrl(): string
+    {
+        // Ensure this method is only called for client users
+        if (!$this->isClient()) {
+            // Or handle this case as appropriate, maybe throw an exception
+            return '#'; // Or return an empty string or throw an exception
+        }
+
+        // Generate a signed URL that is valid for a specific duration (e.g., 7 days)
+        return URL::temporarySignedRoute(
+            'login.via.token',
+            now()->addDays(7),
+            ['user' => $this->id] // Pass the user model instance or just the ID
+        );
     }
 }
