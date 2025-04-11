@@ -88,3 +88,8 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::post('/upload', [UploadController::class, 'store'])->name('chunk.upload');
+
+// Route to associate message with uploads
+Route::post('/api/uploads/associate-message', [UploadController::class, 'associateMessage'])
+    ->middleware('auth') // Protect this route
+    ->name('uploads.associate.message');

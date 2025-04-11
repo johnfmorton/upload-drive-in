@@ -80,26 +80,53 @@ if (uppyDashboardElement) {
             if (messageInput) {
                 const message = messageInput.value;
                 console.log('Message entered:', message);
-                // TODO: Implement sending the message after completion
-                // You might make a fetch request here to a new endpoint
-                // passing the message and perhaps identifiers for the uploaded files (from result.successful)
+
+                // Only proceed if there's a message and at least one successful upload
                 if (message && result.successful.length > 0) {
-                    // Example: Send message to backend
-                    // fetch('/api/associate-message', {
-                    //     method: 'POST',
-                    //     headers: {
-                    //         'Content-Type': 'application/json',
-                    //         'X-CSRF-TOKEN': csrfToken
-                    //     },
-                    //     body: JSON.stringify({
-                    //         message: message,
-                    //         files: result.successful.map(f => f.response.body.name) // Assuming backend returns filename
-                    //     })
-                    // })
-                    // .then(response => response.json())
-                    // .then(data => console.log('Message associated:', data))
-                    // .catch(error => console.error('Error associating message:', error));
-                    console.log('TODO: Send message to backend:', message, result.successful);
+                    const successfulFileIds = result.successful.map(file => {
+                        // Assuming the backend response JSON for a successful upload
+                        // looks like { ..., "file_upload_id": 123, ... }
+                        return file.response.body.file_upload_id;
+                    }).filter(id => id); // Filter out any undefined IDs
+
+                    if (successfulFileIds.length > 0) {
+                        console.log('Sending message for file IDs:', successfulFileIds);
+                        fetch('/api/uploads/associate-message', { // Define the API endpoint
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken // Reuse the CSRF token
+                            },
+                            body: JSON.stringify({
+                                message: message,
+                                file_upload_ids: successfulFileIds
+                            })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                // Log detailed error if response is not OK
+                                response.text().then(text => {
+                                    console.error('Error response from associate-message:', response.status, text);
+                                });
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                         })
+                        .then(data => {
+                            console.log('Message associated successfully:', data);
+                            // Optionally clear the message field or give user feedback
+                            messageInput.value = ''; // Clear message field on success
+                        })
+                        .catch(error => {
+                            console.error('Error associating message:', error);
+                            // Optionally inform the user that the message could not be saved
+                        });
+                    } else {
+                        console.log('No successful file IDs found in Uppy results to associate message with.');
+                    }
+                } else {
+                    console.log('No message entered or no successful uploads, skipping message association.');
                 }
             }
         });

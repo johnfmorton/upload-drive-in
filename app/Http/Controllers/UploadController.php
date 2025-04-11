@@ -13,6 +13,7 @@ use App\Models\FileUpload;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class UploadController extends Controller
 {
@@ -116,5 +117,54 @@ class UploadController extends Controller
         $extension = $file->getClientOriginalExtension();
         $filename = Str::random(40) . '.' . $extension;
         return $filename;
+    }
+
+    /**
+     * Associates a message with one or more FileUpload records.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function associateMessage(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'message' => 'required|string|max:5000',
+            'file_upload_ids' => 'required|array',
+            'file_upload_ids.*' => 'required|integer|exists:file_uploads,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $message = $request->input('message');
+        $fileUploadIds = $request->input('file_upload_ids');
+
+        try {
+            // Ensure the files belong to the authenticated user for security
+            $updatedCount = FileUpload::whereIn('id', $fileUploadIds)
+                ->where('email', Auth::user()->email) // Check ownership
+                ->update(['message' => $message]);
+
+            if ($updatedCount == 0) {
+                // This could happen if the IDs were valid but didn't belong to the user
+                Log::warning('Associate message: No files updated, possibly due to ownership mismatch.', [
+                    'user_id' => Auth::id(),
+                    'requested_ids' => $fileUploadIds
+                ]);
+                // Return a success response anyway, as the request was valid,
+                // but maybe log or handle this case specifically if needed.
+            }
+
+            return response()->json(['success' => true, 'message' => 'Message associated with ' . $updatedCount . ' file(s).']);
+
+        } catch (\Exception $e) {
+            Log::error('Error associating message with uploads:', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to associate message.'], 500);
+        }
     }
 }
