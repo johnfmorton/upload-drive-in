@@ -75,3 +75,21 @@ npm run build
 - Monitor `storage/logs/laravel.log` for errors.
 - Keep your `.env` file up to date with token and permission details.
 - Match your logic between dashboard and CLI when checking for pending uploads.
+
+
+## CLI and cron jobs
+
+The ClearOldUploads command has been created and implemented.
+You can now run it from your terminal like this:
+
+```sh
+php artisan uploads:clear-old
+```
+
+To clear files older than 24 hours (default):
+
+```sh
+php artisan uploads:clear-old --hours=48
+```
+
+This command will look in the storage/app/public/uploads directory and delete any files whose last modified time is older than the specified threshold. You can add this command to your cron job scheduler for regular cleanup. For example, to run it daily:
