@@ -9,7 +9,10 @@ use Pion\Laravel\ChunkUpload\Handler\HandlerFactory;
 use Pion\Laravel\ChunkUpload\Receiver\FileReceiver;
 use Illuminate\Http\UploadedFile;
 use App\Jobs\UploadToGoogleDrive; // Assuming this job exists
+use App\Models\FileUpload;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class UploadController extends Controller
 {
@@ -58,6 +61,10 @@ class UploadController extends Controller
     protected function saveFile(UploadedFile $file)
     {
         $fileName = $this->createFilename($file);
+        $originalFilename = $file->getClientOriginalName();
+        $mimeType = $file->getMimeType();
+        $fileSize = $file->getSize();
+
         // Build the file path
         $filePath = "public/uploads/"; // Your target directory relative to storage/app
         $finalPath = storage_path("app/" . $filePath);
@@ -65,18 +72,37 @@ class UploadController extends Controller
         // Move the file
         $file->move($finalPath, $fileName);
 
-        // Optionally, dispatch your job to upload to Google Drive
-        // Assuming your job takes the file path relative to the storage directory
-        // You might need to adjust this based on your job's implementation
-        $storagePath = $filePath . $fileName;
-        UploadToGoogleDrive::dispatch($storagePath, $fileName); // Adjust arguments if needed
+        // Get authenticated user's email
+        $userEmail = Auth::user() ? Auth::user()->email : null;
+        if (!$userEmail) {
+             // Handle the case where the user is not authenticated if necessary
+             // For now, let's return an error or log it
+             Log::error('User not authenticated during file save.');
+             return response()->json(['error' => 'User not authenticated', 'status' => false], 401);
+        }
+
+        // Create FileUpload model instance
+        $fileUpload = FileUpload::create([
+            'email' => $userEmail,
+            'filename' => $fileName,
+            'original_filename' => $originalFilename,
+            'mime_type' => $mimeType,
+            'file_size' => $fileSize,
+            'validation_method' => 'auth', // Indicate authentication method
+            // 'message' => null, // We'll handle message association later
+        ]);
+
+        // Dispatch the job with the FileUpload model instance
+        UploadToGoogleDrive::dispatch($fileUpload);
 
         return response()->json([
-            'path' => $filePath,
+            'file_upload_id' => $fileUpload->id,
+            'path' => $filePath . $fileName,
             'name' => $fileName,
-            'mime_type' => $file->getMimeType(),
-            'size' => $file->getSize(),
-            'status' => true // Indicate success
+            'original_name' => $originalFilename,
+            'mime_type' => $mimeType,
+            'size' => $fileSize,
+            'status' => true
         ]);
     }
 
