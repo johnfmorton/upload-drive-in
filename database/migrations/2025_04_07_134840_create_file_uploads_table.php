@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('email');
             $table->string('filename');
             $table->string('original_filename');
-            $table->string('google_drive_file_id');
+            $table->string('google_drive_file_id')->nullable();
             $table->text('message')->nullable();
             $table->string('validation_method'); // 'email' or 'token'
             $table->string('mime_type');
