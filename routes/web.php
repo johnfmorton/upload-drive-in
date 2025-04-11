@@ -6,6 +6,7 @@ use App\Http\Controllers\PublicUploadController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileUploadController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\UploadController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -85,3 +86,5 @@ Route::middleware('auth')->group(function () {
         return back()->with('status', 'verification-link-sent');
     })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 });
+
+Route::post('/upload', [UploadController::class, 'store'])->name('chunk.upload');
