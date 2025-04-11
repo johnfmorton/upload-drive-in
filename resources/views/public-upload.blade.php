@@ -4,7 +4,7 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <div class="text-center mb-8">
-                        <h1 class="text-3xl font-bold text-gray-900 mb-4">Upload files to {{ config('app.company_name') }}</h1>
+                        <h1 class="text-3xl font-bold text-gray-900 mb-4 text-balance">Upload files to {{ config('app.company_name') }}</h1>
                         <p class="text-gray-600">Begin by validating your email address.</p>
                     </div>
 
@@ -20,7 +20,7 @@
                         <div class="text-center">
                             <button type="submit"
                                 class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                Validate Email Address
+                                {{ __('messages.validate-email-button') }}
                             </button>
                         </div>
                     </form>
@@ -87,7 +87,7 @@
             .finally(() => {
                 // Re-enable the submit button
                 submitButton.disabled = false;
-                submitButton.innerHTML = 'Validate Email Address';
+                submitButton.innerHTML = '{{ __('messages.validate-email-button') }}';
             });
         });
     </script>
