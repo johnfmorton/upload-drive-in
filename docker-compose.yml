@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # PHP-FPM Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile # Assumes your PHP Dockerfile is named 'Dockerfile'
+    container_name: laravel_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      # Mount application code (Consider COPY in Dockerfile for pure production)
+      - .:/var/www/html
+      # Persistent storage for logs, cache, sessions, uploads etc.
+      - laravel_storage:/var/www/html/storage
+      # Persistent storage for the SQLite database file
+      # IMPORTANT: Ensure DB_DATABASE in .env is set to /var/www/html/database/database.sqlite
+      - sqlite_db:/var/www/html/database
+    depends_on:
+      # Optional: Add depends_on if you have other services like Redis/Meilisearch
+      - web # Ensures web starts after app, though Nginx handles PHP-FPM being down
+    # Environment variables can be loaded from an .env file at the root
+    # env_file:
+    #   - .env
+
+  # Nginx Service
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx # Assumes your Nginx Dockerfile is named 'Dockerfile.nginx'
+    container_name: laravel_web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # Add "443:443" if you're handling TLS/SSL termination in this container
+    volumes:
+      # Share code for Nginx to serve static files directly
+      - .:/var/www/html
+      # Share storage if serving files directly from storage/app/public
+      - laravel_storage:/var/www/html/storage
+    depends_on:
+      - app
+
+volumes:
+  # Named volume for persistent SQLite database
+  sqlite_db:
+    driver: local
+  # Named volume for persistent Laravel storage
+  laravel_storage:
+    driver: local
