@@ -1,6 +1,6 @@
 <x-guest-layout>
     <div class="mb-4 text-sm text-gray-600">
-        {{ __('Admin users can log in with their email and password. Client users must use email verification.') }}
+        {!! __('messages.login-message') !!}
     </div>
 
     @if (session('error'))
