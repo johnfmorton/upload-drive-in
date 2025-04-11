@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Company Name
+    |--------------------------------------------------------------------------
+    |
+    | This value is the name of the company running the application.
+    | It can be used in UI elements like headers or email signatures.
+    |
+    */
+
+    'company_name' => env('COMPANY_NAME', 'Your Company Name'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

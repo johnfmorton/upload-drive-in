@@ -1,10 +1,10 @@
 <x-guest-layout>
-    <div class="min-h-screen bg-gray-100 py-12">
+    <div class="bg-gray-100 py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <div class="text-center mb-8">
-                        <h1 class="text-3xl font-bold text-gray-900 mb-4">Upload files to Acme, Inc.</h1>
+                        <h1 class="text-3xl font-bold text-gray-900 mb-4">Upload files to {{ config('app.company_name') }}</h1>
                         <p class="text-gray-600">Begin by validating your email address.</p>
                     </div>
 
@@ -26,7 +26,7 @@
                     </form>
 
                     <div id="validationMessage" class="mt-4 text-center hidden">
-                        <p class="text-gray-600">You will receive an email with a link to validate your email address. Clicking the link we send you will allow you to upload files to John Smith at Acme Inc.</p>
+                        <p class="text-gray-600">You will receive an email with a link to validate your email address. Clicking the link we send you will allow you to upload files to John Smith at {{ config('app.company_name') }}.</p>
                     </div>
 
                     <div id="errorMessage" class="mt-4 text-center hidden">
