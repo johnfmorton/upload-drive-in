@@ -75,7 +75,8 @@ class PublicUploadController extends Controller
             ['email' => $request->email],
             [
                 'name' => explode('@', $request->email)[0],
-                'password' => \Illuminate\Support\Str::random(32)
+                'password' => \Illuminate\Support\Str::random(32),
+                'role' => 'client'
             ]
         );
 
