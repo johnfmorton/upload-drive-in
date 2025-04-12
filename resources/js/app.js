@@ -20,7 +20,10 @@ Alpine.start();
 // --- Uppy Initialization ---
 import Uppy from '@uppy/core';
 import Dashboard from '@uppy/dashboard';
-import XhrUpload from '@uppy/xhr-upload';
+// Remove XhrUpload import
+// import XhrUpload from '@uppy/xhr-upload';
+// Import Tus plugin
+import Tus from '@uppy/tus';
 
 // Check if the Uppy dashboard element exists before initializing
 const uppyDashboardElement = document.getElementById('uppy-dashboard');
@@ -50,22 +53,46 @@ if (uppyDashboardElement) {
             proudlyDisplayPoweredByUppy: true,
             height: 470,
             showProgressDetails: true,
-            note: 'Upload files here. Chunking is enabled for large files.',
+            // Updated note for clarity, though functionally chunking depends on Tus now
+            note: 'Upload files here. Large files will be uploaded in chunks.',
             browserBackButtonClose: true
         })
-        .use(XhrUpload, {
-            endpoint: uploadUrl, // Use the URL passed from the Blade template
-            formData: true,
-            fieldName: 'file',
-            chunkSize: 5 * 1024 * 1024, // 5MB chunks
-            limit: 10,
+        // Replace XhrUpload with Tus
+        .use(Tus, {
+            endpoint: uploadUrl, // Use the same endpoint, pion backend supports Tus
+            retryDelays: [0, 1000, 3000, 5000], // Optional: configure retries
+            chunkSize: 5 * 1024 * 1024, // Suggest a 5MB chunk size (Tus may negotiate)
+            limit: 10, // Keep concurrent upload limit
             headers: {
-                'X-CSRF-TOKEN': csrfToken // Use the token fetched from the meta tag
-            }
+                'X-CSRF-TOKEN': csrfToken // Send CSRF token in headers
+            },
+            // Tus automatically handles metadata like filename, type
+            // No need for formData or fieldName
         });
 
         uppy.on('upload-success', (file, response) => {
-            console.log('File uploaded successfully:', file.name, response.body);
+            // Tus response might be different from XHR, check pion docs or log response
+            // For pion/laravel-chunk-upload with Tus, the final response url might be needed
+            // or it might return the same JSON if pion handles the final assembly response.
+            // Let's assume for now the backend controller still returns the JSON on completion.
+            console.log('File uploaded successfully:', file.name);
+            // Attempt to parse the uploadURL which might contain the final file info if backend uses Tus protocol correctly
+            console.log('Upload URL from response:', response.uploadURL);
+            // If the backend controller's `saveFile` method is still hit on completion and returns JSON:
+            // We need to access the response potentially differently if it's not in `response.body` anymore
+            // For now, let's log the whole response to see what we get
+            console.log('Tus success response:', response);
+
+            // Modification for associateMessage: Access file ID from Tus upload URL or metadata
+            // This part might need adjustment based on how pion returns the final file ID with Tus
+            // Let's keep the existing logic but add a check for response.body
+            if (response.body && response.body.file_upload_id) {
+                 file.meta.file_upload_id = response.body.file_upload_id;
+            } else {
+                // Attempt to extract from uploadURL or log a warning
+                console.warn('Could not find file_upload_id directly in Tus response body. Check console logs for details.');
+                // You might need to make another request to the server using response.uploadURL to get the final ID
+            }
         });
 
         uppy.on('upload-error', (file, error, response) => {
@@ -82,9 +109,8 @@ if (uppyDashboardElement) {
                 // Only proceed if there's a message and at least one successful upload
                 if (message && result.successful.length > 0) {
                     const successfulFileIds = result.successful.map(file => {
-                        // Assuming the backend response JSON for a successful upload
-                        // looks like { ..., "file_upload_id": 123, ... }
-                        return file.response.body.file_upload_id;
+                        // Try accessing the ID potentially stored in meta during upload-success
+                        return file.meta.file_upload_id || (file.response && file.response.body && file.response.body.file_upload_id);
                     }).filter(id => id); // Filter out any undefined IDs
 
                     if (successfulFileIds.length > 0) {
