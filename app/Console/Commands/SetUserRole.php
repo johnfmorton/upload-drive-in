@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
  *
  * Example:
  * php artisan user:set-role user@example.com --role=admin
- * php artisan user:set-role user@example.com --role=user
+ * php artisan user:set-role user@example.com --role=client
  */
 class SetUserRole extends Command
 {
