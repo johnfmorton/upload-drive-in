@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use Pion\Laravel\ChunkUpload\Exceptions\UploadMissingFileException;
 use Pion\Laravel\ChunkUpload\Handler\HandlerFactory;
 use Pion\Laravel\ChunkUpload\Receiver\FileReceiver;
+use Pion\Laravel\ChunkUpload\Handler\TusHandler;
 use Illuminate\Http\UploadedFile;
 use App\Jobs\UploadToGoogleDrive; // Assuming this job exists
 use App\Models\FileUpload;
@@ -30,52 +31,61 @@ class UploadController extends Controller
     {
         Log::debug('Chunk upload request received.', [
             'headers' => $request->headers->all(),
-            'resumable' => $request->all() // Log pion specific headers/params
+            'method' => $request->method(),
+            'resumable' => $request->all()
         ]);
 
-        // Create the file receiver
-        $receiver = new FileReceiver('file', $request, HandlerFactory::classFromRequest($request));
+        // Explicitly check for Tus header
+        if ($request->hasHeader('Tus-Resumable')) {
+            $handlerClass = TusHandler::class;
+            Log::debug('Tus header detected, forcing TusHandler.');
+        } else {
+            // Fallback to factory detection for other types (if any)
+            $handlerClass = HandlerFactory::classFromRequest($request);
+            Log::debug('No Tus header, using factory-determined handler.', ['handler' => $handlerClass]);
+        }
 
-        // Check if the upload is success, throw exception or return response
+        // Instantiate the FileReceiver, passing the determined handler class name
+        $receiver = new FileReceiver('file', $request, $handlerClass);
+
+        // Keep the isUploaded() check commented out as it might interfere with Tus flow
+        /*
         if ($receiver->isUploaded() === false) {
             Log::error('Chunk upload receiver reported no file uploaded.');
             throw new UploadMissingFileException();
         }
+        */
 
-        Log::debug('Chunk receiver created, attempting to receive chunk.');
+        Log::debug('Receiver created, attempting to receive/handle request.', ['handler' => $handlerClass]);
 
-        // Receive the file
+        // Receive the file or handle the Tus request
         try {
             $save = $receiver->receive();
+        } catch (UploadMissingFileException $e) {
+            Log::error('UploadMissingFileException during receive() call.', [
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['error' => 'Missing file in upload request.'], 400);
         } catch (\Exception $e) {
-            Log::error('Exception during chunk receive() call.', [
+            Log::error('Exception during receive() call.', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            // Re-throw the exception or return an error response
-            return response()->json(['error' => 'Failed to process chunk: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Failed to process upload.'], 500);
         }
 
-
-        Log::debug('Chunk received successfully.', [
-            'isFinished' => $save->isFinished(),
-            'path' => $save->getPath(), // Log temp path where chunk is stored
-        ]);
-
-        // Check if the upload has finished (all chunks received)
-        if ($save->isFinished()) {
-            Log::info('Final chunk received, attempting to save the complete file.');
+        // The initial Tus POST request might result in $save being null or not an object
+        // Check if $save is a valid object before calling methods on it
+        if (is_object($save) && $save->isFinished()) {
+            Log::info('Upload finished, attempting to save the complete file.');
             return $this->saveFile($save->getFile());
         }
 
-        // We are in chunk mode, send the current progress
-        $handler = $save->handler();
-        $percentage = $handler->getPercentageDone();
-        Log::debug('Chunk processed, not finished yet.', ['percentage_done' => $percentage]);
-        return response()->json([
-            "done" => $percentage,
-            'status' => true
-        ]);
+        // If $save is not an object (e.g., initial Tus POST handled) or upload is not finished
+        // Let the handler build the appropriate response
+        // Directly let the receiver handle sending the appropriate response for Tus (or other protocols)
+        Log::debug('Upload not finished or initial Tus request, performing receiver response.');
+        return $receiver->performResponse();
     }
 
     /**

@@ -11,6 +11,7 @@
     "@tailwindcss/vite": "^4.0.0",
     "@uppy/core": "^4.4.4",
     "@uppy/dashboard": "^4.3.3",
+    "@uppy/tus": "^4.2.2",
     "@uppy/xhr-upload": "^4.3.3",
     "alpinejs": "^3.4.2",
     "autoprefixer": "^10.4.21",
