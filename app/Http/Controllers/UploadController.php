@@ -28,26 +28,52 @@ class UploadController extends Controller
      */
     public function store(Request $request)
     {
+        Log::debug('Chunk upload request received.', [
+            'headers' => $request->headers->all(),
+            'resumable' => $request->all() // Log pion specific headers/params
+        ]);
+
         // Create the file receiver
         $receiver = new FileReceiver('file', $request, HandlerFactory::classFromRequest($request));
 
         // Check if the upload is success, throw exception or return response
         if ($receiver->isUploaded() === false) {
+            Log::error('Chunk upload receiver reported no file uploaded.');
             throw new UploadMissingFileException();
         }
 
+        Log::debug('Chunk receiver created, attempting to receive chunk.');
+
         // Receive the file
-        $save = $receiver->receive();
+        try {
+            $save = $receiver->receive();
+        } catch (\Exception $e) {
+            Log::error('Exception during chunk receive() call.', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Re-throw the exception or return an error response
+            return response()->json(['error' => 'Failed to process chunk: ' . $e->getMessage()], 500);
+        }
+
+
+        Log::debug('Chunk received successfully.', [
+            'isFinished' => $save->isFinished(),
+            'path' => $save->getPath(), // Log temp path where chunk is stored
+        ]);
 
         // Check if the upload has finished (all chunks received)
         if ($save->isFinished()) {
+            Log::info('Final chunk received, attempting to save the complete file.');
             return $this->saveFile($save->getFile());
         }
 
         // We are in chunk mode, send the current progress
         $handler = $save->handler();
+        $percentage = $handler->getPercentageDone();
+        Log::debug('Chunk processed, not finished yet.', ['percentage_done' => $percentage]);
         return response()->json([
-            "done" => $handler->getPercentageDone(),
+            "done" => $percentage,
             'status' => true
         ]);
     }
@@ -61,6 +87,13 @@ class UploadController extends Controller
      */
     protected function saveFile(UploadedFile $file)
     {
+        Log::info('saveFile method entered.', [
+            'original_name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'mime' => $file->getMimeType(),
+            'temp_path' => $file->getRealPath() // Path where pion assembled the file
+        ]);
+
         $fileName = $this->createFilename($file);
         $originalFilename = $file->getClientOriginalName();
         $mimeType = $file->getMimeType();
@@ -70,35 +103,111 @@ class UploadController extends Controller
         $filePath = "public/uploads/"; // Your target directory relative to storage/app
         $finalPath = storage_path("app/" . $filePath);
 
-        // Move the file
-        $file->move($finalPath, $fileName);
-
-        // Get authenticated user's email
-        $userEmail = Auth::user() ? Auth::user()->email : null;
-        if (!$userEmail) {
-             // Handle the case where the user is not authenticated if necessary
-             // For now, let's return an error or log it
-             Log::error('User not authenticated during file save.');
-             return response()->json(['error' => 'User not authenticated', 'status' => false], 401);
-        }
-
-        // Create FileUpload model instance
-        $fileUpload = FileUpload::create([
-            'email' => $userEmail,
-            'filename' => $fileName,
-            'original_filename' => $originalFilename,
-            'mime_type' => $mimeType,
-            'file_size' => $fileSize,
-            'validation_method' => 'auth', // Indicate authentication method
-            // 'message' => null, // We'll handle message association later
+        Log::debug('Generated unique filename and final path.', [
+            'new_filename' => $fileName,
+            'final_storage_path' => $finalPath
         ]);
 
-        // Dispatch the job with the FileUpload model instance
-        UploadToGoogleDrive::dispatch($fileUpload);
+        // Check if final directory exists
+        if (!Storage::disk('local')->exists($filePath)) { // Check relative to storage/app
+             Log::info('Final storage directory does not exist, attempting to create.', ['directory' => $filePath]);
+             try {
+                Storage::disk('local')->makeDirectory($filePath);
+             } catch (\Exception $e) {
+                 Log::error('Failed to create final storage directory.', [
+                     'directory' => $filePath,
+                     'error' => $e->getMessage()
+                 ]);
+                 return response()->json(['error' => 'Could not create storage directory.'], 500);
+             }
+        }
 
+        Log::debug('Attempting to move file to final destination.', [
+            'source' => $file->getRealPath(),
+            'destination_dir' => $finalPath,
+            'destination_filename' => $fileName
+        ]);
+
+        // Move the file
+        try {
+            $moveResult = $file->move($finalPath, $fileName);
+            Log::info('File moved successfully.', ['move_result_path' => $moveResult->getPathname()]);
+        } catch (\Exception $e) {
+             Log::error('Failed to move uploaded file to final destination.', [
+                 'source' => $file->getRealPath(),
+                 'destination' => $finalPath . $fileName,
+                 'error' => $e->getMessage(),
+                 'trace' => $e->getTraceAsString()
+             ]);
+             // Note: pion/laravel-chunk-upload might leave the temp file here.
+             // Consider adding cleanup logic if needed.
+             return response()->json(['error' => 'Failed to save uploaded file.'], 500);
+        }
+
+
+        // Get authenticated user's email
+        $user = Auth::user();
+        $userEmail = $user ? $user->email : null;
+        if (!$userEmail) {
+             Log::error('User not authenticated during file save.', [
+                 'file_name' => $fileName
+             ]);
+             // Clean up the moved file if auth fails? Depends on requirements.
+             // Storage::disk('local')->delete($filePath . $fileName);
+             return response()->json(['error' => 'User not authenticated'], 401);
+        }
+
+        Log::debug('User authenticated, creating FileUpload record.', [
+            'email' => $userEmail,
+            'filename' => $fileName
+        ]);
+
+        // Create FileUpload model instance
+        try {
+            $fileUpload = FileUpload::create([
+                'email' => $userEmail,
+                'filename' => $fileName,
+                'original_filename' => $originalFilename,
+                'mime_type' => $mimeType,
+                'file_size' => $fileSize,
+                'validation_method' => 'auth',
+            ]);
+            Log::info('FileUpload record created successfully.', ['file_upload_id' => $fileUpload->id]);
+        } catch (\Exception $e) {
+            Log::error('Failed to create FileUpload database record.', [
+                'filename' => $fileName,
+                'email' => $userEmail,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            // Clean up the moved file if DB save fails
+             Storage::disk('local')->delete($filePath . $fileName);
+             return response()->json(['error' => 'Failed to record file upload.'], 500);
+        }
+
+
+        // Dispatch the job with the FileUpload model instance
+        Log::debug('Dispatching UploadToGoogleDrive job.', ['file_upload_id' => $fileUpload->id]);
+        try {
+            UploadToGoogleDrive::dispatch($fileUpload);
+            Log::info('UploadToGoogleDrive job dispatched successfully.', ['file_upload_id' => $fileUpload->id]);
+        } catch (\Exception $e) {
+             Log::error('Failed to dispatch UploadToGoogleDrive job.', [
+                 'file_upload_id' => $fileUpload->id,
+                 'error' => $e->getMessage(),
+                 'trace' => $e->getTraceAsString()
+             ]);
+             // Note: The file is saved locally, and DB record exists.
+             // The ProcessPendingUploads command should pick it up later.
+             // So, we might not want to return a hard error to the user here.
+             // However, it's good to log that immediate dispatch failed.
+        }
+
+
+        Log::info('saveFile method completed successfully.', ['file_upload_id' => $fileUpload->id]);
         return response()->json([
             'file_upload_id' => $fileUpload->id,
-            'path' => $filePath . $fileName,
+            'path' => $filePath . $fileName, // Path relative to storage/app/public for URL generation if needed
             'name' => $fileName,
             'original_name' => $originalFilename,
             'mime_type' => $mimeType,
@@ -115,7 +224,9 @@ class UploadController extends Controller
     protected function createFilename(UploadedFile $file)
     {
         $extension = $file->getClientOriginalExtension();
+        // Use a more robust method for filename generation if needed
         $filename = Str::random(40) . '.' . $extension;
+        Log::debug('Created filename.', ['original' => $file->getClientOriginalName(), 'new' => $filename]);
         return $filename;
     }
 
