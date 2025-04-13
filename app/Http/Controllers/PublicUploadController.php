@@ -18,7 +18,7 @@ class PublicUploadController extends Controller
             return redirect()->route('upload-files');
         }
 
-        return view('public-upload');
+        return view('email-validation-form');
     }
 
     public function validateEmail(Request $request)

@@ -250,7 +250,7 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <template x-for="file in filteredAndSortedFiles" :key="file.id">
                                     <tr>
-                                        <template x-if="columns.fileName"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="file.original_filename"></td></template>
+                                        <template x-if="columns.fileName"><td class="px-6 py-4 text-sm text-gray-900 break-words max-w-xs" x-text="file.original_filename"></td></template>
                                         <template x-if="columns.user"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="file.email"></td></template>
                                         <template x-if="columns.size"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatSize(file.file_size)"></td></template>
                                         <template x-if="columns.status">
@@ -266,7 +266,7 @@
                                         <template x-if="columns.message"><td class="px-6 py-4 whitespace-normal text-sm text-gray-500" x-text="file.message"></td></template>
                                          <template x-if="columns.uploadedAt"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(file.created_at)"></td></template>
                                         <template x-if="columns.actions">
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                            <td class="px-6 py-4 text-sm font-medium flex flex-wrap gap-2">
                                                 <template x-if="file.google_drive_file_id">
                                                      <a :href="`https://drive.google.com/file/d/${file.google_drive_file_id}/view`" target="_blank" class="text-indigo-600 hover:text-indigo-900">View in Drive</a>
                                                 </template>
