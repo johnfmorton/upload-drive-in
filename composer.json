@@ -13,7 +13,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "laravel/ui": "^4.6",
-        "pion/laravel-chunk-upload": "^1.5",
+        "pion/laravel-chunk-upload": "^1.5.6",
         "predis/predis": "^2.3"
     },
     "require-dev": {
