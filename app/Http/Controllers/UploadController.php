@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Pion\Laravel\ChunkUpload\Save\ChunkSave;
 
 class UploadController extends Controller
 {
@@ -35,10 +36,8 @@ class UploadController extends Controller
         ]);
 
         // Determine handler using the factory
-        /*
         $handlerClass = HandlerFactory::classFromRequest($request);
         Log::debug('Using factory-determined handler.', ['handler' => $handlerClass]);
-        */
 
         // --- Explicitly use ContentRangeUploadHandler ---
         /*
@@ -49,51 +48,43 @@ class UploadController extends Controller
         // Instantiate the FileReceiver, passing the determined handler class name
         $receiver = new FileReceiver('file', $request, $handlerClass);
 
-        // Keep the isUploaded() check commented out as it might interfere with Tus flow
-        /*
-        if ($receiver->isUploaded() === false) {
-            Log::error('Chunk upload receiver reported no file uploaded.');
-            throw new UploadMissingFileException();
+        // Check if receiver initialized successfully
+        if (!$receiver->isUploaded()) {
+            Log::error('FileReceiver initialization failed or file not uploaded.');
+            return response()->json(['error' => 'No file uploaded or receiver init failed.'], 400);
         }
-        */
 
         Log::debug('Receiver created, attempting to receive/handle request.', ['handler' => $handlerClass]);
 
-        // Receive the file or handle the Tus request
+        // Receive the file or chunk
         try {
-            $save = $receiver->receive();
+            $save = $receiver->receive(); // $save is ChunkSave or SingleSave
         } catch (\Exception $e) {
-            // Log detailed exception during receiver creation or receive()
             Log::error('Exception during upload handling.', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'handler_class' => $handlerClass, // Log which handler was attempted
+                'handler_class' => $handlerClass, // Use the determined class
             ]);
-            // Ensure a response is always returned, even on early exceptions
             return response()->json(['error' => 'Failed to process upload request.'], 500);
         }
 
-        // Check if $save is an object and if the upload is finished.
-        if (is_object($save) && method_exists($save, 'isFinished') && $save->isFinished()) {
+        // Check if the upload is finished (SingleSave will also pass isFinished == true)
+        if ($save->isFinished()) {
             Log::info('Upload finished, attempting to save the complete file.');
             return $this->saveFile($save->getFile());
         }
 
-        // If the upload is not finished, let the handler return its response
-        // $save will be instance of Response in this case (like 201 or 204)
-        /*
-        if ($save instanceof Response) {
-            Log::debug('Upload not finished, returning TusHandler response.', ['status_code' => $save->getStatusCode()]);
-            return $save;
-        }
-        */
+        // If upload is not finished (it's a ChunkSave instance),
+        // let the handler handle the response for the received chunk.
+        // The handler instance is not directly accessible from the receiver in v1.5.6,
+        // but the AbstractSave object ($save) has a reference to its handler.
+        // $handler = $save->handler(); // Get handler from the Save object - Not needed for simple response
+        // Log::debug('Chunk received successfully, returning handler chunk response.');
+        // return $handler->handleChunkResponse(); // Method doesn't exist on DropZone handler
 
-        // The handler for SimpleUploader, DropZone, etc., returns the Save instance when not finished
-        // It doesn't return a Response object itself, but relies on the controller.
-        // We need to return a response that indicates success so far.
-        $handler = $receiver->getHandler();
-        Log::debug('Chunk received successfully, returning handler percentage response.');
-        return $handler->handleChunkResponse(); // Use the handler's intended response for chunks
+        // Instead, just return a simple success response for the chunk
+        Log::debug('Chunk received successfully, returning generic success response.');
+        return response()->json(['status' => true, 'message' => 'Chunk received successfully.'], 200);
     }
 
     /**
