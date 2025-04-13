@@ -2,6 +2,7 @@
 
 dev:
 	ddev launch
+	ddev php artisan migrate
 	ddev exec npm run dev
 
 build:
