@@ -80,6 +80,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Password update route
+    Route::put('password', [\App\Http\Controllers\Auth\PasswordController::class, 'update'])
+        ->name('password.update');
+
     // Email verification routes
     Route::post('/email/verification-notification', function () {
         auth()->user()->sendEmailVerificationNotification();
