@@ -17,6 +17,16 @@ Route::middleware(['guest'])->group(function () {
     Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'loginViaToken'])
         ->middleware('signed')
         ->name('login.via.token');
+
+    // Password Reset Routes
+    Route::get('forgot-password', [\App\Http\Controllers\Auth\PasswordResetLinkController::class, 'create'])
+        ->name('password.request');
+    Route::post('forgot-password', [\App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])
+        ->name('password.email');
+    Route::get('reset-password/{token}', [\App\Http\Controllers\Auth\NewPasswordController::class, 'create'])
+        ->name('password.reset');
+    Route::post('reset-password', [\App\Http\Controllers\Auth\NewPasswordController::class, 'store'])
+        ->name('password.store');
 });
 
 // Auth routes
