@@ -50,6 +50,7 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
             retryChunksLimit: 3,
             parallelChunkUploads: false, // Upload chunks sequentially for pion
             addRemoveLinks: true,
+            autoProcessQueue: false,
             // dictDefaultMessage: "Drop files here or click to upload",
             headers: {
                 'X-CSRF-TOKEN': csrfToken
@@ -119,19 +120,52 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
         // --- Handle message form submission ---
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault(); // Prevent default form submission
-
-            const message = messageInput.value;
-            const fileUploadIds = fileIdsInput.value ? JSON.parse(fileIdsInput.value) : [];
-
-            console.log('Submitting message:', message);
-            console.log('For file IDs:', fileUploadIds);
             const submitButton = this.querySelector('button[type="submit"]');
 
-            if (message && fileUploadIds.length > 0) {
-                submitButton.disabled = true;
-                submitButton.textContent = 'Sending...';
+            // Check if there are files to upload
+            if (myDropzone.getQueuedFiles().length > 0) {
+                console.log('Starting file uploads...');
+                 submitButton.disabled = true;
+                 submitButton.textContent = 'Uploading Files...';
+                myDropzone.processQueue(); // Start uploading queued files
+            } else if (myDropzone.getFilesWithStatus(Dropzone.SUCCESS).length > 0) {
+                 // Files already uploaded, but maybe the message wasn't sent (e.g., error)
+                 // We can trigger the association logic directly here if needed,
+                 // but the queuecomplete event is generally safer.
+                 console.log('Files already uploaded, attempting to associate message via queuecomplete.');
+                 // Trigger queuecomplete manually? Or rely on it having fired?
+                 // For simplicity, let's assume queuecomplete will handle association.
+                 // If there were previous uploads, and the user hits submit again,
+                 // queuecomplete might need logic to handle this (e.g., check if message exists).
+                 // Let's initially focus on the primary flow.
+                 // We could potentially call the message association logic directly if needed:
+                 // associateMessageWithUploads(messageInput.value, fileIdsInput.value);
+                 alert('Files seem already uploaded. If message association failed, please try again after ensuring files are complete.');
 
-                fetch('/api/uploads/associate-message', { // Reuse API endpoint
+            } else {
+                 alert('Please add files to upload.');
+            }
+        });
+
+        // --- Add queuecomplete listener for message association ---
+        myDropzone.on("queuecomplete", function() {
+            console.log("Upload queue finished.");
+            const submitButton = messageForm.querySelector('button[type="submit"]');
+            const message = messageInput.value;
+            const successfullyUploadedFiles = myDropzone.getFilesWithStatus(Dropzone.SUCCESS);
+
+            // Get the stored file IDs from the successful files
+             const successfulFileIds = successfullyUploadedFiles
+                .map(file => file.file_upload_id) // Assumes ID was stored on file object in 'success' callback
+                .filter(id => id); // Filter out any undefined IDs
+
+            console.log('Queue complete. Successful file IDs:', successfulFileIds);
+
+            if (message && successfulFileIds.length > 0) {
+                console.log('Attempting to associate message with successful uploads.');
+                 submitButton.textContent = 'Associating Message...'; // Update button text
+
+                fetch('/api/uploads/associate-message', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -140,7 +174,7 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                     },
                     body: JSON.stringify({
                         message: message,
-                        file_upload_ids: fileUploadIds
+                        file_upload_ids: successfulFileIds
                     })
                 })
                 .then(response => {
@@ -154,24 +188,40 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                 })
                 .then(data => {
                     console.log('Message associated successfully:', data);
-                    // Clear form and Dropzone on success
-                    messageInput.value = '';
-                    fileIdsInput.value = '';
+                    messageInput.value = ''; // Clear message field
+                    fileIdsInput.value = '[]'; // Clear hidden input
                     myDropzone.removeAllFiles(true); // Clear Dropzone queue
-                    alert('Files uploaded and message associated successfully!'); // User feedback
+                    alert('Files uploaded and message associated successfully!');
                 })
                 .catch(error => {
                     console.error('Error associating message:', error);
-                    alert('Error associating message. Please check console.'); // User feedback
+                     alert('Files uploaded, but failed to associate message. Please check console or try submitting message again later.');
                 })
                 .finally(() => {
+                    // Re-enable button regardless of association outcome, allowing retry if needed
                     submitButton.disabled = false;
                     submitButton.textContent = 'Upload and Send Message';
-                });
-            } else if (!message) {
-                 alert('Please enter a message.');
+                 });
+
+            } else if (successfulFileIds.length > 0 && !message) {
+                 console.log('Uploads finished, but no message to associate.');
+                 alert('Files uploaded successfully! No message was entered.');
+                 // Optionally clear Dropzone here too
+                 // myDropzone.removeAllFiles(true);
+                 // fileIdsInput.value = '[]';
+                 submitButton.disabled = false; // Re-enable button
+                 submitButton.textContent = 'Upload and Send Message';
+
              } else {
-                alert('Please upload at least one file.');
+                 console.log('Queue finished, but no successful uploads or no message.');
+                 // Re-enable button if there were no successful uploads to process
+                 if (successfulFileIds.length === 0) {
+                      submitButton.disabled = false;
+                      submitButton.textContent = 'Upload and Send Message';
+                      if (myDropzone.getRejectedFiles().length > 0) {
+                        alert('Some files failed to upload. Please check errors and try again.');
+                      }
+                 }
             }
         });
     }
