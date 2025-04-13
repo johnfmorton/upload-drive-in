@@ -3,6 +3,7 @@
 dev:
 	ddev launch
 	ddev php artisan migrate
+	ddev exec php artisan queue:work &
 	ddev exec npm run dev
 
 build:
