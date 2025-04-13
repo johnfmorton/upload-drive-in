@@ -61,31 +61,27 @@ class UploadController extends Controller
         // Receive the file or handle the Tus request
         try {
             $save = $receiver->receive();
-        } catch (UploadMissingFileException $e) {
-            Log::error('UploadMissingFileException during receive() call.', [
-                'error' => $e->getMessage(),
-            ]);
-            return response()->json(['error' => 'Missing file in upload request.'], 400);
         } catch (\Exception $e) {
-            Log::error('Exception during receive() call.', [
+            // Log detailed exception during receiver creation or receive()
+            Log::error('Exception during upload handling.', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'handler_class' => $handlerClass, // Log which handler was attempted
             ]);
-            return response()->json(['error' => 'Failed to process upload.'], 500);
+            // Ensure a response is always returned, even on early exceptions
+            return response()->json(['error' => 'Failed to process upload request.'], 500);
         }
 
-        // The initial Tus POST request might result in $save being null or not an object
-        // Check if $save is a valid object before calling methods on it
+        // Check if $save is an object and if the upload is finished.
         if (is_object($save) && $save->isFinished()) {
             Log::info('Upload finished, attempting to save the complete file.');
             return $this->saveFile($save->getFile());
         }
 
-        // If $save is not an object (e.g., initial Tus POST handled) or upload is not finished
-        // Let the handler build the appropriate response
-        // Directly let the receiver handle sending the appropriate response for Tus (or other protocols)
-        Log::debug('Upload not finished or initial Tus request, performing receiver response.');
-        return $receiver->performResponse();
+        // If the upload is not finished, assume the TusHandler within receive()
+        // has already sent the appropriate response (e.g., 201 Created or 204 No Content).
+        // Do not return anything further from the controller action to avoid interference.
+        Log::debug('Chunk received successfully (or initial POST handled), but upload not finished. No explicit response returned by controller.');
     }
 
     /**
