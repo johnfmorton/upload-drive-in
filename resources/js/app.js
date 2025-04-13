@@ -23,7 +23,9 @@ import Dashboard from '@uppy/dashboard';
 // Remove XhrUpload import
 // import XhrUpload from '@uppy/xhr-upload';
 // Import Tus plugin
-import Tus from '@uppy/tus';
+// import Tus from '@uppy/tus';
+// Re-import XhrUpload
+import XhrUpload from '@uppy/xhr-upload';
 
 // Check if the Uppy dashboard element exists before initializing
 const uppyDashboardElement = document.getElementById('uppy-dashboard');
@@ -58,6 +60,7 @@ if (uppyDashboardElement) {
             browserBackButtonClose: true
         })
         // Replace XhrUpload with Tus
+        /* // Comment out Tus configuration
         .use(Tus, {
             endpoint: uploadUrl, // Use the same endpoint, pion backend supports Tus
             retryDelays: [0, 1000, 3000, 5000], // Optional: configure retries
@@ -69,6 +72,20 @@ if (uppyDashboardElement) {
             // Tus automatically handles metadata like filename, type
             // No need for formData or fieldName
         });
+        */
+        // Re-add XhrUpload configuration (ensure endpoint and headers are correct)
+        .use(XhrUpload, {
+            endpoint: uploadUrl, // Use the same upload URL
+            formData: true, // Send as FormData
+            fieldName: 'file', // Field name expected by the backend library
+            limit: 10, // Concurrent upload limit
+            chunkSize: 5 * 1024 * 1024, // Define chunk size (5MB)
+            headers: {
+                'X-CSRF-TOKEN': csrfToken // Send CSRF token
+            },
+            // Optional: Add metadata if needed, though pion usually extracts it
+            // metaFields: ['name', 'type'],
+        });
 
         uppy.on('upload-success', (file, response) => {
             // Tus response might be different from XHR, check pion docs or log response
@@ -77,20 +94,23 @@ if (uppyDashboardElement) {
             // Let's assume for now the backend controller still returns the JSON on completion.
             console.log('File uploaded successfully:', file.name);
             // Attempt to parse the uploadURL which might contain the final file info if backend uses Tus protocol correctly
-            console.log('Upload URL from response:', response.uploadURL);
+            // console.log('Upload URL from response:', response.uploadURL); // No longer relevant for XHR
             // If the backend controller's `saveFile` method is still hit on completion and returns JSON:
             // We need to access the response potentially differently if it's not in `response.body` anymore
             // For now, let's log the whole response to see what we get
-            console.log('Tus success response:', response);
+            // console.log('Tus success response:', response); // Log XHR response instead
+            console.log('XHR success response:', response);
 
             // Modification for associateMessage: Access file ID from Tus upload URL or metadata
             // This part might need adjustment based on how pion returns the final file ID with Tus
             // Let's keep the existing logic but add a check for response.body
+            // For XHR, the response body should contain the JSON from our controller
             if (response.body && response.body.file_upload_id) {
                  file.meta.file_upload_id = response.body.file_upload_id;
             } else {
                 // Attempt to extract from uploadURL or log a warning
-                console.warn('Could not find file_upload_id directly in Tus response body. Check console logs for details.');
+                // console.warn('Could not find file_upload_id directly in Tus response body. Check console logs for details.');
+                console.warn('Could not find file_upload_id in XHR response body. Check console logs for details.');
                 // You might need to make another request to the server using response.uploadURL to get the final ID
             }
         });

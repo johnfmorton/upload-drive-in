@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Storage;
 use Pion\Laravel\ChunkUpload\Exceptions\UploadMissingFileException;
 use Pion\Laravel\ChunkUpload\Handler\HandlerFactory;
 use Pion\Laravel\ChunkUpload\Receiver\FileReceiver;
-use Pion\Laravel\ChunkUpload\Handler\TusHandler;
 use Illuminate\Http\UploadedFile;
 use App\Jobs\UploadToGoogleDrive; // Assuming this job exists
 use App\Models\FileUpload;
@@ -35,15 +34,9 @@ class UploadController extends Controller
             'resumable' => $request->all()
         ]);
 
-        // Explicitly check for Tus header
-        if ($request->hasHeader('Tus-Resumable')) {
-            $handlerClass = TusHandler::class;
-            Log::debug('Tus header detected, forcing TusHandler.');
-        } else {
-            // Fallback to factory detection for other types (if any)
-            $handlerClass = HandlerFactory::classFromRequest($request);
-            Log::debug('No Tus header, using factory-determined handler.', ['handler' => $handlerClass]);
-        }
+        // Determine handler using the factory
+        $handlerClass = HandlerFactory::classFromRequest($request);
+        Log::debug('Using factory-determined handler.', ['handler' => $handlerClass]);
 
         // Instantiate the FileReceiver, passing the determined handler class name
         $receiver = new FileReceiver('file', $request, $handlerClass);
@@ -73,15 +66,26 @@ class UploadController extends Controller
         }
 
         // Check if $save is an object and if the upload is finished.
-        if (is_object($save) && $save->isFinished()) {
+        if (is_object($save) && method_exists($save, 'isFinished') && $save->isFinished()) {
             Log::info('Upload finished, attempting to save the complete file.');
             return $this->saveFile($save->getFile());
         }
 
-        // If the upload is not finished, assume the TusHandler within receive()
-        // has already sent the appropriate response (e.g., 201 Created or 204 No Content).
-        // Do not return anything further from the controller action to avoid interference.
-        Log::debug('Chunk received successfully (or initial POST handled), but upload not finished. No explicit response returned by controller.');
+        // If the upload is not finished, let the handler return its response
+        // $save will be instance of Response in this case (like 201 or 204)
+        /*
+        if ($save instanceof Response) {
+            Log::debug('Upload not finished, returning TusHandler response.', ['status_code' => $save->getStatusCode()]);
+            return $save;
+        }
+        */
+
+        // The handler for SimpleUploader, DropZone, etc., returns the Save instance when not finished
+        // It doesn't return a Response object itself, but relies on the controller.
+        // We need to return a response that indicates success so far.
+        $handler = $receiver->getHandler();
+        Log::debug('Chunk received successfully, returning handler percentage response.');
+        return $handler->handleChunkResponse(); // Use the handler's intended response for chunks
     }
 
     /**
