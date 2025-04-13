@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@alpinejs/persist": "^3.14.9",
-    "@tailwindcss/vite": "^4.1.3"
+    "@tailwindcss/vite": "^4.1.3",
+    "dropzone": "^6.0.0-beta.2"
   }
 }
