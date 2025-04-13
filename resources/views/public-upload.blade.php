@@ -3,142 +3,93 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <h1 class="text-2xl font-semibold mb-6 text-center">Upload Files</h1>
+                    <div class="text-center mb-8">
+                        <h1 class="text-3xl font-bold text-gray-900 mb-4 text-balance">Upload files to {{ config('app.company_name') }}</h1>
+                        <p class="text-gray-600">Begin by validating your email address.</p>
+                    </div>
 
-                    {{-- Form for submitting the message and linking files --}}
-                    <form id="messageForm" class="space-y-6">
-                        @csrf {{-- Important for CSRF protection --}}
-
-                        {{-- Dropzone Container --}}
-                        <div id="file-upload-dropzone"
-                             class="dropzone border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-500 transition-colors duration-200"
-                             data-upload-url="{{ route('chunk.upload') }}">
-                            <div class="dz-message" data-dz-message>
-                                <span class="block text-lg font-medium text-gray-700">Drop files here or click to upload.</span>
-                                <span class="block text-sm text-gray-500">(Large files will be uploaded in chunks)</span>
-                            </div>
-                            {{-- Dropzone will automatically add file previews here --}}
+                    <form id="emailValidationForm" class="max-w-md mx-auto">
+                        @csrf
+                        <div class="mb-4">
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                            <input type="email" name="email" id="email" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="your@email.com">
                         </div>
 
-                         {{-- Hidden input to store successful upload IDs --}}
-                         <input type="hidden" name="file_upload_ids" id="file_upload_ids" value="[]">
-
-                         {{-- Area to display upload errors --}}
-                         <div id="upload-errors" class="hidden mt-4"></div>
-
-                        {{-- Message Textarea --}}
-                        <div>
-                            <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message (Optional)</label>
-                            <textarea id="message" name="message" rows="4"
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                      placeholder="Enter an optional message to associate with the uploaded files..."></textarea>
-                        </div>
-
-                        {{-- Submit Button --}}
                         <div class="text-center">
                             <button type="submit"
-                                    class="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-                                Upload and Send Message
+                                class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                {{ __('messages.validate-email-button') }}
                             </button>
                         </div>
                     </form>
+
+                    <div id="validationMessage" class="mt-4 text-center hidden">
+                        <p class="text-gray-600">You will receive an email with a link to validate your email address. Clicking the link we send you will allow you to upload files to John Smith at {{ config('app.company_name') }}.</p>
+                    </div>
+
+                    <div id="errorMessage" class="mt-4 text-center hidden">
+                        <p class="text-red-600">There was an error processing your request. Please try again.</p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Status Modals (Same as in file-upload.blade.php) --}}
-    <x-modal name="upload-success" :show="false" focusable>
-        <div class="p-6">
-             <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-green-100">
-                 <svg class="size-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-             </div>
-             <div class="mt-3 text-center sm:mt-5">
-                 <h3 class="text-base font-semibold leading-6 text-gray-900">Upload Complete</h3>
-                 <p class="mt-2 text-sm text-gray-500">Files uploaded successfully! (No message was entered to associate).</p>
-             </div>
-             <div class="mt-5 sm:mt-6">
-                 <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
-             </div>
-        </div>
-    </x-modal>
+    @push('scripts')
+    <script>
+        document.getElementById('emailValidationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
 
-    <x-modal name="association-success" :show="false" focusable>
-        <div class="p-6">
-             <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-green-100">
-                 <svg class="size-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-             </div>
-             <div class="mt-3 text-center sm:mt-5">
-                 <h3 class="text-base font-semibold leading-6 text-gray-900">Success</h3>
-                 <p class="mt-2 text-sm text-gray-500">Files uploaded and message associated successfully!</p>
-             </div>
-             <div class="mt-5 sm:mt-6">
-                 <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
-             </div>
-        </div>
-    </x-modal>
+            const formData = new FormData(this);
+            const validationMessage = document.getElementById('validationMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const submitButton = this.querySelector('button[type="submit"]');
 
-     <x-modal name="association-error" :show="false" focusable>
-         <div class="p-6">
-            <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-red-100">
-                 <svg class="size-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z" /></svg>
-            </div>
-             <div class="mt-3 text-center sm:mt-5">
-                 <h3 class="text-base font-semibold leading-6 text-gray-900">Association Error</h3>
-                 <p class="mt-2 text-sm text-gray-500">Files uploaded, but the message could not be associated. Please check the console.</p>
-             </div>
-             <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
-            </div>
-         </div>
-     </x-modal>
+            // Disable the submit button
+            submitButton.disabled = true;
+            submitButton.innerHTML = 'Sending...';
 
-      <x-modal name="upload-error" :show="false" focusable>
-         <div class="p-6">
-             <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-red-100">
-                 <svg class="size-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z" /></svg>
-             </div>
-             <div class="mt-3 text-center sm:mt-5">
-                 <h3 class="text-base font-semibold leading-6 text-gray-900">Upload Failed</h3>
-                 <p class="mt-2 text-sm text-gray-500">Some files failed to upload. Please remove them or check the errors and try again.</p>
-             </div>
-             <div class="mt-5 sm:mt-6">
-                 <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
-             </div>
-         </div>
-     </x-modal>
+            fetch('{{ route('validate-email') }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    validationMessage.classList.remove('hidden');
+                    errorMessage.classList.add('hidden');
+                    this.reset();
 
-     <x-modal name="no-files-error" :show="false" focusable>
-         <div class="p-6">
-             <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-yellow-100">
-                 <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-             </div>
-             <div class="mt-3 text-center sm:mt-5">
-                 <h3 class="text-base font-semibold leading-6 text-gray-900">No Files Added</h3>
-                 <p class="mt-2 text-sm text-gray-500">Please add one or more files to upload before submitting.</p>
-             </div>
-             <div class="mt-5 sm:mt-6">
-                 <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
-             </div>
-         </div>
-     </x-modal>
-
-      <x-modal name="no-message-error" :show="false" focusable>
-         <div class="p-6">
-              <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-yellow-100">
-                 <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-             </div>
-             <div class="mt-3 text-center sm:mt-5">
-                 <h3 class="text-base font-semibold leading-6 text-gray-900">Message Required</h3>
-                 <p class="mt-2 text-sm text-gray-500">Please enter a message before submitting.</p>
-             </div>
-             <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
-            </div>
-         </div>
-     </x-modal>
-
-    {{-- Keep existing scripts if needed, or integrate Dropzone logic here/app.js --}}
-    {{-- @push('scripts') ... @endpush --}}
-
+                    // Keep the message visible for 10 seconds
+                    setTimeout(() => {
+                        validationMessage.classList.add('hidden');
+                    }, 10000);
+                } else {
+                    throw new Error(data.message || 'Unknown error occurred');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                validationMessage.classList.add('hidden');
+                errorMessage.classList.remove('hidden');
+            })
+            .finally(() => {
+                // Re-enable the submit button
+                submitButton.disabled = false;
+                submitButton.innerHTML = '{{ __('messages.validate-email-button') }}';
+            });
+        });
+    </script>
+    @endpush
 </x-guest-layout>
