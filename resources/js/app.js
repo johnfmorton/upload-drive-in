@@ -72,23 +72,21 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                 // console.log('Progress:', progress);
             },
             success: function(file, response) {
-                console.log('File chunk uploaded successfully:', file.name);
-                console.log('Server Response:', response);
-                // Store the file_upload_id returned by the server on the last chunk
-                if (response && response.file_upload_id) {
-                    // Check if it's the last chunk before storing the final ID
-                    const isLastChunk = file.upload.chunks.length === file.upload.bytesUploaded / this.options.chunkSize;
-                     // More reliable check: if chunk index matches total count - 1
-                    let currentChunkIndex = -1;
-                    // Find the chunk index associated with this success event (difficult with Dropzone's API)
-                    // A workaround is to assume the last success call for a file corresponds to the final chunk.
-                    // We can tag the file object when the final ID is received.
-                    if (!file.finalIdReceived && response.file_upload_id) {
-                        console.log(`Final FileUpload ID for ${file.name}: ${response.file_upload_id}`);
-                        file.finalIdReceived = true; // Mark that we got the ID
-                        file.file_upload_id = response.file_upload_id; // Store it on the file object
+                // This callback can be triggered for each chunk OR for the final request.
+                // For pion/laravel-chunk-upload, the final response (when finished) contains the file details.
+                // Responses for intermediate chunks might be simple {status: true} messages.
+                console.log(`Success callback for ${file.name}:`, response);
 
-                        // Add the ID to our hidden input
+                // Check if the server response contains the final file details
+                if (response && response.file_upload_id) {
+                    console.log(`Final FileUpload ID for ${file.name}: ${response.file_upload_id}`);
+
+                    // Use a flag on the file object to prevent adding the ID multiple times if success is called per chunk
+                    if (!file.finalIdReceived) {
+                        file.finalIdReceived = true; // Mark that we got the final ID
+                        file.file_upload_id = response.file_upload_id; // Store it on the file object for reference
+
+                        // Add the ID to our hidden input for the form submission
                         let currentIds = fileIdsInput.value ? JSON.parse(fileIdsInput.value) : [];
                         if (!currentIds.includes(response.file_upload_id)) {
                             currentIds.push(response.file_upload_id);
@@ -96,6 +94,8 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                             console.log('Updated file_upload_ids:', fileIdsInput.value);
                         }
                     }
+                } else {
+                     console.log(`Received intermediate chunk success for ${file.name}`);
                 }
             },
             error: function(file, message, xhr) {
