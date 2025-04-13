@@ -35,8 +35,16 @@ class UploadController extends Controller
         ]);
 
         // Determine handler using the factory
+        /*
         $handlerClass = HandlerFactory::classFromRequest($request);
         Log::debug('Using factory-determined handler.', ['handler' => $handlerClass]);
+        */
+
+        // --- Explicitly use ContentRangeUploadHandler ---
+        /*
+        $handlerClass = ContentRangeUploadHandler::class;
+        Log::debug('Forcing ContentRangeUploadHandler.');
+        */
 
         // Instantiate the FileReceiver, passing the determined handler class name
         $receiver = new FileReceiver('file', $request, $handlerClass);

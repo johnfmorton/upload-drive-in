@@ -1,9 +1,11 @@
 import './bootstrap';
 
+// Import Dropzone CSS
+import 'dropzone/dist/dropzone.css';
 
-// Import Uppy CSS
-import '@uppy/core/dist/style.min.css';
-import '@uppy/dashboard/dist/style.min.css';
+// Remove Uppy CSS imports
+// import '@uppy/core/dist/style.min.css';
+// import '@uppy/dashboard/dist/style.min.css';
 
 import Alpine from 'alpinejs';
 import persist from '@alpinejs/persist';
@@ -17,13 +19,168 @@ Alpine.plugin(persist);
 
 Alpine.start();
 
-// --- Uppy Initialization ---
+// --- Dropzone Initialization ---
+import Dropzone from 'dropzone';
+
+// Prevent Dropzone from automatically discovering elements
+Dropzone.autoDiscover = false;
+
+// Check if the Dropzone element exists
+const dropzoneElement = document.getElementById('file-upload-dropzone');
+const messageForm = document.getElementById('messageForm'); // Get the message form
+const messageInput = document.getElementById('message'); // Get the message input
+const fileIdsInput = document.getElementById('file_upload_ids'); // Hidden input for IDs
+
+if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
+    // Get CSRF token and upload URL
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const uploadUrl = dropzoneElement.dataset.uploadUrl;
+
+    if (!uploadUrl) {
+        console.error('Dropzone element is missing the data-upload-url attribute!');
+    } else {
+        const myDropzone = new Dropzone("#file-upload-dropzone", {
+            url: uploadUrl,
+            paramName: "file", // Field name for the file
+            maxFilesize: 5000, // Max file size in MB (adjust as needed)
+            chunking: true,
+            forceChunking: true,
+            chunkSize: 5 * 1024 * 1024, // Chunk size in bytes (5MB)
+            retryChunks: true, // Retry failed chunks
+            retryChunksLimit: 3,
+            parallelChunkUploads: false, // Upload chunks sequentially for pion
+            addRemoveLinks: true,
+            // dictDefaultMessage: "Drop files here or click to upload",
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            },
+            // Must match the parameters expected by Pion's Dropzone handler
+            params: function(files, xhr, chunk) {
+                if (chunk) {
+                    return {
+                        dzuuid: chunk.file.upload.uuid,
+                        dzchunkindex: chunk.index,
+                        dztotalfilesize: chunk.file.size,
+                        dzchunksize: this.options.chunkSize,
+                        dztotalchunkcount: chunk.file.upload.totalChunkCount,
+                        dzchunkbyteoffset: chunk.index * this.options.chunkSize
+                    };
+                }
+            },
+            uploadprogress: function(file, progress, bytesSent) {
+                // Update progress (optional, Dropzone handles visually)
+                // console.log('Progress:', progress);
+            },
+            success: function(file, response) {
+                console.log('File chunk uploaded successfully:', file.name);
+                console.log('Server Response:', response);
+                // Store the file_upload_id returned by the server on the last chunk
+                if (response && response.file_upload_id) {
+                    // Check if it's the last chunk before storing the final ID
+                    const isLastChunk = file.upload.chunks.length === file.upload.bytesUploaded / this.options.chunkSize;
+                     // More reliable check: if chunk index matches total count - 1
+                    let currentChunkIndex = -1;
+                    // Find the chunk index associated with this success event (difficult with Dropzone's API)
+                    // A workaround is to assume the last success call for a file corresponds to the final chunk.
+                    // We can tag the file object when the final ID is received.
+                    if (!file.finalIdReceived && response.file_upload_id) {
+                        console.log(`Final FileUpload ID for ${file.name}: ${response.file_upload_id}`);
+                        file.finalIdReceived = true; // Mark that we got the ID
+                        file.file_upload_id = response.file_upload_id; // Store it on the file object
+
+                        // Add the ID to our hidden input
+                        let currentIds = fileIdsInput.value ? JSON.parse(fileIdsInput.value) : [];
+                        if (!currentIds.includes(response.file_upload_id)) {
+                            currentIds.push(response.file_upload_id);
+                            fileIdsInput.value = JSON.stringify(currentIds);
+                            console.log('Updated file_upload_ids:', fileIdsInput.value);
+                        }
+                    }
+                }
+            },
+            error: function(file, message, xhr) {
+                console.error('Error uploading file chunk:', file.name, message, xhr);
+                const errorDisplay = document.getElementById('upload-errors');
+                if (errorDisplay) {
+                    errorDisplay.innerHTML += `<p class="text-red-500">Error uploading ${file.name}: ${message}</p>`;
+                    errorDisplay.classList.remove('hidden');
+                }
+            },
+            complete: function(file) {
+                 // Optional: handle file completion if needed beyond 'success'
+                 console.log('File processing complete (success or error): ', file.name)
+             },
+             // queuecomplete: function() {
+             //     console.log("All files in the queue have been processed.");
+             //     // This might be a better place to enable the submit button if autoProcessQueue is true
+             // }
+        });
+
+        // --- Handle message form submission ---
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent default form submission
+
+            const message = messageInput.value;
+            const fileUploadIds = fileIdsInput.value ? JSON.parse(fileIdsInput.value) : [];
+
+            console.log('Submitting message:', message);
+            console.log('For file IDs:', fileUploadIds);
+            const submitButton = this.querySelector('button[type="submit"]');
+
+            if (message && fileUploadIds.length > 0) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Sending...';
+
+                fetch('/api/uploads/associate-message', { // Reuse API endpoint
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        file_upload_ids: fileUploadIds
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        response.text().then(text => {
+                            console.error('Error response from associate-message:', response.status, text);
+                        });
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Message associated successfully:', data);
+                    // Clear form and Dropzone on success
+                    messageInput.value = '';
+                    fileIdsInput.value = '';
+                    myDropzone.removeAllFiles(true); // Clear Dropzone queue
+                    alert('Files uploaded and message associated successfully!'); // User feedback
+                })
+                .catch(error => {
+                    console.error('Error associating message:', error);
+                    alert('Error associating message. Please check console.'); // User feedback
+                })
+                .finally(() => {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Upload and Send Message';
+                });
+            } else if (!message) {
+                 alert('Please enter a message.');
+             } else {
+                alert('Please upload at least one file.');
+            }
+        });
+    }
+}
+
+// --- Remove Uppy Initialization ---
+/*
 import Uppy from '@uppy/core';
 import Dashboard from '@uppy/dashboard';
-// Remove XhrUpload import
-// import XhrUpload from '@uppy/xhr-upload';
-// Import Tus plugin
-// import Tus from '@uppy/tus';
 // Re-import XhrUpload
 import XhrUpload from '@uppy/xhr-upload';
 
@@ -59,20 +216,6 @@ if (uppyDashboardElement) {
             note: 'Upload files here. Large files will be uploaded in chunks.',
             browserBackButtonClose: true
         })
-        // Replace XhrUpload with Tus
-        /* // Comment out Tus configuration
-        .use(Tus, {
-            endpoint: uploadUrl, // Use the same endpoint, pion backend supports Tus
-            retryDelays: [0, 1000, 3000, 5000], // Optional: configure retries
-            chunkSize: 5 * 1024 * 1024, // Suggest a 5MB chunk size (Tus may negotiate)
-            limit: 10, // Keep concurrent upload limit
-            headers: {
-                'X-CSRF-TOKEN': csrfToken // Send CSRF token in headers
-            },
-            // Tus automatically handles metadata like filename, type
-            // No need for formData or fieldName
-        });
-        */
         // Re-add XhrUpload configuration (ensure endpoint and headers are correct)
         .use(XhrUpload, {
             endpoint: uploadUrl, // Use the same upload URL
@@ -87,31 +230,18 @@ if (uppyDashboardElement) {
             // metaFields: ['name', 'type'],
         });
 
+
         uppy.on('upload-success', (file, response) => {
-            // Tus response might be different from XHR, check pion docs or log response
-            // For pion/laravel-chunk-upload with Tus, the final response url might be needed
-            // or it might return the same JSON if pion handles the final assembly response.
-            // Let's assume for now the backend controller still returns the JSON on completion.
             console.log('File uploaded successfully:', file.name);
-            // Attempt to parse the uploadURL which might contain the final file info if backend uses Tus protocol correctly
-            // console.log('Upload URL from response:', response.uploadURL); // No longer relevant for XHR
-            // If the backend controller's `saveFile` method is still hit on completion and returns JSON:
-            // We need to access the response potentially differently if it's not in `response.body` anymore
-            // For now, let's log the whole response to see what we get
-            // console.log('Tus success response:', response); // Log XHR response instead
             console.log('XHR success response:', response);
 
+
             // Modification for associateMessage: Access file ID from Tus upload URL or metadata
-            // This part might need adjustment based on how pion returns the final file ID with Tus
-            // Let's keep the existing logic but add a check for response.body
             // For XHR, the response body should contain the JSON from our controller
             if (response.body && response.body.file_upload_id) {
                  file.meta.file_upload_id = response.body.file_upload_id;
             } else {
-                // Attempt to extract from uploadURL or log a warning
-                // console.warn('Could not find file_upload_id directly in Tus response body. Check console logs for details.');
                 console.warn('Could not find file_upload_id in XHR response body. Check console logs for details.');
-                // You might need to make another request to the server using response.uploadURL to get the final ID
             }
         });
 
@@ -177,3 +307,4 @@ if (uppyDashboardElement) {
     }
 }
 // --- End Uppy Initialization ---
+*/
