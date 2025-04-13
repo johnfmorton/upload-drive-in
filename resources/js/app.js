@@ -140,10 +140,12 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                  // Let's initially focus on the primary flow.
                  // We could potentially call the message association logic directly if needed:
                  // associateMessageWithUploads(messageInput.value, fileIdsInput.value);
-                 alert('Files seem already uploaded. If message association failed, please try again after ensuring files are complete.');
+                 // Dispatch event to show a specific modal (example, might need a different one)
+                 window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-error' })); // Or a more specific modal name
 
             } else {
-                 alert('Please add files to upload.');
+                 // alert('Please add files to upload.');
+                 window.dispatchEvent(new CustomEvent('open-modal', { detail: 'no-files-error' }));
             }
         });
 
@@ -191,11 +193,13 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                     messageInput.value = ''; // Clear message field
                     fileIdsInput.value = '[]'; // Clear hidden input
                     myDropzone.removeAllFiles(true); // Clear Dropzone queue
-                    alert('Files uploaded and message associated successfully!');
+                    // alert('Files uploaded and message associated successfully!');
+                    window.dispatchEvent(new CustomEvent('open-modal', { detail: 'association-success' }));
                 })
                 .catch(error => {
                     console.error('Error associating message:', error);
-                     alert('Files uploaded, but failed to associate message. Please check console or try submitting message again later.');
+                     // alert('Files uploaded, but failed to associate message. Please check console or try submitting message again later.');
+                     window.dispatchEvent(new CustomEvent('open-modal', { detail: 'association-error' }));
                 })
                 .finally(() => {
                     // Re-enable button regardless of association outcome, allowing retry if needed
@@ -205,21 +209,25 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
 
             } else if (successfulFileIds.length > 0 && !message) {
                  console.log('Uploads finished, but no message to associate.');
-                 alert('Files uploaded successfully! No message was entered.');
+                 // alert('Files uploaded successfully! No message was entered.');
+                 window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-success' }));
                  // Optionally clear Dropzone here too
                  // myDropzone.removeAllFiles(true);
-                 // fileIdsInput.value = '[]';
                  submitButton.disabled = false; // Re-enable button
                  submitButton.textContent = 'Upload and Send Message';
-
-             } else {
+                 if (myDropzone.getRejectedFiles().length > 0) {
+                    // alert('Some files failed to upload. Please check errors and try again.');
+                    window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-error' }));
+                 }
+            } else {
                  console.log('Queue finished, but no successful uploads or no message.');
                  // Re-enable button if there were no successful uploads to process
                  if (successfulFileIds.length === 0) {
                       submitButton.disabled = false;
                       submitButton.textContent = 'Upload and Send Message';
                       if (myDropzone.getRejectedFiles().length > 0) {
-                        alert('Some files failed to upload. Please check errors and try again.');
+                        // alert('Some files failed to upload. Please check errors and try again.');
+                        window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-error' }));
                       }
                  }
             }
