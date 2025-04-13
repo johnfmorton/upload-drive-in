@@ -69,6 +69,98 @@
         </div>
     </div>
 
+    {{-- Status Modals --}}
+    <x-modal name="upload-success" :show="false" focusable>
+        <div class="p-6">
+            <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-green-100">
+                <svg class="size-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </div>
+            <div class="mt-3 text-center sm:mt-5">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Upload Complete</h3>
+                <p class="mt-2 text-sm text-gray-500">Files uploaded successfully! (No message was entered to associate).</p>
+            </div>
+            <div class="mt-5 sm:mt-6">
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+            </div>
+        </div>
+    </x-modal>
+
+    <x-modal name="association-success" :show="false" focusable>
+        <div class="p-6">
+            <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-green-100">
+                <svg class="size-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </div>
+            <div class="mt-3 text-center sm:mt-5">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Success</h3>
+                <p class="mt-2 text-sm text-gray-500">Files uploaded and message associated successfully!</p>
+            </div>
+            <div class="mt-5 sm:mt-6">
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+            </div>
+        </div>
+    </x-modal>
+
+     <x-modal name="association-error" :show="false" focusable>
+         <div class="p-6">
+            <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-red-100">
+                 <svg class="size-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z" /></svg>
+            </div>
+             <div class="mt-3 text-center sm:mt-5">
+                 <h3 class="text-base font-semibold leading-6 text-gray-900">Association Error</h3>
+                 <p class="mt-2 text-sm text-gray-500">Files uploaded, but the message could not be associated. Please check the console.</p>
+             </div>
+             <div class="mt-5 sm:mt-6">
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+            </div>
+         </div>
+     </x-modal>
+
+      <x-modal name="upload-error" :show="false" focusable>
+         <div class="p-6">
+            <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-red-100">
+                 <svg class="size-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z" /></svg>
+            </div>
+             <div class="mt-3 text-center sm:mt-5">
+                 <h3 class="text-base font-semibold leading-6 text-gray-900">Upload Failed</h3>
+                 <p class="mt-2 text-sm text-gray-500">Some files failed to upload. Please remove them or check the errors and try again.</p>
+             </div>
+             <div class="mt-5 sm:mt-6">
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+            </div>
+         </div>
+     </x-modal>
+
+     <x-modal name="no-files-error" :show="false" focusable>
+         <div class="p-6">
+             <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-yellow-100">
+                 <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+             </div>
+             <div class="mt-3 text-center sm:mt-5">
+                 <h3 class="text-base font-semibold leading-6 text-gray-900">No Files Added</h3>
+                 <p class="mt-2 text-sm text-gray-500">Please add one or more files to upload before submitting.</p>
+             </div>
+             <div class="mt-5 sm:mt-6">
+                 <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+             </div>
+         </div>
+     </x-modal>
+
+      <x-modal name="no-message-error" :show="false" focusable>
+         <div class="p-6">
+              <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-yellow-100">
+                 <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+             </div>
+             <div class="mt-3 text-center sm:mt-5">
+                 <h3 class="text-base font-semibold leading-6 text-gray-900">Message Required</h3>
+                 <p class="mt-2 text-sm text-gray-500">Please enter a message before submitting.</p>
+             </div>
+             <div class="mt-5 sm:mt-6">
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+            </div>
+         </div>
+     </x-modal>
+
+
     @push('scripts')
     {{-- Initialization is handled in resources/js/app.js --}}
     @endpush
