@@ -373,4 +373,28 @@ class GoogleDriveService
             throw $e; // Re-throw
         }
     }
+
+    /**
+     * Deletes a file from Google Drive.
+     *
+     * @param string $fileId The ID of the file to delete.
+     * @return bool True on success, false otherwise.
+     * @throws Exception If the API call fails.
+     */
+    public function deleteFile(string $fileId): bool
+    {
+        try {
+            $service = $this->getService();
+            Log::info('Attempting to delete Google Drive file.', ['file_id' => $fileId]);
+            $service->files->delete($fileId);
+            Log::info('Successfully deleted Google Drive file.', ['file_id' => $fileId]);
+            return true;
+        } catch (Exception $e) {
+            Log::error('Failed to delete Google Drive file.', [
+                'file_id' => $fileId,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
 }

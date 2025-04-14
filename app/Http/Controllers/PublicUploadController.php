@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
+use App\Mail\LoginVerificationMail;
 
 class PublicUploadController extends Controller
 {
@@ -45,8 +46,8 @@ class PublicUploadController extends Controller
             'email' => $email
         ]);
 
-        // Send verification email
-        Mail::to($email)->send(new EmailVerificationMail($verificationUrl));
+        // Use the correct mail class for login verification
+        Mail::to($email)->send(new LoginVerificationMail($verificationUrl));
 
         return response()->json([
             'success' => true,

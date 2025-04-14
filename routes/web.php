@@ -90,6 +90,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Add this new route for account deletion confirmation
+    Route::get('/profile/confirm-deletion/{code}/{email}', [ProfileController::class, 'confirmDeletion'])
+        ->name('profile.confirm-deletion');
+
     // Password update route
     Route::put('password', [\App\Http\Controllers\Auth\PasswordController::class, 'update'])
         ->name('password.update');
@@ -100,6 +104,11 @@ Route::middleware('auth')->group(function () {
         return back()->with('status', 'verification-link-sent');
     })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 });
+
+// Add this outside the auth middleware group
+Route::get('/profile/confirm-deletion/{code}/{email}', [ProfileController::class, 'confirmDeletion'])
+    ->name('profile.confirm-deletion')
+    ->middleware(['signed', 'throttle:6,1']); // Add signed URL protection and rate limiting
 
 Route::post('/upload', [UploadController::class, 'store'])->name('chunk.upload');
 
