@@ -129,6 +129,11 @@ Route::post('/api/uploads/associate-message', [UploadController::class, 'associa
     ->middleware('auth') // Protect this route
     ->name('uploads.associate.message');
 
+// Route to notify backend about batch completion (called from JS after queue completes)
+Route::post('/api/uploads/batch-complete', [UploadController::class, 'batchComplete'])
+    ->middleware('auth') // Protect this route
+    ->name('uploads.batch.complete');
+
 // Unsubscribe route
 Route::get('/notifications/upload/unsubscribe/{user}', [NotificationSettingsController::class, 'unsubscribeUploads'])
     ->name('notifications.upload.unsubscribe')

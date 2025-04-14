@@ -30,16 +30,8 @@ class SendUploadNotifications implements ShouldQueue
      */
     public function handle(FileUploaded $event): void
     {
-        /* REMOVE QUEUE TEST LOGGING BLOCK
-        Log::info('[Queue Test] SendUploadNotifications handle method called.', [
-            'fileUploadId' => $event->fileUploadId,
-            'userId' => $event->userId
-        ]);
-        return; // Stop here for now
-        */
-
-        // --- Restore original logic ---
-
+        // --- COMMENT OUT ORIGINAL LOGIC TO PREVENT PER-FILE EMAILS ---
+        /*
         // Fetch models using IDs from the event
         $fileUpload = FileUpload::find($event->fileUploadId);
         $user = User::find($event->userId);
@@ -83,5 +75,13 @@ class SendUploadNotifications implements ShouldQueue
                 Log::error("Failed to send client upload confirmation to {$user->email}: " . $e->getMessage());
             }
         }
+        */
+        // --- END OF COMMENTED OUT LOGIC ---
+
+        // Optionally, log that the event was received but notifications are deferred
+        Log::info('SendUploadNotifications listener handled FileUploaded event, but notifications are deferred to batch processing.', [
+            'fileUploadId' => $event->fileUploadId,
+            'userId' => $event->userId
+        ]);
     }
 }
