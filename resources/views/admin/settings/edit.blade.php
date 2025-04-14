@@ -43,8 +43,8 @@
                             <div>
                                 <x-input-label for="app_icon" :value="__('messages.app_icon_label')" />
                                 @if($settings['has_icon'])
-                                    <div class="mt-2 mb-4">
-                                        <img src="{{ asset('images/app-icon.png') }}" alt="Current App Icon" class="w-16 h-16 object-contain">
+                                    <div class="mt-2 mb-2 flex items-center gap-4">
+                                        <img src="{{ asset('images/app-icon.png') }}?v={{ md5_file(public_path('images/app-icon.png')) }}" alt="Current App Icon" class="w-16 h-16 object-contain block">
                                     </div>
                                 @endif
                                 <input id="app_icon" name="app_icon" type="file" class="mt-1 block w-full" accept="image/png, image/jpeg, image/svg+xml" />
@@ -66,6 +66,15 @@
                                 @endif
                             </div>
                         </form>
+
+                        @if($settings['has_icon'])
+                            {{-- Remove Logo Form (separate from main settings form) --}}
+                            <form method="post" action="{{ route('admin.settings.icon.destroy') }}" class="mt-4">
+                                @csrf
+                                @method('delete')
+                                <x-danger-button type="submit">{{ __('messages.remove_logo_button') }}</x-danger-button>
+                            </form>
+                        @endif
                     </section>
                 </div>
             </div>
