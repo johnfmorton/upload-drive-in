@@ -59,14 +59,14 @@
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 
-            @if (session('status') === 'profile-updated')
+            @if (session('status'))
                 <p
                     x-data="{ show: true }"
                     x-show="show"
                     x-transition
-                    x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-gray-600"
-                >{{ __('Saved.') }}</p>
+                    x-init="setTimeout(() => show = false, 4000)"
+                    class="text-sm font-medium {{ session('status') === 'profile-updated' || str_contains(session('status'), 'unsubscribe') ? 'text-green-600' : 'text-gray-600' }}"
+                >{{ session('status') }}</p>
             @endif
         </div>
     </form>
