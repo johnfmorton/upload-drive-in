@@ -26,7 +26,7 @@
                     </form>
 
                     <div id="validationMessage" class="mt-4 text-center hidden">
-                        <p class="text-gray-600">You will receive an email with a link to validate your email address. Clicking the link we send you will allow you to upload files to John Smith at {{ config('app.company_name') }}.</p>
+                        <p class="text-gray-600">You will receive an email with a link to validate your email address. Clicking the link we send you will allow you to upload files to {{ config('app.company_name') }}.</p>
                     </div>
 
                     <div id="errorMessage" class="mt-4 text-center hidden">
