@@ -22,4 +22,5 @@
     'app_icon_hint' => 'Upload a PNG, JPG, or SVG. Recommended size: 128x128px.*',
     'save_button' => 'Save*',
     'saved_confirmation' => 'Saved.*',
+    'remove_logo_button' => 'Remove Logo*',
 ];

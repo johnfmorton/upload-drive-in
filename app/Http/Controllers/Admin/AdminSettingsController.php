@@ -216,4 +216,27 @@ class AdminSettingsController extends Controller
             File::put($path, $content);
         }
     }
+
+    /**
+     * Remove the uploaded application icon.
+     *
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function destroyIcon(): RedirectResponse
+    {
+        $iconPath = public_path('images/app-icon.png');
+
+        try {
+            if (File::exists($iconPath)) {
+                File::delete($iconPath);
+                Log::info('Application icon removed successfully.');
+                return back()->with('status', 'icon-removed');
+            }
+            Log::warning('Attempted to remove non-existent application icon.');
+            return back()->withErrors(['error' => 'No icon found to remove.']);
+        } catch (\Exception $e) {
+            Log::error('Error removing application icon', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->withErrors(['error' => 'Failed to remove icon: ' . $e->getMessage()]);
+        }
+    }
 }

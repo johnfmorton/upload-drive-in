@@ -83,6 +83,9 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::put('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'update'])
         ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.settings.update');
+    Route::delete('/settings/icon', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'destroyIcon'])
+        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
+        ->name('admin.settings.icon.destroy');
 });
 
 // Google Drive routes
