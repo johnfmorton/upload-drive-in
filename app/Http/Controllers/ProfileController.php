@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\FileUpload;
 use App\Mail\AccountDeletionMail;
 use App\Models\AccountDeletionRequest;
+use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -39,14 +40,25 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        // Validate the incoming request data (including the new checkbox)
+        $validated_data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($request->user()->id)],
+            'receive_upload_notifications' => ['required', 'boolean'], // Add validation rule
+        ]);
 
+        // Fill the user model with validated data
+        $request->user()->fill($validated_data);
+
+        // Reset email verification if the email was changed
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;
         }
 
+        // Save the user model
         $request->user()->save();
 
+        // Redirect back to the profile edit page with a success status
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 

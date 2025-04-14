@@ -81,4 +81,33 @@
     'no_users_found' => 'No client users found.',
     // Mobile Card View Specific
     'mobile_label_created_at' => 'Created:',
+
+    // Email Subjects
+    'admin_upload_subject' => 'New File Uploaded to :app_name*',
+    'client_upload_subject' => 'Your file upload confirmation - :app_name*',
+
+    // Admin Email Content
+    'admin_upload_heading' => 'New File Upload Notification*',
+    'admin_upload_body_intro' => ':userName (:userEmail) has uploaded a new file.*',
+    'file_details' => 'File Details*',
+    'file_name' => 'Name*',
+    'file_size' => 'Size*',
+    'file_message' => 'Message*',
+
+    // Client Email Content
+    'client_upload_heading' => 'File Upload Successful*',
+    'client_upload_body_intro' => 'Your file, :fileName, has been successfully uploaded.*',
+    'client_upload_body_thanks' => 'Thank you for using our service.*',
+    'unsubscribe_button' => 'Stop Receiving These Emails*',
+    'unsubscribe_text_prefix' => "If you no longer wish to receive these confirmations, you can click the button above or visit:*",
+
+    // Unsubscribe Page
+    'unsubscribe_success_heading' => 'Notifications Disabled*',
+    'unsubscribe_success_message' => 'You will no longer receive email confirmations for file uploads.*',
+    'unsubscribe_invalid_link' => 'Invalid or Expired Link*',
+    'unsubscribe_invalid_message' => 'This unsubscribe link is invalid or has expired.*',
+
+    // Profile Settings
+    'profile_receive_notifications_label' => 'Receive email confirmation upon file upload?*',
+    'profile_settings_updated' => 'Profile settings updated successfully.*', // General update message
 ];
