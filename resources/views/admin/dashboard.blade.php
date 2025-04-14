@@ -209,83 +209,186 @@
                         <input type="text" id="fileFilter" x-model.debounce.300ms="filterQuery" placeholder="Filter by filename, user, or message..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 sm:text-sm">
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <template x-if="columns.fileName">
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('original_filename')">
-                                            File Name <span x-show="sortColumn === 'original_filename'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
-                                        </th>
-                                    </template>
-                                    <template x-if="columns.user">
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('email')">
-                                            User <span x-show="sortColumn === 'email'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
-                                        </th>
-                                    </template>
-                                    <template x-if="columns.size">
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('file_size')">
-                                            Size <span x-show="sortColumn === 'file_size'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
-                                        </th>
-                                    </template>
-                                    <template x-if="columns.status">
-                                        <!-- Status might not be directly sortable easily without more data -->
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
-                                        </th>
-                                    </template>
-                                    <template x-if="columns.message">
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('message')">
-                                            Message <span x-show="sortColumn === 'message'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
-                                        </th>
-                                    </template>
-                                    <template x-if="columns.uploadedAt">
-                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('created_at')">
-                                            Uploaded At <span x-show="sortColumn === 'created_at'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
-                                        </th>
-                                    </template>
-                                    <template x-if="columns.actions"><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th></template>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <template x-for="file in filteredAndSortedFiles" :key="file.id">
-                                    <tr>
-                                        <template x-if="columns.fileName"><td class="px-6 py-4 text-sm text-gray-900 break-words max-w-xs" x-text="file.original_filename"></td></template>
-                                        <template x-if="columns.user"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="file.email"></td></template>
-                                        <template x-if="columns.size"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatSize(file.file_size)"></td></template>
-                                        <template x-if="columns.status">
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <span x-show="file.google_drive_file_id" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                    Uploaded to Drive
-                                                </span>
-                                                <span x-show="!file.google_drive_file_id" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                    Pending
-                                                </span>
-                                            </td>
-                                        </template>
-                                        <template x-if="columns.message"><td class="px-6 py-4 whitespace-normal text-sm text-gray-500" x-text="file.message"></td></template>
-                                        <template x-if="columns.uploadedAt"><td class="px-6 py-4 text-sm text-gray-500 break-words max-w-xs" x-text="formatDate(file.created_at)"></td></template>
-                                        <template x-if="columns.actions">
-                                            <td class="px-6 py-4 text-sm font-medium flex flex-wrap gap-2">
+                    <!-- Mobile Card View -->
+                    <div class="lg:hidden space-y-4">
+                        <template x-for="file in filteredAndSortedFiles" :key="file.id">
+                            <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+                                <!-- Header Section -->
+                                <div class="border-b border-gray-200 pb-3 mb-3">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <div class="font-medium text-gray-900 break-words" x-text="file.original_filename"></div>
+                                        <div class="flex shrink-0">
+                                            <div class="flex flex-wrap gap-2">
                                                 <template x-if="file.google_drive_file_id">
-                                                     <a :href="`https://drive.google.com/file/d/${file.google_drive_file_id}/view`" target="_blank" class="text-indigo-600 hover:text-indigo-900">View in Drive</a>
+                                                    <a :href="`https://drive.google.com/file/d/${file.google_drive_file_id}/view`"
+                                                       target="_blank"
+                                                       class="shrink-0 inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                                       <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                       </svg>
+                                                       View
+                                                    </a>
                                                 </template>
                                                 <button @click="openDeleteModal(file.id)"
-                                                    class="text-red-600 hover:text-red-900">Delete</button>
-                                            </td>
+                                                    class="shrink-0 inline-flex items-center px-3 py-1.5 bg-red-50 text-red-700 text-sm font-medium rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                    </svg>
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <span x-show="file.google_drive_file_id" class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            Uploaded to Drive
+                                        </span>
+                                        <span x-show="!file.google_drive_file_id" class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                            Pending
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Main Information -->
+                                <div class="space-y-3">
+                                    <div class="grid grid-cols-2 gap-2 text-sm">
+                                        <div class="text-gray-500">User</div>
+                                        <div class="font-medium truncate" x-text="file.email"></div>
+
+                                        <div class="text-gray-500">Size</div>
+                                        <div class="font-medium" x-text="formatSize(file.file_size)"></div>
+
+                                        <div class="text-gray-500">Uploaded</div>
+                                        <div class="font-medium" x-text="formatDate(file.created_at)"></div>
+                                    </div>
+
+                                    <template x-if="file.message">
+                                        <div class="pt-3 border-t border-gray-200">
+                                            <div class="text-sm">
+                                                <div class="text-gray-500 mb-1">Message</div>
+                                                <div class="text-gray-900 break-words" x-text="file.message"></div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- No results message for mobile -->
+                        <template x-if="filteredAndSortedFiles.length === 0">
+                            <div class="text-center text-gray-500 py-4">
+                                No files match your filter criteria.
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Desktop Table View -->
+                    <div class="hidden lg:block">
+                        <div class="relative border border-gray-200 rounded-lg overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <template x-if="columns.fileName">
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('original_filename')">
+                                                    File Name <span x-show="sortColumn === 'original_filename'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
+                                                </th>
+                                            </template>
+                                            <template x-if="columns.user">
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('email')">
+                                                    User <span x-show="sortColumn === 'email'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
+                                                </th>
+                                            </template>
+                                            <template x-if="columns.size">
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('file_size')">
+                                                    Size <span x-show="sortColumn === 'file_size'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
+                                                </th>
+                                            </template>
+                                            <template x-if="columns.status">
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Status
+                                                </th>
+                                            </template>
+                                            <template x-if="columns.uploadedAt">
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('created_at')">
+                                                    Uploaded At <span x-show="sortColumn === 'created_at'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
+                                                </th>
+                                            </template>
+                                            <template x-if="columns.actions">
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                            </template>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <template x-for="file in filteredAndSortedFiles" :key="file.id">
+                                            <tr>
+                                                <template x-if="columns.fileName">
+                                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                                        {{-- Allow wrapping, remove truncation/max-width --}}
+                                                        <div x-text="file.original_filename" :title="file.original_filename"></div>
+                                                    </td>
+                                                </template>
+                                                <template x-if="columns.user">
+                                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                                        {{-- Keep truncation --}}
+                                                        <div class="overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px] lg:max-w-[250px]" x-text="file.email" :title="file.email"></div>
+                                                    </td>
+                                                </template>
+                                                <template x-if="columns.size">
+                                                    <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap" x-text="formatSize(file.file_size)"></td>
+                                                </template>
+                                                <template x-if="columns.status">
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <span x-show="file.google_drive_file_id" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                            Uploaded to Drive
+                                                        </span>
+                                                        <span x-show="!file.google_drive_file_id" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                            Pending
+                                                        </span>
+                                                    </td>
+                                                </template>
+                                                <template x-if="columns.uploadedAt">
+                                                    <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap" x-text="formatDate(file.created_at)"></td>
+                                                </template>
+                                                <template x-if="columns.actions">
+                                                    <td class="px-6 py-4 text-sm font-medium">
+                                                        <div class="flex flex-wrap gap-2">
+                                                            <template x-if="file.google_drive_file_id">
+                                                                <a :href="`https://drive.google.com/file/d/${file.google_drive_file_id}/view`"
+                                                                   target="_blank"
+                                                                   class="shrink-0 inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                                                   <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                                   </svg>
+                                                                   View
+                                                                </a>
+                                                            </template>
+                                                            <button @click="openDeleteModal(file.id)"
+                                                                class="shrink-0 inline-flex items-center px-3 py-1.5 bg-red-50 text-red-700 text-sm font-medium rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                                </svg>
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </template>
+                                            </tr>
                                         </template>
-                                    </tr>
-                                </template>
-                                <!-- Message if no files match filter -->
-                                <template x-if="filteredAndSortedFiles.length === 0">
-                                    <tr>
-                                        <td :colspan="Object.values(columns).filter(v => v).length" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                                            No files match your filter criteria.
-                                        </td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
+                                        <!-- Message if no files match filter -->
+                                        <template x-if="filteredAndSortedFiles.length === 0">
+                                            <tr>
+                                                <td :colspan="Object.values(columns).filter(v => v).length" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                                    No files match your filter criteria.
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                     <div class="mt-4">
                         {{ $files->links() }}
