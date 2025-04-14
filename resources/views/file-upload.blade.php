@@ -25,7 +25,7 @@
                         </div>
                     @endif
 
-                    {{-- Replace Uppy with Dropzone form --}}
+                    {{-- Dropzone form --}}
                     <form id="messageForm" class="space-y-6">
                          @csrf {{-- Important for CSRF protection --}}
 
@@ -80,7 +80,7 @@
                 <p class="mt-2 text-sm text-gray-500">Files uploaded successfully! (No message was entered to associate).</p>
             </div>
             <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
             </div>
         </div>
     </x-modal>
@@ -95,7 +95,7 @@
                 <p class="mt-2 text-sm text-gray-500">Files uploaded and message associated successfully!</p>
             </div>
             <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
             </div>
         </div>
     </x-modal>
@@ -110,7 +110,7 @@
                  <p class="mt-2 text-sm text-gray-500">Files uploaded, but the message could not be associated. Please check the console.</p>
              </div>
              <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
             </div>
          </div>
      </x-modal>
@@ -125,7 +125,7 @@
                  <p class="mt-2 text-sm text-gray-500">Some files failed to upload. Please remove them or check the errors and try again.</p>
              </div>
              <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
             </div>
          </div>
      </x-modal>
@@ -140,7 +140,7 @@
                  <p class="mt-2 text-sm text-gray-500">Please add one or more files to upload before submitting.</p>
              </div>
              <div class="mt-5 sm:mt-6">
-                 <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                 <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
              </div>
          </div>
      </x-modal>
@@ -155,7 +155,7 @@
                  <p class="mt-2 text-sm text-gray-500">Please enter a message before submitting.</p>
              </div>
              <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
             </div>
          </div>
      </x-modal>
