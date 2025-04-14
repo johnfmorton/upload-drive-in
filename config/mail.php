@@ -112,6 +112,17 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Acme, Inc.'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Email Address
+    |--------------------------------------------------------------------------
+    |
+    | The email address to send administrative notifications to, like
+    | successful file uploads.
+    |
+    */
+    'admin_address' => env('ADMIN_EMAIL'),
+
     'markdown' => [
         'theme' => 'default',
 
