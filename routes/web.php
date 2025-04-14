@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileUploadController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\UploadController;
+use App\Http\Controllers\NotificationSettingsController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -127,3 +128,8 @@ Route::post('/upload', [UploadController::class, 'store'])->name('chunk.upload')
 Route::post('/api/uploads/associate-message', [UploadController::class, 'associateMessage'])
     ->middleware('auth') // Protect this route
     ->name('uploads.associate.message');
+
+// Unsubscribe route
+Route::get('/notifications/upload/unsubscribe/{user}', [NotificationSettingsController::class, 'unsubscribeUploads'])
+    ->name('notifications.upload.unsubscribe')
+    ->middleware('signed'); // Important: Use signed middleware
