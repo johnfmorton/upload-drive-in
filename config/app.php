@@ -135,4 +135,17 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Application Branding Color
+    |--------------------------------------------------------------------------
+    |
+    | This value determines the primary branding color for the application.
+    | It is stored in OKLCH format for better color space handling and
+    | generation of color schemes. Default is black in OKLCH format.
+    |
+    */
+
+    'branding_color' => env('APP_BRANDING_COLOR', 'oklch(0% 0 0 / 1.0)'),
+
 ];

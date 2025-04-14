@@ -25,11 +25,11 @@
                             @csrf
                             @method('put')
 
-                            {{-- Business Name --}}
+                            {{-- Company Name --}}
                             <div>
-                                <x-input-label for="business_name" :value="__('messages.business_name_label')" />
-                                <x-text-input id="business_name" name="business_name" type="text" class="mt-1 block w-full" :value="old('business_name', $settings['business_name'])" required autofocus autocomplete="organization" />
-                                <x-input-error class="mt-2" :messages="$errors->get('business_name')" />
+                                <x-input-label for="company_name" :value="__('messages.company_name_label')" />
+                                <x-text-input id="company_name" name="company_name" type="text" class="mt-1 block w-full" :value="old('company_name', $settings['company_name'])" required autofocus autocomplete="organization" />
+                                <x-input-error class="mt-2" :messages="$errors->get('company_name')" />
                             </div>
 
                             {{-- Branding Color --}}
