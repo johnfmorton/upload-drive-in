@@ -24,3 +24,4 @@ yarn-error.log
 .DS_Store
 
 /env.bak
+public/images/*
