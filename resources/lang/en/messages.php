@@ -16,7 +16,7 @@
     'app_settings' => 'Application Settings*',
     'branding_settings_title' => 'Branding Settings*',
     'branding_settings_description' => 'Update your application\'s branding details like name, color, and icon.*',
-    'business_name_label' => 'Business Name*',
+    'company_name_label' => 'Company Name*',
     'branding_color_label' => 'Branding Color*',
     'app_icon_label' => 'Application Icon (Logo)*',
     'app_icon_hint' => 'Upload a PNG, JPG, or SVG. Recommended size: 128x128px.*',
