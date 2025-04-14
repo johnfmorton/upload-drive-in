@@ -151,7 +151,7 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
 
         // --- Add queuecomplete listener for message association ---
         myDropzone.on("queuecomplete", function() {
-            console.log("Upload queue finished.");
+            console.log("--- Queue Complete Fired ---"); // <-- LOG: Start of handler
             const submitButton = messageForm.querySelector('button[type="submit"]');
             const message = messageInput.value;
             const successfullyUploadedFiles = myDropzone.getFilesWithStatus(Dropzone.SUCCESS);
@@ -161,11 +161,12 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                 .map(file => file.file_upload_id) // Assumes ID was stored on file object in 'success' callback
                 .filter(id => id); // Filter out any undefined IDs
 
-            console.log('Queue complete. Successful file IDs:', successfulFileIds);
+            console.log('Queue complete. Message:', message); // <-- LOG: Message value
+            console.log('Queue complete. Successful file IDs:', successfulFileIds); // <-- LOG: IDs found
 
             if (message && successfulFileIds.length > 0) {
-                console.log('Attempting to associate message with successful uploads.');
-                 submitButton.textContent = 'Associating Message...'; // Update button text
+                console.log('Attempting to associate message...'); // <-- LOG: Associating message path
+                submitButton.textContent = 'Associating Message...'; // Update button text
 
                 fetch('/api/uploads/associate-message', {
                     method: 'POST',
@@ -208,19 +209,19 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                  });
 
             } else if (successfulFileIds.length > 0 && !message) {
-                 console.log('Uploads finished, but no message to associate.');
-                 // alert('Files uploaded successfully! No message was entered.');
+                 console.log('Dispatching upload-success modal...'); // <-- LOG: Dispatching success modal
                  window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-success' }));
                  // Optionally clear Dropzone here too
                  // myDropzone.removeAllFiles(true);
                  submitButton.disabled = false; // Re-enable button
                  submitButton.textContent = 'Upload and Send Message';
+                 // Check for rejected files AFTER showing success for the completed ones
                  if (myDropzone.getRejectedFiles().length > 0) {
-                    // alert('Some files failed to upload. Please check errors and try again.');
+                    console.log('Found rejected files, dispatching upload-error modal as well.'); // <-- LOG: Showing error modal too
                     window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-error' }));
                  }
             } else {
-                 console.log('Queue finished, but no successful uploads or no message.');
+                 console.log('Queue finished, but no successful uploads or handling other cases.'); // <-- LOG: Other conditions
                  // Re-enable button if there were no successful uploads to process
                  if (successfulFileIds.length === 0) {
                       submitButton.disabled = false;

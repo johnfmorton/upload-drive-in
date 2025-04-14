@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Pion\Laravel\ChunkUpload\Save\ChunkSave;
+use App\Events\FileUploaded; // <-- Add Event import
 
 class UploadController extends Controller
 {
@@ -200,6 +201,28 @@ class UploadController extends Controller
         try {
             UploadToGoogleDrive::dispatch($fileUpload);
             Log::info('UploadToGoogleDrive job dispatched successfully.', ['file_upload_id' => $fileUpload->id]);
+
+            // --> Dispatch the FileUploaded event HERE <--
+            try {
+                // <-- Add logging before dispatch -->
+                Log::debug('Preparing to dispatch FileUploaded event.', [
+                    'fileUpload_type' => get_class($fileUpload),
+                    'fileUpload_id' => $fileUpload->id,
+                    'user_type' => get_class($user),
+                    'user_id' => $user->id
+                ]);
+                FileUploaded::dispatch($fileUpload, $user); // Pass the FileUpload model and User model
+                Log::info('FileUploaded event dispatched successfully.', ['file_upload_id' => $fileUpload->id, 'user_id' => $user->id]);
+            } catch (\Exception $e) {
+                Log::error('Failed to dispatch FileUploaded event.', [
+                    'file_upload_id' => $fileUpload->id,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                // Decide if this failure should affect the user response
+            }
+
         } catch (\Exception $e) {
              Log::error('Failed to dispatch UploadToGoogleDrive job.', [
                  'file_upload_id' => $fileUpload->id,
@@ -216,12 +239,13 @@ class UploadController extends Controller
         Log::info('saveFile method completed successfully.', ['file_upload_id' => $fileUpload->id]);
         return response()->json([
             'file_upload_id' => $fileUpload->id,
-            'path' => $filePath . $fileName, // Path relative to storage/app/public for URL generation if needed
+            'path' => $filePath . $fileName,
             'name' => $fileName,
-            'original_name' => $originalFilename,
+            'original_filename' => $originalFilename,
             'mime_type' => $mimeType,
             'size' => $fileSize,
-            'status' => true
+            'status' => true,
+            // Add any other data needed by the frontend modal
         ]);
     }
 
