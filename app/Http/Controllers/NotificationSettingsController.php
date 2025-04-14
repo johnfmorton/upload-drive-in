@@ -21,9 +21,8 @@ class NotificationSettingsController extends Controller
         $user->receive_upload_notifications = false;
         $user->save();
 
-        // You might want a dedicated view for this
-        return view('notifications.unsubscribed', [
-            'message' => __('messages.unsubscribe_success_message')
-        ]);
+        // Redirect to profile page with a success message
+        return redirect()->route('profile.edit')
+            ->with('status', __('messages.unsubscribe_success_message'));
     }
 }
