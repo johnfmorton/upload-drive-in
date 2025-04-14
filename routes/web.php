@@ -75,6 +75,14 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::post('/users', [\App\Http\Controllers\Admin\AdminUserController::class, 'store'])
         ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.users.store');
+
+    // Application Settings
+    Route::get('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'edit'])
+        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
+        ->name('admin.settings.edit');
+    Route::put('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'update'])
+        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
+        ->name('admin.settings.update');
 });
 
 // Google Drive routes
