@@ -19,12 +19,12 @@ class FileUploaded
     /**
      * Create a new event instance.
      *
-     * @param FileUpload $file The model representing the uploaded file.
-     * @param User $user The user who uploaded the file.
+     * @param int $fileUploadId The ID of the uploaded file record.
+     * @param int $userId The ID of the user who uploaded the file.
      */
     public function __construct(
-        public FileUpload $file,
-        public User $user
+        public int $fileUploadId,
+        public int $userId
     ) {
         // Constructor body is now empty
     }

@@ -204,14 +204,13 @@ class UploadController extends Controller
 
             // --> Dispatch the FileUploaded event HERE <--
             try {
-                // <-- Add logging before dispatch -->
-                Log::debug('Preparing to dispatch FileUploaded event.', [
-                    'fileUpload_type' => get_class($fileUpload),
-                    'fileUpload_id' => $fileUpload->id,
-                    'user_type' => get_class($user),
-                    'user_id' => $user->id
+                // <-- Log before dispatch -->
+                Log::debug('Preparing to dispatch FileUploaded event with IDs.', [
+                    'fileUploadId' => $fileUpload->id,
+                    'userId' => $user->id
                 ]);
-                FileUploaded::dispatch($fileUpload, $user); // Pass the FileUpload model and User model
+                // Pass IDs instead of models
+                FileUploaded::dispatch($fileUpload->id, $user->id);
                 Log::info('FileUploaded event dispatched successfully.', ['file_upload_id' => $fileUpload->id, 'user_id' => $user->id]);
             } catch (\Exception $e) {
                 Log::error('Failed to dispatch FileUploaded event.', [
