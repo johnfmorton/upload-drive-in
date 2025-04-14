@@ -264,7 +264,7 @@
                                             </td>
                                         </template>
                                         <template x-if="columns.message"><td class="px-6 py-4 whitespace-normal text-sm text-gray-500" x-text="file.message"></td></template>
-                                         <template x-if="columns.uploadedAt"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(file.created_at)"></td></template>
+                                        <template x-if="columns.uploadedAt"><td class="px-6 py-4 text-sm text-gray-500 break-words max-w-xs" x-text="formatDate(file.created_at)"></td></template>
                                         <template x-if="columns.actions">
                                             <td class="px-6 py-4 text-sm font-medium flex flex-wrap gap-2">
                                                 <template x-if="file.google_drive_file_id">
