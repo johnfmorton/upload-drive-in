@@ -110,6 +110,8 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
             complete: function(file) {
                  // Optional: handle file completion if needed beyond 'success'
                  console.log('File processing complete (success or error): ', file.name)
+                 // After a file completes, try processing the next one in the queue
+                 myDropzone.processQueue();
              },
              // queuecomplete: function() {
              //     console.log("All files in the queue have been processed.");
@@ -121,10 +123,15 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
         messageForm.addEventListener('submit', function(e) {
             e.preventDefault(); // Prevent default form submission
             const submitButton = this.querySelector('button[type="submit"]');
+            const queuedFiles = myDropzone.getQueuedFiles(); // Get files waiting
+            const filesInProgress = myDropzone.getFilesWithStatus(Dropzone.UPLOADING); // Files currently uploading (should be 0 or 1)
+            const filesDone = myDropzone.getFilesWithStatus(Dropzone.SUCCESS).length + myDropzone.getFilesWithStatus(Dropzone.ERROR).length; // Files already processed
+
+            console.log(`Submit triggered. Queued: ${queuedFiles.length}, InProgress: ${filesInProgress.length}, Done: ${filesDone}`); // <-- ADD LOG
 
             // Check if there are files to upload
-            if (myDropzone.getQueuedFiles().length > 0) {
-                console.log('Starting file uploads...');
+            if (queuedFiles.length > 0) {
+                console.log('Starting file uploads for queue...'); // <-- ADD LOG
                  submitButton.disabled = true;
                  submitButton.textContent = 'Uploading Files...';
                 myDropzone.processQueue(); // Start uploading queued files
@@ -141,17 +148,23 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                  // We could potentially call the message association logic directly if needed:
                  // associateMessageWithUploads(messageInput.value, fileIdsInput.value);
                  // Dispatch event to show a specific modal (example, might need a different one)
+                 console.log('Submit triggered, but files seem already uploaded.'); // <-- ADD LOG
                  window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-error' })); // Or a more specific modal name
 
             } else {
                  // alert('Please add files to upload.');
+                 console.log('Submit triggered, but no files added.'); // <-- ADD LOG
                  window.dispatchEvent(new CustomEvent('open-modal', { detail: 'no-files-error' }));
             }
         });
 
         // --- Add queuecomplete listener for message association ---
         myDropzone.on("queuecomplete", function() {
-            console.log("--- Queue Complete Fired ---"); // <-- LOG: Start of handler
+            const finishedFiles = myDropzone.getFilesWithStatus(Dropzone.SUCCESS).length + myDropzone.getFilesWithStatus(Dropzone.ERROR).length;
+            const totalFilesAdded = myDropzone.files.length; // Total files ever added to this instance
+            console.log(`--- Queue Complete Fired --- Processed: ${finishedFiles}, Total Added: ${totalFilesAdded}`); // <-- MODIFIED LOG
+
+            // console.log("--- Queue Complete Fired ---"); // <-- LOG: Start of handler
             const submitButton = messageForm.querySelector('button[type="submit"]');
             const message = messageInput.value;
             const successfullyUploadedFiles = myDropzone.getFilesWithStatus(Dropzone.SUCCESS);
