@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Admin Dashboard') }}
+            {{ __('messages.admin_dashboard_title') }}
         </h2>
     </x-slot>
 
@@ -11,29 +11,29 @@
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <div class="max-w-xl">
                     <h2 class="text-lg font-medium text-gray-900">
-                        Google Drive Connection
+                        {{ __('messages.google_drive_connection_title') }}
                     </h2>
 
                     <p class="mt-1 text-sm text-gray-600">
-                        Connect to Google Drive to enable automatic file uploads.
+                        {{ __('messages.google_drive_connection_description') }}
                     </p>
 
                     <div class="mt-6">
                         @if (Storage::exists('google-credentials.json'))
                             <div class="flex items-center gap-4">
-                                <p class="text-sm text-green-600">Google Drive is connected</p>
+                                <p class="text-sm text-green-600">{{ __('messages.google_drive_connected') }}</p>
                                 <form action="{{ route('google-drive.disconnect') }}" method="POST" class="inline">
                                     @csrf
                                     <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 active:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                        Disconnect Google Drive
+                                        {{ __('messages.google_drive_disconnect_button') }}
                                     </button>
                                 </form>
                             </div>
                         @else
                             <div class="flex items-center gap-4">
-                                <p class="text-sm text-red-600">Google Drive is not connected</p>
+                                <p class="text-sm text-red-600">{{ __('messages.google_drive_not_connected') }}</p>
                                 <a href="{{ route('google-drive.connect') }}" class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                    Connect Google Drive
+                                    {{ __('messages.google_drive_connect_button') }}
                                 </a>
                             </div>
                         @endif
@@ -165,48 +165,48 @@
                     }"
                     class="max-w-full">
                     <h2 class="text-lg font-medium text-gray-900 mb-4">
-                        Uploaded Files
+                        {{ __('messages.uploaded_files_title') }}
                     </h2>
 
                     <!-- Column Visibility Controls -->
                     <div class="mb-4 p-4 border rounded bg-gray-50">
-                        <h3 class="text-md font-medium text-gray-700 mb-2">Show/Hide Columns:</h3>
+                        <h3 class="text-md font-medium text-gray-700 mb-2">{{ __('messages.toggle_columns_title') }}</h3>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
                             <label class="flex items-center space-x-2">
                                 <input type="checkbox" x-model="columns.fileName" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                <span>File Name</span>
+                                <span>{{ __('messages.column_file_name') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
                                 <input type="checkbox" x-model="columns.user" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                <span>User</span>
+                                <span>{{ __('messages.column_user') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
                                 <input type="checkbox" x-model="columns.size" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                <span>Size</span>
+                                <span>{{ __('messages.column_size') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
                                 <input type="checkbox" x-model="columns.status" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                <span>Status</span>
+                                <span>{{ __('messages.column_status') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
                                 <input type="checkbox" x-model="columns.message" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                <span>Message</span>
+                                <span>{{ __('messages.column_message') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
                                 <input type="checkbox" x-model="columns.uploadedAt" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                <span>Uploaded At</span>
+                                <span>{{ __('messages.column_uploaded_at') }}</span>
                             </label>
                              <label class="flex items-center space-x-2">
                                 <input type="checkbox" x-model="columns.actions" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                <span>Actions</span>
+                                <span>{{ __('messages.column_actions') }}</span>
                             </label>
                         </div>
                     </div>
 
                     <!-- Filter Input -->
                     <div class="mb-4">
-                        <label for="fileFilter" class="sr-only">Filter files</label>
-                        <input type="text" id="fileFilter" x-model.debounce.300ms="filterQuery" placeholder="Filter by filename, user, or message..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 sm:text-sm">
+                        <label for="fileFilter" class="sr-only">{{ __('messages.filter_files_label') }}</label>
+                        <input type="text" id="fileFilter" x-model.debounce.300ms="filterQuery" placeholder="{{ __('messages.filter_placeholder') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 sm:text-sm">
                     </div>
 
                     <!-- Mobile Card View -->
@@ -227,7 +227,7 @@
                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                                        </svg>
-                                                       View
+                                                       {{ __('messages.view_button') }}
                                                     </a>
                                                 </template>
                                                 <button @click="openDeleteModal(file.id)"
@@ -235,17 +235,17 @@
                                                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                     </svg>
-                                                    Delete
+                                                    {{ __('messages.delete_button') }}
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="mt-2">
                                         <span x-show="file.google_drive_file_id" class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                            Uploaded
+                                             {{ __('messages.status_uploaded') }}
                                         </span>
                                         <span x-show="!file.google_drive_file_id" class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                            Pending
+                                            {{ __('messages.status_pending') }}
                                         </span>
                                     </div>
                                 </div>
@@ -253,20 +253,20 @@
                                 <!-- Main Information -->
                                 <div class="space-y-3">
                                     <div class="grid grid-cols-2 gap-2 text-sm">
-                                        <div class="text-gray-500">User</div>
+                                        <div class="text-gray-500">{{ __('messages.column_user') }}</div>
                                         <div class="font-medium truncate" x-text="file.email"></div>
 
-                                        <div class="text-gray-500">Size</div>
+                                        <div class="text-gray-500">{{ __('messages.column_size') }}</div>
                                         <div class="font-medium" x-text="formatSize(file.file_size)"></div>
 
-                                        <div class="text-gray-500">Uploaded at</div>
+                                        <div class="text-gray-500">{{ __('messages.mobile_label_uploaded_at') }}</div>
                                         <div class="font-medium" x-text="formatDate(file.created_at)"></div>
                                     </div>
 
                                     <template x-if="file.message">
                                         <div class="pt-3 border-t border-gray-200">
                                             <div class="text-sm">
-                                                <div class="text-gray-500 mb-1">Message</div>
+                                                <div class="text-gray-500 mb-1">{{ __('messages.mobile_label_message') }}</div>
                                                 <div class="text-gray-900 break-words" x-text="file.message"></div>
                                             </div>
                                         </div>
@@ -278,7 +278,7 @@
                         <!-- No results message for mobile -->
                         <template x-if="filteredAndSortedFiles.length === 0">
                             <div class="text-center text-gray-500 py-4">
-                                No files match your filter criteria.
+                                {{ __('messages.no_files_found') }}
                             </div>
                         </template>
                     </div>
@@ -292,36 +292,36 @@
                                         <tr>
                                             <template x-if="columns.fileName">
                                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('original_filename')">
-                                                    File Name <span x-show="sortColumn === 'original_filename'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
+                                                    {{ __('messages.column_file_name') }} <span x-show="sortColumn === 'original_filename'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
                                                 </th>
                                             </template>
                                             <template x-if="columns.user">
                                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('email')">
-                                                    User <span x-show="sortColumn === 'email'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
+                                                    {{ __('messages.column_user') }} <span x-show="sortColumn === 'email'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
                                                 </th>
                                             </template>
                                             <template x-if="columns.size">
                                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('file_size')">
-                                                    Size <span x-show="sortColumn === 'file_size'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
+                                                    {{ __('messages.column_size') }} <span x-show="sortColumn === 'file_size'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
                                                 </th>
                                             </template>
                                             <template x-if="columns.message">
                                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Message
+                                                    {{ __('messages.column_message') }}
                                                 </th>
                                             </template>
                                             <template x-if="columns.status">
                                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Status
+                                                    {{ __('messages.column_status') }}
                                                 </th>
                                             </template>
                                             <template x-if="columns.uploadedAt">
                                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('created_at')">
-                                                    Uploaded At <span x-show="sortColumn === 'created_at'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
+                                                    {{ __('messages.column_uploaded_at') }} <span x-show="sortColumn === 'created_at'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
                                                 </th>
                                             </template>
                                             <template x-if="columns.actions">
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('messages.column_actions') }}</th>
                                             </template>
                                         </tr>
                                     </thead>
@@ -352,10 +352,10 @@
                                                 <template x-if="columns.status">
                                                     <td class="px-6 py-4 whitespace-nowrap">
                                                         <span x-show="file.google_drive_file_id" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                            Uploaded
+                                                             {{ __('messages.status_uploaded') }}
                                                         </span>
                                                         <span x-show="!file.google_drive_file_id" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                            Pending
+                                                             {{ __('messages.status_pending') }}
                                                         </span>
                                                     </td>
                                                 </template>
@@ -373,7 +373,7 @@
                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                                                    </svg>
-                                                                   View
+                                                                   {{ __('messages.view_button') }}
                                                                 </a>
                                                             </template>
                                                             <button @click="openDeleteModal(file.id)"
@@ -381,7 +381,7 @@
                                                                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                                 </svg>
-                                                                Delete
+                                                                {{ __('messages.delete_button') }}
                                                             </button>
                                                         </div>
                                                     </td>
@@ -392,7 +392,7 @@
                                         <template x-if="filteredAndSortedFiles.length === 0">
                                             <tr>
                                                 <td :colspan="Object.values(columns).filter(v => v).length" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                                                    No files match your filter criteria.
+                                                    {{ __('messages.no_files_found') }}
                                                 </td>
                                             </tr>
                                         </template>
@@ -412,12 +412,12 @@
                                 <svg class="size-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z" /></svg>
                             </div>
                             <div class="mt-3 text-center sm:mt-5">
-                                <h3 class="text-base font-semibold leading-6 text-gray-900">Delete File</h3>
-                                <p class="mt-2 text-sm text-gray-500">Are you sure you want to delete this file? This action cannot be undone.</p>
+                                <h3 class="text-base font-semibold leading-6 text-gray-900">{{ __('messages.delete_modal_title') }}</h3>
+                                <p class="mt-2 text-sm text-gray-500">{{ __('messages.delete_modal_text') }}</p>
                             </div>
                             <div class="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-                                <button @click="confirmDelete()" type="button" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2">Confirm Delete</button>
-                                <button @click="$dispatch('close')" type="button" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0">Cancel</button>
+                                <button @click="confirmDelete()" type="button" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:col-start-2">{{ __('messages.delete_modal_confirm_button') }}</button>
+                                <button @click="$dispatch('close')" type="button" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0">{{ __('messages.delete_modal_cancel_button') }}</button>
                             </div>
                         </div>
                     </x-modal>
