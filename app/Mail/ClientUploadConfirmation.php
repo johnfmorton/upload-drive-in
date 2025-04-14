@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\File;
+use App\Models\FileUpload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -17,12 +17,12 @@ class ClientUploadConfirmation extends Mailable
     /**
      * Create a new message instance.
      *
-     * @param File $file The model representing the uploaded file.
+     * @param FileUpload $file The model representing the uploaded file.
      * @param string $unsubscribeUrl The URL for the user to disable notifications.
      */
     public function __construct(
-        public File $file,           // Use promoted property
-        public string $unsubscribeUrl // Use promoted property
+        public FileUpload $file,
+        public string $unsubscribeUrl
     ) {
         //
     }
@@ -47,7 +47,7 @@ class ClientUploadConfirmation extends Mailable
         return new Content(
             markdown: 'emails.client.upload-confirmation',
             with: [
-                'fileName' => $this->file->original_name ?? 'N/A', // Example property, adjust as needed
+                'fileName' => $this->file->original_filename ?? 'N/A',
                 'unsubscribeUrl' => $this->unsubscribeUrl,
             ],
         );

@@ -2,7 +2,7 @@
 
 namespace App\Mail;
 
-use App\Models\File;
+use App\Models\FileUpload;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,11 +18,11 @@ class AdminUploadNotification extends Mailable
     /**
      * Create a new message instance.
      *
-     * @param File $file The model representing the uploaded file.
+     * @param FileUpload $file The model representing the uploaded file.
      * @param User $user The user who uploaded the file.
      */
     public function __construct(
-        public File $file,
+        public FileUpload $file,
         public User $user
     ) {
         //
@@ -46,8 +46,8 @@ class AdminUploadNotification extends Mailable
         return new Content(
             markdown: 'emails.admin.upload-notification',
             with: [
-                'fileName' => $this->file->original_name ?? 'N/A',
-                'fileSize' => $this->file->size ?? 0,
+                'fileName' => $this->file->original_filename ?? 'N/A',
+                'fileSize' => $this->file->file_size ?? 0,
                 'fileMessage' => $this->file->message ?? null,
                 'userName' => $this->user->name,
                 'userEmail' => $this->user->email,

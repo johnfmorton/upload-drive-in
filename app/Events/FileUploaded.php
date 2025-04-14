@@ -2,7 +2,7 @@
 
 namespace App\Events;
 
-use App\Models\File;
+use App\Models\FileUpload;
 use App\Models\User;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -19,11 +19,11 @@ class FileUploaded
     /**
      * Create a new event instance.
      *
-     * @param File $file The model representing the uploaded file.
+     * @param FileUpload $file The model representing the uploaded file.
      * @param User $user The user who uploaded the file.
      */
     public function __construct(
-        public File $file,
+        public FileUpload $file,
         public User $user
     ) {
         // Constructor body is now empty
