@@ -169,7 +169,7 @@
                     </h2>
 
                     <!-- Column Visibility Controls -->
-                    <div class="mb-4 p-4 border rounded bg-gray-50">
+                    <div class="mb-4 p-4 border rounded bg-gray-50 hidden lg:block">
                         <h3 class="text-md font-medium text-gray-700 mb-2">{{ __('messages.toggle_columns_title') }}</h3>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
                             <label class="flex items-center space-x-2">
