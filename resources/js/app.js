@@ -213,6 +213,14 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                  window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-success' }));
                  // Optionally clear Dropzone here too
                  // myDropzone.removeAllFiles(true);
+                 // Clear the Dropzone UI and the hidden input field
+                 console.log('Attempting to clear Dropzone UI...'); // <-- ADDED LOG
+                 myDropzone.removeAllFiles(true); // Clear Dropzone queue and previews
+                 console.log('Dropzone UI should be cleared now.'); // <-- ADDED LOG
+                 console.log('Attempting to clear file IDs input...'); // <-- ADDED LOG
+                 fileIdsInput.value = '[]'; // Clear hidden input
+                 console.log('File IDs input cleared.'); // <-- ADDED LOG
+
                  submitButton.disabled = false; // Re-enable button
                  submitButton.textContent = 'Upload and Send Message';
                  // Check for rejected files AFTER showing success for the completed ones
