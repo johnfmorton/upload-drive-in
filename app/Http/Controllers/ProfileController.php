@@ -43,8 +43,14 @@ class ProfileController extends Controller
         // <-- Log raw request data FIRST -->
         Log::debug('Raw Profile Update Request Data:', $request->all());
 
-        // Fill the user model using data validated by ProfileUpdateRequest
-        $request->user()->fill($request->validated());
+        // Get validated data
+        $validated_data = $request->validated();
+
+        // Ensure 'receive_upload_notifications' is set to false if not present in the request
+        $validated_data['receive_upload_notifications'] = $request->has('receive_upload_notifications');
+
+        // Fill the user model using the processed data
+        $request->user()->fill($validated_data);
 
         // Reset email verification if the email was changed
         if ($request->user()->isDirty('email')) {
@@ -54,7 +60,7 @@ class ProfileController extends Controller
         // Optional: Log before saving for confirmation
         Log::debug('Saving profile update', [
             'user_id' => $request->user()->id,
-            'data_to_save' => $request->validated()
+            'data_to_save' => $validated_data // Use the processed data for logging
         ]);
 
         // Save the user model

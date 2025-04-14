@@ -51,7 +51,7 @@
         <div class="block mt-4">
             <label for="receive_upload_notifications" class="inline-flex items-center">
                 <input id="receive_upload_notifications" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="receive_upload_notifications" value="1" {{ old('receive_upload_notifications', $user->receive_upload_notifications) ? 'checked' : '' }}>
-                <span class="ms-2 text-sm text-gray-600">{{ __('messages.profile_receive_notifications_label') }}*</span>
+                <span class="ms-2 text-sm text-gray-600">{{ __('messages.profile_receive_notifications_label') }}</span>
             </label>
         </div>
         <!-- End Checkbox -->
