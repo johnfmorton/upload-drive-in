@@ -5,14 +5,17 @@ namespace App\Listeners;
 use App\Events\FileUploaded;
 use App\Mail\AdminUploadNotification;
 use App\Mail\ClientUploadConfirmation;
+use App\Models\FileUpload;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 
-class SendUploadNotifications
+class SendUploadNotifications implements ShouldQueue
 {
+    use InteractsWithQueue;
+
     /**
      * Create the event listener.
      */
@@ -26,14 +29,20 @@ class SendUploadNotifications
      */
     public function handle(FileUploaded $event): void
     {
-        $file = $event->file;
+        $fileUpload = FileUpload::find($event->file->id);
+
+        if (! $fileUpload) {
+             Log::error('Could not find FileUpload model in SendUploadNotifications listener', ['id' => $event->file->id]);
+             return;
+        }
+
         $user = $event->user;
         $admin_email = config('mail.admin_address');
 
         // --- Send Admin Notification ---
         if ($admin_email) {
             try {
-                Mail::to($admin_email)->send(new AdminUploadNotification($file, $user));
+                Mail::to($admin_email)->send(new AdminUploadNotification($fileUpload, $user));
             } catch (\Exception $e) {
                 Log::error('Failed to send admin upload notification: ' . $e->getMessage());
             }
@@ -50,7 +59,7 @@ class SendUploadNotifications
                     ['user' => $user->id]
                 );
 
-                Mail::to($user->email)->send(new ClientUploadConfirmation($file, $unsubscribe_url));
+                Mail::to($user->email)->send(new ClientUploadConfirmation($fileUpload, $unsubscribe_url));
             } catch (\Exception $e) {
                 Log::error("Failed to send client upload confirmation to {$user->email}: " . $e->getMessage());
             }
