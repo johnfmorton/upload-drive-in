@@ -242,7 +242,7 @@
                                     </div>
                                     <div class="mt-2">
                                         <span x-show="file.google_drive_file_id" class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                            Uploaded to Drive
+                                            Uploaded
                                         </span>
                                         <span x-show="!file.google_drive_file_id" class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                             Pending
@@ -259,7 +259,7 @@
                                         <div class="text-gray-500">Size</div>
                                         <div class="font-medium" x-text="formatSize(file.file_size)"></div>
 
-                                        <div class="text-gray-500">Uploaded</div>
+                                        <div class="text-gray-500">Uploaded at</div>
                                         <div class="font-medium" x-text="formatDate(file.created_at)"></div>
                                     </div>
 
