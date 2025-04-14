@@ -4,7 +4,10 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <div class="text-center mb-8">
-                        <h1 class="text-3xl font-bold text-gray-900 mb-4 text-balance">Upload files to {{ config('app.company_name') }}</h1>
+                        @if(File::exists(public_path('images/app-icon.png')))
+                            <img src="{{ asset('images/app-icon.png') }}?v={{ md5_file(public_path('images/app-icon.png')) }}" alt="{{ config('app.company_name') }} Logo" class="w-auto h-8 mx-auto mb-4">
+                        @endif
+                        <h1 class="text-2xl font-bold text-gray-900 mb-4 text-balance">Upload files to {{ config('app.company_name') }}</h1>
                         <p class="text-gray-600">Begin by validating your email address.</p>
                     </div>
 
