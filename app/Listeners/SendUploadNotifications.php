@@ -68,8 +68,7 @@ class SendUploadNotifications implements ShouldQueue
             Log::warning('Admin email address not configured for upload notifications.');
         }
 
-        /* // <--- Start comment block
-        // --- Send Client Confirmation ---
+        // --- Client Confirmation Logic ---
         if ($user->receive_upload_notifications && $user->email) {
             try {
                 Log::info('Attempting to send client confirmation...', ['user_email' => $user->email, 'file_upload_id' => $fileUpload->id]); // Add log
@@ -84,6 +83,5 @@ class SendUploadNotifications implements ShouldQueue
                 Log::error("Failed to send client upload confirmation to {$user->email}: " . $e->getMessage());
             }
         }
-        */ // <--- End comment block
     }
 }
