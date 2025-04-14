@@ -113,4 +113,24 @@
     'password_incorrect' => 'The password you entered was incorrect.*',
     'upload_notification_subject' => 'New File Uploaded to Your Drive Folder*', // Assuming this might exist or be needed
     'unsubscribe_success_message' => 'You have been successfully unsubscribed from upload notifications.*',
+
+    // ---- BATCH UPLOAD EMAILS ----
+
+    // Client Batch Email
+    'client_batch_upload_subject' => 'File Upload Batch Confirmation - :app_name*',
+    'client_batch_upload_heading' => 'File Upload Batch Successful*',
+    'client_batch_upload_body' => '{1} Your file has been successfully uploaded.|[2,*] Your :count files have been successfully uploaded.*',
+    'uploaded_files_list' => 'Uploaded Files*',
+    'upload_thank_you' => 'Thank you for using our service.*',
+    'unsubscribe_link_text' => "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:*",
+    'unsubscribe_action_text' => 'Unsubscribe', // Note: Removed the trailing * as it's part of the sentence structure in the view
+
+    // Admin Batch Email
+    'admin_batch_upload_subject' => '{1} New File Uploaded by :userName to :app_name*|[2,*] :count New Files Uploaded by :userName to :app_name*',
+    'admin_batch_upload_heading' => 'Batch File Upload Notification*',
+    'admin_batch_upload_body_intro' => '{1} :userName (:userEmail) has uploaded 1 new file.*|[2,*] :userName (:userEmail) has uploaded :count new files.*',
+    'uploaded_files_details' => 'Uploaded File Details*',
+    'file_label' => 'File*',
+    // Re-using existing keys: 'file_name', 'file_size', 'file_message'
+
 ];
