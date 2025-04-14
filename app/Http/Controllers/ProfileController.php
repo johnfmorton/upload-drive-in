@@ -40,20 +40,22 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        // Validate the incoming request data (including the new checkbox)
-        $validated_data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($request->user()->id)],
-            'receive_upload_notifications' => ['required', 'boolean'], // Add validation rule
-        ]);
+        // <-- Log raw request data FIRST -->
+        Log::debug('Raw Profile Update Request Data:', $request->all());
 
-        // Fill the user model with validated data
-        $request->user()->fill($validated_data);
+        // Fill the user model using data validated by ProfileUpdateRequest
+        $request->user()->fill($request->validated());
 
         // Reset email verification if the email was changed
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;
         }
+
+        // Optional: Log before saving for confirmation
+        Log::debug('Saving profile update', [
+            'user_id' => $request->user()->id,
+            'data_to_save' => $request->validated()
+        ]);
 
         // Save the user model
         $request->user()->save();
