@@ -47,8 +47,15 @@
 
                     <x-slot name="content">
                         <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
+                            {{ __('messages.profile') }}
                         </x-dropdown-link>
+
+                        {{-- Add Application Settings link for Admins --}}
+                        @if (Auth::user()->isAdmin())
+                            <x-dropdown-link :href="route('admin.settings.edit')">
+                                {{ __('messages.app_settings') }}
+                            </x-dropdown-link>
+                        @endif
 
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
@@ -57,7 +64,7 @@
                             <x-dropdown-link :href="route('logout')"
                                     onclick="event.preventDefault();
                                                 this.closest('form').submit();">
-                                {{ __('Log Out') }}
+                                {{ __('messages.log_out') }}
                             </x-dropdown-link>
                         </form>
                     </x-slot>
