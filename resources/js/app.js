@@ -222,25 +222,66 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                  });
 
             } else if (successfulFileIds.length > 0 && !message) {
-                 console.log('Dispatching upload-success modal...'); // <-- LOG: Dispatching success modal
-                 window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-success' }));
-                 // Optionally clear Dropzone here too
-                 // myDropzone.removeAllFiles(true);
-                 // Clear the Dropzone UI and the hidden input field
-                 console.log('Attempting to clear Dropzone UI...'); // <-- ADDED LOG
-                 myDropzone.removeAllFiles(true); // Clear Dropzone queue and previews
-                 console.log('Dropzone UI should be cleared now.'); // <-- ADDED LOG
-                 console.log('Attempting to clear file IDs input...'); // <-- ADDED LOG
-                 fileIdsInput.value = '[]'; // Clear hidden input
-                 console.log('File IDs input cleared.'); // <-- ADDED LOG
+                 console.log('Batch upload complete without message. Successful IDs:', successfulFileIds);
 
-                 submitButton.disabled = false; // Re-enable button
-                 submitButton.textContent = 'Upload and Send Message';
-                 // Check for rejected files AFTER showing success for the completed ones
-                 if (myDropzone.getRejectedFiles().length > 0) {
-                    console.log('Found rejected files, dispatching upload-error modal as well.'); // <-- LOG: Showing error modal too
-                    window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-error' }));
-                 }
+                 // --- Call Backend to Trigger Batch Notifications ---
+                 console.log('Calling /api/uploads/batch-complete...');
+                 submitButton.textContent = 'Finalizing Upload...'; // Update button text
+                 submitButton.disabled = true; // Keep disabled while finalizing
+
+                 fetch('/api/uploads/batch-complete', { // Use the new route
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'Accept': 'application/json',
+                         'X-CSRF-TOKEN': csrfToken // Ensure CSRF token is included
+                     },
+                     body: JSON.stringify({
+                         file_upload_ids: successfulFileIds
+                     })
+                 })
+                 .then(response => {
+                     if (!response.ok) {
+                        console.error('Error response from batch-complete endpoint:', response.status);
+                         // Try to get text even for non-JSON error responses
+                         response.text().then(text => console.error('Batch Complete Error Body:', text));
+                         throw new Error(`HTTP error! status: ${response.status}`);
+                     }
+                     return response.json(); // Expecting a JSON success response
+                 })
+                 .then(data => {
+                     console.log('Backend acknowledged batch completion:', data);
+                     // NOW, show success modal and clean up UI
+                     console.log('Dispatching upload-success modal...');
+                     window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-success' }));
+
+                     // Clear the Dropzone UI and the hidden input field
+                     console.log('Attempting to clear Dropzone UI...');
+                     myDropzone.removeAllFiles(true);
+                     console.log('Dropzone UI should be cleared now.');
+                     console.log('Attempting to clear file IDs input...');
+                     fileIdsInput.value = '[]';
+                     console.log('File IDs input cleared.');
+                 })
+                 .catch(error => {
+                     console.error('Error calling batch-complete endpoint:', error);
+                     // Show a specific error modal for batch finalization failure?
+                     window.dispatchEvent(new CustomEvent('open-modal', { detail: 'association-error' })); // Reuse association error for now
+                     // OR create a new modal like 'batch-complete-error'
+                 })
+                 .finally(() => {
+                      // Re-enable button and reset text, regardless of API call outcome
+                      submitButton.disabled = false;
+                      submitButton.textContent = 'Upload and Send Message';
+
+                      // Check for rejected files AFTER attempting batch complete
+                      if (myDropzone.getRejectedFiles().length > 0) {
+                         console.log('Found rejected files, dispatching upload-error modal as well.');
+                         window.dispatchEvent(new CustomEvent('open-modal', { detail: 'upload-error' }));
+                      }
+                 });
+                 // --- End Backend Call ---
+
             } else {
                  console.log('Queue finished, but no successful uploads or handling other cases.'); // <-- LOG: Other conditions
                  // Re-enable button if there were no successful uploads to process
