@@ -10,6 +10,12 @@ build:
 	ddev start
 	ddev exec npm run build
 
+mailhog:
+	ddev launch -m
+
+queue:
+	ddev exec php artisan queue:work
+
 init:
 	@echo "Setting up the project..."
 	@if [ ! -f .env ]; then \\
