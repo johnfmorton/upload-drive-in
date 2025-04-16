@@ -55,7 +55,6 @@
                             email: true,
                             createdAt: true,
                             loginUrl: true, // Added Login URL column
-                            twoFactor: true, // Added 2FA status column
                             actions: true
                         }).as('adminUserColumns'),
                         showDeleteModal: false,
@@ -124,7 +123,7 @@
 
                         // Helper to format date
                          formatDate(dateString) {
-                            const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                            const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }; // removed  `second: '2-digit'`
                             return new Date(dateString).toLocaleString(undefined, options);
                         },
 
@@ -249,10 +248,6 @@
                                 <span>{{ __('messages.column_login_url') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.twoFactor" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
-                                <span>{{ __('messages.column_2fa_status') }}</span>
-                            </label>
-                            <label class="flex items-center space-x-2">
                                 <input type="checkbox" x-model="columns.actions" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.column_actions') }}</span>
                             </label>
@@ -274,13 +269,6 @@
                                     <div class="flex justify-between items-start gap-2">
                                         <div class="font-medium text-gray-900 break-words" x-text="client.name"></div>
                                         <div class="flex shrink-0 space-x-2">
-                                            {{-- 2FA Status Badge --}}
-                                            <span x-show="client.two_factor_enabled" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                {{ __('messages.2fa_enabled') }}
-                                            </span>
-                                            <span x-show="!client.two_factor_enabled" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                {{ __('messages.2fa_disabled') }}
-                                            </span>
                                             {{-- Copy URL Button --}}
                                             <button @click="copyLoginUrl(client)" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)]">
                                                 <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
@@ -349,9 +337,6 @@
                                         <template x-if="columns.loginUrl">
                                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('messages.column_login_url') }}</th>
                                         </template>
-                                        <template x-if="columns.twoFactor">
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('messages.column_2fa_status') }}</th>
-                                        </template>
                                         <template x-if="columns.actions"><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('messages.column_actions') }}</th></template>
                                     </tr>
                                 </thead>
@@ -367,27 +352,6 @@
                                                         <span x-show="copiedUrlId !== client.id">{{ __('messages.button_copy_login_url') }}</span>
                                                         <span x-show="copiedUrlId === client.id" class="text-green-600">{{ __('messages.copied_confirmation') }}</span>
                                                     </button>
-                                                </td>
-                                            </template>
-                                            <template x-if="columns.twoFactor">
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex items-center space-x-2">
-                                                        <span x-show="client.two_factor_enabled" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                            {{ __('messages.2fa_enabled') }}
-                                                        </span>
-                                                        <span x-show="!client.two_factor_enabled" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                            {{ __('messages.2fa_disabled') }}
-                                                        </span>
-                                                        <template x-if="client.two_factor_enabled">
-                                                            <form method="POST" action="{{ route('admin.2fa.disable') }}" class="inline">
-                                                                @csrf
-                                                                <button type="submit" class="text-red-600 hover:text-red-900 text-sm underline">{{ __('messages.disable_2fa_button') }}</button>
-                                                            </form>
-                                                        </template>
-                                                        <template x-if="!client.two_factor_enabled">
-                                                            <a :href="'/admin/2fa/setup'" class="text-[var(--brand-color)] hover:brightness-75 text-sm underline">{{ __('messages.setup_2fa_button') }}</a>
-                                                        </template>
-                                                    </div>
                                                 </td>
                                             </template>
                                             <template x-if="columns.actions">
