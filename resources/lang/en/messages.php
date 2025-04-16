@@ -143,4 +143,26 @@
     '2fa_enabled_message' => 'Two-factor authentication is enabled.',
     'column_2fa_status' => '2FA Status',
 
+    // User Management Settings
+    'user_management_settings' => 'User Management Settings',
+    'public_registration_settings' => 'Public Registration',
+    'public_registration_description' => 'Control whether new users can register accounts through the public registration process.',
+    'allow_public_registration' => 'Allow Public Registration',
+    'domain_access_control' => 'Domain Access Control',
+    'domain_access_description' => 'Manage which email domains are allowed or blocked from registering on the platform.',
+    'access_control_mode' => 'Access Control Mode',
+    'blacklist_mode' => 'Blacklist Mode (block specified domains)',
+    'whitelist_mode' => 'Whitelist Mode (allow only specified domains)',
+    'domain_rules' => 'Domain Rules',
+    'domain_rules_hint' => 'Enter one rule per line. Use * as a wildcard. Examples: *.example.com, user@domain.com, *.co.uk',
+    'create_client_user' => 'Create Client User',
+    'create_client_description' => 'Manually create a new client user and send them an invitation link.',
+    'create_and_invite_button' => 'Create & Send Invitation',
+    'email' => 'Email Address',
+    'name' => 'Name',
+
+    // Registration Validation Messages
+    'public_registration_disabled' => 'Public registration is currently disabled. Please contact the administrator for access.',
+    'email_domain_not_allowed' => 'This email domain is not allowed to register. Please use an approved email domain.',
+
 ];

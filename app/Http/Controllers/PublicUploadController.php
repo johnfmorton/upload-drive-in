@@ -9,6 +9,9 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
 use App\Mail\LoginVerificationMail;
+use App\Models\DomainAccessRule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 
 class PublicUploadController extends Controller
 {
@@ -24,35 +27,91 @@ class PublicUploadController extends Controller
 
     public function validateEmail(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email'
+        Log::info('Email validation attempt', [
+            'email' => $request->email
         ]);
 
-        $email = $request->email;
-        $verificationCode = Str::random(32);
+        try {
+            $validated = $request->validate([
+                'email' => ['required', 'string', 'email', 'max:255'],
+            ]);
 
-        // Create or update email validation record
-        $validation = EmailValidation::updateOrCreate(
-            ['email' => $email],
-            [
-                'verification_code' => $verificationCode,
-                'expires_at' => now()->addHours(24)
-            ]
-        );
+            // Check if public registration is allowed
+            $domainRules = DomainAccessRule::first();
+            Log::info('Domain rules check', [
+                'rules_exist' => (bool)$domainRules,
+                'public_registration' => $domainRules ? $domainRules->allow_public_registration : true
+            ]);
 
-        // Generate verification URL
-        $verificationUrl = route('verify-email', [
-            'code' => $verificationCode,
-            'email' => $email
-        ]);
+            if ($domainRules && !$domainRules->allow_public_registration) {
+                Log::warning('Public registration attempt when disabled', [
+                    'email' => $validated['email']
+                ]);
+                throw ValidationException::withMessages([
+                    'email' => [__('messages.public_registration_disabled')],
+                ]);
+            }
 
-        // Use the correct mail class for login verification
-        Mail::to($email)->send(new LoginVerificationMail($verificationUrl));
+            // Check if the email domain is allowed
+            if ($domainRules && !$domainRules->isEmailAllowed($validated['email'])) {
+                Log::warning('Email domain not allowed', [
+                    'email' => $validated['email'],
+                    'mode' => $domainRules->mode
+                ]);
+                throw ValidationException::withMessages([
+                    'email' => [__('messages.email_domain_not_allowed')],
+                ]);
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Verification email sent successfully.'
-        ]);
+            $email = $validated['email'];
+            $verificationCode = Str::random(32);
+
+            Log::info('Creating email validation record', [
+                'email' => $email
+            ]);
+
+            // Create or update email validation record
+            $validation = EmailValidation::updateOrCreate(
+                ['email' => $email],
+                [
+                    'verification_code' => $verificationCode,
+                    'expires_at' => now()->addHours(24)
+                ]
+            );
+
+            // Generate verification URL
+            $verificationUrl = route('verify-email', [
+                'code' => $verificationCode,
+                'email' => $email
+            ]);
+
+            // Use the correct mail class for login verification
+            Mail::to($email)->send(new LoginVerificationMail($verificationUrl));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Verification email sent successfully.'
+            ]);
+
+        } catch (ValidationException $e) {
+            Log::warning('Validation failed', [
+                'errors' => $e->errors()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->errors()['email'][0] ?? 'Invalid email address.'
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error in email validation', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An unexpected error occurred. Please try again.'
+            ], 500);
+        }
     }
 
     public function verifyEmail(Request $request)
