@@ -15,7 +15,9 @@
         "laravel/ui": "^4.6",
         "pion/laravel-chunk-upload": "^1.5.6",
         "predis/predis": "^2.3",
-        "spatie/color": "^1.8"
+        "simplesoftwareio/simple-qrcode": "^4.2",
+        "spatie/color": "^1.8",
+        "upload-drive-in/laravel-admin-2fa": "dev-main"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -77,5 +79,14 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": {
+        "admin-2fa": {
+            "type": "path",
+            "url": "packages/upload-drive-in/laravel-admin-2fa",
+            "options": {
+                "symlink": true
+            }
+        }
+    }
 }

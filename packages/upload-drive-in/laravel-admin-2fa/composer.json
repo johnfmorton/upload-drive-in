@@ -1,0 +1,41 @@
+{
+    "name": "upload-drive-in/laravel-admin-2fa",
+    "description": "Two-factor authentication package for Upload Drive In admin users",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Upload Drive In",
+            "email": "admin@example.com"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "pragmarx/google2fa": "^8.0",
+        "bacon/bacon-qr-code": "^2.0",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0",
+        "phpunit/phpunit": "^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "UploadDriveIn\\LaravelAdmin2FA\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "UploadDriveIn\\LaravelAdmin2FA\\Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "UploadDriveIn\\LaravelAdmin2FA\\Providers\\TwoFactorAuthServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

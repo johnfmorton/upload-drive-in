@@ -2,7 +2,6 @@
 
 namespace App\Http;
 
-use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
@@ -65,5 +64,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'prevent.client.password.login' => \App\Http\Middleware\PreventClientPasswordLogin::class,
+        '2fa' => \UploadDriveIn\LaravelAdmin2FA\Http\Middleware\RequireTwoFactorAuth::class,
     ];
 }

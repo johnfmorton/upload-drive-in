@@ -26,9 +26,11 @@ class AdminUserController extends Controller
     {
         $clients = User::where('role', 'client')->paginate(15);
 
-        // Add the login URL to each client user
+        // Add the login URL and 2FA status to each client user
         $clients->getCollection()->transform(function ($client) {
             $client->login_url = $client->getLoginUrl();
+            $client->two_factor_enabled = (bool) $client->two_factor_enabled;
+            $client->two_factor_confirmed_at = $client->two_factor_confirmed_at;
             return $client;
         });
 
