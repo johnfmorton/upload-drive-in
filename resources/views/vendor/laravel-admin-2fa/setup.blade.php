@@ -69,7 +69,7 @@
         </div>
 
         <div class="mt-6">
-            <x-primary-button class="w-full justify-center">
+            <x-primary-button class="w-full justify-center bg-[var(--brand-color)]">
                 {{ __('Enable Two-Factor Authentication') }}
             </x-primary-button>
         </div>

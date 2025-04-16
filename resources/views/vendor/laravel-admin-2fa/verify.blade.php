@@ -7,6 +7,9 @@
             <p class="mt-1 text-sm text-gray-600">
                 {{ __('Please enter the code from your authenticator app to continue.') }}
             </p>
+            <p class="mt-1 text-sm text-gray-500">
+                {{ __('You can also use one of your recovery codes if you cannot access your authenticator app.') }}
+            </p>
         </div>
 
         @if (session('warning'))

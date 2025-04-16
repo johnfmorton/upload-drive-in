@@ -90,10 +90,19 @@ class TwoFactorAuthController extends Controller
         $request->validate(['code' => 'required|string']);
 
         $user = $request->user();
+        $code = $request->code;
 
-        if ($this->google2fa->verifyKey($user->two_factor_secret, $request->code)) {
+        // First try regular 2FA code
+        if ($this->google2fa->verifyKey($user->two_factor_secret, $code)) {
             session(['two_factor_verified' => true]);
             return redirect()->intended(route('admin.dashboard'));
+        }
+
+        // If regular code fails, try recovery code
+        if ($user->verifyRecoveryCode($code)) {
+            session(['two_factor_verified' => true]);
+            return redirect()->intended(route('admin.dashboard'))
+                ->with('warning', 'You used a recovery code to sign in. Recovery codes can only be used once. Please generate new recovery codes in your profile settings.');
         }
 
         return back()->withErrors(['code' => 'The provided code is invalid.']);
