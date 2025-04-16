@@ -8,6 +8,7 @@ use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 use App\Models\User;
 use Illuminate\Support\Facades\URL;
@@ -32,6 +33,17 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Check if the user is an admin and has 2FA enabled
+        $user = Auth::user();
+        if ($user && $user->isAdmin() && $user->two_factor_enabled) {
+            // Store the intended URL before redirecting to 2FA verification
+            $intendedUrl = redirect()->intended()->getTargetUrl();
+            session(['url.intended' => $intendedUrl]);
+
+            return redirect()->route('admin.2fa.verify')
+                ->with('warning', 'Please verify your two-factor authentication code.');
+        }
+
         return redirect()->intended(RouteServiceProvider::HOME);
     }
 
@@ -40,6 +52,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        // Clear 2FA verification status
+        Session::forget('two_factor_verified');
+        Session::forget('url.intended');
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

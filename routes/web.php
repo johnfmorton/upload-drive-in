@@ -57,40 +57,38 @@ Route::get('/dashboard', function () {
 })->middleware(['auth'])->name('dashboard');
 
 // Admin routes
-Route::middleware(['auth'])->prefix('admin')->group(function () {
+Route::prefix('admin')
+    ->middleware(['auth', 'admin'])  // First check auth and admin status
+    ->middleware('2fa')              // Then check 2FA
+    ->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.dashboard');
 
     // File management
     Route::delete('/files/{file}', [DashboardController::class, 'destroy'])
-        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.files.destroy');
 
     // User Management
     Route::resource('/users', \App\Http\Controllers\Admin\AdminUserController::class)
-        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->only(['index', 'destroy'])
         ->names('admin.users');
     Route::post('/users', [\App\Http\Controllers\Admin\AdminUserController::class, 'store'])
-        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.users.store');
 
     // Application Settings
     Route::get('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'edit'])
-        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.settings.edit');
     Route::put('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'update'])
-        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.settings.update');
     Route::delete('/settings/icon', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'destroyIcon'])
-        ->middleware(\App\Http\Middleware\AdminMiddleware::class)
         ->name('admin.settings.icon.destroy');
 });
 
 // Google Drive routes
-Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->group(function () {
+Route::middleware(['auth', 'admin'])  // First check auth and admin status
+    ->middleware('2fa')              // Then check 2FA
+    ->group(function () {
     Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
     Route::get('/google-drive/callback', [GoogleDriveController::class, 'callback'])->name('google-drive.callback');
     Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google-drive.disconnect');

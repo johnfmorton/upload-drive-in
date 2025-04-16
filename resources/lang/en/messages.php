@@ -133,4 +133,14 @@
     'file_label' => 'File*',
     // Re-using existing keys: 'file_name', 'file_size', 'file_message'
 
+    // Two-Factor Authentication
+    'two_factor_authentication' => 'Two-Factor Authentication',
+    'two_factor_description' => 'Add additional security to your account using two-factor authentication.',
+    'setup_2fa_button' => 'Set Up 2FA',
+    'disable_2fa_button' => 'Disable 2FA',
+    '2fa_enabled' => 'Enabled',
+    '2fa_disabled' => 'Disabled',
+    '2fa_enabled_message' => 'Two-factor authentication is enabled.',
+    'column_2fa_status' => '2FA Status',
+
 ];
