@@ -149,7 +149,7 @@
     'public_registration_description' => 'Control whether new users can register accounts through the public registration process.',
     'allow_public_registration' => 'Allow Public Registration',
     'domain_access_control' => 'Domain Access Control',
-    'domain_access_description' => 'Manage which email domains are allowed or blocked from registering on the platform.',
+    'domain_access_description' => 'Manage which email domains are allowed or blocked from registering on the platform. These rules only apply when public registration is enabled.',
     'access_control_mode' => 'Access Control Mode',
     'blacklist_mode' => 'Blacklist Mode (block specified domains)',
     'whitelist_mode' => 'Whitelist Mode (allow only specified domains)',
