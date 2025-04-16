@@ -8,6 +8,7 @@ use App\Http\Controllers\FileUploadController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\NotificationSettingsController;
+use App\Http\Controllers\Admin\UserManagementController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -127,6 +128,16 @@ Route::prefix('admin')
         ->name('admin.settings.update');
     Route::delete('/settings/icon', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'destroyIcon'])
         ->name('admin.settings.icon.destroy');
+
+    // User Management Settings
+    Route::get('/user-management', [UserManagementController::class, 'settings'])
+        ->name('admin.user-management.settings');
+    Route::put('/user-management/registration', [UserManagementController::class, 'updateRegistration'])
+        ->name('admin.user-management.update-registration');
+    Route::put('/user-management/domain-rules', [UserManagementController::class, 'updateDomainRules'])
+        ->name('admin.user-management.update-domain-rules');
+    Route::post('/user-management/clients', [UserManagementController::class, 'createClient'])
+        ->name('admin.user-management.create-client');
 });
 
 // Google Drive routes
