@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\NotificationSettingsController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 // Public routes
 Route::get('/', [PublicUploadController::class, 'index'])->name('home');
@@ -58,25 +59,25 @@ Route::get('/dashboard', function () {
 
 // Profile routes - restructured to handle both admin and client cases
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', function() {
+    Route::get('/profile', function(Request $request) {
         if (auth()->user()->isAdmin()) {
             return redirect()->route('admin.profile.edit');
         }
-        return app()->make(ProfileController::class)->edit();
+        return app()->make(ProfileController::class)->edit($request);
     })->name('profile.edit');
 
-    Route::patch('/profile', function() {
+    Route::patch('/profile', function(Request $request) {
         if (auth()->user()->isAdmin()) {
             return redirect()->route('admin.profile.update');
         }
-        return app()->make(ProfileController::class)->update();
+        return app()->make(ProfileController::class)->update($request);
     })->name('profile.update');
 
-    Route::delete('/profile', function() {
+    Route::delete('/profile', function(Request $request) {
         if (auth()->user()->isAdmin()) {
             return redirect()->route('admin.profile.destroy');
         }
-        return app()->make(ProfileController::class)->destroy();
+        return app()->make(ProfileController::class)->destroy($request);
     })->name('profile.destroy');
 
     // Add this new route for account deletion confirmation
