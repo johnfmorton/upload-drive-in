@@ -7,6 +7,13 @@
 
         <title>{{ config('app.name', 'Upload Drive-in') }}</title>
 
+        {{-- Inject Brand Color CSS Variable --}}
+        <style>
+            :root {
+                --brand-color: {{ config('branding.color', '#6366F1') }};
+            }
+        </style>
+
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⬆️</text></svg>">
 
         <!-- Fonts -->

@@ -7,6 +7,13 @@
 
         <title>{{ config('app.name', 'Upload Drive-In') }}</title>
 
+        {{-- Inject Brand Color CSS Variable --}}
+        <style>
+            :root {
+                --brand-color: {{ config('branding.color', '#6366F1') }};
+            }
+        </style>
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />

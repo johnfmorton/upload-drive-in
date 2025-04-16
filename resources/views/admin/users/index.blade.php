@@ -29,14 +29,14 @@
                     @csrf
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700">{{ __('messages.label_name') }}</label>
-                        <input type="text" name="name" id="name" value="{{ old('name') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 sm:text-sm">
+                        <input type="text" name="name" id="name" value="{{ old('name') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm">
                     </div>
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700">{{ __('messages.label_email') }}</label>
-                        <input type="email" name="email" id="email" value="{{ old('email') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 sm:text-sm">
+                        <input type="email" name="email" id="email" value="{{ old('email') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm">
                     </div>
                     <div>
-                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[var(--brand-color)] hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)]">
                             {{ __('messages.button_create_user') }}
                         </button>
                     </div>
@@ -212,7 +212,7 @@
                                     {{ __('messages.delete_user_modal_text') }}
                                 </p>
                                 <label class="flex items-center space-x-2 mb-6">
-                                    <input type="checkbox" x-model="deleteFilesCheckbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                    <input type="checkbox" x-model="deleteFilesCheckbox" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                     <span class="text-sm text-gray-700">{{ __('messages.delete_user_modal_checkbox') }}</span>
                                 </label>
                             </div>
@@ -220,7 +220,7 @@
                                 <button @click="confirmDeleteUser()" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
                                     {{ __('messages.delete_user_modal_confirm_button') }}
                                 </button>
-                                <button @click="showDeleteModal = false; userToDeleteId = null;" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
+                                <button @click="showDeleteModal = false; userToDeleteId = null;" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)] sm:mt-0 sm:w-auto sm:text-sm">
                                     {{ __('messages.delete_modal_cancel_button') }}
                                 </button>
                             </div>
@@ -232,23 +232,23 @@
                         <h3 class="text-md font-medium text-gray-700 mb-2">{{ __('messages.toggle_user_columns_title') }}</h3>
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
                             <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.name" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.name" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.label_name') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.email" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.email" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.label_email') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.createdAt" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.createdAt" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.column_created_at') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.loginUrl" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.loginUrl" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.column_login_url') }}</span>
                             </label>
                              <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.actions" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.actions" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.column_actions') }}</span>
                             </label>
                         </div>
@@ -257,7 +257,7 @@
                     <!-- Filter Input -->
                     <div class="mb-4">
                         <label for="userFilter" class="sr-only">{{ __('messages.filter_users_label') }}</label>
-                        <input type="text" id="userFilter" x-model.debounce.300ms="filterQuery" placeholder="{{ __('messages.filter_users_placeholder') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 sm:text-sm">
+                        <input type="text" id="userFilter" x-model.debounce.300ms="filterQuery" placeholder="{{ __('messages.filter_users_placeholder') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm">
                     </div>
 
                     {{-- Mobile Card View --}}
@@ -270,7 +270,7 @@
                                         <div class="font-medium text-gray-900 break-words" x-text="client.name"></div>
                                         <div class="flex shrink-0 space-x-2">
                                              {{-- Copy URL Button --}}
-                                            <button @click="copyLoginUrl(client)" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                            <button @click="copyLoginUrl(client)" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)]">
                                                 <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                                                 <span x-show="copiedUrlId !== client.id">{{ __('messages.button_copy_login_url') }}</span>
                                                 <span x-show="copiedUrlId === client.id" class="text-green-600">{{ __('messages.copied_confirmation') }}</span>
@@ -348,7 +348,7 @@
                                              <template x-if="columns.createdAt"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(client.created_at)"></td></template>
                                             <template x-if="columns.loginUrl">
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    <button @click="copyLoginUrl(client)" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                                    <button @click="copyLoginUrl(client)" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)]">
                                                         <span x-show="copiedUrlId !== client.id">{{ __('messages.button_copy_login_url') }}</span>
                                                         <span x-show="copiedUrlId === client.id" class="text-green-600">{{ __('messages.copied_confirmation') }}</span>
                                                     </button>
@@ -357,7 +357,7 @@
                                             <template x-if="columns.actions">
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                                                     {{-- Add Edit Link later when edit functionality is built --}}
-                                                    {{-- <a :href="`/admin/users/${client.id}/edit`" class="text-indigo-600 hover:text-indigo-900">Edit</a> --}}
+                                                    {{-- <a :href="`/admin/users/${client.id}/edit`" class="text-[var(--brand-color)] hover:brightness-75">Edit</a> --}}
                                                     <button @click="deleteUser(client.id)" class="text-red-600 hover:text-red-900">{{ __('messages.delete_button') }}</button>
                                                 </td>
                                             </template>

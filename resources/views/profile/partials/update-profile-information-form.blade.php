@@ -33,7 +33,7 @@
                     <p class="text-sm mt-2 text-gray-800">
                         {{ __('Your email address is unverified.') }}
 
-                        <button form="send-verification" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <button form="send-verification" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)] dark:focus:ring-offset-gray-800">
                             {{ __('Click here to re-send the verification email.') }}
                         </button>
                     </p>
@@ -50,7 +50,7 @@
         <!-- Add Checkbox for Notification Preference -->
         <div class="block mt-4">
             <label for="receive_upload_notifications" class="inline-flex items-center">
-                <input id="receive_upload_notifications" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="receive_upload_notifications" value="1" {{ old('receive_upload_notifications', $user->receive_upload_notifications) ? 'checked' : '' }}>
+                <input id="receive_upload_notifications" type="checkbox" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]" name="receive_upload_notifications" value="1" {{ old('receive_upload_notifications', $user->receive_upload_notifications) ? 'checked' : '' }}>
                 <span class="ms-2 text-sm text-gray-600">{{ __('messages.profile_receive_notifications_label') }}</span>
             </label>
         </div>
