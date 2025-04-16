@@ -9,7 +9,7 @@ return [
     | This option controls whether 2FA is mandatory for admin users.
     |
     */
-    'enforce_admin_2fa' => env('ENFORCE_ADMIN_2FA', true),
+    'enforce_admin_2fa' => env('ENFORCE_ADMIN_2FA', false),
 
     /*
     |--------------------------------------------------------------------------
