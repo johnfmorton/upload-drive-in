@@ -3,9 +3,13 @@ import './bootstrap';
 // Import Dropzone CSS
 import 'dropzone/dist/dropzone.css';
 
-// Remove Uppy CSS imports
-// import '@uppy/core/dist/style.min.css';
-// import '@uppy/dashboard/dist/style.min.css';
+// Shoelace CSS
+import '@shoelace-style/shoelace/dist/themes/light.css';
+// import '@shoelace-style/shoelace/dist/shoelace.css';
+// import Shoelace color picker
+// import '@shoelace-style/shoelace/dist/components/color-picker/color-picker.css';
+import '@shoelace-style/shoelace/dist/components/color-picker/color-picker.js';
+
 
 import Alpine from 'alpinejs';
 import persist from '@alpinejs/persist';
