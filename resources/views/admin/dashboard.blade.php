@@ -173,31 +173,31 @@
                         <h3 class="text-md font-medium text-gray-700 mb-2">{{ __('messages.toggle_columns_title') }}</h3>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
                             <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.fileName" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.fileName" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.column_file_name') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.user" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.user" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.column_user') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.size" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.size" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.column_size') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.status" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.status" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.column_status') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.message" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.message" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.column_message') }}</span>
                             </label>
                             <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.uploadedAt" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.uploadedAt" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.column_uploaded_at') }}</span>
                             </label>
                              <label class="flex items-center space-x-2">
-                                <input type="checkbox" x-model="columns.actions" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                <input type="checkbox" x-model="columns.actions" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]">
                                 <span>{{ __('messages.column_actions') }}</span>
                             </label>
                         </div>
@@ -206,7 +206,7 @@
                     <!-- Filter Input -->
                     <div class="mb-4">
                         <label for="fileFilter" class="sr-only">{{ __('messages.filter_files_label') }}</label>
-                        <input type="text" id="fileFilter" x-model.debounce.300ms="filterQuery" placeholder="{{ __('messages.filter_placeholder') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 sm:text-sm">
+                        <input type="text" id="fileFilter" x-model.debounce.300ms="filterQuery" placeholder="{{ __('messages.filter_files_placeholder') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm">
                     </div>
 
                     <!-- Mobile Card View -->
@@ -344,9 +344,10 @@
                                                     <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap" x-text="formatSize(file.file_size)"></td>
                                                 </template>
                                                 <template x-if="columns.message">
-                                                    <td class="px-6 py-4 text-sm text-gray-900">
-                                                        {{-- Allow wrapping --}}
-                                                        <div x-text="file.message" :title="file.message"></div>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <button @click="viewMessage(file)" x-show="file.message" class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-[var(--brand-color)]/10 text-[var(--brand-color)] hover:bg-[var(--brand-color)]/20 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[var(--brand-color)]/50">
+                                                            {{ __('messages.view_message_button') }}
+                                                        </button>
                                                     </td>
                                                 </template>
                                                 <template x-if="columns.status">

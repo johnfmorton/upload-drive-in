@@ -12,7 +12,7 @@
                             <p class="text-sm text-gray-600">Logged in as: {{ auth()->user()->email }}</p>
                             <form method="POST" action="{{ route('logout') }}" class="inline">
                                 @csrf
-                                <button type="submit" class="text-sm text-indigo-600 hover:text-indigo-900">
+                                <button type="submit" class="text-sm text-[var(--brand-color)] hover:brightness-75">
                                     Not you? Sign out
                                 </button>
                             </form>
@@ -31,7 +31,7 @@
 
                          {{-- Dropzone Container --}}
                          <div id="file-upload-dropzone"
-                              class="dropzone border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-500 transition-colors duration-200"
+                              class="dropzone border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-[var(--brand-color)] transition-colors duration-200"
                               data-upload-url="{{ route('chunk.upload') }}">
                              <div class="dz-message" data-dz-message>
                                  <span class="block text-lg font-medium text-gray-700">Drop files here or click to upload.</span>
@@ -50,14 +50,14 @@
                          <div>
                              <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message (Optional)</label>
                              <textarea id="message" name="message" rows="4"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--brand-color)] focus:border-[var(--brand-color)]"
                                        placeholder="Enter an optional message to associate with the uploaded files..."></textarea>
                          </div>
 
                          {{-- Submit Button --}}
                          <div class="text-center">
                              <button type="submit"
-                                     class="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                                     class="bg-[var(--brand-color)] text-white px-6 py-2 rounded-md hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)] transition-colors duration-200">
                                  Upload and Send Message
                              </button>
                          </div>
@@ -80,7 +80,7 @@
                 <p class="mt-2 text-sm text-gray-500">Files uploaded successfully! (No message was entered to associate).</p>
             </div>
             <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Close</button>
             </div>
         </div>
     </x-modal>
@@ -95,7 +95,7 @@
                 <p class="mt-2 text-sm text-gray-500">Files uploaded and message associated successfully!</p>
             </div>
             <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Close</button>
             </div>
         </div>
     </x-modal>
@@ -110,7 +110,7 @@
                  <p class="mt-2 text-sm text-gray-500">Files uploaded, but the message could not be associated. Please check the console.</p>
              </div>
              <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Close</button>
             </div>
          </div>
      </x-modal>
@@ -125,7 +125,7 @@
                  <p class="mt-2 text-sm text-gray-500">Some files failed to upload. Please remove them or check the errors and try again.</p>
              </div>
              <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Close</button>
             </div>
          </div>
      </x-modal>
@@ -140,7 +140,7 @@
                  <p class="mt-2 text-sm text-gray-500">Please add one or more files to upload before submitting.</p>
              </div>
              <div class="mt-5 sm:mt-6">
-                 <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                 <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Close</button>
              </div>
          </div>
      </x-modal>
@@ -155,7 +155,7 @@
                  <p class="mt-2 text-sm text-gray-500">Please enter a message before submitting.</p>
              </div>
              <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Close</button>
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Close</button>
             </div>
          </div>
      </x-modal>
