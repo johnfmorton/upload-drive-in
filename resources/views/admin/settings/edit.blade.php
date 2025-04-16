@@ -35,7 +35,7 @@
                             {{-- Branding Color --}}
                             <div>
                                 <x-input-label for="branding_color" :value="__('messages.branding_color_label')" />
-                                <input id="branding_color" name="branding_color" type="color" class="mt-1 block" value="{{ old('branding_color', $settings['branding_color']) }}" />
+                                <sl-color-picker class="mt-2 block" label="Select a color" id="branding_color" name="branding_color" value="{{ old('branding_color', $settings['branding_color']) }}"></sl-color-picker>
                                 <x-input-error class="mt-2" :messages="$errors->get('branding_color')" />
                             </div>
 
