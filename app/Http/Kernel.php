@@ -64,6 +64,7 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
         'prevent.client.password.login' => \App\Http\Middleware\PreventClientPasswordLogin::class,
-        '2fa' => \UploadDriveIn\LaravelAdmin2FA\Http\Middleware\RequireTwoFactorAuth::class,
+        '2fa' => \App\Http\Middleware\TwoFactorMiddleware::class,
+        'client' => \App\Http\Middleware\ClientMiddleware::class,
     ];
 }
