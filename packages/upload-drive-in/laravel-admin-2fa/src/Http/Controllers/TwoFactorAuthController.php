@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use PragmaRX\Google2FA\Google2FA;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class TwoFactorAuthController extends Controller
 {
@@ -22,8 +23,11 @@ class TwoFactorAuthController extends Controller
         $user = $request->user();
 
         if (!$user->two_factor_secret) {
-            $user->two_factor_secret = $this->google2fa->generateSecretKey();
-            $user->save();
+            // Initialize 2FA which will generate both secret and recovery codes
+            $user->initializeTwoFactorAuth();
+        } elseif (!$user->two_factor_recovery_codes) {
+            // If we have a secret but no recovery codes, generate them
+            $user->generateNewRecoveryCodes();
         }
 
         $qrCodeUrl = $this->google2fa->getQRCodeUrl(
@@ -32,7 +36,17 @@ class TwoFactorAuthController extends Controller
             $user->two_factor_secret
         );
 
-        return View::first(['admin-2fa::setup', 'laravel-admin-2fa::setup'], compact('qrCodeUrl'));
+        // Get recovery codes - they're automatically cast to array by Laravel due to $casts in the User model
+        $recoveryCodes = $user->two_factor_recovery_codes ?? [];
+
+        return View::first(
+            ['admin-2fa::setup', 'laravel-admin-2fa::setup'],
+            [
+                'qrCodeUrl' => $qrCodeUrl,
+                'secret' => $user->two_factor_secret,
+                'recoveryCodes' => $recoveryCodes,
+            ]
+        );
     }
 
     public function enable(Request $request)
@@ -60,12 +74,7 @@ class TwoFactorAuthController extends Controller
     public function disable(Request $request)
     {
         $user = $request->user();
-
-        $user->two_factor_enabled = false;
-        $user->two_factor_secret = null;
-        $user->two_factor_recovery_codes = null;
-        $user->two_factor_confirmed_at = null;
-        $user->save();
+        $user->disableTwoFactorAuth();
 
         return redirect()->back()
             ->with('status', 'Two-factor authentication has been disabled.');

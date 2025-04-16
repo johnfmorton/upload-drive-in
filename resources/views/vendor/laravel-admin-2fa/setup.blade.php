@@ -23,6 +23,37 @@
         </div>
     </div>
 
+    {{-- Manual Entry Section --}}
+    <div class="mt-4">
+        <div class="text-sm font-medium text-gray-700 mb-2">{{ __('Manual Entry Code') }}</div>
+        <div class="flex items-center space-x-2">
+            <input type="text" value="{{ $secret }}" class="bg-gray-100 text-gray-800 text-sm py-2 px-3 rounded-md w-full font-mono" readonly>
+            <button onclick="copyToClipboard(this)" data-secret="{{ $secret }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm" type="button">
+                <span class="copy-text">{{ __('Copy') }}</span>
+            </button>
+        </div>
+        <p class="mt-1 text-xs text-gray-500">
+            {{ __('If you can\'t scan the QR code, you can manually enter this code into your authenticator app.') }}
+        </p>
+    </div>
+
+    {{-- Recovery Codes Section --}}
+    <div class="mt-6">
+        <div class="text-sm font-medium text-gray-700 mb-2">{{ __('Recovery Codes') }}</div>
+        <div class="bg-gray-100 p-4 rounded-lg">
+            <div class="space-y-1 font-mono text-sm">
+                @foreach ($recoveryCodes as $code)
+                    <div class="flex items-center justify-between">
+                        <span>{{ $code }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        <p class="mt-2 text-xs text-gray-500">
+            {{ __('Store these recovery codes in a secure location. They can be used to recover access to your account if you lose your 2FA device.') }}
+        </p>
+    </div>
+
     <form method="POST" action="{{ route('admin.2fa.enable') }}" class="mt-6">
         @csrf
 
@@ -44,4 +75,19 @@
         </div>
     </form>
 </div>
+
+{{-- Copy to Clipboard Script --}}
+<script>
+function copyToClipboard(button) {
+    const secret = button.getAttribute('data-secret');
+    navigator.clipboard.writeText(secret).then(() => {
+        const span = button.querySelector('.copy-text');
+        const originalText = span.textContent;
+        span.textContent = '{{ __("Copied!") }}';
+        setTimeout(() => {
+            span.textContent = originalText;
+        }, 2000);
+    });
+}
+</script>
 @endsection
