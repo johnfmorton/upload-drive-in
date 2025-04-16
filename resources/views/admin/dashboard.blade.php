@@ -206,7 +206,7 @@
                     <!-- Filter Input -->
                     <div class="mb-4">
                         <label for="fileFilter" class="sr-only">{{ __('messages.filter_files_label') }}</label>
-                        <input type="text" id="fileFilter" x-model.debounce.300ms="filterQuery" placeholder="{{ __('messages.filter_placeholder') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm">
+                        <input type="text" id="fileFilter" x-model.debounce.300ms="filterQuery" placeholder="{{ __('messages.filter_files_placeholder') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm">
                     </div>
 
                     <!-- Mobile Card View -->
