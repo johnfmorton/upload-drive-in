@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         Commands\ProcessPendingUploads::class,
+        Commands\Remove2FAToken::class,
     ];
 
     /**
