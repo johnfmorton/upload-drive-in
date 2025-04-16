@@ -7,8 +7,11 @@ use App\Models\DomainAccessRule;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Mail\LoginVerificationMail;
 
 class UserManagementController extends Controller
 {
@@ -74,24 +77,23 @@ class UserManagementController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
         ]);
 
-        // Check if email is allowed by domain rules
-        $domainRules = DomainAccessRule::first();
-        if ($domainRules && !$domainRules->isEmailAllowed($validated['email'])) {
-            throw ValidationException::withMessages([
-                'email' => ['This email domain is not allowed.'],
-            ]);
-        }
-
         // Create user with random password (they'll use email validation to access)
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make(Str::random(32)),
-            'role' => 'client',
+            'role' => 'client'
         ]);
 
-        // TODO: Send invitation email with login link
-        // This should be implemented based on your existing email verification system
+        // Generate a signed URL for the user to log in
+        $loginUrl = URL::temporarySignedRoute(
+            'login.via.token',
+            now()->addDays(7),
+            ['user' => $user->id]
+        );
+
+        // Send invitation email
+        Mail::to($user->email)->send(new LoginVerificationMail($loginUrl));
 
         return back()->with('status', 'client-created');
     }

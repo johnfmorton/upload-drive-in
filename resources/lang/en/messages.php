@@ -165,4 +165,7 @@
     'public_registration_disabled' => 'Public registration is currently disabled. Please contact the administrator for access.',
     'email_domain_not_allowed' => 'This email domain is not allowed to register. Please use an approved email domain.',
 
+    // User Management Messages
+    'client_created' => 'Client user created successfully. An invitation email has been sent.',
+
 ];
