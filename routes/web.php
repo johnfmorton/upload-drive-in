@@ -56,14 +56,28 @@ Route::get('/dashboard', function () {
     return redirect()->route('my-uploads');
 })->middleware(['auth'])->name('dashboard');
 
-// Profile routes
+// Profile routes - restructured to handle both admin and client cases
 Route::middleware('auth')->group(function () {
-    // Client-only profile routes
-    Route::middleware('client')->group(function () {
-        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    });
+    Route::get('/profile', function() {
+        if (auth()->user()->isAdmin()) {
+            return redirect()->route('admin.profile.edit');
+        }
+        return app()->make(ProfileController::class)->edit();
+    })->name('profile.edit');
+
+    Route::patch('/profile', function() {
+        if (auth()->user()->isAdmin()) {
+            return redirect()->route('admin.profile.update');
+        }
+        return app()->make(ProfileController::class)->update();
+    })->name('profile.update');
+
+    Route::delete('/profile', function() {
+        if (auth()->user()->isAdmin()) {
+            return redirect()->route('admin.profile.destroy');
+        }
+        return app()->make(ProfileController::class)->destroy();
+    })->name('profile.destroy');
 
     // Add this new route for account deletion confirmation
     Route::get('/profile/confirm-deletion/{code}/{email}', [ProfileController::class, 'confirmDeletion'])
@@ -89,10 +103,10 @@ Route::prefix('admin')
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('admin.dashboard');
 
-    // Admin profile routes
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // Admin profile routes with unique names
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('admin.profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('admin.profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('admin.profile.destroy');
 
     // File management
     Route::delete('/files/{file}', [DashboardController::class, 'destroy'])
