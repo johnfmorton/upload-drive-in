@@ -56,6 +56,30 @@ Route::get('/dashboard', function () {
     return redirect()->route('my-uploads');
 })->middleware(['auth'])->name('dashboard');
 
+// Profile routes
+Route::middleware('auth')->group(function () {
+    // Client-only profile routes
+    Route::middleware('client')->group(function () {
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    });
+
+    // Add this new route for account deletion confirmation
+    Route::get('/profile/confirm-deletion/{code}/{email}', [ProfileController::class, 'confirmDeletion'])
+        ->name('profile.confirm-deletion');
+
+    // Password update route
+    Route::put('password', [\App\Http\Controllers\Auth\PasswordController::class, 'update'])
+        ->name('password.update');
+
+    // Email verification routes
+    Route::post('/email/verification-notification', function () {
+        auth()->user()->sendEmailVerificationNotification();
+        return back()->with('status', 'verification-link-sent');
+    })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+});
+
 // Admin routes
 Route::prefix('admin')
     ->middleware(['auth', 'admin'])  // First check auth and admin status
@@ -64,6 +88,11 @@ Route::prefix('admin')
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('admin.dashboard');
+
+    // Admin profile routes
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // File management
     Route::delete('/files/{file}', [DashboardController::class, 'destroy'])
@@ -92,27 +121,6 @@ Route::middleware(['auth', 'admin'])  // First check auth and admin status
     Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
     Route::get('/google-drive/callback', [GoogleDriveController::class, 'callback'])->name('google-drive.callback');
     Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google-drive.disconnect');
-});
-
-// Profile routes
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    // Add this new route for account deletion confirmation
-    Route::get('/profile/confirm-deletion/{code}/{email}', [ProfileController::class, 'confirmDeletion'])
-        ->name('profile.confirm-deletion');
-
-    // Password update route
-    Route::put('password', [\App\Http\Controllers\Auth\PasswordController::class, 'update'])
-        ->name('password.update');
-
-    // Email verification routes
-    Route::post('/email/verification-notification', function () {
-        auth()->user()->sendEmailVerificationNotification();
-        return back()->with('status', 'verification-link-sent');
-    })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 });
 
 // Add this outside the auth middleware group
