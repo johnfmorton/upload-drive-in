@@ -67,4 +67,10 @@ class Kernel extends HttpKernel
         '2fa' => \App\Http\Middleware\TwoFactorMiddleware::class,
         'client' => \App\Http\Middleware\ClientMiddleware::class,
     ];
+
+    public function handle($request)
+    {
+        \Log::info('Kernel: Handling request with middleware stack.', ['middleware' => $this->middlewareAliases]);
+        return parent::handle($request);
+    }
 }
