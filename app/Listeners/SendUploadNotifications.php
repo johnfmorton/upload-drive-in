@@ -3,8 +3,6 @@
 namespace App\Listeners;
 
 use App\Events\FileUploaded;
-use App\Mail\AdminUploadNotification;
-use App\Mail\ClientUploadConfirmation;
 use App\Models\FileUpload;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
