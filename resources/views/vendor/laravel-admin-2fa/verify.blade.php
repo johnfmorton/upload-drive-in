@@ -1,13 +1,13 @@
 <x-guest-layout>
-    <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
+    <div>
         <div class="mb-4 text-center">
             <h2 class="text-2xl font-bold text-gray-900">
                 {{ __('Two-Factor Authentication') }}
             </h2>
-            <p class="mt-1 text-sm text-gray-600">
+            <p class="mt-1 text-sm text-gray-600 text-balance">
                 {{ __('Please enter the code from your authenticator app to continue.') }}
             </p>
-            <p class="mt-1 text-sm text-gray-500">
+            <p class="mt-1 text-sm text-gray-500 text-balance">
                 {{ __('You can also use one of your recovery codes if you cannot access your authenticator app.') }}
             </p>
         </div>

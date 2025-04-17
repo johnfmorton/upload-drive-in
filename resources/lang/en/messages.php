@@ -42,7 +42,7 @@
     'column_uploaded_at' => 'Uploaded At',
     'column_actions' => 'Actions',
     'filter_files_label' => 'Filter files', // sr-only
-    'filter_placeholder' => 'Filter by filename, user, or message...',
+    'filter_files_placeholder' => 'Filter by filename, user, or message...',
     'view_button' => 'View',
     'delete_button' => 'Delete',
     'status_uploaded' => 'Uploaded', // Was "Uploaded to Drive"
