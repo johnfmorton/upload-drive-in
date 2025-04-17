@@ -12,6 +12,11 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
+/**
+ * @deprecated This event is kept for reference and development purposes.
+ * Individual file upload notifications have been replaced by batch notifications.
+ * See BatchUploadComplete event for the current implementation.
+ */
 class FileUploaded
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;

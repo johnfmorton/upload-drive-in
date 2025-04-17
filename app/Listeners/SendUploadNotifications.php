@@ -11,6 +11,12 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
+/**
+ * @deprecated This listener is kept for reference and development purposes.
+ * Individual file upload notifications have been replaced by batch notifications.
+ * See SendBatchUploadNotifications listener for the current implementation.
+ * The handle method is intentionally empty and only logs the event receipt.
+ */
 class SendUploadNotifications implements ShouldQueue
 {
     use InteractsWithQueue;
