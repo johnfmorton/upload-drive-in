@@ -12,66 +12,72 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    @if (Auth::user()->isAdmin())
-                        <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                            {{ __('messages.nav_dashboard') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
-                            {{ __('messages.nav_client_users') }}
-                        </x-nav-link>
-                    @else
-                        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('my-uploads')">
-                            {{ __('messages.nav_your_files') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('upload-files')" :active="request()->routeIs('upload-files')">
-                            {{ __('messages.nav_upload_files') }}
-                        </x-nav-link>
-                    @endif
+                    @auth
+                        @if (Auth::user()->isAdmin())
+                            <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
+                                {{ __('messages.nav_dashboard') }}
+                            </x-nav-link>
+                            <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
+                                {{ __('messages.nav_client_users') }}
+                            </x-nav-link>
+                        @else
+                            <x-nav-link :href="route('dashboard')" :active="request()->routeIs('my-uploads')">
+                                {{ __('messages.nav_your_files') }}
+                            </x-nav-link>
+                            <x-nav-link :href="route('upload-files')" :active="request()->routeIs('upload-files')">
+                                {{ __('messages.nav_upload_files') }}
+                            </x-nav-link>
+                        @endif
+                    @endauth
                 </div>
             </div>
 
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
-                <x-dropdown align="right" width="48">
-                    <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
+                @auth
+                    <x-dropdown align="right" width="48">
+                        <x-slot name="trigger">
+                            <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                                <div>{{ Auth::user()->name }}</div>
 
-                            <div class="ms-1">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                        </button>
-                    </x-slot>
+                                <div class="ms-1">
+                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </button>
+                        </x-slot>
 
-                    <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('messages.profile') }}
-                        </x-dropdown-link>
-
-                        {{-- Add Application Settings link for Admins --}}
-                        @if (Auth::user()->isAdmin())
-                            <x-dropdown-link :href="route('admin.settings.edit')">
-                                {{ __('messages.app_settings') }}
+                        <x-slot name="content">
+                            <x-dropdown-link :href="route('profile.edit')">
+                                {{ __('messages.profile') }}
                             </x-dropdown-link>
-                            <x-dropdown-link :href="route('admin.user-management.settings')">
-                                {{ __('messages.user_management_settings') }}
-                            </x-dropdown-link>
-                        @endif
 
-                        <!-- Authentication -->
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
+                            {{-- Add Application Settings link for Admins --}}
+                            @if (Auth::user()->isAdmin())
+                                <x-dropdown-link :href="route('admin.settings.edit')">
+                                    {{ __('messages.app_settings') }}
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.user-management.settings')">
+                                    {{ __('messages.user_management_settings') }}
+                                </x-dropdown-link>
+                            @endif
 
-                            <x-dropdown-link :href="route('logout')"
-                                    onclick="event.preventDefault();
-                                                this.closest('form').submit();">
-                                {{ __('messages.log_out') }}
-                            </x-dropdown-link>
-                        </form>
-                    </x-slot>
-                </x-dropdown>
+                            <!-- Authentication -->
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+
+                                <x-dropdown-link :href="route('logout')"
+                                        onclick="event.preventDefault();
+                                                    this.closest('form').submit();">
+                                    {{ __('messages.log_out') }}
+                                </x-dropdown-link>
+                            </form>
+                        </x-slot>
+                    </x-dropdown>
+                @else
+                    <a href="{{ route('login') }}" class="text-sm text-gray-700 underline">{{ __('messages.auth_log_in') }}</a>
+                @endauth
             </div>
 
             <!-- Hamburger -->
@@ -88,47 +94,55 @@
 
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
-        <div class="pt-2 pb-3 space-y-1">
-        @if (Auth::user()->isAdmin())
-            <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                {{ __('messages.nav_dashboard') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
-                {{ __('messages.nav_client_users') }}
-            </x-responsive-nav-link>
-        @else
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('my-uploads')">
-                {{ __('messages.nav_dashboard') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('upload-files')" :active="request()->routeIs('upload-files')">
-                {{ __('messages.nav_upload_files') }}
-            </x-responsive-nav-link>
-            @endif
-        </div>
-
-        <!-- Responsive Settings Options -->
-        <div class="pt-4 pb-1 border-t border-gray-200">
-            <div class="px-4">
-                <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
-                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
-            </div>
-
-            <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('messages.profile') }}
-                </x-responsive-nav-link>
-
-                <!-- Authentication -->
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-
-                    <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault();
-                                        this.closest('form').submit();">
-                        {{ __('messages.log_out') }}
+        @auth
+            <div class="pt-2 pb-3 space-y-1">
+                @if (Auth::user()->isAdmin())
+                    <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
+                        {{ __('messages.nav_dashboard') }}
                     </x-responsive-nav-link>
-                </form>
+                    <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
+                        {{ __('messages.nav_client_users') }}
+                    </x-responsive-nav-link>
+                @else
+                    <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('my-uploads')">
+                        {{ __('messages.nav_dashboard') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('upload-files')" :active="request()->routeIs('upload-files')">
+                        {{ __('messages.nav_upload_files') }}
+                    </x-responsive-nav-link>
+                @endif
             </div>
-        </div>
+
+            <!-- Responsive Settings Options -->
+            <div class="pt-4 pb-1 border-t border-gray-200">
+                <div class="px-4">
+                    <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
+                    <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+                </div>
+
+                <div class="mt-3 space-y-1">
+                    <x-responsive-nav-link :href="route('profile.edit')">
+                        {{ __('messages.profile') }}
+                    </x-responsive-nav-link>
+
+                    <!-- Authentication -->
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+
+                        <x-responsive-nav-link :href="route('logout')"
+                                onclick="event.preventDefault();
+                                            this.closest('form').submit();">
+                            {{ __('messages.log_out') }}
+                        </x-responsive-nav-link>
+                    </form>
+                </div>
+            </div>
+        @else
+            <div class="pt-2 pb-3 space-y-1">
+                <x-responsive-nav-link :href="route('login')">
+                    {{ __('messages.auth_log_in') }}
+                </x-responsive-nav-link>
+            </div>
+        @endauth
     </div>
 </nav>

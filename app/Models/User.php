@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\URL;
 use UploadDriveIn\LaravelAdmin2FA\Traits\HasTwoFactorAuth;
+use App\Enums\UserRole;
 
 class User extends Authenticatable
 {
@@ -49,31 +50,29 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'receive_upload_notifications' => 'boolean',
-            'two_factor_enabled' => 'boolean',
-            'two_factor_recovery_codes' => 'array',
-            'two_factor_confirmed_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'role' => UserRole::class,
+        'receive_upload_notifications' => 'boolean',
+        'two_factor_enabled' => 'boolean',
+        'two_factor_recovery_codes' => 'array',
+        'two_factor_confirmed_at' => 'datetime',
+    ];
 
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === UserRole::ADMIN;
     }
 
     public function isClient(): bool
     {
-        return $this->role === 'client';
+        return $this->role === UserRole::CLIENT;
     }
 
-    public function canLoginWithPassword()
+    public function canLoginWithPassword(): bool
     {
-        return !$this->isClient();
+        return $this->role->canLoginWithPassword();
     }
 
     /**

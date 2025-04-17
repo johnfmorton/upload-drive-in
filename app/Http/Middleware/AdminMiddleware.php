@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
+use App\Enums\UserRole;
 
 class AdminMiddleware
 {
@@ -18,17 +19,19 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // First ensure user is authenticated
-        if (!Auth::check()) {
-            return redirect()->route('login');
+        \Log::info('AdminMiddleware: Executing middleware for request.', ['url' => $request->url()]);
+
+        if (!auth()->check()) {
+            \Log::warning('AdminMiddleware: User not authenticated.');
+            return redirect('login');
         }
 
-        // Then check if user is an admin
-        if (!Auth::user()->isAdmin()) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Unauthorized. Admin access required.'], 403);
-            }
-            return redirect()->route('home')->with('error', 'Unauthorized. Admin access required.');
+        $user_role = auth()->user()->role;
+        \Log::info('AdminMiddleware: User role detected.', ['role' => $user_role]);
+
+        if ($user_role !== UserRole::ADMIN) {
+            \Log::warning('AdminMiddleware: User is not an admin.', ['role' => $user_role]);
+            abort(403, 'Unauthorized action.');
         }
 
         return $next($request);
