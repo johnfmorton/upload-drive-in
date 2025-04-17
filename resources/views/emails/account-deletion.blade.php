@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Confirm Account Deletion</title>
+    <title>{{ __('messages.delete_account_email_title') }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -32,20 +32,20 @@
     </style>
 </head>
 <body>
-    <h1>Account Deletion Confirmation</h1>
+    <h1>{{ __('messages.delete_account_email_title') }}</h1>
 
-    <p>We received a request to delete your account at {{ config('app.name') }}.</p>
+    <p>{{ __('messages.delete_account_email_request', ['app_name' => config('app.name')]) }}</p>
 
-    <p class="warning">Warning: This action cannot be undone. All your data and files will be permanently deleted.</p>
+    <p class="warning">{{ __('messages.delete_account_email_warning') }}</p>
 
-    <p>If you wish to proceed with account deletion, please click the button below:</p>
+    <p>{{ __('messages.delete_account_email_proceed') }}</p>
 
-    <a href="{{ $verificationUrl }}" class="button">Confirm Account Deletion</a>
+    <a href="{{ $verificationUrl }}" class="button">{{ __('messages.delete_account_email_confirm_button') }}</a>
 
-    <p>If you did not request to delete your account, you can safely ignore this email. Your account will remain active.</p>
+    <p>{{ __('messages.delete_account_email_ignore') }}</p>
 
     <div class="footer">
-        <p>Thanks,<br>{{ config('app.name') }}</p>
+        <p>{{ __('messages.thanks_signature') }},<br>{{ config('app.name') }}</p>
     </div>
 </body>
 </html>
