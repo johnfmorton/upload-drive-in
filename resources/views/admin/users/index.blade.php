@@ -362,7 +362,7 @@
                                         </tr>
                                     </template>
                                     <!-- Message if no clients match filter -->
-                                    <template x-if="filteredAndSortedClients.length === 0">
+                                    <template x-if="clientsData.length > 0 && filteredAndSortedClients.length === 0">
                                         <tr>
                                             <td :colspan="Object.values(columns).filter(v => v).length" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                                                 {{ __('messages.no_users_match_filter') }}
@@ -370,15 +370,13 @@
                                         </tr>
                                     </template>
                                     <!-- Message if no clients at all -->
-                                    @if($clients->isEmpty() && empty(request('page')))
-                                        <template x-if="clientsData.length === 0 && filterQuery.trim() === ''">
-                                            <tr>
-                                                <td :colspan="Object.values(columns).filter(v => v).length" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                                                    {{ __('messages.no_users_found') }}
-                                                </td>
-                                            </tr>
-                                        </template>
-                                    @endif
+                                    <template x-if="clientsData.length === 0">
+                                        <tr>
+                                            <td :colspan="Object.values(columns).filter(v => v).length" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                                                {{ __('messages.no_users_found') }}
+                                            </td>
+                                        </tr>
+                                    </template>
                                 </tbody>
                             </table>
                         </div>
