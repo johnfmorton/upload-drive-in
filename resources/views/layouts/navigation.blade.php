@@ -17,7 +17,7 @@
                             <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                                 {{ __('messages.nav_dashboard') }}
                             </x-nav-link>
-                            <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
+                            <x-nav-link :href="route('admin.admin.users.index')" :active="request()->routeIs('admin.admin.users.index')">
                                 {{ __('messages.nav_client_users') }}
                             </x-nav-link>
                         @else
@@ -55,13 +55,10 @@
 
                             {{-- Add Application Settings link for Admins --}}
                             @if (Auth::user()->isAdmin())
-                                <x-dropdown-link :href="route('admin.settings.edit')">
+                                <x-dropdown-link :href="route('admin.admin.settings.edit')">
                                     {{ __('messages.app_settings') }}
                                 </x-dropdown-link>
-                                <x-dropdown-link :href="route('cloud-storage.index')">
-                                    {{ __('messages.cloud_storage_settings') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.user-management.settings')">
+                                <x-dropdown-link :href="route('admin.admin.user-management.settings')">
                                     {{ __('messages.user_management_settings') }}
                                 </x-dropdown-link>
                             @endif
@@ -103,7 +100,7 @@
                     <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
                         {{ __('messages.nav_dashboard') }}
                     </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
+                    <x-responsive-nav-link :href="route('admin.admin.users.index')" :active="request()->routeIs('admin.admin.users.index')">
                         {{ __('messages.nav_client_users') }}
                     </x-responsive-nav-link>
                 @else

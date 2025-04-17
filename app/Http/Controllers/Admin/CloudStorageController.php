@@ -96,6 +96,44 @@ class CloudStorageController extends Controller
     }
 
     /**
+     * Update Google Drive configuration settings.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateGoogleDrive(Request $request)
+    {
+        $validated = $request->validate([
+            'google_drive_client_id' => ['required', 'string'],
+            'google_drive_client_secret' => ['nullable', 'string'],
+            'google_drive_root_folder_id' => ['required', 'string'],
+        ]);
+
+        try {
+            $config = Config::get('services.google_drive');
+            $config['client_id'] = $validated['google_drive_client_id'];
+            $config['root_folder_id'] = $validated['google_drive_root_folder_id'];
+
+            if (!empty($validated['google_drive_client_secret'])) {
+                $config['client_secret'] = $validated['google_drive_client_secret'];
+            }
+
+            $this->updateConfig('services.google_drive', $config);
+
+            Log::info('Google Drive configuration updated successfully');
+            return redirect()->back()->with('success', __('messages.settings_updated_successfully'));
+
+        } catch (\Exception $e) {
+            Log::error('Failed to update Google Drive configuration', [
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->back()
+                ->withInput()
+                ->with('error', __('messages.settings_update_failed'));
+        }
+    }
+
+    /**
      * Update the default storage provider.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -104,7 +142,7 @@ class CloudStorageController extends Controller
     public function updateDefault(Request $request)
     {
         $validated = $request->validate([
-            'default_provider' => ['required', 'string', 'in:microsoft-teams,dropbox'],
+            'default_provider' => ['required', 'string', 'in:google-drive,microsoft-teams,dropbox'],
         ]);
 
         try {

@@ -7,40 +7,6 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <!-- Google Drive Connection Section -->
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    <h2 class="text-lg font-medium text-gray-900">
-                      {{ __('messages.google_drive_connection_title') }}
-                    </h2>
-
-                    <p class="mt-1 text-sm text-gray-600">
-                        {{ __('messages.google_drive_connection_description') }}
-                    </p>
-
-                    <div class="mt-6">
-                        @if (Storage::exists('google-credentials.json'))
-                            <div class="flex items-center gap-4">
-                                <p class="text-sm text-green-600">{{ __('messages.google_drive_connected') }}</p>
-                                <form action="{{ route('google-drive.disconnect') }}" method="POST" class="inline">
-                                    @csrf
-                                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 active:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                        {{ __('messages.google_drive_disconnect_button') }}
-                                    </button>
-                                </form>
-                            </div>
-                        @else
-                            <div class="flex items-center gap-4">
-                                <p class="text-sm text-red-600">{{ __('messages.google_drive_not_connected') }}</p>
-                                <a href="{{ route('google-drive.connect') }}" class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                                    {{ __('messages.google_drive_connect_button') }}
-                                </a>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
             <!-- Files Table Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <div x-data="{
