@@ -68,12 +68,12 @@ class AdminUserController extends Controller
             // Optionally: Trigger an event or notification if needed
             // event(new ClientUserCreatedByAdmin($user));
 
-            return redirect()->route('admin.users.index')
+            return redirect()->route('admin.admin.users.index')
                 ->with('success', 'Client user created successfully. You can now provide them with their login link.');
 
         } catch (Exception $e) {
             Log::error("Error creating client user: " . $e->getMessage());
-            return redirect()->route('admin.users.index')
+            return redirect()->route('admin.admin.users.index')
                 ->with('error', 'Failed to create client user. Please check the logs.');
         }
     }
@@ -111,7 +111,7 @@ class AdminUserController extends Controller
 
         $client->update($validated);
 
-        return redirect()->route('admin.users.index')->with('success', 'Client user updated successfully.');
+        return redirect()->route('admin.admin.users.index')->with('success', 'Client user updated successfully.');
     }
 
     /**
@@ -128,7 +128,7 @@ class AdminUserController extends Controller
             $clientUser = User::where('role', 'client')->findOrFail($id);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             Log::warning("Attempted to delete non-existent user with ID: {$id}");
-            return redirect()->route('admin.users.index')->with('error', 'User not found.');
+            return redirect()->route('admin.admin.users.index')->with('error', 'User not found.');
         }
 
         $clientEmail = $clientUser->email;
@@ -238,7 +238,7 @@ class AdminUserController extends Controller
             if (!empty($errors)) {
                  $errorMessage .= ' Errors: ' . implode('; ', $errors);
             }
-            return redirect()->route('admin.users.index')->with('error', $errorMessage);
+            return redirect()->route('admin.admin.users.index')->with('error', $errorMessage);
         }
 
         // 5. Prepare Feedback Message
@@ -271,6 +271,6 @@ class AdminUserController extends Controller
             // session()->flash('deletion_errors', $errors);
         }
 
-        return redirect()->route('admin.users.index')->with('success', $message);
+        return redirect()->route('admin.admin.users.index')->with('success', $message);
     }
 }
