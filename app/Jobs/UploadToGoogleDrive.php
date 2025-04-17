@@ -106,13 +106,13 @@ class UploadToGoogleDrive implements ShouldQueue
 
             // 5. Optional: Delete the local file after successful upload to save space
             // Uncomment the following lines if you want this behavior:
-            // try {
-            //     Storage::disk('public')->delete($localPath);
-            //     Log::info('Deleted local file after successful Google Drive upload.', ['path' => $localPath]);
-            // } catch (Exception $e) {
-            //     Log::warning('Failed to delete local file after Google Drive upload.', ['path' => $localPath, 'error' => $e->getMessage()]);
-            //     // Don't fail the job just because local deletion failed.
-            // }
+            try {
+                Storage::disk('public')->delete($localPath);
+                Log::info('Deleted local file after successful Google Drive upload.', ['path' => $localPath]);
+            } catch (Exception $e) {
+                Log::warning('Failed to delete local file after Google Drive upload.', ['path' => $localPath, 'error' => $e->getMessage()]);
+                // Don't fail the job just because local deletion failed.
+            }
 
         } catch (Exception $e) {
             // Log the error with context
