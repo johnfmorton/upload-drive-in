@@ -284,4 +284,30 @@
     'action_edit' => 'Edit',
     'action_view' => 'View',
 
+    // Cloud Storage Configuration
+    'cloud_storage_configuration' => 'Cloud Storage Configuration',
+    'configure_microsoft_teams_storage' => 'Configure Microsoft Teams storage settings and connection details.',
+    'configure_dropbox_storage' => 'Configure Dropbox storage settings and connection details.',
+    'connected' => 'Connected',
+    'not_connected' => 'Not Connected',
+    'connect' => 'Connect',
+    'disconnect' => 'Disconnect',
+    'client_id' => 'Client ID',
+    'client_secret' => 'Client Secret',
+    'root_folder_id' => 'Root Folder ID',
+    'root_folder' => 'Root Folder Path',
+    'save_changes' => 'Save Changes',
+    'default_storage_provider' => 'Default Storage Provider',
+    'select_default_provider_description' => 'Select which storage provider should be used as the default for new uploads.',
+
+    // Cloud Storage Settings
+    'settings_updated_successfully' => 'Settings updated successfully.',
+    'settings_update_failed' => 'Failed to update settings. Please try again.',
+    'cloud_storage_settings' => 'Cloud Storage Settings',
+    'provider_configuration' => 'Provider Configuration',
+    'provider_connection_status' => 'Connection Status',
+    'provider_settings' => 'Provider Settings',
+    'provider_credentials' => 'Provider Credentials',
+    'provider_root_folder' => 'Root Folder Settings',
+
 ];
