@@ -20,6 +20,7 @@ class FileUpload extends Model
         'validation_method',
         'mime_type',
         'file_size',
+        'google_drive_file_id',
     ];
 
     protected $casts = [
