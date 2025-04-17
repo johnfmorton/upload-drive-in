@@ -56,3 +56,7 @@ yarn-error.log
 
 /env.bak
 public/images/*
+
+
+# not in repo
+/not in repo
