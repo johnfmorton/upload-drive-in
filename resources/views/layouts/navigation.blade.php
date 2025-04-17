@@ -20,6 +20,9 @@
                             <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
                                 {{ __('messages.nav_client_users') }}
                             </x-nav-link>
+                            <x-nav-link :href="route('admin.cloud-storage.index')" :active="request()->routeIs('admin.cloud-storage.index')">
+                                {{ __('messages.nav_cloud_storage') }}
+                            </x-nav-link>
                         @else
                             <x-nav-link :href="route('dashboard')" :active="request()->routeIs('my-uploads')">
                                 {{ __('messages.nav_your_files') }}
@@ -60,6 +63,9 @@
                                 </x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.user-management.settings')">
                                     {{ __('messages.user_management_settings') }}
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.cloud-storage.index')">
+                                    {{ __('messages.cloud_storage_settings') }}
                                 </x-dropdown-link>
                             @endif
 
@@ -102,6 +108,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
                         {{ __('messages.nav_client_users') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.cloud-storage.index')" :active="request()->routeIs('admin.cloud-storage.index')">
+                        {{ __('messages.nav_cloud_storage') }}
                     </x-responsive-nav-link>
                 @else
                     <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('my-uploads')">
