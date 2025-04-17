@@ -344,10 +344,8 @@
                                                     <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap" x-text="formatSize(file.file_size)"></td>
                                                 </template>
                                                 <template x-if="columns.message">
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <button @click="viewMessage(file)" x-show="file.message" class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-[var(--brand-color)]/10 text-[var(--brand-color)] hover:bg-[var(--brand-color)]/20 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[var(--brand-color)]/50">
-                                                            {{ __('messages.view_message_button') }}
-                                                        </button>
+                                                    <td class="px-6 py-4 text-sm text-gray-500">
+                                                        <div x-show="file.message" class="max-w-[200px] lg:max-w-[300px] break-words" x-text="file.message"></div>
                                                     </td>
                                                 </template>
                                                 <template x-if="columns.status">
