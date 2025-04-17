@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Pion\Laravel\ChunkUpload\Save\ChunkSave;
-use App\Events\FileUploaded; // <-- Add Event import
 use App\Events\BatchUploadComplete; // <-- Add NEW Event import
 
 class UploadController extends Controller
@@ -202,27 +201,6 @@ class UploadController extends Controller
         try {
             UploadToGoogleDrive::dispatch($fileUpload);
             Log::info('UploadToGoogleDrive job dispatched successfully.', ['file_upload_id' => $fileUpload->id]);
-
-            // --> Dispatch the FileUploaded event HERE <--
-            try {
-                // <-- Log before dispatch -->
-                Log::debug('Preparing to dispatch FileUploaded event with IDs.', [
-                    'fileUploadId' => $fileUpload->id,
-                    'userId' => $user->id
-                ]);
-                // Pass IDs instead of models
-                FileUploaded::dispatch($fileUpload->id, $user->id);
-                Log::info('FileUploaded event dispatched successfully.', ['file_upload_id' => $fileUpload->id, 'user_id' => $user->id]);
-            } catch (\Exception $e) {
-                Log::error('Failed to dispatch FileUploaded event.', [
-                    'file_upload_id' => $fileUpload->id,
-                    'user_id' => $user->id,
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-                // Decide if this failure should affect the user response
-            }
-
         } catch (\Exception $e) {
              Log::error('Failed to dispatch UploadToGoogleDrive job.', [
                  'file_upload_id' => $fileUpload->id,
