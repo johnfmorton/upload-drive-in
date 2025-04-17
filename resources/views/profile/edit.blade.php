@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('messages.profile_title') }}
+            {{ __('Profile') }}
         </h2>
     </x-slot>
 
@@ -33,7 +33,7 @@
                                         {{ __('messages.setup_2fa_button') }}
                                     </a>
                                 @else
-                                    <div class="flex items-center justify-between">
+                                    <div class="flex flex-col justify-between gap-4">
                                         <div class="text-sm text-green-600">
                                             {{ __('messages.2fa_enabled_message') }}
                                         </div>
