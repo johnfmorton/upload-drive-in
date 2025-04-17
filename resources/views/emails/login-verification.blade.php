@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Verify Your Email Address</title>
+    <title>{{ __('messages.verify_email_title') }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,16 +28,16 @@
     </style>
 </head>
 <body>
-    <h1>Verify Your Email Address</h1>
+    <h1>{{ __('messages.verify_email_title') }}</h1>
 
-    <p>Please click the button below to verify your email address and access {{ config('app.name') }}.</p>
+    <p>{{ __('messages.verify_email_intro') }}</p>
 
-    <a href="{{ $verificationUrl }}" class="button">Verify Email Address</a>
+    <a href="{{ $verificationUrl }}" class="button">{{ __('messages.verify_email_button') }}</a>
 
-    <p>If you did not request this verification, you can safely ignore this email.</p>
+    <p>{{ __('messages.verify_email_ignore') }}</p>
 
     <div class="footer">
-        <p>Thanks,<br>{{ config('app.name') }}</p>
+        <p>{{ __('messages.thanks_signature') }},<br>{{ config('app.name') }}</p>
     </div>
 </body>
 </html>

@@ -266,9 +266,14 @@
                                     <template x-if="file.message">
                                         <div class="pt-3 border-t border-gray-200">
                                             <div class="text-sm">
-                                                <div class="text-gray-500 mb-1">{{ __('messages.mobile_label_message') }}</div>
+                                                <div class="text-gray-500 mb-1">{{ __('messages.message_section_title') }}</div>
                                                 <div class="text-gray-900 break-words" x-text="file.message"></div>
                                             </div>
+                                        </div>
+                                    </template>
+                                    <template x-if="!file.message">
+                                        <div class="pt-3 border-t border-gray-200">
+                                            <div class="text-sm text-gray-500">{{ __('messages.message_section_empty') }}</div>
                                         </div>
                                     </template>
                                 </div>
@@ -346,6 +351,7 @@
                                                 <template x-if="columns.message">
                                                     <td class="px-6 py-4 text-sm text-gray-500">
                                                         <div x-show="file.message" class="max-w-[200px] lg:max-w-[300px] break-words" x-text="file.message"></div>
+                                                        <div x-show="!file.message" class="text-gray-400">{{ __('messages.no_message_provided') }}</div>
                                                     </td>
                                                 </template>
                                                 <template x-if="columns.status">

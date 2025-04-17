@@ -5,19 +5,19 @@
                 <div class="p-6 text-gray-900">
                     <div class="text-center mb-8">
                         @if(File::exists(public_path('images/app-icon.png')))
-                            <img src="{{ asset('images/app-icon.png') }}?v={{ md5_file(public_path('images/app-icon.png')) }}" alt="{{ config('app.company_name') }} Logo" class="w-auto h-8 mx-auto mb-4">
+                            <img src="{{ asset('images/app-icon.png') }}?v={{ md5_file(public_path('images/app-icon.png')) }}" alt="{{ __('messages.nav_logo_alt', ['company_name' => config('app.company_name')]) }}" class="w-auto h-8 mx-auto mb-4">
                         @endif
-                        <h1 class="text-2xl font-bold text-gray-900 mb-4 text-balance">Upload files to {{ config('app.company_name') }}</h1>
-                        <p class="text-gray-600">Begin by validating your email address.</p>
+                        <h1 class="text-2xl font-bold text-gray-900 mb-4 text-balance">{{ __('messages.email_validation_title', ['company_name' => config('app.company_name')]) }}</h1>
+                        <p class="text-gray-600">{{ __('messages.email_validation_subtitle') }}</p>
                     </div>
 
                     <form id="emailValidationForm" class="max-w-md mx-auto">
                         @csrf
                         <div class="mb-4">
-                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">{{ __('messages.nav_email_label') }}</label>
                             <input type="email" id="email" name="email" required value="{{ old('email') }}"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--brand-color)] focus:border-[var(--brand-color)]"
-                                placeholder="Enter your email address">
+                                placeholder="{{ __('messages.nav_email_placeholder') }}">
                             @error('email')
                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
@@ -26,17 +26,17 @@
                         <div class="text-center">
                             <button type="submit"
                                 class="bg-[var(--brand-color)] text-white px-4 py-2 rounded-md hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)]">
-                                Validate Email
+                                {{ __('messages.nav_validate_email_button') }}
                             </button>
                         </div>
                     </form>
 
                     <div id="validationMessage" class="mt-4 text-center hidden">
-                        <p class="text-gray-600">You will receive an email with a link to validate your email address. Clicking the link we send you will allow you to upload files to {{ config('app.company_name') }}.</p>
+                        <p class="text-gray-600">{{ __('messages.nav_validation_success', ['company_name' => config('app.company_name')]) }}</p>
                     </div>
 
                     <div id="errorMessage" class="mt-4 text-center hidden">
-                        <p class="text-red-600">There was an error processing your request. Please try again.</p>
+                        <p class="text-red-600">{{ __('messages.nav_validation_error') }}</p>
                     </div>
                 </div>
             </div>
@@ -55,7 +55,7 @@
 
             // Disable the submit button
             submitButton.disabled = true;
-            submitButton.innerHTML = 'Sending...';
+            submitButton.innerHTML = '{{ __('messages.nav_validate_email_sending') }}';
 
             fetch('{{ route('validate-email') }}', {
                 method: 'POST',
@@ -93,7 +93,7 @@
             .finally(() => {
                 // Re-enable the submit button
                 submitButton.disabled = false;
-                submitButton.innerHTML = 'Validate Email';
+                submitButton.innerHTML = '{{ __('messages.nav_validate_email_button') }}';
             });
         });
     </script>

@@ -2,13 +2,13 @@
     <div>
         <div class="mb-4 text-center">
             <h2 class="text-2xl font-bold text-gray-900">
-                {{ __('Two-Factor Authentication') }}
+                {{ __('messages.2fa_verify_title') }}
             </h2>
             <p class="mt-1 text-sm text-gray-600 text-balance">
-                {{ __('Please enter the code from your authenticator app to continue.') }}
+                {{ __('messages.2fa_verify_instruction') }}
             </p>
             <p class="mt-1 text-sm text-gray-500 text-balance">
-                {{ __('You can also use one of your recovery codes if you cannot access your authenticator app.') }}
+                {{ __('messages.2fa_verify_recovery_info') }}
             </p>
         </div>
 
@@ -22,7 +22,7 @@
             @csrf
 
             <div>
-                <x-input-label for="code" :value="__('Authentication Code')" />
+                <x-input-label for="code" :value="__('messages.2fa_verify_code_label')" />
                 <x-text-input id="code"
                              type="text"
                              name="code"
@@ -35,7 +35,7 @@
 
             <div class="mt-6">
                 <x-primary-button class="w-full justify-center bg-[var(--brand-color)]">
-                    {{ __('Verify') }}
+                    {{ __('messages.2fa_verify_button') }}
                 </x-primary-button>
             </div>
         </form>

@@ -14,17 +14,17 @@
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     @if (Auth::user()->isAdmin())
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                            {{ __('Dashboard') }}
+                            {{ __('messages.nav_dashboard') }}
                         </x-nav-link>
                         <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
-                            {{ __('Client Users') }}
+                            {{ __('messages.nav_client_users') }}
                         </x-nav-link>
                     @else
                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('my-uploads')">
-                            {{ __('Your Files') }}
+                            {{ __('messages.nav_your_files') }}
                         </x-nav-link>
                         <x-nav-link :href="route('upload-files')" :active="request()->routeIs('upload-files')">
-                            {{ __('Upload Files') }}
+                            {{ __('messages.nav_upload_files') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -91,17 +91,17 @@
         <div class="pt-2 pb-3 space-y-1">
         @if (Auth::user()->isAdmin())
             <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                {{ __('Dashboard') }}
+                {{ __('messages.nav_dashboard') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
-                {{ __('Client Users') }}
+                {{ __('messages.nav_client_users') }}
             </x-responsive-nav-link>
         @else
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('my-uploads')">
-                {{ __('Dashboard') }}
+                {{ __('messages.nav_dashboard') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('upload-files')" :active="request()->routeIs('upload-files')">
-                {{ __('Upload Files') }}
+                {{ __('messages.nav_upload_files') }}
             </x-responsive-nav-link>
             @endif
         </div>
@@ -115,7 +115,7 @@
 
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
+                    {{ __('messages.profile') }}
                 </x-responsive-nav-link>
 
                 <!-- Authentication -->
@@ -125,7 +125,7 @@
                     <x-responsive-nav-link :href="route('logout')"
                             onclick="event.preventDefault();
                                         this.closest('form').submit();">
-                        {{ __('Log Out') }}
+                        {{ __('messages.log_out') }}
                     </x-responsive-nav-link>
                 </form>
             </div>

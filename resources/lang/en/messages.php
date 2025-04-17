@@ -48,7 +48,10 @@
     'status_uploaded' => 'Uploaded', // Was "Uploaded to Drive"
     'status_pending' => 'Pending',
     'mobile_label_uploaded_at' => 'Uploaded at', // Was "Uploaded"
-    'mobile_label_message' => 'Message', // Added for consistency
+    'mobile_label_message' => 'Message',
+    'no_message_provided' => 'No message provided',
+    'message_section_title' => 'Client Message',
+    'message_section_empty' => 'No additional message was provided with this upload',
     'no_files_found' => 'No files match your filter criteria.',
     'delete_modal_title' => 'Delete File',
     'delete_modal_text' => 'Are you sure you want to delete this file? This action cannot be undone.',
@@ -142,6 +145,11 @@
     '2fa_disabled' => 'Disabled',
     '2fa_enabled_message' => 'Two-factor authentication is enabled.',
     'column_2fa_status' => '2FA Status',
+    '2fa_verify_title' => 'Two-Factor Authentication',
+    '2fa_verify_instruction' => 'Please enter the code from your authenticator app to continue.',
+    '2fa_verify_recovery_info' => 'You can also use one of your recovery codes if you cannot access your authenticator app.',
+    '2fa_verify_code_label' => 'Authentication Code',
+    '2fa_verify_button' => 'Verify',
 
     // User Management Settings
     'user_management_settings' => 'User Management Settings',
@@ -211,5 +219,69 @@
     'delete_account_email_sent_title' => 'Check Your Email',
     'delete_account_email_sent_info' => 'A confirmation email has been sent to your email address. Please check your inbox and follow the link to complete the account deletion process.',
     'delete_account_email_sent_understood' => 'Understood',
+
+    // Email Verification
+    'verify_email_title' => 'Verify Your Email Address',
+    'verify_email_intro' => 'Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.',
+    'verify_email_sent' => 'A new verification link has been sent to the email address you provided during registration.',
+    'verify_email_resend_button' => 'Resend Verification Email',
+    'verify_email_button' => 'Verify Email Address',
+    'verify_email_ignore' => 'If you did not request this verification, you can safely ignore this email.',
+
+    // Account Deletion Email
+    'delete_account_email_title' => 'Confirm Account Deletion',
+    'delete_account_email_request' => 'We received a request to delete your account at :app_name.',
+    'delete_account_email_warning' => 'Warning: This action cannot be undone. All your data and files will be permanently deleted.',
+    'delete_account_email_proceed' => 'If you wish to proceed with account deletion, please click the button below:',
+    'delete_account_email_confirm_button' => 'Confirm Account Deletion',
+    'delete_account_email_ignore' => 'If you did not request to delete your account, you can safely ignore this email. Your account will remain active.',
+
+    // Navigation
+    'nav_dashboard' => 'Dashboard',
+    'nav_client_users' => 'Client Users',
+    'nav_upload_files' => 'Upload Files',
+    'nav_your_files' => 'Your Files',
+    'nav_email_label' => 'Email Address',
+    'nav_email_placeholder' => 'Enter your email address',
+    'nav_validate_email_button' => 'Validate Email',
+    'nav_validate_email_sending' => 'Sending...',
+    'nav_validation_success' => 'You will receive an email with a link to validate your email address. Clicking the link we send you will allow you to upload files to :company_name.',
+    'nav_validation_error' => 'There was an error processing your request. Please try again.',
+    'nav_logo_alt' => ':company_name Logo',
+
+    // Email Validation Form
+    'email_validation_title' => 'Upload files to :company_name',
+    'email_validation_subtitle' => 'Begin by validating your email address.',
+
+    // Common Elements
+    'app_name_default' => 'Upload Drive-In',
+    'app_name_laravel' => 'Laravel',
+    'thanks_signature' => 'Thanks',
+
+    // File Upload
+    'file_upload_message_required_title' => 'Message Required',
+    'file_upload_message_required_text' => 'Please enter a message before submitting.',
+    'file_upload_close_button' => 'Close',
+
+    // Notifications
+    'notification_go_home' => 'Go Home',
+
+    // Error Messages
+    'error_session_expired' => 'Session expired. Please log in again.',
+    'error_generic' => 'An error occurred. Please try again.',
+    'error_validation' => 'The given data was invalid.',
+
+    // Success Messages
+    'success_generic' => 'Operation completed successfully.',
+    'success_saved' => 'Changes saved successfully.',
+
+    // Common Actions
+    'action_close' => 'Close',
+    'action_cancel' => 'Cancel',
+    'action_confirm' => 'Confirm',
+    'action_save' => 'Save',
+    'action_delete' => 'Delete',
+    'action_edit' => 'Edit',
+    'action_view' => 'View',
 
 ];
