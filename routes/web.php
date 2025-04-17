@@ -8,7 +8,7 @@ use App\Http\Controllers\FileUploadController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\NotificationSettingsController;
-use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -50,10 +50,20 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/my-uploads', [FileUploadController::class, 'index'])->name('my-uploads');
 });
 
+// Admin Routes
+Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, '2fa'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        // Dashboard
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])
+            ->name('dashboard');
+    });
+
 // Dashboard route with role-based redirection
 Route::get('/dashboard', function () {
     if (auth()->user()->isAdmin()) {
-        return redirect()->route('admin.dashboard');
+        return redirect('/admin/dashboard');  // Use URL instead of route name
     }
     return redirect()->route('my-uploads');
 })->middleware(['auth'])->name('dashboard');
@@ -95,62 +105,6 @@ Route::middleware('auth')->group(function () {
         return back()->with('status', 'verification-link-sent');
     })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 });
-
-// Admin routes
-Route::middleware(['web', 'auth', \App\Http\Middleware\AdminMiddleware::class, '2fa'])  // Changed 'admin' to full class name
-    ->prefix('admin')
-    ->group(function () {
-    // Dashboard
-    Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])
-        ->name('admin.dashboard');
-
-    // Admin profile routes with unique names
-    Route::get('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'edit'])->name('admin.profile.edit');
-    Route::patch('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'update'])->name('admin.profile.update');
-    Route::delete('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'destroy'])->name('admin.profile.destroy');
-
-    // File management
-    Route::delete('/files/{file}', [\App\Http\Controllers\Admin\DashboardController::class, 'destroy'])
-        ->name('admin.files.destroy');
-
-    // User Management
-    Route::resource('/users', \App\Http\Controllers\Admin\AdminUserController::class)
-        ->only(['index', 'destroy'])
-        ->names('admin.users');
-    Route::post('/users', [\App\Http\Controllers\Admin\AdminUserController::class, 'store'])
-        ->name('admin.users.store');
-
-    // Application Settings
-    Route::get('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'edit'])
-        ->name('admin.settings.edit');
-    Route::put('/settings', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'update'])
-        ->name('admin.settings.update');
-    Route::delete('/settings/icon', [\App\Http\Controllers\Admin\AdminSettingsController::class, 'destroyIcon'])
-        ->name('admin.settings.icon.destroy');
-
-    // User Management Settings
-    Route::get('/user-management', [\App\Http\Controllers\Admin\UserManagementController::class, 'settings'])
-        ->name('admin.user-management.settings');
-    Route::put('/user-management/registration', [\App\Http\Controllers\Admin\UserManagementController::class, 'updateRegistration'])
-        ->name('admin.user-management.update-registration');
-    Route::put('/user-management/domain-rules', [\App\Http\Controllers\Admin\UserManagementController::class, 'updateDomainRules'])
-        ->name('admin.user-management.update-domain-rules');
-    Route::post('/user-management/clients', [\App\Http\Controllers\Admin\UserManagementController::class, 'createClient'])
-        ->name('admin.user-management.create-client');
-});
-
-// Google Drive routes
-Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, '2fa'])  // Changed 'admin' to full class name
-    ->group(function () {
-    Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
-    Route::get('/google-drive/callback', [GoogleDriveController::class, 'callback'])->name('google-drive.callback');
-    Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google-drive.disconnect');
-});
-
-// Add this outside the auth middleware group
-Route::get('/profile/confirm-deletion/{code}/{email}', [ProfileController::class, 'confirmDeletion'])
-    ->name('profile.confirm-deletion')
-    ->middleware(['signed', 'throttle:6,1']); // Add signed URL protection and rate limiting
 
 Route::post('/upload', [UploadController::class, 'store'])->name('chunk.upload');
 
