@@ -50,15 +50,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/my-uploads', [FileUploadController::class, 'index'])->name('my-uploads');
 });
 
-// Admin Routes
-Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, '2fa'])
-    ->prefix('admin')
-    ->name('admin.')
-    ->group(function () {
-        // Dashboard
-        Route::get('/dashboard', [AdminDashboardController::class, 'index'])
-            ->name('dashboard');
-    });
+// Admin Routes are defined in routes/admin.php
 
 // Dashboard route with role-based redirection
 Route::get('/dashboard', function () {
