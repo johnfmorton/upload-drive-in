@@ -23,5 +23,36 @@ yarn-error.log
 /.zed
 .DS_Store
 
+# Storage directories
+/storage/framework/views/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/logs/*
+/storage/app/public/*
+/storage/app/private/*
+/bootstrap/cache/*
+
+# Keep .gitignore files
+!.gitignore
+!storage/framework/views/.gitignore
+!storage/framework/cache/.gitignore
+!storage/framework/sessions/.gitignore
+!storage/framework/testing/.gitignore
+!storage/logs/.gitignore
+!storage/app/public/.gitignore
+!storage/app/private/.gitignore
+!bootstrap/cache/.gitignore
+
+# Keep directories
+!storage/framework/views/.gitkeep
+!storage/framework/cache/.gitkeep
+!storage/framework/sessions/.gitkeep
+!storage/framework/testing/.gitkeep
+!storage/logs/.gitkeep
+!storage/app/public/.gitkeep
+!storage/app/private/.gitkeep
+!bootstrap/cache/.gitkeep
+
 /env.bak
 public/images/*
