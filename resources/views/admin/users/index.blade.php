@@ -25,7 +25,7 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('admin.admin.users.store') }}" class="space-y-4">
+                <form method="POST" action="{{ route('admin.users.store') }}" class="space-y-4">
                     @csrf
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700">{{ __('messages.label_name') }}</label>
