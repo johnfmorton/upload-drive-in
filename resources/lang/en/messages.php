@@ -83,23 +83,23 @@
     'mobile_label_created_at' => 'Created:',
 
     // Email Subjects
-    'admin_upload_subject' => 'New File Uploaded to :app_name*',
-    'client_upload_subject' => 'Your file upload confirmation - :app_name*',
+    'admin_upload_subject' => 'New File Uploaded to :app_name',
+    'client_upload_subject' => 'Your file upload confirmation - :app_name',
 
     // Admin Email Content
-    'admin_upload_heading' => 'New File Upload Notification*',
-    'admin_upload_body_intro' => ':userName (:userEmail) has uploaded a new file.*',
-    'file_details' => 'File Details*',
-    'file_name' => 'Name*',
-    'file_size' => 'Size*',
-    'file_message' => 'Message*',
+    'admin_upload_heading' => 'New File Upload Notification',
+    'admin_upload_body_intro' => ':userName (:userEmail) has uploaded a new file.',
+    'file_details' => 'File Details',
+    'file_name' => 'Name',
+    'file_size' => 'Size',
+    'file_message' => 'Message',
 
     // Client Email Content
-    'client_upload_heading' => 'File Upload Successful*',
-    'client_upload_body_intro' => 'Your file, :fileName, has been successfully uploaded.*',
-    'client_upload_body_thanks' => 'Thank you for using our service.*',
-    'unsubscribe_button' => 'Stop Receiving These Emails*',
-    'unsubscribe_text_prefix' => "If you no longer wish to receive these confirmations, you can click the button above or visit:*",
+    'client_upload_heading' => 'File Upload Successful',
+    'client_upload_body_intro' => 'Your file, :fileName, has been successfully uploaded.',
+    'client_upload_body_thanks' => 'Thank you for using our service.',
+    'unsubscribe_button' => 'Stop Receiving These Emails',
+    'unsubscribe_text_prefix' => "If you no longer wish to receive these confirmations, you can click the button above or visit:",
 
     // Unsubscribe Page
     'unsubscribe_success_heading' => 'Notifications Disabled*',
@@ -167,5 +167,49 @@
 
     // User Management Messages
     'client_created' => 'Client user created successfully. An invitation email has been sent.',
+
+    // Email Common Elements
+    'email_signature' => 'Thanks',
+
+    // Authentication
+    'auth_email' => 'Email',
+    'auth_password' => 'Password',
+    'auth_remember_me' => 'Remember me',
+    'auth_forgot_password' => 'Forgot your password?',
+    'auth_log_in' => 'Log in',
+    'auth_session_error' => 'Session expired. Please log in again.',
+
+    // Profile
+    'profile_title' => 'Profile',
+    'profile_information' => 'Profile Information',
+    'profile_update' => 'Update Profile',
+    'profile_saved' => 'Profile updated successfully.',
+    'profile_update_info' => "Update your account's profile information and email address.",
+    'profile_name' => 'Name',
+    'profile_email' => 'Email',
+    'profile_save' => 'Save',
+    'profile_email_unverified' => 'Your email address is unverified.',
+    'profile_email_verify_resend' => 'Click here to re-send the verification email.',
+    'profile_email_verify_sent' => 'A new verification link has been sent to your email address.',
+
+    // Password Update
+    'password_update_title' => 'Update Password',
+    'password_update_info' => 'Ensure your account is using a long, random password to stay secure.',
+    'password_current' => 'Current Password',
+    'password_new' => 'New Password',
+    'password_confirm' => 'Confirm Password',
+    'password_updated' => 'Password updated successfully.',
+
+    // Account Deletion
+    'delete_account_title' => 'Delete Account',
+    'delete_account_info' => 'Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.',
+    'delete_account_confirm_title' => 'Are you sure you want to delete your account?',
+    'delete_account_confirm_info' => 'Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.',
+    'delete_account_client_confirm_info' => 'Once your account is deleted, all of its resources and data will be permanently deleted. A confirmation email will be sent to verify this action.',
+    'delete_account_button' => 'Delete Account',
+    'delete_account_cancel' => 'Cancel',
+    'delete_account_email_sent_title' => 'Check Your Email',
+    'delete_account_email_sent_info' => 'A confirmation email has been sent to your email address. Please check your inbox and follow the link to complete the account deletion process.',
+    'delete_account_email_sent_understood' => 'Understood',
 
 ];

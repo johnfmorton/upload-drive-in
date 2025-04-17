@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Events\FileUploaded; // Import the event
-use App\Listeners\SendUploadNotifications; // Import the listener
 use App\Events\BatchUploadComplete; // <-- Add NEW Event import
 use App\Listeners\SendBatchUploadNotifications; // <-- Add NEW Listener import
 use Illuminate\Auth\Events\Registered;
@@ -22,9 +20,6 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         Registered::class => [
             SendEmailVerificationNotification::class,
-        ],
-        FileUploaded::class => [ // Add this mapping
-            SendUploadNotifications::class,
         ],
         BatchUploadComplete::class => [ // <-- Add NEW mapping
             SendBatchUploadNotifications::class,
