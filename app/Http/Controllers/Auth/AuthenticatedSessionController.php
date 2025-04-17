@@ -13,6 +13,7 @@ use Illuminate\View\View;
 use App\Models\User;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Log;
+use App\Enums\UserRole;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -78,7 +79,7 @@ class AuthenticatedSessionController extends Controller
         // The 'signed' middleware in the route definition already verifies the signature.
         // We just need to make sure the user exists and is a client.
 
-        if (!$user || $user->role !== 'client') {
+        if (!$user || $user->role !== UserRole::CLIENT) {
             // Optional: Log this attempt
             Log::warning("Attempt to use login token for invalid user or non-client user: {$user->id}");
             return redirect()->route('home')->with('error', 'Invalid login link.');
