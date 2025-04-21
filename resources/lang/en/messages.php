@@ -90,19 +90,19 @@
     'client_upload_subject' => 'Your file upload confirmation - :app_name',
 
     // Admin Email Content
-    'admin_upload_heading' => 'New File Upload Notification',
-    'admin_upload_body_intro' => ':userName (:userEmail) has uploaded a new file.',
-    'file_details' => 'File Details',
-    'file_name' => 'Name',
-    'file_size' => 'Size',
-    'file_message' => 'Message',
+    // 'admin_upload_heading' => 'New File Upload Notification',
+    // 'admin_upload_body_intro' => ':userName (:userEmail) has uploaded a new file.',
+    // 'file_details' => 'File Details',
+    // 'file_name' => 'Name',
+    // 'file_size' => 'Size',
+    // 'file_message' => 'Message',
 
-    // Client Email Content
-    'client_upload_heading' => 'File Upload Successful',
-    'client_upload_body_intro' => 'Your file, :fileName, has been successfully uploaded.',
-    'client_upload_body_thanks' => 'Thank you for using our service.',
-    'unsubscribe_button' => 'Stop Receiving These Emails',
-    'unsubscribe_text_prefix' => "If you no longer wish to receive these confirmations, you can click the button above or visit:",
+    // // Client Email Content
+    // 'client_upload_heading' => 'File Upload Successful',
+    // 'client_upload_body_intro' => 'Your file, :fileName, has been successfully uploaded.',
+    // 'client_upload_body_thanks' => 'Thank you for using our service.',
+    // 'unsubscribe_button' => 'Stop Receiving These Emails',
+    // 'unsubscribe_text_prefix' => "If you no longer wish to receive these confirmations, you can click the button above or visit:",
 
     // Unsubscribe Page
     'unsubscribe_success_heading' => 'Notifications Disabled',
@@ -126,7 +126,8 @@
     'uploaded_files_list' => 'Uploaded Files',
     'upload_thank_you' => 'Thank you for using our service.',
     'unsubscribe_link_text' => "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:*",
-    'unsubscribe_action_text' => 'Unsubscribe', // Note: Removed the trailing * as it's part of the sentence structure in the view
+    'unsubscribe_action_text' => 'Unsubscribe from notifications',
+    'want_to_unsubscribe_from_notifications' => 'Want to unsubscribe from notifications?',
 
     // Admin Batch Email
     'admin_batch_upload_subject' => '{1} New File Uploaded by :userName to :app_name*|[2,*] :count New Files Uploaded by :userName to :app_name',
