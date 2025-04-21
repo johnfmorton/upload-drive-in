@@ -145,17 +145,22 @@ class CloudStorageController extends Controller
         ]);
 
         try {
-            $this->updateConfig('cloud-storage.default', $validated['default_provider']);
+            // Save default provider into .env
+            $this->updateEnvironmentValue('CLOUD_STORAGE_DEFAULT', $validated['default_provider']);
 
-            Log::info('Default storage provider updated successfully', [
-                'provider' => $validated['default_provider']
+            // Clear config cache so new default is applied
+            Artisan::call('config:clear');
+
+            Log::info('Default storage provider environment variable updated successfully', [
+                'provider' => $validated['default_provider'],
             ]);
+
             return redirect()->back()->with('success', __('messages.settings_updated_successfully'));
-
         } catch (\Exception $e) {
-            Log::error('Failed to update default storage provider', [
-                'error' => $e->getMessage()
+            Log::error('Failed to update default storage provider environment variable', [
+                'error' => $e->getMessage(),
             ]);
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', __('messages.settings_update_failed'));
