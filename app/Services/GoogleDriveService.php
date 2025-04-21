@@ -46,8 +46,8 @@ class GoogleDriveService
         }
 
         // Check for required configuration values
-        $clientId = config('services.google_drive.client_id');
-        $clientSecret = config('services.google_drive.client_secret');
+        $clientId = config('cloud-storage.providers.google-drive.client_id');
+        $clientSecret = config('cloud-storage.providers.google-drive.client_secret');
         if (!$clientId || !$clientSecret) {
             Log::error('Google Drive client ID or secret is not configured.');
             throw new Exception('Google Drive API client ID or secret is missing in configuration.');
@@ -127,9 +127,9 @@ class GoogleDriveService
      */
     public function getRootFolderId(): string
     {
-        $rootFolderId = config('services.google_drive.root_folder_id');
+        $rootFolderId = config('cloud-storage.providers.google-drive.root_folder_id');
         if (empty($rootFolderId)) {
-            Log::error('Google Drive root folder ID is not configured.', ['config_key' => 'services.google_drive.root_folder_id']);
+            Log::error('Google Drive root folder ID is not configured.', ['config_key' => 'cloud-storage.providers.google-drive.root_folder_id']);
             throw new Exception('Google Drive root folder ID is not configured.');
         }
         return $rootFolderId;
