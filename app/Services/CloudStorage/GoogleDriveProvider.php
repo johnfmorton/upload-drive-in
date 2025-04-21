@@ -46,8 +46,8 @@ class GoogleDriveProvider extends AbstractCloudStorageProvider
         }
 
         // Check for required configuration values
-        $clientId = config('services.google_drive.client_id');
-        $clientSecret = config('services.google_drive.client_secret');
+        $clientId = config('cloud-storage.providers.google-drive.client_id');
+        $clientSecret = config('cloud-storage.providers.google-drive.client_secret');
         if (!$clientId || !$clientSecret) {
             $this->log('Google Drive client ID or secret is not configured.', [], 'error');
             throw new \Exception('Google Drive API client ID or secret is missing in configuration.');
@@ -96,7 +96,7 @@ class GoogleDriveProvider extends AbstractCloudStorageProvider
 
     public function getRootFolderId(): string
     {
-        $rootFolderId = config('services.google_drive.root_folder_id');
+        $rootFolderId = config('cloud-storage.providers.google-drive.root_folder_id');
         if (empty($rootFolderId)) {
             $this->log('Root folder ID is not configured.', [], 'error');
             throw new \Exception('Google Drive root folder ID is not configured.');

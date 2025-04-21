@@ -17,9 +17,9 @@ class GoogleDriveController extends Controller
     public function __construct()
     {
         $this->client = new Client();
-        $this->client->setClientId(config('services.google_drive.client_id'));
-        $this->client->setClientSecret(config('services.google_drive.client_secret'));
-        $this->client->setRedirectUri(config('services.google_drive.redirect_uri'));
+        $this->client->setClientId(config('cloud-storage.providers.google-drive.client_id'));
+        $this->client->setClientSecret(config('cloud-storage.providers.google-drive.client_secret'));
+        $this->client->setRedirectUri(config('cloud-storage.providers.google-drive.redirect_uri'));
         $this->client->addScope(Drive::DRIVE_FILE);
         $this->client->addScope(Drive::DRIVE);
         $this->client->setAccessType('offline');
@@ -49,7 +49,7 @@ class GoogleDriveController extends Controller
 
                     // Test the connection by getting the root folder
                     $service = new Drive($this->client);
-                    $rootFolderId = config('services.google_drive.root_folder_id');
+                    $rootFolderId = config('cloud-storage.providers.google-drive.root_folder_id');
 
                     try {
                         $service->files->get($rootFolderId);
