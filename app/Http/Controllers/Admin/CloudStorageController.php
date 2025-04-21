@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Artisan;
 
 class CloudStorageController extends Controller
 {
@@ -110,21 +112,20 @@ class CloudStorageController extends Controller
         ]);
 
         try {
-            $config = Config::get('services.google_drive');
-            $config['client_id'] = $validated['google_drive_client_id'];
-            $config['root_folder_id'] = $validated['google_drive_root_folder_id'];
-
+            // Save Google Drive credentials into .env
+            $this->updateEnvironmentValue('GOOGLE_DRIVE_CLIENT_ID', $validated['google_drive_client_id']);
             if (!empty($validated['google_drive_client_secret'])) {
-                $config['client_secret'] = $validated['google_drive_client_secret'];
+                $this->updateEnvironmentValue('GOOGLE_DRIVE_CLIENT_SECRET', $validated['google_drive_client_secret']);
             }
+            $this->updateEnvironmentValue('GOOGLE_DRIVE_ROOT_FOLDER_ID', $validated['google_drive_root_folder_id']);
 
-            $this->updateConfig('services.google_drive', $config);
+            // Clear config cache to apply new environment values
+            Artisan::call('config:clear');
 
-            Log::info('Google Drive configuration updated successfully');
+            Log::info('Google Drive environment variables updated successfully');
             return redirect()->back()->with('success', __('messages.settings_updated_successfully'));
-
         } catch (\Exception $e) {
-            Log::error('Failed to update Google Drive configuration', [
+            Log::error('Failed to update Google Drive environment variables', [
                 'error' => $e->getMessage()
             ]);
             return redirect()->back()
@@ -196,6 +197,26 @@ class CloudStorageController extends Controller
         // Clear config cache
         if (function_exists('opcache_invalidate')) {
             opcache_invalidate($path);
+        }
+    }
+
+    // Add method to update .env file with key and value
+    private function updateEnvironmentValue(string $key, string $value): void
+    {
+        $path = base_path('.env');
+        if (File::exists($path)) {
+            $content = File::get($path);
+            $escapedValue = '"' . str_replace('"', '\\"', $value) . '"';
+            if (preg_match("/^{$key}=.*/m", $content)) {
+                $content = preg_replace(
+                    "/^{$key}=.*/m",
+                    "{$key}={$escapedValue}",
+                    $content
+                );
+            } else {
+                $content .= PHP_EOL . "{$key}={$escapedValue}";
+            }
+            File::put($path, $content);
         }
     }
 }
