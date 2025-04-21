@@ -36,22 +36,21 @@ class CloudStorageController extends Controller
         ]);
 
         try {
-            $config = Config::get('cloud-storage.providers.microsoft-teams');
-            $config['client_id'] = $validated['microsoft_teams_client_id'];
-            $config['root_folder_id'] = $validated['microsoft_teams_root_folder_id'];
-
+            // Save Microsoft Teams credentials into .env
+            $this->updateEnvironmentValue('MICROSOFT_TEAMS_CLIENT_ID', $validated['microsoft_teams_client_id']);
             if (!empty($validated['microsoft_teams_client_secret'])) {
-                $config['client_secret'] = $validated['microsoft_teams_client_secret'];
+                $this->updateEnvironmentValue('MICROSOFT_TEAMS_CLIENT_SECRET', $validated['microsoft_teams_client_secret']);
             }
+            $this->updateEnvironmentValue('MICROSOFT_TEAMS_ROOT_FOLDER_ID', $validated['microsoft_teams_root_folder_id']);
 
-            $this->updateConfig('cloud-storage.providers.microsoft-teams', $config);
+            // Clear config cache to apply new environment values
+            Artisan::call('config:clear');
 
-            Log::info('Microsoft Teams configuration updated successfully');
+            Log::info('Microsoft Teams environment variables updated successfully');
             return redirect()->back()->with('success', __('messages.settings_updated_successfully'));
-
         } catch (\Exception $e) {
-            Log::error('Failed to update Microsoft Teams configuration', [
-                'error' => $e->getMessage()
+            Log::error('Failed to update Microsoft Teams environment variables', [
+                'error' => $e->getMessage(),
             ]);
             return redirect()->back()
                 ->withInput()
@@ -74,22 +73,21 @@ class CloudStorageController extends Controller
         ]);
 
         try {
-            $config = Config::get('cloud-storage.providers.dropbox');
-            $config['client_id'] = $validated['dropbox_client_id'];
-            $config['root_folder'] = $validated['dropbox_root_folder'];
-
+            // Save Dropbox credentials into .env
+            $this->updateEnvironmentValue('DROPBOX_CLIENT_ID', $validated['dropbox_client_id']);
             if (!empty($validated['dropbox_client_secret'])) {
-                $config['client_secret'] = $validated['dropbox_client_secret'];
+                $this->updateEnvironmentValue('DROPBOX_CLIENT_SECRET', $validated['dropbox_client_secret']);
             }
+            $this->updateEnvironmentValue('DROPBOX_ROOT_FOLDER', $validated['dropbox_root_folder']);
 
-            $this->updateConfig('cloud-storage.providers.dropbox', $config);
+            // Clear config cache to apply new environment values
+            Artisan::call('config:clear');
 
-            Log::info('Dropbox configuration updated successfully');
+            Log::info('Dropbox environment variables updated successfully');
             return redirect()->back()->with('success', __('messages.settings_updated_successfully'));
-
         } catch (\Exception $e) {
-            Log::error('Failed to update Dropbox configuration', [
-                'error' => $e->getMessage()
+            Log::error('Failed to update Dropbox environment variables', [
+                'error' => $e->getMessage(),
             ]);
             return redirect()->back()
                 ->withInput()
