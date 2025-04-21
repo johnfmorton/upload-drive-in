@@ -62,4 +62,18 @@ return array (
       'root_folder_id' => '1Ci3lDEEaf5EmTfh3t9SvSLrL1KsNz6xr',
     ),
   ),
+  'cloud-storage' => 
+  array (
+    'providers' => 
+    array (
+      'microsoft-teams' => 
+      array (
+        'driver' => 'microsoft-teams',
+        'client_id' => 'microsoftId',
+        'client_secret' => 'Misecret',
+        'redirect_uri' => NULL,
+        'root_folder_id' => 'msfolder',
+      ),
+    ),
+  ),
 );
