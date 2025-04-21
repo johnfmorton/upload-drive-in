@@ -40,7 +40,7 @@
                                 <div>
                                     <x-label for="microsoft_teams_client_id" :value="__('messages.client_id')" />
                                     <x-input id="microsoft_teams_client_id" name="microsoft_teams_client_id" type="text" class="mt-1 block w-full"
-                                        :value="config('cloud-storage.providers.microsoft-teams.client_id')" />
+                                        :value="old('microsoft_teams_client_id', env('MICROSOFT_TEAMS_CLIENT_ID'))" />
                                     <x-input-error for="microsoft_teams_client_id" class="mt-2" />
                                 </div>
                                 <div>
@@ -51,7 +51,7 @@
                                 <div>
                                     <x-label for="microsoft_teams_root_folder_id" :value="__('messages.root_folder_id')" />
                                     <x-input id="microsoft_teams_root_folder_id" name="microsoft_teams_root_folder_id" type="text" class="mt-1 block w-full"
-                                        :value="config('cloud-storage.providers.microsoft-teams.root_folder_id')" />
+                                        :value="old('microsoft_teams_root_folder_id', env('MICROSOFT_TEAMS_ROOT_FOLDER_ID'))" />
                                     <x-input-error for="microsoft_teams_root_folder_id" class="mt-2" />
                                 </div>
                                 <div class="flex justify-end">
@@ -94,7 +94,7 @@
                                 <div>
                                     <x-label for="dropbox_client_id" :value="__('messages.client_id')" />
                                     <x-input id="dropbox_client_id" name="dropbox_client_id" type="text" class="mt-1 block w-full"
-                                        :value="config('cloud-storage.providers.dropbox.client_id')" />
+                                        :value="old('dropbox_client_id', env('DROPBOX_CLIENT_ID'))" />
                                     <x-input-error for="dropbox_client_id" class="mt-2" />
                                 </div>
                                 <div>
@@ -105,7 +105,7 @@
                                 <div>
                                     <x-label for="dropbox_root_folder" :value="__('messages.root_folder')" />
                                     <x-input id="dropbox_root_folder" name="dropbox_root_folder" type="text" class="mt-1 block w-full"
-                                        :value="config('cloud-storage.providers.dropbox.root_folder')" />
+                                        :value="old('dropbox_root_folder', env('DROPBOX_ROOT_FOLDER'))" />
                                     <x-input-error for="dropbox_root_folder" class="mt-2" />
                                 </div>
                                 <div class="flex justify-end">
@@ -148,7 +148,7 @@
                                 <div>
                                     <x-label for="google_drive_client_id" :value="__('messages.client_id')" />
                                     <x-input id="google_drive_client_id" name="google_drive_client_id" type="text" class="mt-1 block w-full"
-                                        :value="config('services.google_drive.client_id')" />
+                                        :value="old('google_drive_client_id', env('GOOGLE_DRIVE_CLIENT_ID'))" />
                                     <x-input-error for="google_drive_client_id" class="mt-2" />
                                 </div>
                                 <div>
@@ -159,7 +159,7 @@
                                 <div>
                                     <x-label for="google_drive_root_folder_id" :value="__('messages.root_folder_id')" />
                                     <x-input id="google_drive_root_folder_id" name="google_drive_root_folder_id" type="text" class="mt-1 block w-full"
-                                        :value="config('services.google_drive.root_folder_id')" />
+                                        :value="old('google_drive_root_folder_id', env('GOOGLE_DRIVE_ROOT_FOLDER_ID'))" />
                                     <x-input-error for="google_drive_root_folder_id" class="mt-2" />
                                 </div>
                                 <div class="flex justify-end">
