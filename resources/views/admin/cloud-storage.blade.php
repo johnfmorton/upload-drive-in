@@ -14,7 +14,10 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="text-lg font-medium text-gray-900">Microsoft Teams</h3>
-                                <p class="mt-1 text-sm text-gray-500">{{ __('messages.configure_microsoft_teams_storage') }}</p>
+                                <p class="mt-1 text-sm text-gray-500"><a href="https://portal.azure.com" target="_blank"
+                                title="{{ __('messages.configure_microsoft_teams_storage_link') }}" class="text-blue-500 hover:text-blue-700">
+                                    {{ __('messages.configure_microsoft_teams_storage_link_description') }}
+                                </a></p>
                             </div>
                             <div class="flex items-center space-x-4">
                                 @if(Storage::exists('microsoft-teams-credentials.json'))
@@ -68,7 +71,14 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="text-lg font-medium text-gray-900">Dropbox</h3>
-                                <p class="mt-1 text-sm text-gray-500">{{ __('messages.configure_dropbox_storage') }}</p>
+                                <p class="mt-1 text-sm text-gray-500">
+                                <a href="https://www.dropbox.com/developers/apps" target="_blank"
+                                title="{{ __('messages.configure_dropbox_storage_link') }}" class="text-blue-500 hover:text-blue-700">
+                                    {{ __('messages.configure_dropbox_storage_link_description') }}
+                                </a>
+
+
+                                </p>
                             </div>
                             <div class="flex items-center space-x-4">
                                 @if(Storage::exists('dropbox-credentials.json'))
@@ -122,7 +132,12 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="text-lg font-medium text-gray-900">Google Drive</h3>
-                                <p class="mt-1 text-sm text-gray-500">{{ __('messages.configure_google_drive_storage') }}</p>
+                                <p class="mt-1 text-sm text-gray-500">
+                                <a href="https://console.cloud.google.com/apis/credentials" target="_blank"
+                                title="{{ __('messages.configure_google_drive_storage_link') }}" class="text-blue-500 hover:text-blue-700">
+                                    {{ __('messages.configure_google_drive_storage_link_description') }}
+                                </a>
+                                </p>
                             </div>
                             <div class="flex items-center space-x-4">
                                 @if(Storage::exists('google-credentials.json'))

@@ -1,7 +1,7 @@
 <?php
 
 return array (
-  'default' => 'google-drive',
+  'default' => env('CLOUD_STORAGE_DEFAULT', 'google-drive'),
   'providers' =>
   array (
     'google-drive' =>

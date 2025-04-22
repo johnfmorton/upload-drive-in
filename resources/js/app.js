@@ -302,134 +302,17 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
     }
 }
 
-// --- Remove Uppy Initialization ---
-/*
-import Uppy from '@uppy/core';
-import Dashboard from '@uppy/dashboard';
-// Re-import XhrUpload
-import XhrUpload from '@uppy/xhr-upload';
+// --- External Links have icon ---
+const domainName = window.location.hostname;
 
-// Check if the Uppy dashboard element exists before initializing
-const uppyDashboardElement = document.getElementById('uppy-dashboard');
-
-if (uppyDashboardElement) {
-    // Get the CSRF token and upload URL from meta tags or data attributes
-    // We can no longer use Blade's {{ route(...) }} or {{ csrf_token() }} here
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    // We need to pass the upload URL from the Blade template to the JS
-    // Let's assume we add a data attribute to the uppyDashboardElement in the Blade file:
-    // <div id="uppy-dashboard" data-upload-url="{{ route('chunk.upload') }}"></div>
-    const uploadUrl = uppyDashboardElement.dataset.uploadUrl;
-
-    if (!uploadUrl) {
-        console.error('Uppy dashboard element is missing the data-upload-url attribute!');
-    } else {
-        const uppy = new Uppy({
-            debug: true,
-            autoProceed: false,
-            restrictions: {
-                // Add any restrictions if needed
-            }
-        })
-        .use(Dashboard, {
-            inline: true,
-            target: '#uppy-dashboard', // Target the container div (or uppyDashboardElement)
-            proudlyDisplayPoweredByUppy: true,
-            height: 470,
-            showProgressDetails: true,
-            // Updated note for clarity, though functionally chunking depends on Tus now
-            note: 'Upload files here. Large files will be uploaded in chunks.',
-            browserBackButtonClose: true
-        })
-        // Re-add XhrUpload configuration (ensure endpoint and headers are correct)
-        .use(XhrUpload, {
-            endpoint: uploadUrl, // Use the same upload URL
-            formData: true, // Send as FormData
-            fieldName: 'file', // Field name expected by the backend library
-            limit: 10, // Concurrent upload limit
-            chunkSize: 5 * 1024 * 1024, // Define chunk size (5MB)
-            headers: {
-                'X-CSRF-TOKEN': csrfToken // Send CSRF token
-            },
-            // Optional: Add metadata if needed, though pion usually extracts it
-            // metaFields: ['name', 'type'],
-        });
-
-
-        uppy.on('upload-success', (file, response) => {
-            console.log('File uploaded successfully:', file.name);
-            console.log('XHR success response:', response);
-
-
-            // Modification for associateMessage: Access file ID from Tus upload URL or metadata
-            // For XHR, the response body should contain the JSON from our controller
-            if (response.body && response.body.file_upload_id) {
-                 file.meta.file_upload_id = response.body.file_upload_id;
-            } else {
-                console.warn('Could not find file_upload_id in XHR response body. Check console logs for details.');
-            }
-        });
-
-        uppy.on('upload-error', (file, error, response) => {
-            console.error('Error uploading file:', file.name, error, response);
-        });
-
-        uppy.on('complete', result => {
-            console.log('All uploads complete!', result);
-            const messageInput = document.getElementById('message');
-            if (messageInput) {
-                const message = messageInput.value;
-                console.log('Message entered:', message);
-
-                // Only proceed if there's a message and at least one successful upload
-                if (message && result.successful.length > 0) {
-                    const successfulFileIds = result.successful.map(file => {
-                        // Try accessing the ID potentially stored in meta during upload-success
-                        return file.meta.file_upload_id || (file.response && file.response.body && file.response.body.file_upload_id);
-                    }).filter(id => id); // Filter out any undefined IDs
-
-                    if (successfulFileIds.length > 0) {
-                        console.log('Sending message for file IDs:', successfulFileIds);
-                        fetch('/api/uploads/associate-message', { // Define the API endpoint
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': csrfToken // Reuse the CSRF token
-                            },
-                            body: JSON.stringify({
-                                message: message,
-                                file_upload_ids: successfulFileIds
-                            })
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                // Log detailed error if response is not OK
-                                response.text().then(text => {
-                                    console.error('Error response from associate-message:', response.status, text);
-                                });
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-                            return response.json();
-                         })
-                        .then(data => {
-                            console.log('Message associated successfully:', data);
-                            // Optionally clear the message field or give user feedback
-                            messageInput.value = ''; // Clear message field on success
-                        })
-                        .catch(error => {
-                            console.error('Error associating message:', error);
-                            // Optionally inform the user that the message could not be saved
-                        });
-                    } else {
-                        console.log('No successful file IDs found in Uppy results to associate message with.');
-                    }
-                } else {
-                    console.log('No message entered or no successful uploads, skipping message association.');
-                }
-            }
-        });
+document
+  .querySelectorAll(
+    'a[href^="http"]:not([href*="' + domainName + '"]):not([href^="#"]):not(.button-link)'
+  )
+  .forEach((link) => {
+    // Prevent adding multiple icons if run multiple times
+    if (!link.querySelector('.external-link-icon')) {
+      link.innerHTML +=
+        '<svg class="external-link-icon" xmlns="http://www.w3.org/2000/svg" baseProfile="tiny" version="1.2" viewBox="0 0 79 79"><path d="M64,39.8v34.7c0,2.5-2,4.5-4.5,4.5H4.5c-2.5,0-4.5-2-4.5-4.5V19.5c0-2.5,2-4.5,4.5-4.5h35.6c2.5,0,4.5,2,4.5,4.5s-.5,2.4-1.4,3.3c-.8.8-1.9,1.3-3.1,1.3H9v45.9h45.9v-30.2c0-1.3.5-2.4,1.4-3.3.8-.8,1.9-1.3,3.1-1.3,2.5,0,4.5,2,4.5,4.5h0Z"/><path d="M74.5,0h-28.7c-2.2,0-4.2,1.5-4.6,3.6s1.6,5.5,4.4,5.5h17.9l-31.5,31.6c-1.8,1.8-1.8,4.7,0,6.5h0c1.7,1.8,4.6,1.8,6.3,0l31.6-31.6v17.7c0,2.2,1.5,4.2,3.6,4.6s5.5-1.6,5.5-4.4V4.7c0-2.5-2-4.5-4.5-4.5h0v-.2Z"/></svg>';
     }
-}
-// --- End Uppy Initialization ---
-*/
+  });
