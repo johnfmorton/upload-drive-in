@@ -262,8 +262,8 @@
     function googleDriveFolderPicker() {
         return {
             showModal: false,
-            rootFolderId: '{{ config('cloud-storage.providers.google-drive.root_folder_id') }}',
-            currentFolderId: '{{ old('google_drive_root_folder_id', config('cloud-storage.providers.google-drive.root_folder_id')) }}',
+            rootFolderId: 'root',
+            currentFolderId: '{{ old('google_drive_root_folder_id') }}',
             currentFolderName: '{{ __('messages.select_folder_prompt') }}',
             rootFolderName: '{{ __('messages.root_folder') }}',
             folderStack: [],
@@ -274,8 +274,8 @@
             },
             openModal() {
                 this.showModal = true;
-                this.folderStack = [{ id: this.currentFolderId || this.rootFolderId, name: this.currentFolderName || this.rootFolderName }];
-                this.loadFolders(this.folderStack[this.folderStack.length - 1].id);
+                this.folderStack = [{ id: this.rootFolderId, name: this.rootFolderName }];
+                this.loadFolders(this.rootFolderId);
             },
             closeModal() {
                 this.showModal = false;

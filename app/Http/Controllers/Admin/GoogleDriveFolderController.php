@@ -35,7 +35,7 @@ class GoogleDriveFolderController extends Controller
         }
 
         $this->service = new Drive($this->client);
-        $this->defaultFolderId = config('cloud-storage.providers.google-drive.root_folder_id');
+        $this->defaultFolderId = 'root';
     }
 
     /**
