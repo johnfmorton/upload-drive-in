@@ -48,7 +48,7 @@ class CloudStorageController extends Controller
         } catch (\Exception $e) {
             Log::warning('Unable to resolve Google Drive folder name on index', ['error' => $e->getMessage()]);
         }
-        return view('admin.cloud-storage', compact('currentFolderId', 'currentFolderName'));
+        return view('admin.cloud-storage.index', compact('currentFolderId', 'currentFolderName'));
     }
 
     /**

@@ -7,6 +7,17 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            {{-- Flash Messages --}}
+            @if (session('success'))
+                <div class="mb-4 p-4 bg-green-100 border border-green-200 text-green-700 rounded">
+                    {{ session('success') }}
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="mb-4 p-4 bg-red-100 border border-red-200 text-red-700 rounded">
+                    {{ session('error') }}
+                </div>
+            @endif
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
                 <div x-data="{ selectedProvider: '{{ old('default_provider', config('cloud-storage.default')) }}' }" x-cloak class="p-6 divide-y divide-gray-200">
 

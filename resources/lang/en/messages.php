@@ -32,6 +32,7 @@
     'google_drive_disconnect_button' => 'Disconnect Google Drive',
     'google_drive_not_connected' => 'Google Drive is not connected',
     'google_drive_connect_button' => 'Connect Google Drive',
+    'google_drive_disconnected_success' => 'Google Drive disconnected successfully.*',
     'uploaded_files_title' => 'Uploaded Files',
     'toggle_columns_title' => 'Show/Hide Columns:',
     'column_file_name' => 'File Name',

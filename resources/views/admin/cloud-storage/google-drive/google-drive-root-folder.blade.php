@@ -4,7 +4,7 @@
         @csrf
         @method('PUT')
         <x-label for="google_drive_root_folder_id" :value="__('messages.root_folder')" />
-        <p class="mt-1 text-sm text-gray-500">{{ __('messages.root_folder_description') }}</p>
+        <p class="-mt-3 text-sm text-gray-500">{{ __('messages.root_folder_description') }}</p>
         <div class="flex items-center space-x-2 border-gray-300 rounded-md border p-4">
             <input type="hidden" id="google_drive_root_folder_id" name="google_drive_root_folder_id" x-model="currentFolderId" />
             <span class="text-gray-700 relative top-[1px]" x-text="currentFolderName ? '📁' : ''"></span>
