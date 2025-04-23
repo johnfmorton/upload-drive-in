@@ -290,7 +290,7 @@
     'root_folder' => 'Root Folder',
     'root_folder_description' => 'Choose the folder in your Google Drive where uploaded files will be stored.',
     'save_changes' => 'Save Changes',
-    'save_credentials' => 'Save Google App Credentials',
+    'save_google_app_credentials' => 'Save Google App Credentials',
     'save_root_folder' => 'Save Root Folder',
     'default_storage_provider' => 'Default Storage Provider',
     'select_default_provider_description' => 'Select which storage provider should be used as the default for new uploads.',
