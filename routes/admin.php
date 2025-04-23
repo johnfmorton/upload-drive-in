@@ -71,12 +71,24 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, '2fa'])
                 Route::get('/dropbox/connect', [DropboxAuthController::class, 'connect'])->name('dropbox.connect');
                 Route::post('/dropbox/disconnect', [DropboxAuthController::class, 'disconnect'])->name('dropbox.disconnect');
 
-                // Google Drive routes
-                Route::put('/google-drive', [CloudStorageController::class, 'updateGoogleDrive'])->name('google-drive.update');
-                Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
-                Route::get('/google-drive/callback', [GoogleDriveController::class, 'callback'])->name('google-drive.callback');
-                Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google-drive.disconnect');
+                // Google Drive: credentials, connect, callback, root folder & disconnect
+                // Save client ID & secret
+                Route::put('/google-drive/credentials', [CloudStorageController::class, 'updateGoogleDriveCredentials'])
+                    ->name('google-drive.credentials.update');
+                // Connect: save credentials and redirect to Google OAuth
+                Route::post('/google-drive/connect', [CloudStorageController::class, 'saveAndConnectGoogleDrive'])
+                    ->name('google-drive.connect');
+                // OAuth callback — handled in CloudStorageController so we can persist credentials
+                Route::get('/google-drive/callback', [CloudStorageController::class, 'callback'])
+                    ->name('google-drive.callback');
+                // Update selected root folder
+                Route::put('/google-drive/folder', [CloudStorageController::class, 'updateGoogleDriveRootFolder'])
+                    ->name('google-drive.folder.update');
+                // Disconnect
+                Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])
+                    ->name('google-drive.disconnect');
                 Route::get('/google-drive/folders', [GoogleDriveFolderController::class, 'index'])->name('google-drive.folders');
+                Route::get('/google-drive/folders/{folderId}', [GoogleDriveFolderController::class, 'show'])->name('google-drive.folders.show');
                 Route::post('/google-drive/folders', [GoogleDriveFolderController::class, 'store'])->name('google-drive.folders.store');
 
                 // Default provider route

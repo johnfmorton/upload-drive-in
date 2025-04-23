@@ -157,10 +157,11 @@
                             <div>
                                 <h3 class="text-lg font-medium text-gray-900">Google Drive</h3>
                                 <p class="mt-1 text-sm text-gray-500">
-                                <a href="https://console.cloud.google.com/apis/credentials" target="_blank"
-                                title="{{ __('messages.configure_google_drive_storage_link') }}" class="text-blue-500 hover:text-blue-700">
-                                    {{ __('messages.configure_google_drive_storage_link_description') }}
-                                </a>
+                                    <a href="https://console.cloud.google.com/apis/credentials" target="_blank"
+                                       title="{{ __('messages.configure_google_drive_storage_link') }}"
+                                       class="text-blue-500 hover:text-blue-700">
+                                        {{ __('messages.configure_google_drive_storage_link_description') }}
+                                    </a>
                                 </p>
                             </div>
                             <div class="flex items-center space-x-4">
@@ -174,33 +175,55 @@
                                     </form>
                                 @else
                                     <span class="px-3 py-1 text-sm text-gray-800 bg-gray-100 rounded-full">{{ __('messages.not_connected') }}</span>
-                                    <a href="{{ route('admin.cloud-storage.google-drive.connect') }}" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                        {{ __('messages.connect') }}
-                                    </a>
                                 @endif
                             </div>
                         </div>
-                        <div class="mt-6" x-data="googleDriveFolderPicker()">
-                            <form action="{{ route('admin.cloud-storage.google-drive.update') }}" method="POST" class="space-y-4">
+
+                        <div class="mt-6 space-y-6">
+                            {{-- Credentials Form --}}
+                            <form action="{{ route('admin.cloud-storage.google-drive.credentials.update') }}" method="POST" class="space-y-4">
                                 @csrf
                                 @method('PUT')
                                 <div>
                                     <x-label for="google_drive_client_id" :value="__('messages.client_id')" />
                                     <x-input id="google_drive_client_id" name="google_drive_client_id" type="text" class="mt-1 block w-full"
-                                        :value="old('google_drive_client_id', env('GOOGLE_DRIVE_CLIENT_ID'))" />
+                                        :value="old('google_drive_client_id', env('GOOGLE_DRIVE_CLIENT_ID'))" required />
                                     <x-input-error for="google_drive_client_id" class="mt-2" />
                                 </div>
                                 <div>
                                     <x-label for="google_drive_client_secret" :value="__('messages.client_secret')" />
-                                    <x-input id="google_drive_client_secret" name="google_drive_client_secret" type="password" class="mt-1 block w-full" />
+                                    <x-input
+                                        id="google_drive_client_secret"
+                                        name="google_drive_client_secret"
+                                        type="password"
+                                        class="mt-1 block w-full"
+                                        placeholder="{{ env('GOOGLE_DRIVE_CLIENT_SECRET') ? '********' : '' }}"
+                                    />
                                     <x-input-error for="google_drive_client_secret" class="mt-2" />
                                 </div>
-                                <div class="space-y-2">
-                                    @if(Storage::exists('google-credentials.json'))
+                                <div class="flex justify-end">
+                                    <x-button type="submit">{{ __('messages.save_credentials') }}</x-button>
+                                </div>
+                            </form>
+
+                            @unless(Storage::exists('google-credentials.json'))
+                                {{-- Connect Button --}}
+                                <form action="{{ route('admin.cloud-storage.google-drive.connect') }}" method="POST">
+                                    @csrf
+                                    <div class="flex justify-end">
+                                        <x-button type="submit">{{ __('messages.connect') }}</x-button>
+                                    </div>
+                                </form>
+                            @else
+                                {{-- Root Folder Form --}}
+                                <div x-data="googleDriveFolderPicker()" x-init="init()">
+                                    <form action="{{ route('admin.cloud-storage.google-drive.folder.update') }}" method="POST" class="space-y-4">
+                                        @csrf
+                                        @method('PUT')
                                         <x-label for="google_drive_root_folder_id" :value="__('messages.root_folder')" />
                                         <div class="flex items-center space-x-2">
                                             <input type="hidden" id="google_drive_root_folder_id" name="google_drive_root_folder_id" x-model="currentFolderId" />
-                                            <span x-text="currentFolderName" class="mt-1 block w-full text-gray-700"></span>
+                                            <span x-text="currentFolderName" class="mt-1 block w-full text-gray-700">{{ $currentFolderName ?: __('messages.select_folder_prompt') }}</span>
                                             <button type="button" @click="openModal" class="px-4 py-2 bg-blue-600 text-white rounded">{{ __('messages.select_folder') }}</button>
                                         </div>
                                         <x-input-error for="google_drive_root_folder_id" class="mt-2" />
@@ -233,21 +256,12 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    @else
-                                        <div class="space-y-2">
-                                            <x-label for="google_drive_root_folder_id" :value="__('messages.root_folder')" />
-                                            <x-input id="google_drive_root_folder_id" name="google_drive_root_folder_id" type="text" class="mt-1 block w-full" :value="old('google_drive_root_folder_id', env('GOOGLE_DRIVE_ROOT_FOLDER_ID'))" disabled />
-                                            <x-input-error for="google_drive_root_folder_id" class="mt-2" />
-                                            <p class="text-sm text-gray-500">{{ __('messages.google_drive_not_connected') }}</p>
+                                        <div class="flex justify-end">
+                                            <x-button type="submit">{{ __('messages.save_root_folder') }}</x-button>
                                         </div>
-                                    @endif
+                                    </form>
                                 </div>
-                                <div class="flex justify-end">
-                                    <x-button>
-                                        {{ __('messages.save_changes') }}
-                                    </x-button>
-                                </div>
-                            </form>
+                            @endunless
                         </div>
                     </div>
 
@@ -263,14 +277,25 @@
         return {
             showModal: false,
             rootFolderId: 'root',
-            currentFolderId: '{{ old('google_drive_root_folder_id') }}',
-            currentFolderName: '{{ __('messages.select_folder_prompt') }}',
+            currentFolderId: @json(old('google_drive_root_folder_id', $currentFolderId ?? '')),
+            currentFolderName: @json($currentFolderName ?: __('messages.select_folder_prompt')),
             rootFolderName: '{{ __('messages.root_folder') }}',
+            baseFolderShowUrl: '{{ url('/admin/cloud-storage/google-drive/folders') }}',
             folderStack: [],
             folders: [],
             newFolderName: '',
             init() {
-                this.folderStack = [{ id: this.currentFolderId || this.rootFolderId, name: this.currentFolderName || this.rootFolderName }];
+                this.folderStack = [{ id: this.rootFolderId, name: this.rootFolderName }];
+                if (this.currentFolderId) {
+                    fetch(`${this.baseFolderShowUrl}/${this.currentFolderId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.folder && data.folder.name) {
+                                this.currentFolderName = data.folder.name;
+                            }
+                        })
+                        .catch(() => {});
+                }
             },
             openModal() {
                 this.showModal = true;
