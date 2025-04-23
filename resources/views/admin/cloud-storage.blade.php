@@ -224,18 +224,19 @@
                                         <p class="mt-1 text-sm text-gray-500">{{ __('messages.root_folder_description') }}</p>
                                         <div class="flex items-center space-x-2 border-gray-300 rounded-md border p-4">
                                             <input type="hidden" id="google_drive_root_folder_id" name="google_drive_root_folder_id" x-model="currentFolderId" />
-                                            <span class="text-gray-700" x-text="currentFolderName
+                                            <span class="text-gray-700 relative top-[1px]" x-text="currentFolderName
                                                     ? `📁`
                                                     : ''"></span>
                                             <span
                                                 x-text="currentFolderName
                                                     ? `${currentFolderName}`
                                                     : '{{ __('messages.select_folder_prompt') }}'"
-                                                class="mt-1 block w-full text-gray-700">
+                                                class="inline-block w-full text-gray-700">
                                             </span>
-                                            <x-button
+                                            <x-secondary-button
                                                 type="button"
                                                 @click="openModal"
+                                                class="whitespace-nowrap bg-gray-200 hover:bg-gray-700 hover:text-white px-2 py-1 rounded"
                                                 x-text="currentFolderId ? '{{ __('messages.change_folder') }}' : '{{ __('messages.select_folder') }}'"
                                             />
                                         </div>
@@ -261,7 +262,13 @@
                                                 </ul>
                                                 <div class="flex items-center space-x-2 mb-4">
                                                     <input x-model="newFolderName" type="text" placeholder="{{ __('messages.create_new_folder') }}" class="mt-0 block w-full border-gray-300 rounded-md" />
-                                                    <button type="button" @click="createFolder" class="px-2 py-1 bg-green-600 text-white rounded">{{ __('messages.create_folder') }}</button>
+                                                    <x-button
+                                                        type="button"
+                                                        @click="createFolder"
+                                                        class="bg-green-600 hover:bg-green-700 text-white whitespace-nowrap px-2 py-1 rounded"
+                                                    >
+                                                        {{ __('messages.create_folder') }}
+                                                    </x-button>
                                                 </div>
                                                 <div class="flex justify-end space-x-2">
                                                     <x-button type="button" @click="confirmSelection">{{ __('messages.confirm') }}</x-button>
@@ -270,7 +277,12 @@
                                             </div>
                                         </div>
                                         <div class="flex justify-end">
-                                            <x-button type="submit">{{ __('messages.save_root_folder') }}</x-button>
+                                            <x-button
+                                                type="submit"
+                                                x-bind:class="folderChanged ? 'animate-wiggle' : ''"
+                                            >
+                                                {{ __('messages.save_root_folder') }}
+                                            </x-button>
                                         </div>
                                     </form>
                                 </div>
@@ -291,6 +303,8 @@
             showModal: false,
             rootFolderId: 'root',
             currentFolderId: @json(old('google_drive_root_folder_id', $currentFolderId ?? '')),
+            initialFolderId: @json(old('google_drive_root_folder_id', $currentFolderId ?? '')),
+            folderChanged: false,
             currentFolderName: @json($currentFolderName ?: __('messages.select_folder_prompt')),
             rootFolderName: '{{ __('messages.root_folder') }}',
             baseFolderShowUrl: '{{ url('/admin/cloud-storage/google-drive/folders') }}',
@@ -299,6 +313,9 @@
             newFolderName: '',
             init() {
                 this.folderStack = [{ id: this.rootFolderId, name: this.rootFolderName }];
+                // Remember initial folder to detect changes
+                this.initialFolderId = this.currentFolderId;
+                this.folderChanged = false;
                 if (this.currentFolderId) {
                     fetch(`${this.baseFolderShowUrl}/${this.currentFolderId}`)
                         .then(res => res.json())
@@ -357,6 +374,7 @@
                 const selected = this.folderStack[this.folderStack.length - 1];
                 this.currentFolderId = selected.id;
                 this.currentFolderName = selected.name;
+                this.folderChanged = (this.currentFolderId !== this.initialFolderId);
                 this.showModal = false;
             },
         };

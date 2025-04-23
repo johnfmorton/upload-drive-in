@@ -291,7 +291,7 @@
     'root_folder_description' => 'Choose the folder in your Google Drive where uploaded files will be stored.',
     'save_changes' => 'Save Changes',
     'save_credentials' => 'Save Google App Credentials',
-    'save_root_folder' => 'Save Root Folder*',
+    'save_root_folder' => 'Save Root Folder',
     'default_storage_provider' => 'Default Storage Provider',
     'select_default_provider_description' => 'Select which storage provider should be used as the default for new uploads.',
 
@@ -308,10 +308,10 @@
     // Folder Selection UI
     'select_folder_prompt' => 'No folder selected*',
     'select_folder' => 'Select Folder',
-    'change_folder' => 'Change Folder',
-    'no_folders_found' => 'No folders found*',
-    'create_new_folder' => 'New folder name*',
-    'create_folder' => 'Create Folder*',
+    'change_folder' => 'Select Different Folder',
+    'no_folders_found' => 'No folders found',
+    'create_new_folder' => 'New folder name',
+    'create_folder' => 'Create Folder',
     'up' => 'Up',
     'cancel' => 'Cancel',
     'confirm' => 'Confirm',
