@@ -86,4 +86,18 @@ class GoogleDriveFolderController extends Controller
             return response()->json(['error' => 'Failed to create folder'], 500);
         }
     }
+
+    /**
+     * Retrieve metadata for a single folder by ID.
+     */
+    public function show(string $folderId): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $folder = $this->service->files->get($folderId, ['fields' => 'id,name']);
+            return response()->json(['folder' => ['id' => $folder->id, 'name' => $folder->name]]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch Google Drive folder', ['error' => $e->getMessage(), 'folderId' => $folderId]);
+            return response()->json(['error' => 'Failed to fetch folder'], 500);
+        }
+    }
 }

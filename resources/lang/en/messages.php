@@ -304,6 +304,8 @@
     'root_folder_id' => 'Root Folder ID',
     'root_folder' => 'Root Folder*',
     'save_changes' => 'Save Changes',
+    'save_credentials' => 'Save Credentials*',
+    'save_root_folder' => 'Save Root Folder*',
     'default_storage_provider' => 'Default Storage Provider',
     'select_default_provider_description' => 'Select which storage provider should be used as the default for new uploads.',
 

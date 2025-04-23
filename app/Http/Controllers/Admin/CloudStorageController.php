@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Storage;
+use Google\Client;
+use Google\Service\Drive;
 
 class CloudStorageController extends Controller
 {
@@ -18,7 +21,34 @@ class CloudStorageController extends Controller
      */
     public function index()
     {
-        return view('admin.cloud-storage');
+        // Determine current Google Drive root folder selection
+        $currentFolderId = config('cloud-storage.providers.google-drive.root_folder_id');
+        $currentFolderName = '';
+        try {
+            // Only attempt if a folder ID is set and Drive is connected
+            if (!empty($currentFolderId) && Storage::exists('google-credentials.json')) {
+                // Bootstrap a temporary Drive client
+                $client = new Client();
+                $client->setClientId(config('cloud-storage.providers.google-drive.client_id'));
+                $client->setClientSecret(config('cloud-storage.providers.google-drive.client_secret'));
+                $client->setRedirectUri(config('cloud-storage.providers.google-drive.redirect_uri'));
+                $client->addScope(Drive::DRIVE_METADATA_READONLY);
+                $client->setAccessType('offline');
+                $client->setPrompt('consent');
+
+                // Use stored token
+                $token = json_decode(Storage::get('google-credentials.json'), true);
+                $client->setAccessToken($token);
+                $service = new Drive($client);
+
+                // Fetch folder metadata
+                $folder = $service->files->get($currentFolderId, ['fields' => 'id,name']);
+                $currentFolderName = $folder->getName();
+            }
+        } catch (\Exception $e) {
+            Log::warning('Unable to resolve Google Drive folder name on index', ['error' => $e->getMessage()]);
+        }
+        return view('admin.cloud-storage', compact('currentFolderId', 'currentFolderName'));
     }
 
     /**
@@ -168,6 +198,91 @@ class CloudStorageController extends Controller
     }
 
     /**
+     * Save Google Drive client ID and secret to .env.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateGoogleDriveCredentials(Request $request)
+    {
+        $validated = $request->validate([
+            'google_drive_client_id' => ['required', 'string'],
+            'google_drive_client_secret' => ['nullable', 'string'],
+        ]);
+
+        try {
+            $this->updateEnvironmentValue('GOOGLE_DRIVE_CLIENT_ID', $validated['google_drive_client_id']);
+            if (!empty($validated['google_drive_client_secret'])) {
+                $this->updateEnvironmentValue('GOOGLE_DRIVE_CLIENT_SECRET', $validated['google_drive_client_secret']);
+            }
+            Artisan::call('config:clear');
+            Log::info('Google Drive credentials updated successfully');
+            return redirect()->back()->with('success', __('messages.settings_updated_successfully'));
+        } catch (\Exception $e) {
+            Log::error('Failed to update Google Drive credentials', ['error' => $e->getMessage()]);
+            return redirect()->back()->withInput()->with('error', __('messages.settings_update_failed'));
+        }
+    }
+
+    /**
+     * Save credentials and redirect user to Google Drive OAuth.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function saveAndConnectGoogleDrive(Request $request)
+    {
+        // Pull saved credentials from config
+        $clientId = config('cloud-storage.providers.google-drive.client_id');
+        $clientSecret = config('cloud-storage.providers.google-drive.client_secret');
+        if (empty($clientId)) {
+            return redirect()->back()->with('error', __('messages.client_id').' '.__('messages.error_generic'));
+        }
+        try {
+            // Instantiate Google client with config credentials
+            $client = new Client();
+            $client->setClientId($clientId);
+            if (!empty($clientSecret)) {
+                $client->setClientSecret($clientSecret);
+            }
+            $client->setRedirectUri(config('cloud-storage.providers.google-drive.redirect_uri'));
+            $client->addScope(Drive::DRIVE_FILE);
+            $client->addScope(Drive::DRIVE);
+            $client->setAccessType('offline');
+            $client->setPrompt('consent');
+
+            $authUrl = $client->createAuthUrl();
+            return redirect($authUrl);
+        } catch (\Exception $e) {
+            Log::error('Failed to initiate Google Drive connection', ['error' => $e->getMessage()]);
+            return redirect()->back()->with('error', __('messages.settings_update_failed'));
+        }
+    }
+
+    /**
+     * Update Google Drive root folder ID in .env.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateGoogleDriveRootFolder(Request $request)
+    {
+        $validated = $request->validate([
+            'google_drive_root_folder_id' => ['required', 'string'],
+        ]);
+
+        try {
+            $this->updateEnvironmentValue('GOOGLE_DRIVE_ROOT_FOLDER_ID', $validated['google_drive_root_folder_id']);
+            Artisan::call('config:clear');
+            Log::info('Google Drive root folder updated successfully', ['folder_id' => $validated['google_drive_root_folder_id']]);
+            return redirect()->back()->with('success', __('messages.settings_updated_successfully'));
+        } catch (\Exception $e) {
+            Log::error('Failed to update Google Drive root folder', ['error' => $e->getMessage()]);
+            return redirect()->back()->with('error', __('messages.settings_update_failed'));
+        }
+    }
+
+    /**
      * Update configuration values.
      *
      * @param  string  $key
@@ -221,5 +336,50 @@ class CloudStorageController extends Controller
             }
             File::put($path, $content);
         }
+    }
+
+    public function callback(Request $request)
+    {
+        // If we have pending credentials from connect form, save them now
+        $pendingId = session()->pull('pending_google_drive_client_id');
+        $pendingSecret = session()->pull('pending_google_drive_client_secret');
+        if ($pendingId) {
+            $this->updateEnvironmentValue('GOOGLE_DRIVE_CLIENT_ID', $pendingId);
+        }
+        if (!empty($pendingSecret)) {
+            $this->updateEnvironmentValue('GOOGLE_DRIVE_CLIENT_SECRET', $pendingSecret);
+        }
+        if ($pendingId || !empty($pendingSecret)) {
+            // Clear config cache so new credentials take effect
+            Artisan::call('config:clear');
+        }
+        if ($request->has('code')) {
+            try {
+                // Handle Google Drive OAuth callback
+                $client = new Client();
+                $client->setClientId(config('cloud-storage.providers.google-drive.client_id'));
+                $client->setClientSecret(config('cloud-storage.providers.google-drive.client_secret'));
+                $client->setRedirectUri(config('cloud-storage.providers.google-drive.redirect_uri'));
+                $client->addScope(Drive::DRIVE_FILE);
+                $client->addScope(Drive::DRIVE);
+                $client->setAccessType('offline');
+                $client->setPrompt('consent');
+
+                $code = $request->input('code');
+                $token = $client->fetchAccessTokenWithAuthCode($code);
+
+                if (isset($token['access_token'])) {
+                    // Save token to storage
+                    Storage::put('google-credentials.json', json_encode($token));
+
+                    // Redirect to Google Drive root folder selection
+                    return redirect()->route('admin.cloud-storage.index');
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to handle Google Drive OAuth callback', ['error' => $e->getMessage()]);
+                return redirect()->back()->with('error', __('messages.settings_update_failed'));
+            }
+        }
+        return redirect()->back()->with('error', __('messages.settings_update_failed'));
     }
 }
