@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\CloudStorage\DropboxAuthController;
 use App\Http\Controllers\CloudStorage\MicrosoftTeamsAuthController;
 use App\Http\Controllers\GoogleDriveController;
+use App\Http\Controllers\Admin\GoogleDriveFolderController;
 
 // All Admin Routes
 Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, '2fa'])
@@ -75,6 +76,8 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, '2fa'])
                 Route::get('/google-drive/connect', [GoogleDriveController::class, 'connect'])->name('google-drive.connect');
                 Route::get('/google-drive/callback', [GoogleDriveController::class, 'callback'])->name('google-drive.callback');
                 Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])->name('google-drive.disconnect');
+                Route::get('/google-drive/folders', [GoogleDriveFolderController::class, 'index'])->name('google-drive.folders');
+                Route::post('/google-drive/folders', [GoogleDriveFolderController::class, 'store'])->name('google-drive.folders.store');
 
                 // Default provider route
                 Route::put('/default', [CloudStorageController::class, 'updateDefault'])->name('default');
