@@ -9,6 +9,30 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
                 <div class="p-6 divide-y divide-gray-200">
+
+                 <!-- Default Provider Selection -->
+                    <div class="py-6 first:pt-0 last:pb-0">
+                        <form action="{{ route('admin.cloud-storage.default') }}" method="POST" class="space-y-4">
+                            @csrf
+                            @method('PUT')
+                            <div>
+                                <x-label for="default_provider" :value="__('messages.default_storage_provider')" class="text-lg" />
+                                <p class="mt-1 text-sm text-gray-500">{{ __('messages.select_default_provider_description') }}</p>
+                                <select name="default_provider" id="default_provider"
+                                    class="mt-2 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                    <option value="google-drive" @if(config('cloud-storage.default') === 'google-drive') selected @endif>Google Drive</option>
+                                    <option value="microsoft-teams" @if(config('cloud-storage.default') === 'microsoft-teams') selected @endif>Microsoft Teams</option>
+                                    <option value="dropbox" @if(config('cloud-storage.default') === 'dropbox') selected @endif>Dropbox</option>
+                                </select>
+                                <x-input-error for="default_provider" class="mt-2" />
+                            </div>
+                            <div class="flex justify-end">
+                                <x-button>
+                                    {{ __('messages.save_changes') }}
+                                </x-button>
+                            </div>
+                        </form>
+                    </div>
                     <!-- Microsoft Teams Configuration -->
                     <div class="py-6 first:pt-0 last:pb-0">
                         <div class="flex items-center justify-between">
@@ -186,29 +210,7 @@
                         </div>
                     </div>
 
-                    <!-- Default Provider Selection -->
-                    <div class="py-6 first:pt-0 last:pb-0">
-                        <form action="{{ route('admin.cloud-storage.default') }}" method="POST" class="space-y-4">
-                            @csrf
-                            @method('PUT')
-                            <div>
-                                <x-label for="default_provider" :value="__('messages.default_storage_provider')" class="text-lg" />
-                                <p class="mt-1 text-sm text-gray-500">{{ __('messages.select_default_provider_description') }}</p>
-                                <select name="default_provider" id="default_provider"
-                                    class="mt-2 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                                    <option value="google-drive" @if(config('cloud-storage.default') === 'google-drive') selected @endif>Google Drive</option>
-                                    <option value="microsoft-teams" @if(config('cloud-storage.default') === 'microsoft-teams') selected @endif>Microsoft Teams</option>
-                                    <option value="dropbox" @if(config('cloud-storage.default') === 'dropbox') selected @endif>Dropbox</option>
-                                </select>
-                                <x-input-error for="default_provider" class="mt-2" />
-                            </div>
-                            <div class="flex justify-end">
-                                <x-button>
-                                    {{ __('messages.save_changes') }}
-                                </x-button>
-                            </div>
-                        </form>
-                    </div>
+
                 </div>
             </div>
         </div>
