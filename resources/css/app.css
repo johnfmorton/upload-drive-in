@@ -8,8 +8,19 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+  --animate-wiggle: wiggle 1s ease-in-out infinite;
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: scale(101%);
+    }
+    50% {
+      transform: scale(99%);
+    }
+  }
 }
 
 /* Custom File Input Styles */
@@ -17,7 +28,7 @@
   --primary-color: #0964b0; /* Define primary color variable used in file input styles */
 }
 
-input[type="file"] {
+input[type='file'] {
   padding: 4px;
   margin: -4px;
   position: relative;
@@ -25,7 +36,7 @@ input[type="file"] {
 }
 
 /* File Selector Button Styles */
-input[type="file"]::file-selector-button {
+input[type='file']::file-selector-button {
   border-radius: 4px;
   padding: 0 16px;
   height: 40px;
@@ -36,49 +47,49 @@ input[type="file"]::file-selector-button {
   margin-right: 16px;
   width: 132px; /* Adjust width as needed for icon + label */
   color: transparent; /* Hide default button text */
-  transition: background-color .2s ease-in-out; /* Add transition */
+  transition: background-color 0.2s ease-in-out; /* Add transition */
 }
 
 /* Firefox specific fallback to show text */
 @supports (-moz-appearance: none) {
-  input[type="file"]::file-selector-button {
+  input[type='file']::file-selector-button {
     color: var(--primary-color);
   }
 }
 
-input[type="file"]::file-selector-button:hover {
+input[type='file']::file-selector-button:hover {
   background-color: #f3f4f6; /* Use Tailwind gray-100 */
 }
 
-input[type="file"]::file-selector-button:active {
+input[type='file']::file-selector-button:active {
   background-color: #e5e7eb; /* Use Tailwind gray-200 */
 }
 
 /* Faked icon using ::before */
-input[type="file"]::before {
+input[type='file']::before {
   position: absolute;
   pointer-events: none;
   top: 14px; /* Adjust vertical position */
   left: 16px; /* Adjust horizontal position */
   height: 20px;
   width: 20px;
-  content: "";
+  content: '';
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230964B0'%3E%3Cpath d='M18 15v3H6v-3H4v3c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-3h-2zM7 9l1.41 1.41L11 7.83V16h2V7.83l2.59 2.58L17 9l-5-5-5 5z'/%3E%3C/svg%3E");
 }
 
 /* Faked label using ::after */
-input[type="file"]::after {
+input[type='file']::after {
   position: absolute;
   pointer-events: none;
   top: 12px; /* Adjust vertical position */
   left: 40px; /* Adjust horizontal position */
   color: var(--primary-color);
-  content: "Upload File"; /* Custom button text */
+  content: 'Upload File'; /* Custom button text */
 }
 
 /* Handle Component Focus */
-input[type="file"]:focus-within::file-selector-button,
-input[type="file"]:focus::file-selector-button {
+input[type='file']:focus-within::file-selector-button,
+input[type='file']:focus::file-selector-button {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
