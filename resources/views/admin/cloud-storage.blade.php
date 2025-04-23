@@ -221,10 +221,24 @@
                                         @csrf
                                         @method('PUT')
                                         <x-label for="google_drive_root_folder_id" :value="__('messages.root_folder')" />
-                                        <div class="flex items-center space-x-2">
+                                        <p class="mt-1 text-sm text-gray-500">{{ __('messages.root_folder_description') }}</p>
+                                        <div class="flex items-center space-x-2 border-gray-300 rounded-md border p-4">
                                             <input type="hidden" id="google_drive_root_folder_id" name="google_drive_root_folder_id" x-model="currentFolderId" />
-                                            <span x-text="currentFolderName" class="mt-1 block w-full text-gray-700">{{ $currentFolderName ?: __('messages.select_folder_prompt') }}</span>
-                                            <button type="button" @click="openModal" class="px-4 py-2 bg-blue-600 text-white rounded">{{ __('messages.select_folder') }}</button>
+                                            <span class="text-gray-700" x-text="currentFolderName
+                                                    ? `📁`
+                                                    : ''"></span>
+                                            <span
+                                                x-text="currentFolderName
+                                                    ? `${currentFolderName}`
+                                                    : '{{ __('messages.select_folder_prompt') }}'"
+                                                class="mt-1 block w-full text-gray-700">
+                                            </span>
+                                            <button
+                                                type="button"
+                                                @click="openModal"
+                                                class="px-4 py-2 bg-blue-600 text-white rounded"
+                                                x-text="currentFolderId ? '{{ __('messages.change_folder') }}' : '{{ __('messages.select_folder') }}'"
+                                            ></button>
                                         </div>
                                         <x-input-error for="google_drive_root_folder_id" class="mt-2" />
                                         <!-- Folder Selection Modal -->

@@ -89,21 +89,6 @@
     'admin_upload_subject' => 'New File Uploaded to :app_name',
     'client_upload_subject' => 'Your file upload confirmation - :app_name',
 
-    // Admin Email Content
-    // 'admin_upload_heading' => 'New File Upload Notification',
-    // 'admin_upload_body_intro' => ':userName (:userEmail) has uploaded a new file.',
-    // 'file_details' => 'File Details',
-    // 'file_name' => 'Name',
-    // 'file_size' => 'Size',
-    // 'file_message' => 'Message',
-
-    // // Client Email Content
-    // 'client_upload_heading' => 'File Upload Successful',
-    // 'client_upload_body_intro' => 'Your file, :fileName, has been successfully uploaded.',
-    // 'client_upload_body_thanks' => 'Thank you for using our service.',
-    // 'unsubscribe_button' => 'Stop Receiving These Emails',
-    // 'unsubscribe_text_prefix' => "If you no longer wish to receive these confirmations, you can click the button above or visit:",
-
     // Unsubscribe Page
     'unsubscribe_success_heading' => 'Notifications Disabled',
     'unsubscribe_success_message' => 'You will no longer receive email confirmations for file uploads.',
@@ -302,9 +287,10 @@
     'client_id' => 'Client ID',
     'client_secret' => 'Client Secret',
     'root_folder_id' => 'Root Folder ID',
-    'root_folder' => 'Root Folder*',
+    'root_folder' => 'Root Folder',
+    'root_folder_description' => 'Choose the folder in your Google Drive where uploaded files will be stored.',
     'save_changes' => 'Save Changes',
-    'save_credentials' => 'Save Credentials*',
+    'save_credentials' => 'Save Google App Credentials',
     'save_root_folder' => 'Save Root Folder*',
     'default_storage_provider' => 'Default Storage Provider',
     'select_default_provider_description' => 'Select which storage provider should be used as the default for new uploads.',
@@ -321,12 +307,13 @@
 
     // Folder Selection UI
     'select_folder_prompt' => 'No folder selected*',
-    'select_folder' => 'Select Folder*',
+    'select_folder' => 'Select Folder',
+    'change_folder' => 'Change Folder',
     'no_folders_found' => 'No folders found*',
     'create_new_folder' => 'New folder name*',
     'create_folder' => 'Create Folder*',
-    'up' => 'Up*',
-    'cancel' => 'Cancel*',
-    'confirm' => 'Confirm*',
+    'up' => 'Up',
+    'cancel' => 'Cancel',
+    'confirm' => 'Confirm',
 
 ];
