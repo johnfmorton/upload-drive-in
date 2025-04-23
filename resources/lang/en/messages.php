@@ -302,7 +302,7 @@
     'client_id' => 'Client ID',
     'client_secret' => 'Client Secret',
     'root_folder_id' => 'Root Folder ID',
-    'root_folder' => 'Root Folder Path',
+    'root_folder' => 'Root Folder*',
     'save_changes' => 'Save Changes',
     'default_storage_provider' => 'Default Storage Provider',
     'select_default_provider_description' => 'Select which storage provider should be used as the default for new uploads.',
@@ -316,5 +316,15 @@
     'provider_settings' => 'Provider Settings',
     'provider_credentials' => 'Provider Credentials',
     'provider_root_folder' => 'Root Folder Settings',
+
+    // Folder Selection UI
+    'select_folder_prompt' => 'No folder selected*',
+    'select_folder' => 'Select Folder*',
+    'no_folders_found' => 'No folders found*',
+    'create_new_folder' => 'New folder name*',
+    'create_folder' => 'Create Folder*',
+    'up' => 'Up*',
+    'cancel' => 'Cancel*',
+    'confirm' => 'Confirm*',
 
 ];

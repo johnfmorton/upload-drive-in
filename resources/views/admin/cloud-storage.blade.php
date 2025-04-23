@@ -180,7 +180,7 @@
                                 @endif
                             </div>
                         </div>
-                        <div class="mt-6">
+                        <div class="mt-6" x-data="googleDriveFolderPicker()">
                             <form action="{{ route('admin.cloud-storage.google-drive.update') }}" method="POST" class="space-y-4">
                                 @csrf
                                 @method('PUT')
@@ -195,11 +195,52 @@
                                     <x-input id="google_drive_client_secret" name="google_drive_client_secret" type="password" class="mt-1 block w-full" />
                                     <x-input-error for="google_drive_client_secret" class="mt-2" />
                                 </div>
-                                <div>
-                                    <x-label for="google_drive_root_folder_id" :value="__('messages.root_folder_id')" />
-                                    <x-input id="google_drive_root_folder_id" name="google_drive_root_folder_id" type="text" class="mt-1 block w-full"
-                                        :value="old('google_drive_root_folder_id', env('GOOGLE_DRIVE_ROOT_FOLDER_ID'))" />
-                                    <x-input-error for="google_drive_root_folder_id" class="mt-2" />
+                                <div class="space-y-2">
+                                    @if(Storage::exists('google-credentials.json'))
+                                        <x-label for="google_drive_root_folder_id" :value="__('messages.root_folder')" />
+                                        <div class="flex items-center space-x-2">
+                                            <input type="hidden" id="google_drive_root_folder_id" name="google_drive_root_folder_id" x-model="currentFolderId" />
+                                            <span x-text="currentFolderName" class="mt-1 block w-full text-gray-700"></span>
+                                            <button type="button" @click="openModal" class="px-4 py-2 bg-blue-600 text-white rounded">{{ __('messages.select_folder') }}</button>
+                                        </div>
+                                        <x-input-error for="google_drive_root_folder_id" class="mt-2" />
+                                        <!-- Folder Selection Modal -->
+                                        <div x-show="showModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                                            <div @click.away="closeModal" class="bg-white rounded-lg shadow-lg w-3/4 max-w-2xl p-6">
+                                                <h2 class="text-xl font-bold mb-4">{{ __('messages.select_folder') }}</h2>
+                                                <div class="flex items-center justify-between mb-4">
+                                                    <button type="button" @click="goUp" class="px-2 py-1 bg-gray-200 rounded">{{ __('messages.up') }}</button>
+                                                    <span class="text-lg font-medium" x-text="folderStack.length ? folderStack[folderStack.length - 1].name : rootFolderName"></span>
+                                                    <button type="button" @click="closeModal" class="px-2 py-1 bg-gray-200 rounded">{{ __('messages.cancel') }}</button>
+                                                </div>
+                                                <ul class="divide-y divide-gray-200 mb-4 overflow-y-auto h-64">
+                                                    <template x-if="folders.length === 0">
+                                                        <li class="p-2 text-gray-500">{{ __('messages.no_folders_found') }}</li>
+                                                    </template>
+                                                    <template x-for="folder in folders" :key="folder.id">
+                                                        <li class="p-2 hover:bg-gray-100 cursor-pointer" @click="enterFolder(folder)">
+                                                            <span x-text="folder.name"></span>
+                                                        </li>
+                                                    </template>
+                                                </ul>
+                                                <div class="flex items-center space-x-2 mb-4">
+                                                    <input x-model="newFolderName" type="text" placeholder="{{ __('messages.create_new_folder') }}" class="mt-0 block w-full border-gray-300 rounded-md" />
+                                                    <button type="button" @click="createFolder" class="px-2 py-1 bg-green-600 text-white rounded">{{ __('messages.create_folder') }}</button>
+                                                </div>
+                                                <div class="flex justify-end space-x-2">
+                                                    <button type="button" @click="confirmSelection" class="px-4 py-2 bg-blue-600 text-white rounded">{{ __('messages.confirm') }}</button>
+                                                    <button type="button" @click="closeModal" class="px-4 py-2 bg-gray-300 text-gray-800 rounded">{{ __('messages.cancel') }}</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="space-y-2">
+                                            <x-label for="google_drive_root_folder_id" :value="__('messages.root_folder')" />
+                                            <x-input id="google_drive_root_folder_id" name="google_drive_root_folder_id" type="text" class="mt-1 block w-full" :value="old('google_drive_root_folder_id', env('GOOGLE_DRIVE_ROOT_FOLDER_ID'))" disabled />
+                                            <x-input-error for="google_drive_root_folder_id" class="mt-2" />
+                                            <p class="text-sm text-gray-500">{{ __('messages.google_drive_not_connected') }}</p>
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class="flex justify-end">
                                     <x-button>
@@ -216,3 +257,70 @@
         </div>
     </div>
 </x-app-layout>
+
+<script>
+    function googleDriveFolderPicker() {
+        return {
+            showModal: false,
+            rootFolderId: '{{ config('cloud-storage.providers.google-drive.root_folder_id') }}',
+            currentFolderId: '{{ old('google_drive_root_folder_id', config('cloud-storage.providers.google-drive.root_folder_id')) }}',
+            currentFolderName: '{{ __('messages.select_folder_prompt') }}',
+            rootFolderName: '{{ __('messages.root_folder') }}',
+            folderStack: [],
+            folders: [],
+            newFolderName: '',
+            init() {
+                this.folderStack = [{ id: this.currentFolderId || this.rootFolderId, name: this.currentFolderName || this.rootFolderName }];
+            },
+            openModal() {
+                this.showModal = true;
+                this.folderStack = [{ id: this.currentFolderId || this.rootFolderId, name: this.currentFolderName || this.rootFolderName }];
+                this.loadFolders(this.folderStack[this.folderStack.length - 1].id);
+            },
+            closeModal() {
+                this.showModal = false;
+            },
+            loadFolders(parentId) {
+                fetch(`{{ route('admin.cloud-storage.google-drive.folders') }}?parent_id=${parentId}`)
+                    .then(response => response.json())
+                    .then(data => { this.folders = data.folders; })
+                    .catch(() => { this.folders = []; });
+            },
+            enterFolder(folder) {
+                this.folderStack.push(folder);
+                this.loadFolders(folder.id);
+            },
+            goUp() {
+                if (this.folderStack.length > 1) {
+                    this.folderStack.pop();
+                    const prev = this.folderStack[this.folderStack.length - 1];
+                    this.loadFolders(prev.id);
+                }
+            },
+            createFolder() {
+                if (!this.newFolderName) return;
+                fetch(`{{ route('admin.cloud-storage.google-drive.folders.store') }}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    },
+                    body: JSON.stringify({ parent_id: this.folderStack[this.folderStack.length - 1].id, name: this.newFolderName })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.folder) {
+                        this.folders.push(data.folder);
+                        this.newFolderName = '';
+                    }
+                });
+            },
+            confirmSelection() {
+                const selected = this.folderStack[this.folderStack.length - 1];
+                this.currentFolderId = selected.id;
+                this.currentFolderName = selected.name;
+                this.showModal = false;
+            },
+        };
+    }
+</script>
