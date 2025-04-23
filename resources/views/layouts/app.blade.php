@@ -14,8 +14,7 @@
             }
         </style>
 
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⬆️</text></svg>">
-
+        @include('components.favicon')
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -24,22 +23,23 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-dvh bg-gradient-to-b from-gray-100 to-gray-300">
-            @include('layouts.navigation')
-
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-gradient-to-b from-gray-50 via-white to-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
-
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
+        <div class="min-h-dvh bg-gradient-to-b from-gray-100 to-gray-300 flex flex-col justify-between">
+            <div>
+              @include('layouts.navigation')
+              <!-- Page Heading -->
+              @isset($header)
+                  <header class="bg-gradient-to-b from-gray-50 via-white to-white shadow">
+                      <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                          {{ $header }}
+                      </div>
+                  </header>
+              @endisset
+              <!-- Page Content -->
+              <main>
+                  {{ $slot }}
+              </main>
+            </div>
+            @include('components.footer')
         </div>
         @stack('scripts')
     </body>
