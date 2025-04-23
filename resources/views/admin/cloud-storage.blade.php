@@ -233,12 +233,11 @@
                                                     : '{{ __('messages.select_folder_prompt') }}'"
                                                 class="mt-1 block w-full text-gray-700">
                                             </span>
-                                            <button
+                                            <x-button
                                                 type="button"
                                                 @click="openModal"
-                                                class="px-4 py-2 bg-blue-600 text-white rounded"
                                                 x-text="currentFolderId ? '{{ __('messages.change_folder') }}' : '{{ __('messages.select_folder') }}'"
-                                            ></button>
+                                            />
                                         </div>
                                         <x-input-error for="google_drive_root_folder_id" class="mt-2" />
                                         <!-- Folder Selection Modal -->
@@ -265,7 +264,7 @@
                                                     <button type="button" @click="createFolder" class="px-2 py-1 bg-green-600 text-white rounded">{{ __('messages.create_folder') }}</button>
                                                 </div>
                                                 <div class="flex justify-end space-x-2">
-                                                    <button type="button" @click="confirmSelection" class="px-4 py-2 bg-blue-600 text-white rounded">{{ __('messages.confirm') }}</button>
+                                                    <x-button type="button" @click="confirmSelection">{{ __('messages.confirm') }}</x-button>
                                                     <button type="button" @click="closeModal" class="px-4 py-2 bg-gray-300 text-gray-800 rounded">{{ __('messages.cancel') }}</button>
                                                 </div>
                                             </div>
