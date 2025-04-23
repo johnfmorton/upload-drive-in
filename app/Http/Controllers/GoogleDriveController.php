@@ -121,7 +121,7 @@ class GoogleDriveController extends Controller
         if (Storage::exists('google-credentials.json')) {
             Storage::delete('google-credentials.json');
         }
-        return redirect()->route('admin.dashboard')
+        return redirect()->route('admin.cloud-storage.index')
             ->with('success', 'Google Drive disconnected successfully.');
     }
 
