@@ -1,0 +1,22 @@
+<?php
+/**
+ * messages.override.php
+ *
+ * This file is used to override or add translation strings
+ * from resources/lang/en/messages.php without forking.
+ *
+ * To enable:
+ * 1. Copy this file to messages.override.php:
+ *    cp messages.override.php.example messages.override.php
+ *
+ * 2. Edit the keys/values you want to override/add.
+ *    Only your overrides need to live here.
+ *
+ * 3. Your messages.override.php is already in .gitignore,
+ *    so changes won't show up in Git diffs or break deploys.
+ */
+
+return [
+    // Example override:
+    // 'welcome' => 'Welcome to **My Custom App**!',
+];

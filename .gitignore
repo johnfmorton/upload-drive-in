@@ -60,3 +60,6 @@ public/images/*
 
 # not in repo
 /not in repo
+
+# Translation overrides
+/resources/lang/en/messages.override.php
