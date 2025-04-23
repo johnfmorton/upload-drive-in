@@ -18,5 +18,7 @@
 
 return [
     // Example override:
-    // 'welcome' => 'Welcome to **My Custom App**!',
+    'email_validation_title' => 'Send us your files',
+    'email_validation_subtitle' => 'Start by confirming your email address.',
+    'nav_validate_email_button' => 'Confirm Email',
 ];
