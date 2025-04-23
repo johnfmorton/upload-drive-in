@@ -1,0 +1,16 @@
+<!--
+privacy-policy.override.md
+
+This file is used to override the default Privacy Policy markdown.
+To enable:
+1. Copy this file to privacy-policy.override.md:
+   cp privacy-policy.override.md.example privacy-policy.override.md
+2. Edit the content as needed.
+3. The override file is ignored by Git via .gitignore.
+-->
+
+# Privacy Policy
+
+Effective Date: [Your Effective Date Here]
+
+Your privacy policy content goes here.

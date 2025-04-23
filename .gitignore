@@ -63,3 +63,7 @@ public/images/*
 
 # Translation overrides
 /resources/lang/en/messages.override.php
+
+# Markdown override files
+/resources/views/privacy-policy/privacy-policy.override.md
+/resources/views/terms/terms.override.md
