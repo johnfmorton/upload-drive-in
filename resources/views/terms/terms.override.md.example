@@ -1,0 +1,16 @@
+<!--
+terms.override.md
+
+This file is used to override the default Terms and Conditions markdown.
+To enable:
+1. Copy this file to terms.override.md:
+   cp terms.override.md.example terms.override.md
+2. Edit the content as needed.
+3. The override file is ignored by Git via .gitignore.
+-->
+
+# Terms of Service
+
+Effective Date: [Your Effective Date Here]
+
+Your terms and conditions content goes here.

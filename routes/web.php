@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\StaticPageController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -114,3 +115,7 @@ Route::post('/api/uploads/batch-complete', [UploadController::class, 'batchCompl
 Route::get('/notifications/upload/unsubscribe/{user}', [NotificationSettingsController::class, 'unsubscribeUploads'])
     ->name('notifications.upload.unsubscribe')
     ->middleware('signed'); // Important: Use signed middleware
+
+// Static info pages
+Route::get('/privacy-policy', [StaticPageController::class, 'privacyPolicy'])->name('privacy-policy');
+Route::get('/terms-and-conditions', [StaticPageController::class, 'termsAndConditions'])->name('terms-and-conditions');
