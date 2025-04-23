@@ -1,4 +1,5 @@
 <x-guest-layout>
+<div class="max-w-md mb-6 px-6 py-6 bg-white shadow-md overflow-hidden rounded-lg">
     <div class="bg-gray-100 py-6 px-6">
         <div class="max-w-7xl mx-auto">
             <div class="bg-white overflow-hidden shadow-sm rounded-lg">
@@ -42,7 +43,7 @@
             </div>
         </div>
     </div>
-
+</div>
     @push('scripts')
     <script>
         document.getElementById('emailValidationForm').addEventListener('submit', function(e) {
