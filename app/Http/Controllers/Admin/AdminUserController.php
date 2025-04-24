@@ -59,6 +59,7 @@ class AdminUserController extends Controller
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
+                'username' => Str::before($validated['email'], '@'),
                 // Assign a random, unusable password since login is via token
                 'password' => Hash::make(Str::random(32)),
                 'role' => 'client', // Explicitly set the role
