@@ -127,7 +127,13 @@ Route::middleware(['auth','ensure.owner'])
     ->name('admin.')
     ->group(fn() => require base_path('routes/owner.php'));
 
+// Public "drop files for employee" page (no auth)
+Route::prefix('u/{username}')
+    ->name('public.employee.')
+    ->group(fn() => require base_path('routes/public-employee.php'));
+
+// Employee portal (protected)
 Route::middleware(['auth','employee'])
-    ->prefix('u/{username}')
+    ->prefix('employee/{username}')
     ->name('employee.')
-    ->group(fn() => require base_path('routes/employee.php'));
+    ->group(fn() => require base_path('routes/employee-portal.php'));
