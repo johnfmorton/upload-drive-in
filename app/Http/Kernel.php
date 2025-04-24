@@ -66,6 +66,8 @@ class Kernel extends HttpKernel
         'prevent.client.password.login' => \App\Http\Middleware\PreventClientPasswordLogin::class,
         '2fa' => \App\Http\Middleware\TwoFactorMiddleware::class,
         'client' => \App\Http\Middleware\ClientMiddleware::class,
+        'ensure.owner' => \App\Http\Middleware\AdminMiddleware::class,
+        'ensure.employee' => \App\Http\Middleware\EnsureEmployee::class,
     ];
 
     public function handle($request)

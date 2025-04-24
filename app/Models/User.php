@@ -10,6 +10,8 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\URL;
 use UploadDriveIn\LaravelAdmin2FA\Traits\HasTwoFactorAuth;
 use App\Enums\UserRole;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -27,6 +29,8 @@ class User extends Authenticatable
         'password',
         'role',
         'receive_upload_notifications',
+        'owner_id',
+        'google_drive_root_folder_id',
         'two_factor_enabled',
         'two_factor_secret',
         'two_factor_recovery_codes',
@@ -55,6 +59,7 @@ class User extends Authenticatable
         'password' => 'hashed',
         'role' => UserRole::class,
         'receive_upload_notifications' => 'boolean',
+        'google_drive_root_folder_id' => 'string',
         'two_factor_enabled' => 'boolean',
         'two_factor_recovery_codes' => 'array',
         'two_factor_confirmed_at' => 'datetime',
@@ -68,6 +73,16 @@ class User extends Authenticatable
     public function isClient(): bool
     {
         return $this->role === UserRole::CLIENT;
+    }
+
+    /**
+     * Determine if the user is an employee.
+     *
+     * @return bool
+     */
+    public function isEmployee(): bool
+    {
+        return $this->role === UserRole::EMPLOYEE;
     }
 
     public function canLoginWithPassword(): bool
@@ -94,5 +109,17 @@ class User extends Authenticatable
             now()->addDays(7),
             ['user' => $this->id] // Pass the user model instance or just the ID
         );
+    }
+
+    /** @return BelongsTo<User,User> */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /** @return HasMany<User> */
+    public function employees(): HasMany
+    {
+        return $this->hasMany(User::class, 'owner_id');
     }
 }
