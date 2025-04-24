@@ -6,14 +6,16 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureEmployee
+class EmployeeMiddleware
 {
     /**
      * Handle an incoming request.
-     * Ensures the user is authenticated, has the 'employee' role, and the URL username matches.
      *
-     * @param Request $request
-     * @param Closure $next
+     * Ensure the user is authenticated, is an employee, and that the
+     * {username} URL segment matches their username.
+     *
+     * @param  Request  $request
+     * @param  Closure  $next
      * @return Response
      */
     public function handle(Request $request, Closure $next): Response
