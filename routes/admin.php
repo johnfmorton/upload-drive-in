@@ -10,6 +10,7 @@ use App\Http\Controllers\CloudStorage\DropboxAuthController;
 use App\Http\Controllers\CloudStorage\MicrosoftTeamsAuthController;
 use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\Admin\GoogleDriveFolderController;
+use App\Http\Controllers\Admin\EmployeeController;
 
 // All Admin Routes
 Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, '2fa'])
@@ -35,6 +36,11 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class, '2fa'])
             ->names('users');
         Route::post('/users', [AdminUserController::class, 'store'])
             ->name('users.store');
+
+        // Employee Management
+        Route::resource('/employees', EmployeeController::class)
+            ->only(['index', 'store'])
+            ->names('employees');
 
         // Application Settings
         Route::get('/settings', [AdminSettingsController::class, 'edit'])
