@@ -67,6 +67,9 @@
                                 <x-dropdown-link :href="route('admin.cloud-storage.index')">
                                     {{ __('messages.cloud_storage_settings') }}
                                 </x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.employees.index')">
+                                    {{ __('messages.nav_employee_management') }}
+                                </x-dropdown-link>
                             @endif
 
                             <!-- Authentication -->

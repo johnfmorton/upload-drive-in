@@ -319,4 +319,15 @@
     'employee_upload_page_title' => 'Employee File Drop Page*',
     'employee_select_folder_prompt' => 'Select your Google Drive folder*',
 
+    // Employee Management
+    'nav_employee_management' => 'Employee Management*',
+    'employee_management_title' => 'Employee Management*',
+    'create_employee_title' => 'Create New Employee*',
+    'employees_list_title' => 'Employee Users*',
+    'button_create_employee' => 'Create Employee*',
+    'no_employees_match_filter' => 'No employees match your filter criteria*',
+    'no_employees_found' => 'No employees found*',
+    'column_reset_url' => 'Reset URL*',
+    'button_copy_reset_url' => 'Copy Reset URL*',
+
 ];
