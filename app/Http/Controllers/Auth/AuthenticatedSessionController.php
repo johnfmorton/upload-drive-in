@@ -76,12 +76,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function loginViaToken(Request $request, User $user): RedirectResponse
     {
-        // The 'signed' middleware in the route definition already verifies the signature.
-        // We just need to make sure the user exists and is a client.
+        // Allow both client and employee users via token.
 
-        if (!$user || $user->role !== UserRole::CLIENT) {
-            // Optional: Log this attempt
-            Log::warning("Attempt to use login token for invalid user or non-client user: {$user->id}");
+        if (!$user || (! $user->isClient() && ! $user->isEmployee())) {
+            Log::warning("Attempt to use login token for invalid user: {$user->id}");
             return redirect()->route('home')->with('error', 'Invalid login link.');
         }
 
@@ -91,7 +89,13 @@ class AuthenticatedSessionController extends Controller
         // Regenerate session to prevent fixation
         $request->session()->regenerate();
 
-        // Redirect to the intended page for clients (e.g., file upload)
+        // Redirect based on role
+        if ($user->isEmployee()) {
+            // Employee upload page
+            return redirect()->route('employee.upload.show', ['username' => $user->username])
+                ->with('success', 'Logged in successfully.');
+        }
+        // Default client upload page
         return redirect()->route('upload-files')
             ->with('success', 'Logged in successfully.');
     }

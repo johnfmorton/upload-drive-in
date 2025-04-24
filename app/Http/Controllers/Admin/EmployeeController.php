@@ -25,6 +25,14 @@ class EmployeeController extends Controller
             ->where('owner_id', Auth::id())
             ->paginate(15);
 
+        // Ensure login and reset URLs are included in the JSON payload
+        $employees->getCollection()->transform(function ($emp) {
+            // Trigger the accessors and store as attributes
+            $emp->login_url = $emp->login_url;
+            $emp->reset_url = $emp->reset_url;
+            return $emp;
+        });
+
         return view('admin.employee-management.index', compact('employees'));
     }
 
