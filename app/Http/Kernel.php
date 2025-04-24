@@ -67,7 +67,7 @@ class Kernel extends HttpKernel
         '2fa' => \App\Http\Middleware\TwoFactorMiddleware::class,
         'client' => \App\Http\Middleware\ClientMiddleware::class,
         'ensure.owner' => \App\Http\Middleware\AdminMiddleware::class,
-        'ensure.employee' => \App\Http\Middleware\EnsureEmployee::class,
+        'ensure.employee' => \App\Http\Middleware\EmployeeMiddleware::class,
     ];
 
     public function handle($request)
