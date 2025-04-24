@@ -119,3 +119,13 @@ Route::get('/notifications/upload/unsubscribe/{user}', [NotificationSettingsCont
 // Static info pages
 Route::get('/privacy-policy', [StaticPageController::class, 'privacyPolicy'])->name('privacy-policy');
 Route::get('/terms-and-conditions', [StaticPageController::class, 'termsAndConditions'])->name('terms-and-conditions');
+
+Route::middleware(['auth','ensure.owner'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(fn() => require base_path('routes/owner.php'));
+
+Route::middleware(['auth','ensure.employee'])
+    ->prefix('u/{username}')
+    ->name('employee.')
+    ->group(fn() => require base_path('routes/employee.php'));

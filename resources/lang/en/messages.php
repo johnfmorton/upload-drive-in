@@ -316,4 +316,7 @@
     'cancel' => 'Cancel',
     'confirm' => 'Confirm',
 
+    'employee_upload_page_title' => 'Employee File Drop Page*',
+    'employee_select_folder_prompt' => 'Select your Google Drive folder*',
+
 ];
