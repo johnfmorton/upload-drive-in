@@ -22,7 +22,7 @@ class UploadController extends Controller
      */
     public function __construct(GoogleDriveManager $drive_manager)
     {
-        $this->middleware(['auth', 'ensure.employee']);
+        $this->middleware(['auth', 'employee']);
         $this->drive_manager = $drive_manager;
     }
 

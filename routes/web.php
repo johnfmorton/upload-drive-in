@@ -127,7 +127,7 @@ Route::middleware(['auth','ensure.owner'])
     ->name('admin.')
     ->group(fn() => require base_path('routes/owner.php'));
 
-Route::middleware(['auth','ensure.employee'])
+Route::middleware(['auth','employee'])
     ->prefix('u/{username}')
     ->name('employee.')
     ->group(fn() => require base_path('routes/employee.php'));
