@@ -12,6 +12,7 @@ use UploadDriveIn\LaravelAdmin2FA\Traits\HasTwoFactorAuth;
 use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Password;
 
 class User extends Authenticatable
 {
@@ -65,6 +66,13 @@ class User extends Authenticatable
         'two_factor_recovery_codes' => 'array',
         'two_factor_confirmed_at' => 'datetime',
     ];
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['login_url', 'reset_url'];
 
     public function isAdmin(): bool
     {
@@ -122,5 +130,30 @@ class User extends Authenticatable
     public function employees(): HasMany
     {
         return $this->hasMany(User::class, 'owner_id');
+    }
+
+    /**
+     * Get the login_url attribute for the user.
+     *
+     * @return string
+     */
+    public function getLoginUrlAttribute(): string
+    {
+        return url()->temporarySignedRoute(
+            'login.via.token',
+            now()->addDays(7),
+            ['user' => $this->id]
+        );
+    }
+
+    /**
+     * Get the reset_url attribute for the user.
+     *
+     * @return string
+     */
+    public function getResetUrlAttribute(): string
+    {
+        $token = Password::broker()->createToken($this);
+        return route('password.reset', ['token' => $token, 'email' => $this->email]);
     }
 }

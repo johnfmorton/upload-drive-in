@@ -22,16 +22,18 @@ Route::middleware(['guest'])->group(function () {
         ->middleware('signed')
         ->name('login.via.token');
 
-    // Password Reset Routes
+    // Password Reset Routes (only request & email under guest)
     Route::get('forgot-password', [\App\Http\Controllers\Auth\PasswordResetLinkController::class, 'create'])
         ->name('password.request');
     Route::post('forgot-password', [\App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])
         ->name('password.email');
-    Route::get('reset-password/{token}', [\App\Http\Controllers\Auth\NewPasswordController::class, 'create'])
-        ->name('password.reset');
-    Route::post('reset-password', [\App\Http\Controllers\Auth\NewPasswordController::class, 'store'])
-        ->name('password.store');
 });
+
+// Expose password reset form & submission publicly so logged-in employees can use it
+Route::get('reset-password/{token}', [\App\Http\Controllers\Auth\NewPasswordController::class, 'create'])
+    ->name('password.reset');
+Route::post('reset-password', [\App\Http\Controllers\Auth\NewPasswordController::class, 'store'])
+    ->name('password.store');
 
 // Auth routes
 Route::middleware(['guest'])->group(function () {
