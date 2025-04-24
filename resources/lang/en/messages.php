@@ -330,4 +330,11 @@
     'column_reset_url' => 'Reset URL*',
     'button_copy_reset_url' => 'Copy Reset URL*',
 
+    // Public Employee Upload Page
+    'drop_files_for' => 'Drop files for :name*',
+    'choose_files' => 'Choose files*',
+    'optional_message' => 'Message (Optional)*',
+    'optional_message_placeholder' => 'Enter an optional message to associate with your files...*',
+    'upload' => 'Upload*',
+
 ];
