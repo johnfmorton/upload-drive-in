@@ -106,12 +106,6 @@ class User extends Authenticatable
      */
     public function getLoginUrl(): string
     {
-        // Ensure this method is only called for client users
-        if (!$this->isClient()) {
-            // Or handle this case as appropriate, maybe throw an exception
-            return '#'; // Or return an empty string or throw an exception
-        }
-
         // Generate a signed URL that is valid for a specific duration (e.g., 7 days)
         return URL::temporarySignedRoute(
             'login.via.token',

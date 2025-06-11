@@ -15,12 +15,15 @@ use Illuminate\Http\Request;
 
 // Public routes
 Route::get('/', [PublicUploadController::class, 'index'])->name('home');
+
+// Token-based login route (needs to be accessible to everyone)
+Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'loginViaToken'])
+    ->middleware('signed')
+    ->name('login.via.token');
+
 Route::middleware(['guest'])->group(function () {
     Route::post('/validate-email', [PublicUploadController::class, 'validateEmail'])->name('validate-email');
     Route::get('/verify-email/{code}/{email}', [PublicUploadController::class, 'verifyEmail'])->name('verify-email');
-    Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'loginViaToken'])
-        ->middleware('signed')
-        ->name('login.via.token');
 
     // Password Reset Routes (only request & email under guest)
     Route::get('forgot-password', [\App\Http\Controllers\Auth\PasswordResetLinkController::class, 'create'])

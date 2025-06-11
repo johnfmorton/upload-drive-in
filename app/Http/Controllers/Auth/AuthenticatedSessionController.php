@@ -77,7 +77,6 @@ class AuthenticatedSessionController extends Controller
     public function loginViaToken(Request $request, User $user): RedirectResponse
     {
         // Allow both client and employee users via token.
-
         if (!$user || (! $user->isClient() && ! $user->isEmployee())) {
             Log::warning("Attempt to use login token for invalid user: {$user->id}");
             return redirect()->route('home')->with('error', 'Invalid login link.');
@@ -89,13 +88,7 @@ class AuthenticatedSessionController extends Controller
         // Regenerate session to prevent fixation
         $request->session()->regenerate();
 
-        // Redirect based on role
-        if ($user->isEmployee()) {
-            // Employee upload page
-            return redirect()->route('employee.upload.show', ['username' => $user->username])
-                ->with('success', 'Logged in successfully.');
-        }
-        // Default client upload page
+        // Redirect to upload files page for both clients and employees
         return redirect()->route('upload-files')
             ->with('success', 'Logged in successfully.');
     }
