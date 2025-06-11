@@ -12,9 +12,11 @@
                     @if($uploads->isEmpty())
                         <p class="text-gray-500 text-center py-4">You haven't uploaded any files yet.</p>
                         <div class="text-center">
-                            <a href="{{ route('upload-files') }}" class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
-                                Upload Files
-                            </a>
+                            @if(auth()->user()->isClient())
+                                <a href="{{ route('client.upload-files') }}" class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
+                                    {{ __('Upload New Files') }}
+                                </a>
+                            @endif
                         </div>
                     @else
                         <div class="overflow-x-auto">

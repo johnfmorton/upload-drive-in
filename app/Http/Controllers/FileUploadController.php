@@ -24,6 +24,12 @@ class FileUploadController extends Controller
         return view('file-upload');
     }
 
+    /**
+     * Store a newly uploaded file.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -59,7 +65,7 @@ class FileUploadController extends Controller
             }
         }
 
-        return redirect()->route('upload-files')
-            ->with('success', 'Files uploaded successfully. They will be available in your dashboard once uploaded to Google Drive.');
+        return redirect()->route('client.upload-files')
+            ->with('success', 'File uploaded successfully.');
     }
 }

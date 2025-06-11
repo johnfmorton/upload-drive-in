@@ -49,88 +49,32 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-// Client routes
-Route::middleware(['auth'])->group(function () {
-    Route::get('/upload-files', [FileUploadController::class, 'create'])->name('upload-files');
-    Route::post('/upload-files', [FileUploadController::class, 'store'])->name('upload-files.store');
-    Route::get('/my-uploads', [FileUploadController::class, 'index'])->name('my-uploads');
-});
-
-// Admin Routes are defined in routes/admin.php
-
 // Dashboard route with role-based redirection
 Route::get('/dashboard', function () {
-    if (auth()->user()->isAdmin()) {
-        return redirect('/admin/dashboard');  // Use URL instead of route name
+    $user = auth()->user();
+
+    if ($user->isAdmin()) {
+        return redirect('/admin/dashboard');
+    } elseif ($user->isClient()) {
+        return redirect()->route('client.dashboard');
+    } elseif ($user->isEmployee()) {
+        return redirect()->route('employee.dashboard', ['username' => $user->username]);
     }
-    return redirect()->route('my-uploads');
+
+    return redirect()->route('home');
 })->middleware(['auth'])->name('dashboard');
 
-// Profile routes - restructured to handle both admin and client cases
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', function(Request $request) {
-        if (auth()->user()->isAdmin()) {
-            return redirect()->route('admin.profile.edit');
-        }
-        return app()->make(ProfileController::class)->edit($request);
-    })->name('profile.edit');
+// Client Routes
+Route::middleware(['auth', 'client'])
+    ->prefix('client')
+    ->name('client.')
+    ->group(fn() => require base_path('routes/client.php'));
 
-    Route::patch('/profile', function(Request $request) {
-        if (auth()->user()->isAdmin()) {
-            return redirect()->route('admin.profile.update');
-        }
-        // Create and validate ProfileUpdateRequest
-        $profileRequest = app()->make(\App\Http\Requests\ProfileUpdateRequest::class);
-        return app()->make(ProfileController::class)->update($profileRequest);
-    })->name('profile.update');
-
-    Route::delete('/profile', function(Request $request) {
-        if (auth()->user()->isAdmin()) {
-            return redirect()->route('admin.profile.destroy');
-        }
-        return app()->make(ProfileController::class)->destroy($request);
-    })->name('profile.destroy');
-
-    // Add this new route for account deletion confirmation
-    Route::get('/profile/confirm-deletion/{code}/{email}', [ProfileController::class, 'confirmDeletion'])
-        ->name('profile.confirm-deletion');
-
-    // Password update route
-    Route::put('password', [\App\Http\Controllers\Auth\PasswordController::class, 'update'])
-        ->name('password.update');
-
-    // Email verification routes
-    Route::post('/email/verification-notification', function () {
-        auth()->user()->sendEmailVerificationNotification();
-        return back()->with('status', 'verification-link-sent');
-    })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
-});
-
-Route::post('/upload', [UploadController::class, 'store'])->name('chunk.upload');
-
-// Route to associate message with uploads
-Route::post('/api/uploads/associate-message', [UploadController::class, 'associateMessage'])
-    ->middleware('auth') // Protect this route
-    ->name('uploads.associate.message');
-
-// Route to notify backend about batch completion (called from JS after queue completes)
-Route::post('/api/uploads/batch-complete', [UploadController::class, 'batchComplete'])
-    ->middleware('auth') // Protect this route
-    ->name('uploads.batch.complete');
-
-// Unsubscribe route
-Route::get('/notifications/upload/unsubscribe/{user}', [NotificationSettingsController::class, 'unsubscribeUploads'])
-    ->name('notifications.upload.unsubscribe')
-    ->middleware('signed'); // Important: Use signed middleware
-
-// Static info pages
-Route::get('/privacy-policy', [StaticPageController::class, 'privacyPolicy'])->name('privacy-policy');
-Route::get('/terms-and-conditions', [StaticPageController::class, 'termsAndConditions'])->name('terms-and-conditions');
-
-Route::middleware(['auth','ensure.owner'])
+// Admin Routes
+Route::middleware(['auth', 'admin', '2fa'])
     ->prefix('admin')
     ->name('admin.')
-    ->group(fn() => require base_path('routes/owner.php'));
+    ->group(fn() => require base_path('routes/admin.php'));
 
 // Public "drop files for employee" page (no auth)
 Route::prefix('u/{username}')
@@ -138,7 +82,21 @@ Route::prefix('u/{username}')
     ->group(fn() => require base_path('routes/public-employee.php'));
 
 // Employee portal (protected)
-Route::middleware(['auth','employee'])
+Route::middleware(['auth', 'employee'])
     ->prefix('employee/{username}')
     ->name('employee.')
     ->group(fn() => require base_path('routes/employee-portal.php'));
+
+// Static info pages
+Route::get('/privacy-policy', [StaticPageController::class, 'privacyPolicy'])->name('privacy-policy');
+Route::get('/terms-and-conditions', [StaticPageController::class, 'termsAndConditions'])->name('terms-and-conditions');
+
+// API Routes
+Route::post('/api/uploads/batch-complete', [UploadController::class, 'batchComplete'])
+    ->middleware('auth')
+    ->name('uploads.batch.complete');
+
+// Unsubscribe route
+Route::get('/notifications/upload/unsubscribe/{user}', [NotificationSettingsController::class, 'unsubscribeUploads'])
+    ->name('notifications.upload.unsubscribe')
+    ->middleware('signed');

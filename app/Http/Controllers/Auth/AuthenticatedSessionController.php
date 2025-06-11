@@ -88,8 +88,13 @@ class AuthenticatedSessionController extends Controller
         // Regenerate session to prevent fixation
         $request->session()->regenerate();
 
-        // Redirect to upload files page for both clients and employees
-        return redirect()->route('upload-files')
-            ->with('success', 'Logged in successfully.');
+        // Redirect based on user role
+        if ($user->isClient()) {
+            return redirect()->route('client.dashboard')
+                ->with('success', 'Logged in successfully.');
+        } else {
+            return redirect()->route('employee.dashboard', ['username' => $user->username])
+                ->with('success', 'Logged in successfully.');
+        }
     }
 }

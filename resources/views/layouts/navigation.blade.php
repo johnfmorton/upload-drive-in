@@ -11,6 +11,24 @@
                 </div>
 
                 <!-- Navigation Links -->
+                <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                    @if(auth()->user()->isAdmin())
+                        <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
+                            {{ __('Dashboard') }}
+                        </x-nav-link>
+                    @elseif(auth()->user()->isClient())
+                        <x-nav-link :href="route('client.upload-files')" :active="request()->routeIs('client.upload-files')">
+                            {{ __('Upload Files') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('client.my-uploads')" :active="request()->routeIs('client.my-uploads')">
+                            {{ __('My Uploads') }}
+                        </x-nav-link>
+                    @elseif(auth()->user()->isEmployee())
+                        <x-nav-link :href="route('employee.dashboard', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.dashboard')">
+                            {{ __('Dashboard') }}
+                        </x-nav-link>
+                    @endif
+                </div>
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     @auth
                         @if (Auth::user()->isAdmin())
@@ -36,57 +54,46 @@
             </div>
 
             <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
-                @auth
-                    <x-dropdown align="right" width="48">
-                        <x-slot name="trigger">
-                            <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                                <div>{{ Auth::user()->name }}</div>
+            <div class="hidden sm:flex sm:items-center sm:ml-6">
+                <x-dropdown align="right" width="48">
+                    <x-slot name="trigger">
+                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                            <div>{{ Auth::user()->name }}</div>
 
-                                <div class="ms-1">
-                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                            </button>
-                        </x-slot>
+                            <div class="ml-1">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </button>
+                    </x-slot>
 
-                        <x-slot name="content">
-                            <x-dropdown-link :href="route('profile.edit')">
-                                {{ __('messages.profile') }}
+                    <x-slot name="content">
+                        @if(auth()->user()->isAdmin())
+                            <x-dropdown-link :href="route('admin.profile.edit')">
+                                {{ __('Profile') }}
                             </x-dropdown-link>
+                        @elseif(auth()->user()->isClient())
+                            <x-dropdown-link :href="route('client.profile.edit')">
+                                {{ __('Profile') }}
+                            </x-dropdown-link>
+                        @elseif(auth()->user()->isEmployee())
+                            <x-dropdown-link :href="route('employee.profile.edit', ['username' => auth()->user()->username])">
+                                {{ __('Profile') }}
+                            </x-dropdown-link>
+                        @endif
 
-                            {{-- Add Application Settings link for Admins --}}
-                            @if (Auth::user()->isAdmin())
-                                <x-dropdown-link :href="route('admin.settings.edit')">
-                                    {{ __('messages.app_settings') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.user-management.settings')">
-                                    {{ __('messages.user_management_settings') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.cloud-storage.index')">
-                                    {{ __('messages.cloud_storage_settings') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('admin.employees.index')">
-                                    {{ __('messages.nav_employee_management') }}
-                                </x-dropdown-link>
-                            @endif
-
-                            <!-- Authentication -->
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-
-                                <x-dropdown-link :href="route('logout')"
-                                        onclick="event.preventDefault();
-                                                    this.closest('form').submit();">
-                                    {{ __('messages.log_out') }}
-                                </x-dropdown-link>
-                            </form>
-                        </x-slot>
-                    </x-dropdown>
-                @else
-                    <a href="{{ route('login') }}" class="text-sm text-gray-700 underline">{{ __('messages.auth_log_in') }}</a>
-                @endauth
+                        <!-- Authentication -->
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <x-dropdown-link :href="route('logout')"
+                                onclick="event.preventDefault();
+                                this.closest('form').submit();">
+                                {{ __('Log Out') }}
+                            </x-dropdown-link>
+                        </form>
+                    </x-slot>
+                </x-dropdown>
             </div>
 
             <!-- Hamburger -->
@@ -133,18 +140,27 @@
                 </div>
 
                 <div class="mt-3 space-y-1">
-                    <x-responsive-nav-link :href="route('profile.edit')">
-                        {{ __('messages.profile') }}
-                    </x-responsive-nav-link>
+                    @if(auth()->user()->isAdmin())
+                        <x-responsive-nav-link :href="route('admin.profile.edit')">
+                            {{ __('Profile') }}
+                        </x-responsive-nav-link>
+                    @elseif(auth()->user()->isClient())
+                        <x-responsive-nav-link :href="route('client.profile.edit')">
+                            {{ __('Profile') }}
+                        </x-responsive-nav-link>
+                    @elseif(auth()->user()->isEmployee())
+                        <x-responsive-nav-link :href="route('employee.profile.edit', ['username' => auth()->user()->username])">
+                            {{ __('Profile') }}
+                        </x-responsive-nav-link>
+                    @endif
 
                     <!-- Authentication -->
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-
                         <x-responsive-nav-link :href="route('logout')"
-                                onclick="event.preventDefault();
-                                            this.closest('form').submit();">
-                            {{ __('messages.log_out') }}
+                            onclick="event.preventDefault();
+                            this.closest('form').submit();">
+                            {{ __('Log Out') }}
                         </x-responsive-nav-link>
                     </form>
                 </div>

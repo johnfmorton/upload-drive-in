@@ -337,5 +337,12 @@
     'upload' => 'Upload*',
 
     // Profile Status Messages
-    'profile_update_success' => 'Profile updated successfully.*'
+    'profile_update_success' => 'Profile updated successfully.*',
+
+    // Client Dashboard
+    'client_dashboard_title' => 'My Dashboard*',
+    'upload_files' => 'Upload Files*',
+
+    // Employee Dashboard
+    'employee_dashboard_title' => 'Employee Dashboard*'
 ];

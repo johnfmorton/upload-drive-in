@@ -15,16 +15,34 @@ use Illuminate\Support\Facades\Log;
 
 class PublicUploadController extends Controller
 {
+    /**
+     * Show the public landing page or redirect to appropriate dashboard if logged in.
+     *
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
     public function index()
     {
-        // If user is logged in, redirect to upload files page
         if (Auth::check()) {
-            return redirect()->route('upload-files');
+            $user = Auth::user();
+
+            if ($user->isAdmin()) {
+                return redirect()->route('admin.dashboard');
+            } elseif ($user->isClient()) {
+                return redirect()->route('client.dashboard');
+            } elseif ($user->isEmployee()) {
+                return redirect()->route('employee.dashboard', ['username' => $user->username]);
+            }
         }
 
         return view('email-validation-form');
     }
 
+    /**
+     * Validate the email address.
+     *
+     * @param  Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function validateEmail(Request $request)
     {
         Log::info('Email validation attempt', [
@@ -114,10 +132,17 @@ class PublicUploadController extends Controller
         }
     }
 
-    public function verifyEmail(Request $request)
+    /**
+     * Verify the email address.
+     *
+     * @param  string  $code
+     * @param  string  $email
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function verifyEmail($code, $email)
     {
-        $validation = EmailValidation::where('email', $request->email)
-            ->where('verification_code', $request->code)
+        $validation = EmailValidation::where('email', $email)
+            ->where('verification_code', $code)
             ->where('expires_at', '>', now())
             ->first();
 
@@ -132,9 +157,9 @@ class PublicUploadController extends Controller
 
         // Create a user account if it doesn't exist
         $user = \App\Models\User::firstOrCreate(
-            ['email' => $request->email],
+            ['email' => $email],
             [
-                'name' => explode('@', $request->email)[0],
+                'name' => explode('@', $email)[0],
                 'password' => \Illuminate\Support\Str::random(32),
                 'role' => 'client'
             ]
