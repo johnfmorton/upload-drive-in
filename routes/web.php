@@ -79,7 +79,9 @@ Route::middleware('auth')->group(function () {
         if (auth()->user()->isAdmin()) {
             return redirect()->route('admin.profile.update');
         }
-        return app()->make(ProfileController::class)->update($request);
+        // Create and validate ProfileUpdateRequest
+        $profileRequest = app()->make(\App\Http\Requests\ProfileUpdateRequest::class);
+        return app()->make(ProfileController::class)->update($profileRequest);
     })->name('profile.update');
 
     Route::delete('/profile', function(Request $request) {

@@ -100,7 +100,6 @@
     'profile_settings_updated' => 'Profile settings updated successfully.', // General update message
     'password_incorrect' => 'The password you entered was incorrect.',
     'upload_notification_subject' => 'New File Uploaded to Your Drive Folder', // Assuming this might exist or be needed
-    'unsubscribe_success_message' => 'You have been successfully unsubscribed from upload notifications.',
 
     // ---- BATCH UPLOAD EMAILS ----
 
