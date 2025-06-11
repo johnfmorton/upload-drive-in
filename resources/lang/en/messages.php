@@ -336,4 +336,6 @@
     'optional_message_placeholder' => 'Enter an optional message to associate with your files...*',
     'upload' => 'Upload*',
 
+    // Profile Status Messages
+    'profile_update_success' => 'Profile updated successfully.*'
 ];

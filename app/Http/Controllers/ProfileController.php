@@ -67,7 +67,7 @@ class ProfileController extends Controller
         $request->user()->save();
 
         // Redirect back to the profile edit page with a success status
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return Redirect::route('profile.edit')->with('status', __('messages.profile_update_success'));
     }
 
     /**
