@@ -30,7 +30,7 @@
 <body>
     <h1>{{ __('messages.verify_email_title') }}</h1>
 
-    <p>{{ __('messages.verify_email_intro') }}</p>
+    <p>{{ __('messages.verify_email_intro', ['company_name' => config('app.company_name')]) }}</p>
 
     <a href="{{ $verificationUrl }}" class="button">{{ __('messages.verify_email_button') }}</a>
 
