@@ -135,10 +135,10 @@
                         {{ __('messages.nav_cloud_storage') }}
                     </x-responsive-nav-link>
                 @else
-                    <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('my-uploads')">
+                    <x-responsive-nav-link :href="route('client.dashboard')" :active="request()->routeIs('client.dashboard')">
                         {{ __('messages.nav_dashboard') }}
                     </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('upload-files')" :active="request()->routeIs('upload-files')">
+                    <x-responsive-nav-link :href="route('client.upload-files')" :active="request()->routeIs('client.upload-files')">
                         {{ __('messages.nav_upload_files') }}
                     </x-responsive-nav-link>
                 @endif
