@@ -21,7 +21,7 @@ class FileUploadController extends Controller
 
     public function create()
     {
-        return view('file-upload');
+        return view('client.file-upload');
     }
 
     /**
