@@ -208,7 +208,7 @@
 
     // Email Verification
     'verify_email_title' => 'Verify Your Email Address',
-    'verify_email_intro' => 'Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.',
+    'verify_email_intro' => 'To upload files to :company_name, please verify your email address by clicking on the link below.',
     'verify_email_sent' => 'A new verification link has been sent to the email address you provided during registration.',
     'verify_email_resend_button' => 'Resend Verification Email',
     'verify_email_button' => 'Verify Email Address',
