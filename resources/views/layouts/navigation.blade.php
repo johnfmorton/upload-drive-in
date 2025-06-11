@@ -14,8 +14,11 @@
                 <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
                     @if(auth()->user()->isAdmin())
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                            {{ __('Dashboard') }}
+                           {{ __('Dashboard') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
+                                {{ __('messages.nav_client_users') }}
+                            </x-nav-link>
                     @elseif(auth()->user()->isClient())
                         <x-nav-link :href="route('client.upload-files')" :active="request()->routeIs('client.upload-files')">
                             {{ __('Upload Files') }}
@@ -29,11 +32,11 @@
                         </x-nav-link>
                     @endif
                 </div>
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                {{-- <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     @auth
                         @if (Auth::user()->isAdmin())
                             <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                                {{ __('messages.nav_dashboard') }}
+                               #2 {{ __('messages.nav_dashboard') }}
                             </x-nav-link>
                             <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
                                 {{ __('messages.nav_client_users') }}
@@ -50,7 +53,7 @@
                             </x-nav-link>
                         @endif
                     @endauth
-                </div>
+                </div> --}}
             </div>
 
             <!-- Settings Dropdown -->
@@ -72,6 +75,15 @@
                         @if(auth()->user()->isAdmin())
                             <x-dropdown-link :href="route('admin.profile.edit')">
                                 {{ __('Profile') }}
+                            </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.settings.edit')">
+                                {{ __('messages.app_settings') }}
+                            </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.user-management.settings')">
+                                {{ __('messages.user_management_settings') }}
+                            </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.employees.index')">
+                                {{ __('messages.employee_management') }}
                             </x-dropdown-link>
                         @elseif(auth()->user()->isClient())
                             <x-dropdown-link :href="route('client.profile.edit')">

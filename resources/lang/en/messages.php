@@ -10,6 +10,13 @@
     'client_users' => 'Users',
     'your_files' => 'Your Files',
     'upload_files' => 'Upload Files',
+    'nav_dashboard' => 'Dashboard',
+    'nav_client_users' => 'Client Users',
+    'nav_cloud_storage' => 'Cloud Storage',
+    'nav_employee_users' => 'Employee Users',
+    'nav_user_management' => 'User Management',
+    'nav_your_files' => 'Your Files',
+    'nav_upload_files' => 'Upload Files',
 
     // Admin Settings Page
     'app_settings' => 'Application Settings',
@@ -344,5 +351,6 @@
     'upload_files' => 'Upload Files*',
 
     // Employee Dashboard
-    'employee_dashboard_title' => 'Employee Dashboard*'
+    'employee_dashboard_title' => 'Employee Dashboard*',
+    'employee_management' => 'Employee Management'
 ];
