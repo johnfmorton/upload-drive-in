@@ -8,7 +8,6 @@ use App\Http\Controllers\FileUploadController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\NotificationSettingsController;
-use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\StaticPageController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
@@ -63,29 +62,6 @@ Route::get('/dashboard', function () {
 
     return redirect()->route('home');
 })->middleware(['auth'])->name('dashboard');
-
-// Client Routes
-Route::middleware(['auth', 'client'])
-    ->prefix('client')
-    ->name('client.')
-    ->group(fn() => require base_path('routes/client.php'));
-
-// Admin Routes
-Route::middleware(['auth', 'admin', '2fa'])
-    ->prefix('admin')
-    ->name('admin.')
-    ->group(fn() => require base_path('routes/admin.php'));
-
-// Public "drop files for employee" page (no auth)
-Route::prefix('u/{username}')
-    ->name('public.employee.')
-    ->group(fn() => require base_path('routes/public-employee.php'));
-
-// Employee portal (protected)
-Route::middleware(['auth', 'employee'])
-    ->prefix('employee/{username}')
-    ->name('employee.')
-    ->group(fn() => require base_path('routes/employee-portal.php'));
 
 // Static info pages
 Route::get('/privacy-policy', [StaticPageController::class, 'privacyPolicy'])->name('privacy-policy');

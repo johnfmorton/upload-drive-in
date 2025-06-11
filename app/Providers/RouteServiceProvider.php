@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\ClientMiddleware;
+use App\Http\Middleware\EmployeeMiddleware;
+use App\Http\Middleware\TwoFactorMiddleware;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -34,19 +38,38 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         $this->routes(function () {
+            // API Routes
             Route::middleware('api')
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
 
+            // Web Routes (including auth, public routes, etc)
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
 
-            // Load admin routes with explicit file existence check
-            $adminRoutesPath = base_path('routes/admin.php');
-            if (file_exists($adminRoutesPath)) {
-                Route::middleware(['web', 'auth', \App\Http\Middleware\AdminMiddleware::class, '2fa'])
-                    ->group($adminRoutesPath);
-            }
+            // Admin Routes
+            Route::middleware(['web', 'auth', AdminMiddleware::class, TwoFactorMiddleware::class])
+                ->prefix('admin')
+                ->name('admin.')
+                ->group(base_path('routes/admin.php'));
+
+            // Client Routes
+            Route::middleware(['web', 'auth', ClientMiddleware::class])
+                ->prefix('client')
+                ->name('client.')
+                ->group(base_path('routes/client.php'));
+
+            // Public Employee Upload Routes (no auth)
+            Route::middleware('web')
+                ->prefix('u/{username}')
+                ->name('public.employee.')
+                ->group(base_path('routes/public-employee.php'));
+
+            // Employee Portal Routes (protected)
+            Route::middleware(['web', 'auth', EmployeeMiddleware::class])
+                ->prefix('employee/{username}')
+                ->name('employee.')
+                ->group(base_path('routes/employee-portal.php'));
         });
     }
 }

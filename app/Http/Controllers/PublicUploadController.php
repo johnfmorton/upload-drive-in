@@ -24,13 +24,14 @@ class PublicUploadController extends Controller
     {
         if (Auth::check()) {
             $user = Auth::user();
+            Log::info('User role check', ['role' => $user->role]);
 
             if ($user->isAdmin()) {
-                return redirect()->route('admin.dashboard');
+                return redirect('/admin/dashboard');
             } elseif ($user->isClient()) {
-                return redirect()->route('client.dashboard');
+                return redirect('/client/dashboard');
             } elseif ($user->isEmployee()) {
-                return redirect()->route('employee.dashboard', ['username' => $user->username]);
+                return redirect('/employee/' . $user->username . '/dashboard');
             }
         }
 

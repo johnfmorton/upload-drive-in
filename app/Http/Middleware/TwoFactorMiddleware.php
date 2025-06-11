@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class AdminMiddleware
+class TwoFactorMiddleware
 {
     /**
      * Handle an incoming request.
@@ -17,13 +17,10 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! auth()->check()) {
-            return redirect()->route('login');
-        }
-
         $user = auth()->user();
-        if (! $user->isAdmin()) {
-            abort(403, 'Unauthorized action.');
+
+        if ($user && $user->isAdmin() && $user->two_factor_enabled && !session('two_factor_verified')) {
+            return redirect()->route('admin.2fa.verify');
         }
 
         return $next($request);

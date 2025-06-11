@@ -2,6 +2,11 @@
 
 namespace App\Http;
 
+use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\ClientMiddleware;
+use App\Http\Middleware\EmployeeMiddleware;
+use App\Http\Middleware\PreventClientPasswordLogin;
+use UploadDriveIn\LaravelAdmin2FA\Http\Middleware\RequireTwoFactorAuth;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
@@ -14,6 +19,7 @@ class Kernel extends HttpKernel
      * @var array<int, class-string|string>
      */
     protected $middleware = [
+        // \App\Http\Middleware\TrustHosts::class,
         \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
@@ -38,6 +44,7 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
+            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
@@ -46,7 +53,7 @@ class Kernel extends HttpKernel
     /**
      * The application's middleware aliases.
      *
-     * Aliases may be used instead of class names to assign middleware to routes and groups.
+     * Aliases may be used instead of class names to conveniently assign middleware to routes and groups.
      *
      * @var array<string, class-string|string>
      */
@@ -62,12 +69,11 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'admin' => \App\Http\Middleware\AdminMiddleware::class,
-        'prevent.client.password.login' => \App\Http\Middleware\PreventClientPasswordLogin::class,
-        '2fa' => \App\Http\Middleware\TwoFactorMiddleware::class,
-        'client' => \App\Http\Middleware\ClientMiddleware::class,
-        'ensure.owner' => \App\Http\Middleware\AdminMiddleware::class,
-        'employee' => \App\Http\Middleware\EmployeeMiddleware::class,
+        'admin' => AdminMiddleware::class,
+        'client' => ClientMiddleware::class,
+        'employee' => EmployeeMiddleware::class,
+        'prevent.client.password.login' => PreventClientPasswordLogin::class,
+        '2fa' => RequireTwoFactorAuth::class,
     ];
 
     public function handle($request)
