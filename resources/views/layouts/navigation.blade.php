@@ -19,6 +19,9 @@
                         <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
                                 {{ __('messages.nav_client_users') }}
                             </x-nav-link>
+                            <x-nav-link :href="route('admin.cloud-storage.index')" :active="request()->routeIs('admin.cloud-storage.index')">
+                                {{ __('messages.nav_cloud_storage') }}
+                            </x-nav-link>
                     @elseif(auth()->user()->isClient())
                         <x-nav-link :href="route('client.upload-files')" :active="request()->routeIs('client.upload-files')">
                             {{ __('Upload Files') }}
