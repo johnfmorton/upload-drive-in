@@ -59,15 +59,12 @@
                                       placeholder="Enter an optional message to associate with the uploaded files..."></textarea>
                         </div>
 
-                        {{-- Submit Button --}}
-                        <div>
-                            <button type="submit"
-                                    class="w-full bg-[var(--brand-color)] text-white px-4 py-2 rounded hover:brightness-90 transition"
-                                    id="submit-button"
-                                    disabled>
-                                Submit
-                            </button>
-                        </div>
+                         {{-- Submit Button --}}
+                         <div class="text-center">
+                             <button type="submit"
+                                     class="bg-[var(--brand-color)] text-white px-6 py-2 rounded-md hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)] transition-colors duration-200">
+                                 Upload and Send Message
+                             </button>
                     </form>
                 </div>
             </div>
