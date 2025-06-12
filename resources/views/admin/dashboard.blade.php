@@ -7,6 +7,38 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            <!-- Client-Company User Relationships -->
+            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+                <div class="max-w-xl">
+                    <h2 class="text-lg font-medium text-gray-900">{{ __('messages.client_relationships_title') }}</h2>
+                    <p class="mt-1 text-sm text-gray-600">{{ __('messages.client_relationships_description') }}</p>
+
+                    <div class="mt-6">
+                        @foreach(Auth::user()->clientUsers as $clientUser)
+                            <div class="border-b border-gray-200 py-4 last:border-b-0">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h3 class="text-sm font-medium text-gray-900">{{ $clientUser->name }}</h3>
+                                        <p class="text-sm text-gray-500">{{ $clientUser->email }}</p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        @if($clientUser->pivot->is_primary)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                {{ __('messages.primary_client') }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+
+                        @if(Auth::user()->clientUsers->isEmpty())
+                            <p class="text-sm text-gray-500">{{ __('messages.no_client_relationships') }}</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
             <!-- Google Drive Connection Status -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <div class="flex items-center justify-between">

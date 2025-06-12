@@ -16,9 +16,30 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Events\BatchUploadComplete;
+use App\Models\User;
+use App\Services\GoogleDriveService;
+use App\Services\ClientUserService;
 
 class UploadController extends Controller
 {
+    protected GoogleDriveService $driveService;
+    protected ClientUserService $clientUserService;
+
+    public function __construct(GoogleDriveService $driveService, ClientUserService $clientUserService)
+    {
+        $this->driveService = $driveService;
+        $this->clientUserService = $clientUserService;
+    }
+
+    /**
+     * Show the upload form.
+     */
+    public function show()
+    {
+        $user = Auth::user();
+        return view('client.upload-page', compact('user'));
+    }
+
     /**
      * Handles the file upload using chunks.
      *
@@ -28,11 +49,31 @@ class UploadController extends Controller
      */
     public function store(Request $request)
     {
-        Log::debug('Chunk upload request received.', [
-            'headers' => $request->headers->all(),
-            'method' => $request->method(),
-            'resumable' => $request->all()
-        ]);
+        $user = Auth::user();
+
+        // Get the company user who should receive this upload
+        $companyUser = null;
+        if ($request->has('company_user_id')) {
+            // If a specific company user was selected
+            $companyUser = $user->companyUsers()
+                ->where('users.id', $request->input('company_user_id'))
+                ->first();
+        }
+
+        if (!$companyUser) {
+            // Fall back to primary company user if none selected or selection invalid
+            $companyUser = $user->primaryCompanyUser();
+        }
+
+        if (!$companyUser || !$companyUser->hasGoogleDriveConnected()) {
+            Log::error('No valid company user with Google Drive connection found for upload', [
+                'client_user_id' => $user->id,
+                'selected_company_user_id' => $request->input('company_user_id')
+            ]);
+            return response()->json([
+                'error' => 'No valid upload destination found. Please contact support.'
+            ], 400);
+        }
 
         // Create the file receiver
         $receiver = new FileReceiver('file', $request, HandlerFactory::classFromRequest($request));
@@ -57,7 +98,7 @@ class UploadController extends Controller
         // Check if the upload has finished
         if ($save->isFinished()) {
             Log::info('Upload finished, saving the complete file.');
-            return $this->saveFile($save->getFile());
+            return $this->saveFile($save->getFile(), $companyUser, $request);
         }
 
         // We are in chunk mode, lets send the current progress
@@ -69,9 +110,11 @@ class UploadController extends Controller
      * Saves the file when all chunks have been uploaded.
      *
      * @param UploadedFile $file
+     * @param User $companyUser
+     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    protected function saveFile(UploadedFile $file)
+    protected function saveFile(UploadedFile $file, User $companyUser, Request $request)
     {
         $fileName = $this->createFilename($file);
         $originalFilename = $file->getClientOriginalName();
@@ -101,13 +144,16 @@ class UploadController extends Controller
         // Create FileUpload record
         try {
             $fileUpload = FileUpload::create([
-                'email' => Auth::user()->email,
+                'client_user_id' => Auth::user()->id,
+                'company_user_id' => $companyUser->id,
                 'filename' => $fileName,
                 'original_filename' => $originalFilename,
                 'google_drive_file_id' => '',
                 'validation_method' => 'auth',
                 'mime_type' => $mimeType,
                 'file_size' => $fileSize,
+                'chunk_size' => $request->input('chunk_size'),
+                'total_chunks' => $request->input('total_chunks'),
             ]);
 
             // Dispatch upload job
@@ -152,57 +198,17 @@ class UploadController extends Controller
      */
     public function associateMessage(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'message' => 'required|string|max:5000',
-            'file_upload_ids' => 'required|array',
-            'file_upload_ids.*' => 'required|integer|exists:file_uploads,id',
+        $validated = $request->validate([
+            'upload_ids' => 'required|array',
+            'upload_ids.*' => 'required|exists:file_uploads,id',
+            'message' => 'nullable|string|max:1000',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+        FileUpload::whereIn('id', $validated['upload_ids'])
+            ->where('client_user_id', Auth::id())
+            ->update(['message' => $validated['message']]);
 
-        $message = $request->input('message');
-        $fileUploadIds = $request->input('file_upload_ids');
-        $user = Auth::user();
-
-        try {
-            // Ensure the files belong to the authenticated user for security
-            $updatedCount = FileUpload::whereIn('id', $fileUploadIds)
-                ->where('email', $user->email)
-                ->update(['message' => $message]);
-
-            if ($updatedCount == 0) {
-                Log::warning('Associate message: No files updated, possibly due to ownership mismatch.', [
-                    'user_id' => $user->id,
-                    'requested_ids' => $fileUploadIds
-                ]);
-            } else {
-                try {
-                    Log::info('Dispatching BatchUploadComplete event after message association.', [
-                        'user_id' => $user->id,
-                        'file_upload_ids' => $fileUploadIds
-                    ]);
-                    BatchUploadComplete::dispatch($fileUploadIds, $user->id);
-                } catch (\Exception $e) {
-                    Log::error('Failed to dispatch BatchUploadComplete event after message association.', [
-                        'user_id' => $user->id,
-                        'file_upload_ids' => $fileUploadIds,
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
-
-            return response()->json(['success' => true, 'message' => 'Message associated with ' . $updatedCount . ' file(s).']);
-
-        } catch (\Exception $e) {
-            Log::error('Error associating message with uploads:', [
-                'user_id' => Auth::id(),
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json(['error' => 'Failed to associate message.'], 500);
-        }
+        return response()->json(['success' => true]);
     }
 
     /**
@@ -214,52 +220,30 @@ class UploadController extends Controller
      */
     public function batchComplete(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'file_upload_ids' => 'required|array',
-            'file_upload_ids.*' => 'required|integer|exists:file_uploads,id',
+        $validated = $request->validate([
+            'upload_ids' => 'required|array',
+            'upload_ids.*' => 'required|exists:file_uploads,id',
         ]);
 
-        if ($validator->fails()) {
-            Log::error('Batch complete validation failed.', ['errors' => $validator->errors()->toArray()]);
-            return response()->json(['errors' => $validator->errors()], 422);
+        $uploads = FileUpload::whereIn('id', $validated['upload_ids'])
+            ->where('client_user_id', Auth::id())
+            ->get();
+
+        foreach ($uploads as $upload) {
+            // Get the company user associated with this upload
+            $companyUser = User::find($upload->company_user_id);
+
+            if ($companyUser && $companyUser->hasGoogleDriveConnected()) {
+                // Use the company user's Google Drive token
+                $this->driveService->uploadFile($upload, $companyUser);
+            } else {
+                Log::error('Failed to find valid company user for upload', [
+                    'upload_id' => $upload->id,
+                    'company_user_id' => $upload->company_user_id
+                ]);
+            }
         }
 
-        $fileUploadIds = $request->input('file_upload_ids');
-        $user = Auth::user();
-
-        if (empty($fileUploadIds)) {
-            Log::warning('Batch complete called with empty file_upload_ids array.', ['user_id' => $user->id]);
-            return response()->json(['error' => 'No file IDs provided.'], 400);
-        }
-
-        $ownedCount = FileUpload::whereIn('id', $fileUploadIds)
-            ->where('email', $user->email)
-            ->count();
-
-        if ($ownedCount !== count($fileUploadIds)) {
-            Log::error('Batch complete ownership check failed.', [
-                'user_id' => $user->id,
-                'submitted_ids' => $fileUploadIds,
-                'owned_count' => $ownedCount
-            ]);
-            return response()->json(['error' => 'File ownership mismatch.'], 403);
-        }
-
-        try {
-            Log::info('Dispatching BatchUploadComplete event.', [
-                'user_id' => $user->id,
-                'file_upload_ids' => $fileUploadIds
-            ]);
-            BatchUploadComplete::dispatch($fileUploadIds, $user->id);
-            return response()->json(['success' => true, 'message' => 'Batch completion acknowledged.']);
-        } catch (\Exception $e) {
-            Log::error('Failed to dispatch BatchUploadComplete event.', [
-                'user_id' => $user->id,
-                'file_upload_ids' => $fileUploadIds,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json(['error' => 'Failed to process batch completion.'], 500);
-        }
+        return response()->json(['success' => true]);
     }
 }

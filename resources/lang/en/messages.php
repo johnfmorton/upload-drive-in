@@ -352,5 +352,15 @@
 
     // Employee Dashboard
     'employee_dashboard_title' => 'Employee Dashboard*',
-    'employee_management' => 'Employee Management'
+    'employee_management' => 'Employee Management',
+
+    // Client Upload Page
+    'select_recipient' => 'Select Upload Recipient',
+    'select_recipient_help' => 'Choose which company representative should receive this upload. Files will be stored in their Google Drive.',
+
+    // Client Relationships
+    'client_relationships_title' => 'Client Relationships',
+    'client_relationships_description' => 'View and manage your client relationships.',
+    'primary_client' => 'Primary',
+    'no_client_relationships' => 'You have no client relationships yet.',
 ];

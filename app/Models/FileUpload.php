@@ -5,13 +5,15 @@ namespace App\Models;
 use App\Services\CloudStorage\CloudStorageFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FileUpload extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'email',
+        'client_user_id',
+        'company_user_id',
         'filename',
         'original_filename',
         'provider_file_id',
@@ -20,14 +22,34 @@ class FileUpload extends Model
         'validation_method',
         'mime_type',
         'file_size',
+        'chunk_size',
+        'total_chunks',
         'google_drive_file_id',
     ];
 
     protected $casts = [
         'file_size' => 'integer',
+        'chunk_size' => 'integer',
+        'total_chunks' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Get the client user who uploaded this file.
+     */
+    public function clientUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'client_user_id');
+    }
+
+    /**
+     * Get the company user who received this file.
+     */
+    public function companyUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'company_user_id');
+    }
 
     /**
      * Get the cloud storage provider instance for this file upload.

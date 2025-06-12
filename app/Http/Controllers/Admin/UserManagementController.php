@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Mail\LoginVerificationMail;
+use App\Services\ClientUserService;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Exception;
 
 class UserManagementController extends Controller
 {
@@ -70,31 +74,37 @@ class UserManagementController extends Controller
         return back()->with('status', 'settings-updated');
     }
 
-    public function createClient(Request $request)
+    /**
+     * Create a new client user and associate them with the current admin.
+     */
+    public function createClient(Request $request, ClientUserService $clientUserService)
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'email' => ['required', 'string', 'email', 'max:255'],
         ]);
 
-        // Create user with random password (they'll use email validation to access)
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make(Str::random(32)),
-            'role' => 'client'
-        ]);
+        try {
+            // Create or find client user and associate with current admin
+            $clientUser = $clientUserService->findOrCreateClientUser($validated, Auth::user());
 
-        // Generate a signed URL for the user to log in
-        $loginUrl = URL::temporarySignedRoute(
-            'login.via.token',
-            now()->addDays(7),
-            ['user' => $user->id]
-        );
+            // Generate a signed URL for the user to log in
+            $loginUrl = URL::temporarySignedRoute(
+                'login.via.token',
+                now()->addDays(7),
+                ['user' => $clientUser->id]
+            );
 
-        // Send invitation email
-        Mail::to($user->email)->send(new LoginVerificationMail($loginUrl));
+            // Send invitation email
+            Mail::to($clientUser->email)->send(new LoginVerificationMail($loginUrl));
 
-        return back()->with('status', 'client-created');
+            return back()->with('status', 'client-created');
+        } catch (Exception $e) {
+            Log::error('Failed to create client user', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withErrors(['email' => 'Failed to create client user.'])->withInput();
+        }
     }
 }

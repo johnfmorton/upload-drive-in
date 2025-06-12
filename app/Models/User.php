@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -166,5 +167,51 @@ class User extends Authenticatable
     public function hasGoogleDriveConnected(): bool
     {
         return $this->googleDriveToken()->exists();
+    }
+
+    /**
+     * Get the client users associated with this company user.
+     */
+    public function clientUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'client_user_relationships', 'company_user_id', 'client_user_id')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the company users associated with this client user.
+     */
+    public function companyUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'client_user_relationships', 'client_user_id', 'company_user_id')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the primary company user for this client user.
+     */
+    public function primaryCompanyUser()
+    {
+        return $this->companyUsers()
+            ->wherePivot('is_primary', true)
+            ->first();
+    }
+
+    /**
+     * Get all client user relationships where this user is the company user.
+     */
+    public function companyUserRelationships(): HasMany
+    {
+        return $this->hasMany(ClientUserRelationship::class, 'company_user_id');
+    }
+
+    /**
+     * Get all client user relationships where this user is the client user.
+     */
+    public function clientUserRelationships(): HasMany
+    {
+        return $this->hasMany(ClientUserRelationship::class, 'client_user_id');
     }
 }

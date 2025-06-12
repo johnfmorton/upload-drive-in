@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str; // Added for random password
 use Illuminate\Support\Facades\Hash; // Added for hashing password
+use App\Services\ClientUserService;
+use Illuminate\Support\Facades\Auth;
 // Remove Google Drive dependencies - they are now in the service
 // use Google\Client;
 // use Google\Service\Drive;
@@ -19,6 +21,13 @@ use Exception;
 
 class AdminUserController extends Controller
 {
+    protected ClientUserService $clientUserService;
+
+    public function __construct(ClientUserService $clientUserService)
+    {
+        $this->clientUserService = $clientUserService;
+    }
+
     /**
      * Display a listing of the client users.
      */
@@ -52,26 +61,14 @@ class AdminUserController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => 'required|string|lowercase|email|max:255',
         ]);
 
         try {
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'username' => Str::before($validated['email'], '@'),
-                // Assign a random, unusable password since login is via token
-                'password' => Hash::make(Str::random(32)),
-                'role' => 'client', // Explicitly set the role
-                'email_verified_at' => now(), // Mark as verified since admin creates it
-            ]);
-
-            // Optionally: Trigger an event or notification if needed
-            // event(new ClientUserCreatedByAdmin($user));
+            $clientUser = $this->clientUserService->findOrCreateClientUser($validated, Auth::user());
 
             return redirect()->route('admin.users.index')
                 ->with('success', 'Client user created successfully. You can now provide them with their login link.');
-
         } catch (Exception $e) {
             Log::error("Error creating client user: " . $e->getMessage());
             return redirect()->route('admin.users.index')
