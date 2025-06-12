@@ -31,7 +31,9 @@ class GoogleDriveToken extends Model
         'user_id',
         'access_token',
         'refresh_token',
+        'token_type',
         'expires_at',
+        'scopes',
     ];
 
     /**
@@ -41,15 +43,37 @@ class GoogleDriveToken extends Model
      */
     protected $casts = [
         'expires_at' => 'datetime',
+        'scopes' => 'array',
     ];
 
     /**
-     * Get the user that owns this token.
-     *
-     * @return BelongsTo<User,GoogleDriveToken>
+     * Get the user that owns the token.
      */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Check if the token has expired.
+     */
+    public function hasExpired(): bool
+    {
+        return $this->expires_at->isPast();
+    }
+
+    /**
+     * Get the token as an array suitable for Google Client.
+     */
+    public function toGoogleToken(): array
+    {
+        return [
+            'access_token' => $this->access_token,
+            'refresh_token' => $this->refresh_token,
+            'token_type' => $this->token_type,
+            'expires_in' => max(0, $this->expires_at->diffInSeconds(now())),
+            'scope' => implode(' ', $this->scopes),
+            'created' => $this->created_at->timestamp,
+        ];
     }
 }

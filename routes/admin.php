@@ -83,14 +83,14 @@ Route::prefix('cloud-storage')
         // Connect: save credentials and redirect to Google OAuth
         Route::post('/google-drive/connect', [CloudStorageController::class, 'saveAndConnectGoogleDrive'])
             ->name('google-drive.connect');
-        // OAuth callback — handled in CloudStorageController so we can persist credentials
+        // OAuth callback — handled in CloudStorageController
         Route::get('/google-drive/callback', [CloudStorageController::class, 'callback'])
             ->name('google-drive.callback');
         // Update selected root folder
         Route::put('/google-drive/folder', [CloudStorageController::class, 'updateGoogleDriveRootFolder'])
             ->name('google-drive.folder.update');
         // Disconnect
-        Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect'])
+        Route::post('/google-drive/disconnect', [CloudStorageController::class, 'disconnect'])
             ->name('google-drive.disconnect');
         Route::get('/google-drive/folders', [GoogleDriveFolderController::class, 'index'])->name('google-drive.folders');
         Route::get('/google-drive/folders/{folderId}', [GoogleDriveFolderController::class, 'show'])->name('google-drive.folders.show');

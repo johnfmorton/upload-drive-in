@@ -13,6 +13,7 @@ use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable
 {
@@ -149,5 +150,21 @@ class User extends Authenticatable
     {
         $token = Password::broker()->createToken($this);
         return route('password.reset', ['token' => $token, 'email' => $this->email]);
+    }
+
+    /**
+     * Get the user's Google Drive token.
+     */
+    public function googleDriveToken(): HasOne
+    {
+        return $this->hasOne(GoogleDriveToken::class);
+    }
+
+    /**
+     * Check if the user has connected their Google Drive account.
+     */
+    public function hasGoogleDriveConnected(): bool
+    {
+        return $this->googleDriveToken()->exists();
     }
 }

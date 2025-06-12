@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
+use App\Models\User;
+use App\Models\GoogleDriveToken;
 use Google\Client;
 use Google\Service\Drive;
 use Google\Service\Drive\DriveFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Carbon;
 use Exception;
 
 /**
@@ -24,6 +27,17 @@ class GoogleDriveService
      * @var Client|null The Google API client instance.
      */
     private ?Client $client = null;
+
+    public function __construct()
+    {
+        $this->client = new Client();
+        $this->client->setClientId(config('cloud-storage.providers.google-drive.client_id'));
+        $this->client->setClientSecret(config('cloud-storage.providers.google-drive.client_secret'));
+        $this->client->addScope(Drive::DRIVE_FILE);
+        $this->client->addScope(Drive::DRIVE);
+        $this->client->setAccessType('offline');
+        $this->client->setPrompt('consent');
+    }
 
     /**
      * Initializes the Google API client and authenticates.
@@ -395,6 +409,119 @@ class GoogleDriveService
                 'error' => $e->getMessage(),
             ]);
             return false;
+        }
+    }
+
+    /**
+     * Get the authorization URL for a specific user.
+     */
+    public function getAuthUrl(User $user): string
+    {
+        $this->client->setRedirectUri(route('admin.cloud-storage.google-drive.callback'));
+        return $this->client->createAuthUrl();
+    }
+
+    /**
+     * Handle the OAuth callback and store the token for the user.
+     */
+    public function handleCallback(User $user, string $code): void
+    {
+        $this->client->setRedirectUri(route('admin.cloud-storage.google-drive.callback'));
+        $token = $this->client->fetchAccessTokenWithAuthCode($code);
+
+        if (!isset($token['access_token'])) {
+            throw new Exception('Failed to get access token from Google');
+        }
+
+        // Store or update the token
+        GoogleDriveToken::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'access_token' => $token['access_token'],
+                'refresh_token' => $token['refresh_token'] ?? null,
+                'token_type' => $token['token_type'] ?? 'Bearer',
+                'expires_at' => isset($token['expires_in'])
+                    ? Carbon::now()->addSeconds($token['expires_in'])
+                    : null,
+                'scopes' => $this->client->getScopes(),
+            ]
+        );
+    }
+
+    /**
+     * Get an authenticated Google Drive service for a specific user.
+     */
+    public function getDriveService(User $user): Drive
+    {
+        $token = $this->getValidToken($user);
+        $this->client->setAccessToken([
+            'access_token' => $token->access_token,
+            'refresh_token' => $token->refresh_token,
+            'token_type' => $token->token_type,
+            'expires_at' => $token->expires_at?->timestamp,
+        ]);
+
+        return new Drive($this->client);
+    }
+
+    /**
+     * Get a valid token for the user, refreshing if necessary.
+     */
+    protected function getValidToken(User $user): GoogleDriveToken
+    {
+        $token = GoogleDriveToken::where('user_id', $user->id)->first();
+        if (!$token) {
+            throw new Exception('User has not connected their Google Drive account.');
+        }
+
+        // Check if token needs refresh
+        if ($token->expires_at && $token->expires_at->isPast()) {
+            if (!$token->refresh_token) {
+                throw new Exception('No refresh token available for user.');
+            }
+
+            $this->client->setAccessToken([
+                'refresh_token' => $token->refresh_token,
+                'access_token' => $token->access_token,
+                'token_type' => $token->token_type,
+            ]);
+
+            $newToken = $this->client->fetchAccessTokenWithRefreshToken();
+
+            $token->update([
+                'access_token' => $newToken['access_token'],
+                'expires_at' => isset($newToken['expires_in'])
+                    ? Carbon::now()->addSeconds($newToken['expires_in'])
+                    : null,
+            ]);
+        }
+
+        return $token;
+    }
+
+    /**
+     * Disconnect Google Drive for a user.
+     */
+    public function disconnect(User $user): void
+    {
+        $token = GoogleDriveToken::where('user_id', $user->id)->first();
+        if ($token) {
+            // Try to revoke the token with Google
+            try {
+                $this->client->setAccessToken([
+                    'access_token' => $token->access_token,
+                    'token_type' => $token->token_type,
+                ]);
+                $this->client->revokeToken();
+            } catch (Exception $e) {
+                Log::warning('Failed to revoke Google token', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            // Delete the token from our database regardless
+            $token->delete();
         }
     }
 }
