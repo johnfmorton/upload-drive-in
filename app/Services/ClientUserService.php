@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\ClientUserRelationship;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use App\Enums\UserRole;
 use Exception;
 
 class ClientUserService
@@ -28,8 +31,8 @@ class ClientUserService
                 $clientUser = User::create([
                     'name' => $userData['name'],
                     'email' => $userData['email'],
-                    'password' => bcrypt(str_random(16)), // Random password as they'll use magic links
-                    'role' => 'client',
+                    'password' => Hash::make(Str::random(16)), // Random password as they'll use magic links
+                    'role' => UserRole::CLIENT,
                 ]);
                 $isNewUser = true;
             }

@@ -2,6 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 return new class extends Migration
 {
@@ -10,8 +12,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Modify the username column to allow NULL values
-        DB::statement('ALTER TABLE `users` MODIFY `username` VARCHAR(255) NULL;');
+        $connection = config('database.default');
+        $driver = config("database.connections.{$connection}.driver");
+
+        if ($driver === 'sqlite') {
+            // For SQLite, we need to recreate the table
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('username')->nullable()->change();
+            });
+        } else {
+            // For MySQL/MariaDB
+            DB::statement('ALTER TABLE `users` MODIFY `username` VARCHAR(255) NULL;');
+        }
     }
 
     /**

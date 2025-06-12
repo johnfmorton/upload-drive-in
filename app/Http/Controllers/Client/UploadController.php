@@ -71,7 +71,7 @@ class UploadController extends Controller
                 'selected_company_user_id' => $request->input('company_user_id')
             ]);
             return response()->json([
-                'error' => 'No valid upload destination found. Please contact support.'
+                'error' => __('messages.no_valid_upload_destination')
             ], 400);
         }
 
@@ -81,7 +81,9 @@ class UploadController extends Controller
         // Check if the upload is successful
         if (!$receiver->isUploaded()) {
             Log::error('FileReceiver initialization failed or file not uploaded.');
-            return response()->json(['error' => 'No file uploaded or receiver init failed.'], 400);
+            return response()->json([
+                'error' => __('messages.no_file_uploaded')
+            ], 400);
         }
 
         // Receive the file
@@ -92,7 +94,9 @@ class UploadController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return response()->json(['error' => 'Failed to process upload request.'], 500);
+            return response()->json([
+                'error' => __('messages.failed_to_process_upload')
+            ], 500);
         }
 
         // Check if the upload has finished
@@ -103,7 +107,10 @@ class UploadController extends Controller
 
         // We are in chunk mode, lets send the current progress
         Log::debug('Chunk received successfully.');
-        return response()->json(['status' => true, 'message' => 'Chunk received successfully.']);
+        return response()->json([
+            'status' => true,
+            'message' => __('messages.chunk_received_successfully')
+        ]);
     }
 
     /**
@@ -138,7 +145,9 @@ class UploadController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return response()->json(['error' => 'Failed to save uploaded file.'], 500);
+            return response()->json([
+                'error' => __('messages.failed_to_save_uploaded_file')
+            ], 500);
         }
 
         // Create FileUpload record
@@ -174,7 +183,9 @@ class UploadController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return response()->json(['error' => 'Failed to record file upload.'], 500);
+            return response()->json([
+                'error' => __('messages.failed_to_record_file_upload')
+            ], 500);
         }
     }
 

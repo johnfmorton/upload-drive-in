@@ -107,7 +107,11 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                 console.error('Error uploading file chunk:', file.name, message, xhr);
                 const errorDisplay = document.getElementById('upload-errors');
                 if (errorDisplay) {
-                    errorDisplay.innerHTML += `<p class="text-red-500">Error uploading ${file.name}: ${message}</p>`;
+                    // Handle both string and object error messages
+                    const errorMessage = typeof message === 'object' ?
+                        (message.error || JSON.stringify(message)) :
+                        message;
+                    errorDisplay.innerHTML += `<p class="text-red-500">Error uploading ${file.name}: ${errorMessage}</p>`;
                     errorDisplay.classList.remove('hidden');
                 }
             },

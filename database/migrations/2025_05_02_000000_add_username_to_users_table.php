@@ -12,19 +12,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (! Schema::hasColumn('users', 'username')) {
-            // Add nullable username column
-            Schema::table('users', function (Blueprint $table) {
-                $table->string('username')->nullable()->after('email');
-            });
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('username')->nullable()->after('email');
+        });
 
-            // Populate username for existing users using the part before '@'
-            DB::table('users')
-                ->whereNull('username')
-                ->update([
-                    'username' => DB::raw("SUBSTRING_INDEX(email, '@', 1)")
-                ]);
+        // Handle different database types
+        $connection = config('database.default');
+        $driver = config("database.connections.{$connection}.driver");
+
+        if ($driver === 'sqlite') {
+            DB::statement("UPDATE users SET username = substr(email, 1, instr(email, '@') - 1) WHERE username IS NULL");
+        } else {
+            DB::statement("UPDATE users SET username = SUBSTRING_INDEX(email, '@', 1) WHERE username IS NULL");
         }
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->unique('username');
+        });
     }
 
     /**

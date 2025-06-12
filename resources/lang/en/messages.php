@@ -363,4 +363,12 @@
     'client_relationships_description' => 'View and manage your client relationships.',
     'primary_client' => 'Primary',
     'no_client_relationships' => 'You have no client relationships yet.',
+
+    // File Upload Messages
+    'no_valid_upload_destination' => 'No valid upload destination found. Please contact support.',
+    'no_file_uploaded' => 'No file was uploaded or the upload initialization failed.',
+    'failed_to_process_upload' => 'Failed to process the upload request. Please try again.',
+    'chunk_received_successfully' => 'Chunk received successfully.',
+    'failed_to_save_uploaded_file' => 'Failed to save the uploaded file. Please try again.',
+    'failed_to_record_file_upload' => 'Failed to record the file upload. Please try again.',
 ];
