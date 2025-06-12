@@ -5,6 +5,9 @@
 3. Two factor recovery codes
 4. Securty tab to limit users domains / or blacklist
 
+Errors
+
+1. I noticed that if the queue stopped and i uploaded a file while the queue was stopped, restarting the queue `php artisan queue:work` missed uploading the files that were in reserve. New files would upload as expected though.
 
 Employee page
 
