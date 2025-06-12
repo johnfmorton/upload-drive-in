@@ -185,7 +185,7 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                 console.log('Attempting to associate message...'); // <-- LOG: Associating message path
                 submitButton.textContent = 'Associating Message...'; // Update button text
 
-                fetch('/api/uploads/associate-message', {
+                fetch('/client/uploads/associate-message', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -233,7 +233,7 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                  submitButton.textContent = 'Finalizing Upload...'; // Update button text
                  submitButton.disabled = true; // Keep disabled while finalizing
 
-                 fetch('/api/uploads/batch-complete', { // Use the new route
+                 fetch('/client/uploads/batch-complete', { // Use the new route
                      method: 'POST',
                      headers: {
                          'Content-Type': 'application/json',

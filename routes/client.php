@@ -14,6 +14,8 @@ Route::get('/upload-files', [FileUploadController::class, 'create'])->name('uplo
 Route::post('/upload-files', [FileUploadController::class, 'store'])->name('upload-files.store');
 Route::get('/my-uploads', [FileUploadController::class, 'index'])->name('my-uploads');
 Route::post('/chunk-upload', [UploadController::class, 'store'])->name('chunk.upload');
+Route::post('/uploads/associate-message', [UploadController::class, 'associateMessage'])->name('uploads.associate-message');
+Route::post('/uploads/batch-complete', [UploadController::class, 'batchComplete'])->name('uploads.batch-complete');
 
 // Profile Routes
 Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

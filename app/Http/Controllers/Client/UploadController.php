@@ -14,6 +14,8 @@ use App\Models\FileUpload;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use App\Events\BatchUploadComplete;
 
 class UploadController extends Controller
 {
@@ -140,5 +142,124 @@ class UploadController extends Controller
     {
         $extension = $file->getClientOriginalExtension();
         return Str::random(40) . '.' . $extension;
+    }
+
+    /**
+     * Associates a message with one or more FileUpload records.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function associateMessage(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'message' => 'required|string|max:5000',
+            'file_upload_ids' => 'required|array',
+            'file_upload_ids.*' => 'required|integer|exists:file_uploads,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $message = $request->input('message');
+        $fileUploadIds = $request->input('file_upload_ids');
+        $user = Auth::user();
+
+        try {
+            // Ensure the files belong to the authenticated user for security
+            $updatedCount = FileUpload::whereIn('id', $fileUploadIds)
+                ->where('email', $user->email)
+                ->update(['message' => $message]);
+
+            if ($updatedCount == 0) {
+                Log::warning('Associate message: No files updated, possibly due to ownership mismatch.', [
+                    'user_id' => $user->id,
+                    'requested_ids' => $fileUploadIds
+                ]);
+            } else {
+                try {
+                    Log::info('Dispatching BatchUploadComplete event after message association.', [
+                        'user_id' => $user->id,
+                        'file_upload_ids' => $fileUploadIds
+                    ]);
+                    BatchUploadComplete::dispatch($fileUploadIds, $user->id);
+                } catch (\Exception $e) {
+                    Log::error('Failed to dispatch BatchUploadComplete event after message association.', [
+                        'user_id' => $user->id,
+                        'file_upload_ids' => $fileUploadIds,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'Message associated with ' . $updatedCount . ' file(s).']);
+
+        } catch (\Exception $e) {
+            Log::error('Error associating message with uploads:', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to associate message.'], 500);
+        }
+    }
+
+    /**
+     * Handles the completion of a batch upload (called from frontend).
+     * Dispatches an event to trigger batch notifications.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function batchComplete(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'file_upload_ids' => 'required|array',
+            'file_upload_ids.*' => 'required|integer|exists:file_uploads,id',
+        ]);
+
+        if ($validator->fails()) {
+            Log::error('Batch complete validation failed.', ['errors' => $validator->errors()->toArray()]);
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $fileUploadIds = $request->input('file_upload_ids');
+        $user = Auth::user();
+
+        if (empty($fileUploadIds)) {
+            Log::warning('Batch complete called with empty file_upload_ids array.', ['user_id' => $user->id]);
+            return response()->json(['error' => 'No file IDs provided.'], 400);
+        }
+
+        $ownedCount = FileUpload::whereIn('id', $fileUploadIds)
+            ->where('email', $user->email)
+            ->count();
+
+        if ($ownedCount !== count($fileUploadIds)) {
+            Log::error('Batch complete ownership check failed.', [
+                'user_id' => $user->id,
+                'submitted_ids' => $fileUploadIds,
+                'owned_count' => $ownedCount
+            ]);
+            return response()->json(['error' => 'File ownership mismatch.'], 403);
+        }
+
+        try {
+            Log::info('Dispatching BatchUploadComplete event.', [
+                'user_id' => $user->id,
+                'file_upload_ids' => $fileUploadIds
+            ]);
+            BatchUploadComplete::dispatch($fileUploadIds, $user->id);
+            return response()->json(['success' => true, 'message' => 'Batch completion acknowledged.']);
+        } catch (\Exception $e) {
+            Log::error('Failed to dispatch BatchUploadComplete event.', [
+                'user_id' => $user->id,
+                'file_upload_ids' => $fileUploadIds,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to process batch completion.'], 500);
+        }
     }
 }
