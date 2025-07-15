@@ -415,4 +415,11 @@
     'email_for_organization' => 'This helps us organize your files and send you confirmations.',
     'max_file_size_10mb' => 'Maximum file size: 10MB per file.',
     'files_uploaded_successfully' => 'Files uploaded successfully! They will be processed and saved to Google Drive shortly.',
+
+    // Authentication for Employee Upload Pages
+    'email_validation_required_for_upload' => 'Please verify your email address to upload files.',
+    'authentication_required' => 'Authentication Required',
+    'validate_email_to_upload_files' => 'Verify your email address to access the upload form.',
+    'validation_email_sent' => 'Verification email sent!',
+    'check_email_and_click_link' => 'Please check your email and click the verification link to continue.',
 ];

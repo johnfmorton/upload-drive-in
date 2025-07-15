@@ -117,6 +117,15 @@ class PublicEmployeeUploadController extends Controller
             abort(404, 'Employee not found');
         }
 
+        // Check if user is authenticated
+        if (!\Illuminate\Support\Facades\Auth::check()) {
+            // Store the intended URL in session for redirect after authentication
+            session(['intended_url' => request()->url()]);
+            
+            // Show email validation form for guests
+            return view('public-employee.email-validation', compact('name', 'employee'));
+        }
+
         // Check if employee has Google Drive connected
         $hasGoogleDriveConnected = $employee->hasGoogleDriveConnected();
 

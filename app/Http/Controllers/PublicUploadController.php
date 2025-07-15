@@ -169,6 +169,15 @@ class PublicUploadController extends Controller
         // Log the user in
         \Illuminate\Support\Facades\Auth::login($user);
 
+        // Check if there's an intended URL in the session
+        $intendedUrl = session('intended_url');
+        if ($intendedUrl) {
+            session()->forget('intended_url');
+            return redirect($intendedUrl)
+                ->with('success', 'Email verified successfully. You can now upload files.');
+        }
+
+        // Default redirect to client upload files
         return redirect()->route('client.upload-files')
             ->with('success', 'Email verified successfully. You can now upload files.');
     }
