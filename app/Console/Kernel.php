@@ -18,6 +18,7 @@ class Kernel extends ConsoleKernel
         Commands\ExportSqliteData::class,
         Commands\ImportToMariaDB::class,
         Commands\ListUsers::class,
+        Commands\RefreshGoogleDriveTokens::class,
     ];
 
     /**
@@ -30,7 +31,20 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Refresh Google Drive tokens every 6 hours to prevent expiration
+        $schedule->command('google-drive:refresh-tokens')
+                 ->everySixHours()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/token-refresh.log'));
+        
+        // Optional: Run a more frequent check during business hours
+        $schedule->command('google-drive:refresh-tokens')
+                 ->dailyAt('09:00')
+                 ->timezone('America/New_York') // Adjust to your timezone
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/token-refresh.log'));
     }
 
     /**

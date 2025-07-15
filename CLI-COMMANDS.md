@@ -253,6 +253,65 @@ ddev artisan db:import-mariadb
 - Must have previously run `db:export-sqlite`
 - Export directory must exist with JSON files
 
+## Google Drive Integration Commands
+
+### `google-drive:refresh-tokens`
+
+**Purpose**: Proactively refresh Google Drive OAuth tokens to prevent expiration and maintain continuous access to Google Drive API.
+
+**Signature**: `google-drive:refresh-tokens {--force} {--dry-run}`
+
+**Description**: Automatically refreshes Google Drive access tokens that are expiring within 24 hours or have already expired. This prevents authentication failures during file uploads.
+
+**Options**:
+
+- `--force` (optional): Force refresh all tokens regardless of expiration status
+- `--dry-run` (optional): Show what would be refreshed without actually performing the refresh
+
+**Usage Examples**:
+
+```bash
+# Refresh tokens expiring within 24 hours (normal operation)
+ddev artisan google-drive:refresh-tokens
+
+# Force refresh all tokens regardless of expiration
+ddev artisan google-drive:refresh-tokens --force
+
+# Preview what would be refreshed without making changes
+ddev artisan google-drive:refresh-tokens --dry-run
+
+# Combine options for testing
+ddev artisan google-drive:refresh-tokens --force --dry-run
+```
+
+**Behavior**:
+
+- Checks all Google Drive tokens in the database
+- Identifies tokens expiring within 24 hours or already expired
+- Uses refresh tokens to obtain new access tokens from Google
+- Updates token records with new expiration times
+- Logs all operations for monitoring and debugging
+- Sends email notifications to admin users if refresh fails
+
+**Automatic Scheduling**:
+
+- Runs every 6 hours via Laravel scheduler
+- Additional daily run at 9:00 AM as backup
+- Prevents manual intervention for token maintenance
+
+**Error Handling**:
+
+- Skips users without refresh tokens (requires re-authentication)
+- Logs detailed error information for troubleshooting
+- Sends notifications to admin users when failures occur
+- Returns appropriate exit codes for monitoring systems
+
+**Monitoring**:
+
+- All operations logged to `storage/logs/laravel.log`
+- Scheduled runs also logged to `storage/logs/token-refresh.log`
+- Email notifications sent to admin users on failures
+
 ## Built-in Laravel Commands
 
 ### `inspire`
@@ -301,10 +360,180 @@ ddev artisan pail --filter="uploads_cleanup"
 
 ## Scheduled Commands
 
-Currently, no commands are scheduled to run automatically. The `schedule` method in `app/Console/Kernel.php` is empty, but can be configured for automated execution:
+The following commands are scheduled to run automatically via Laravel's task scheduler:
+
+### Google Drive Token Refresh
 
 ```php
-// Example scheduling (not currently active)
+// Defined in app/Console/Kernel.php
+$schedule->command('google-drive:refresh-tokens')->everySixHours();
+$schedule->command('google-drive:refresh-tokens')->dailyAt('09:00');
+```
+
+### Manual Token Refresh
+
+You can also run the token refresh command manually:
+
+```bash
+# Refresh tokens that are expiring within 24 hours
+ddev artisan google-drive:refresh-tokens
+
+# Force refresh all tokens regardless of expiration
+ddev artisan google-drive:refresh-tokens --force
+
+# Dry run to see what would be refreshed without actually doing it
+ddev artisan google-drive:refresh-tokens --dry-run
+```
+
+## Laravel Scheduler Setup
+
+**Important**: The `schedule()` method in `app/Console/Kernel.php` only **defines** when commands should run. To actually execute scheduled commands, you need to set up a cron job or daemon.
+
+### Development Environment (DDEV)
+
+#### Option 1: DDEV Cron Configuration (Recommended)
+
+Add to your `.ddev/config.yaml`:
+
+```yaml
+web_extra_daemons:
+  - name: "laravel-scheduler"
+    command: "/var/www/html/artisan schedule:work"
+    directory: /var/www/html
+```
+
+Then restart DDEV:
+
+```bash
+ddev restart
+```
+
+#### Option 2: Manual Scheduler Commands
+
+```bash
+# Run scheduler once (checks what should run now)
+ddev artisan schedule:run
+
+# Run scheduler continuously (like a daemon)
+ddev artisan schedule:work
+
+# List all scheduled commands
+ddev artisan schedule:list
+```
+
+### Production Environment
+
+#### Standard Server Setup
+
+Add this single cron job to your server (runs every minute):
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add this line (adjust path to your project)
+* * * * * cd /path/to/your/laravel/project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+#### Laravel Forge Setup
+
+Laravel Forge automatically handles scheduler setup:
+
+1. **Automatic Configuration**: Forge automatically adds the required cron job when you deploy a Laravel application
+2. **Scheduler Tab**: View and manage scheduled tasks in the Forge dashboard under your site's "Scheduler" tab
+3. **Manual Override**: You can disable automatic scheduling and add custom cron jobs if needed
+
+**Forge Cron Job** (automatically added):
+
+```bash
+* * * * * /usr/bin/php8.3 /home/forge/your-site.com/artisan schedule:run >> /dev/null 2>&1
+```
+
+**Forge Dashboard Features**:
+
+- View scheduled command history
+- Enable/disable the scheduler
+- Monitor command execution logs
+- Set up custom cron jobs if needed
+
+#### Other Hosting Platforms
+
+**Vapor (Serverless)**:
+
+```bash
+# Vapor automatically handles scheduling via CloudWatch Events
+# No additional configuration needed
+```
+
+**Shared Hosting**:
+
+```bash
+# Add via cPanel or hosting control panel
+* * * * * /usr/local/bin/php /path/to/your/project/artisan schedule:run
+```
+
+### Monitoring Scheduled Commands
+
+#### Check Scheduler Status
+
+```bash
+# List all scheduled commands and their next run times
+ddev artisan schedule:list
+
+# Test scheduler without waiting
+ddev artisan schedule:run
+
+# Run scheduler in foreground (useful for debugging)
+ddev artisan schedule:work --verbose
+```
+
+#### Logging
+
+Scheduled commands log to multiple locations:
+
+- **Laravel Log**: `storage/logs/laravel.log`
+- **Custom Log**: `storage/logs/token-refresh.log` (for token refresh)
+- **Cron Log**: System cron logs (varies by server)
+
+#### Laravel Forge Monitoring
+
+- **Dashboard**: View command execution history
+- **Notifications**: Set up alerts for failed scheduled commands
+- **Logs**: Access scheduler logs directly from Forge interface
+
+### Troubleshooting Scheduler Issues
+
+#### Common Problems
+
+1. **Commands not running**: Check if cron job is properly configured
+2. **Permission errors**: Ensure web server user can execute artisan
+3. **Path issues**: Use absolute paths in cron jobs
+4. **Timezone problems**: Set correct timezone in `config/app.php`
+
+#### Debug Commands
+
+```bash
+# Verify scheduler configuration
+ddev artisan schedule:list
+
+# Run scheduler manually to test
+ddev artisan schedule:run --verbose
+
+# Check if specific command works
+ddev artisan google-drive:refresh-tokens --dry-run
+```
+
+#### Laravel Forge Debugging
+
+- Check "Scheduler" tab for execution history
+- Review site logs for scheduler errors
+- Verify PHP version matches your application requirements
+- Ensure queue workers are running if commands use queues
+
+### Example Scheduling (Available but not currently active)
+
+```php
+// Additional commands that could be scheduled
 $schedule->command('uploads:clear-old')->daily();
 $schedule->command('uploads:process-pending')->everyFiveMinutes();
 ```
