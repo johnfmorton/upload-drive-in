@@ -176,7 +176,7 @@
                                 </p>
                             </div>
                             <div class="flex items-center space-x-4">
-                                @if(Storage::exists('google-credentials.json'))
+                                @if(Auth::user()->hasGoogleDriveConnected())
                                     <span class="px-3 py-1 text-sm text-green-800 bg-green-100 rounded-full">{{ __('messages.connected') }}</span>
                                     <form action="{{ route('admin.cloud-storage.google-drive.disconnect') }}" method="POST" class="inline">
                                         @csrf
@@ -194,7 +194,7 @@
                             {{-- Credentials Form --}}
                             @include('admin.cloud-storage.google-drive.google-drive-credentials')
 
-                            @unless(Storage::exists('google-credentials.json'))
+                            @unless(Auth::user()->hasGoogleDriveConnected())
                                 {{-- Connect Button --}}
                                 @include('admin.cloud-storage.google-drive.google-drive-connect')
                             @else
