@@ -169,7 +169,7 @@ class PublicUploadController extends Controller
         // Log the user in
         \Illuminate\Support\Facades\Auth::login($user);
 
-        return redirect()->route('upload-files')
+        return redirect()->route('client.upload-files')
             ->with('success', 'Email verified successfully. You can now upload files.');
     }
 }
