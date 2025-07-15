@@ -17,6 +17,7 @@ class Kernel extends ConsoleKernel
         Commands\Remove2FAToken::class,
         Commands\ExportSqliteData::class,
         Commands\ImportToMariaDB::class,
+        Commands\ListUsers::class,
     ];
 
     /**
