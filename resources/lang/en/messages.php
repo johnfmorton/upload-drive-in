@@ -387,4 +387,32 @@
     'no_clients_match_filter' => 'No clients match your filter criteria.',
     'no_clients_found' => 'No clients found.',
     'manage_clients' => 'Manage Clients',
+
+    // Google Drive Connection for Employees
+    'google_drive_connection' => 'Google Drive Connection',
+    'google_drive_connected' => 'Google Drive Connected',
+    'google_drive_not_connected' => 'Google Drive Not Connected',
+    'client_uploads_will_go_to_your_drive' => 'Client uploads will be saved to your Google Drive.',
+    'connect_drive_to_receive_uploads' => 'Connect your Google Drive to receive client uploads directly.',
+    'connect_google_drive' => 'Connect Google Drive',
+    'disconnect' => 'Disconnect',
+    'google_drive_disconnected' => 'Google Drive disconnected successfully.',
+    'google_drive_disconnect_failed' => 'Failed to disconnect Google Drive. Please try again.',
+    'google_drive_connection_failed' => 'Failed to connect Google Drive. Please try again.',
+    'your_upload_page' => 'Your Upload Page',
+    'copy_url' => 'Copy URL',
+    'copied' => 'Copied!',
+    'share_this_url_with_clients' => 'Share this URL with your clients to receive file uploads.',
+
+    // Public Employee Upload Page
+    'upload_files_for_employee' => 'Upload Files for :name',
+    'upload_files_description' => 'Use this page to upload files that will be delivered directly to the employee.',
+    'employee_drive_not_connected' => 'Employee Google Drive Not Connected',
+    'files_will_go_to_admin_drive' => 'Files will be saved to the admin\'s Google Drive as a fallback.',
+    'ready_to_receive_files' => 'Ready to Receive Files',
+    'files_will_go_to_employee_drive' => 'Files will be saved directly to the employee\'s Google Drive.',
+    'your_email' => 'Your Email Address',
+    'email_for_organization' => 'This helps us organize your files and send you confirmations.',
+    'max_file_size_10mb' => 'Maximum file size: 10MB per file.',
+    'files_uploaded_successfully' => 'Files uploaded successfully! They will be processed and saved to Google Drive shortly.',
 ];

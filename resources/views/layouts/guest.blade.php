@@ -26,7 +26,7 @@
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-dvh flex flex-col justify-between">
             <div class="flex flex-col justify-center items-center pb-6 sm:pt-0 bg-gradient-to-b from-gray-100 to-gray-300 px-6 flex-1">
-              {{ $slot }}
+              @yield('content')
             </div>
             @include('components.footer')
         </div>

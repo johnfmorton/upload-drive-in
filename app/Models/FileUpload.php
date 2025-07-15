@@ -25,6 +25,8 @@ class FileUpload extends Model
         'chunk_size',
         'total_chunks',
         'google_drive_file_id',
+        'uploaded_by_user_id',
+        'email', // For backward compatibility with existing uploads
     ];
 
     protected $casts = [
@@ -49,6 +51,14 @@ class FileUpload extends Model
     public function companyUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'company_user_id');
+    }
+
+    /**
+     * Get the user who uploaded this file (employee or admin).
+     */
+    public function uploadedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'uploaded_by_user_id');
     }
 
     /**

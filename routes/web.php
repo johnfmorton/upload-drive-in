@@ -15,6 +15,10 @@ use Illuminate\Http\Request;
 // Public routes
 Route::get('/', [PublicUploadController::class, 'index'])->name('home');
 
+// Employee upload page (public access)
+Route::get('/upload/{name}', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'showByName'])->name('upload.employee');
+Route::post('/upload/{name}', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'uploadByName'])->name('upload.employee.submit');
+
 // Token-based login route (needs to be accessible to everyone)
 Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'loginViaToken'])
     ->middleware('signed')

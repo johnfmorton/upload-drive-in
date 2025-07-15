@@ -60,7 +60,8 @@ class UploadToGoogleDrive implements ShouldQueue
         Log::info('Starting Google Drive upload job', [
             'file_upload_id' => $this->fileUpload->id,
             'local_path' => $localPath,
-            'email' => $email
+            'email' => $email,
+            'uploaded_by_user_id' => $this->fileUpload->uploaded_by_user_id
         ]);
 
         try {
@@ -72,46 +73,63 @@ class UploadToGoogleDrive implements ShouldQueue
                 return;
             }
 
-            // 2. Get or Create User Folder using the service
-            // The service handles finding or creating the folder based on the email
-            Log::info('Getting or creating user folder on Google Drive.', ['email' => $email]);
-            $userFolderId = $driveService->getOrCreateUserFolderId($email);
-            Log::info('Obtained Google Drive user folder ID.', ['email' => $email, 'folder_id' => $userFolderId]);
+            // 2. Determine which user's Google Drive to use
+            $targetUser = null;
+            
+            // If this upload was made by an employee, use their Google Drive
+            if ($this->fileUpload->uploaded_by_user_id) {
+                $targetUser = \App\Models\User::find($this->fileUpload->uploaded_by_user_id);
+                Log::info('Found target user for upload.', [
+                    'target_user_id' => $targetUser?->id,
+                    'is_employee' => $targetUser?->isEmployee(),
+                    'has_drive_connected' => $targetUser?->hasGoogleDriveConnected()
+                ]);
+            }
+            
+            // Fallback to admin user if no employee specified
+            if (!$targetUser) {
+                $targetUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
+                Log::info('Using admin user as fallback for upload.', ['admin_id' => $targetUser?->id]);
+            }
 
-            // 3. Upload the file using the service
+            if (!$targetUser) {
+                throw new Exception('No target user found for Google Drive upload');
+            }
+
+            // 3. Upload the file using the new method
             $description = "Uploaded by: " . $email . "\nMessage: " . ($message ?? 'No message');
 
             Log::info('Attempting file upload via GoogleDriveService.', [
                  'local_path' => $localPath,
-                 'folder_id' => $userFolderId,
+                 'target_user_id' => $targetUser->id,
+                 'client_email' => $email,
                  'target_name' => $originalFilename
             ]);
 
-            $googleDriveFileId = $driveService->uploadFile(
+            $googleDriveFileId = $driveService->uploadFileForUser(
+                $targetUser,
                 $localPath,
-                $userFolderId,
+                $email,
                 $originalFilename,
                 $mimeType,
                 $description
             );
 
-            // 4. Update the FileUpload record with the Google Drive ID
+            // 5. Update the FileUpload record with the Google Drive ID
             $this->fileUpload->update(['google_drive_file_id' => $googleDriveFileId]);
 
             Log::info('Google Drive upload job completed successfully.', [
                 'file_upload_id' => $this->fileUpload->id,
                 'google_drive_file_id' => $googleDriveFileId,
-                'user_folder_id' => $userFolderId
+                'target_user_id' => $targetUser->id
             ]);
 
-            // 5. Optional: Delete the local file after successful upload to save space
-            // Uncomment the following lines if you want this behavior:
+            // 6. Delete the local file after successful upload
             try {
                 Storage::disk('public')->delete($localPath);
                 Log::info('Deleted local file after successful Google Drive upload.', ['path' => $localPath]);
             } catch (Exception $e) {
                 Log::warning('Failed to delete local file after Google Drive upload.', ['path' => $localPath, 'error' => $e->getMessage()]);
-                // Don't fail the job just because local deletion failed.
             }
 
         } catch (Exception $e) {
@@ -120,8 +138,6 @@ class UploadToGoogleDrive implements ShouldQueue
                 'file_upload_id' => $this->fileUpload->id,
                 'email' => $email,
                 'error' => $e->getMessage(),
-                // Only include trace in non-production environments or if essential for debugging
-                // 'trace' => $e->getTraceAsString()
             ]);
 
             // Re-throw the exception to let the queue worker handle retries/failure

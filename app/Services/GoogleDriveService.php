@@ -417,7 +417,13 @@ class GoogleDriveService
      */
     public function getAuthUrl(User $user): string
     {
-        $this->client->setRedirectUri(route('admin.cloud-storage.google-drive.callback'));
+        // Set the appropriate redirect URI based on user role
+        if ($user->isEmployee()) {
+            $this->client->setRedirectUri(route('employee.google-drive.callback', ['username' => $user->username]));
+        } else {
+            $this->client->setRedirectUri(route('admin.cloud-storage.google-drive.callback'));
+        }
+        
         return $this->client->createAuthUrl();
     }
 
@@ -426,7 +432,13 @@ class GoogleDriveService
      */
     public function handleCallback(User $user, string $code): void
     {
-        $this->client->setRedirectUri(route('admin.cloud-storage.google-drive.callback'));
+        // Set the appropriate redirect URI based on user role
+        if ($user->isEmployee()) {
+            $this->client->setRedirectUri(route('employee.google-drive.callback', ['username' => $user->username]));
+        } else {
+            $this->client->setRedirectUri(route('admin.cloud-storage.google-drive.callback'));
+        }
+        
         $token = $this->client->fetchAccessTokenWithAuthCode($code);
 
         if (!isset($token['access_token'])) {
@@ -523,5 +535,92 @@ class GoogleDriveService
             // Delete the token from our database regardless
             $token->delete();
         }
+    }
+
+    /**
+     * Upload a file to Google Drive using a specific user's credentials.
+     * This method handles both employee and admin uploads.
+     */
+    public function uploadFileForUser(
+        User $targetUser,
+        string $localRelativePath,
+        string $clientEmail,
+        string $originalFilename,
+        string $mimeType,
+        ?string $description = null
+    ): string {
+        // Get the appropriate Drive service
+        if ($targetUser->isEmployee() && $targetUser->hasGoogleDriveConnected()) {
+            $driveService = $this->getDriveService($targetUser);
+            $rootFolderId = $targetUser->google_drive_root_folder_id ?? config('cloud-storage.providers.google-drive.root_folder_id');
+        } else {
+            // Fallback to admin's Drive
+            $driveService = $this->getService();
+            $rootFolderId = config('cloud-storage.providers.google-drive.root_folder_id');
+        }
+
+        // Create or find the client folder
+        $sanitizedEmail = $this->sanitizeEmailForFolderName($clientEmail);
+        $folderName = "User: {$sanitizedEmail}";
+
+        // Search for existing folder
+        $query = sprintf(
+            "name = '%s' and mimeType = 'application/vnd.google-apps.folder' and '%s' in parents and trashed = false",
+            addslashes($folderName),
+            addslashes($rootFolderId)
+        );
+
+        $results = $driveService->files->listFiles([
+            'q' => $query,
+            'fields' => 'files(id, name)',
+            'pageSize' => 1
+        ]);
+
+        if (count($results->getFiles()) > 0) {
+            $userFolderId = $results->getFiles()[0]->getId();
+            Log::info('Found existing user folder.', ['folder_id' => $userFolderId]);
+        } else {
+            // Create new folder
+            $folderMetadata = new \Google\Service\Drive\DriveFile([
+                'name' => $folderName,
+                'mimeType' => 'application/vnd.google-apps.folder',
+                'parents' => [$rootFolderId]
+            ]);
+
+            $createdFolder = $driveService->files->create($folderMetadata, ['fields' => 'id']);
+            $userFolderId = $createdFolder->getId();
+            Log::info('Created new user folder.', ['folder_id' => $userFolderId]);
+        }
+
+        // Verify local file exists
+        if (!Storage::disk('public')->exists($localRelativePath)) {
+            throw new Exception("Local file not found: {$localRelativePath}");
+        }
+
+        // Prepare file metadata
+        $fileMetadata = new \Google\Service\Drive\DriveFile([
+            'name' => $originalFilename,
+            'parents' => [$userFolderId]
+        ]);
+        
+        if ($description) {
+            $fileMetadata->setDescription($description);
+        }
+
+        // Get file content
+        $content = Storage::disk('public')->get($localRelativePath);
+        if ($content === false) {
+            throw new Exception("Could not read local file: {$localRelativePath}");
+        }
+
+        // Perform the upload
+        $createdFile = $driveService->files->create($fileMetadata, [
+            'data' => $content,
+            'mimeType' => $mimeType,
+            'uploadType' => 'multipart',
+            'fields' => 'id'
+        ]);
+
+        return $createdFile->getId();
     }
 }

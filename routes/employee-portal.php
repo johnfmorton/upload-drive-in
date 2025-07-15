@@ -13,6 +13,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 Route::get('/', [UploadController::class, 'show'])->name('upload.show');
 Route::get('/google-drive/connect', [UploadController::class, 'connect'])->name('google-drive.connect');
 Route::get('/google-drive/callback', [UploadController::class, 'callback'])->name('google-drive.callback');
+Route::delete('/google-drive/disconnect', [UploadController::class, 'disconnect'])->name('google-drive.disconnect');
 Route::put('/google-drive/folder', [UploadController::class, 'updateFolder'])->name('google-drive.folder.update');
 Route::post('/upload', [UploadController::class, 'upload'])->name('upload');
 

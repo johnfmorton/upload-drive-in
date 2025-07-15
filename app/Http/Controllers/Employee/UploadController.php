@@ -8,21 +8,22 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Models\FileUpload;
-use App\Services\GoogleDriveManager;
+use App\Services\GoogleDriveService;
+use App\Jobs\UploadToGoogleDrive;
 
 class UploadController extends Controller
 {
-    protected GoogleDriveManager $drive_manager;
+    protected GoogleDriveService $driveService;
 
     /**
      * Construct the controller.
      *
-     * @param  GoogleDriveManager  $drive_manager
+     * @param  GoogleDriveService  $driveService
      * @return void
      */
-    public function __construct(GoogleDriveManager $drive_manager)
+    public function __construct(GoogleDriveService $driveService)
     {
-        $this->drive_manager = $drive_manager;
+        $this->driveService = $driveService;
     }
 
     /**
@@ -33,17 +34,8 @@ class UploadController extends Controller
     public function show()
     {
         $user = Auth::user();
-        $current_folder_id = $user->google_drive_root_folder_id
-            ?? config('cloud-storage.providers.google-drive.root_folder_id');
-        $current_folder_name = $this->drive_manager->getFolderName(
-            $user,
-            $current_folder_id
-        );
-
-        return view('employee.upload-page', compact(
-            'current_folder_id',
-            'current_folder_name'
-        ));
+        
+        return view('employee.upload-page', compact('user'));
     }
 
     /**
@@ -53,9 +45,10 @@ class UploadController extends Controller
      */
     public function connect()
     {
-        return redirect(
-            $this->drive_manager->getAuthUrl(Auth::user())
-        );
+        $user = Auth::user();
+        $authUrl = $this->driveService->getAuthUrl($user);
+        
+        return redirect($authUrl);
     }
 
     /**
@@ -66,16 +59,44 @@ class UploadController extends Controller
      */
     public function callback(Request $request)
     {
-        $this->drive_manager->handleCallback(
-            Auth::user(),
-            $request->input('code')
-        );
+        $user = Auth::user();
+        $code = $request->input('code');
+        
+        if (!$code) {
+            return redirect()->route('employee.clients.index', ['username' => $user->username])
+                ->with('error', __('messages.google_drive_connection_failed'));
+        }
 
-        return redirect()->route(
-            'employee.upload.show',
-            ['username' => Auth::user()->username]
-        )
-        ->with('success', __('messages.google_drive_connected'));
+        try {
+            $this->driveService->handleCallback($user, $code);
+            
+            return redirect()->route('employee.clients.index', ['username' => $user->username])
+                ->with('success', __('messages.google_drive_connected'));
+        } catch (\Exception $e) {
+            return redirect()->route('employee.clients.index', ['username' => $user->username])
+                ->with('error', __('messages.google_drive_connection_failed'));
+        }
+    }
+
+    /**
+     * Disconnect Google Drive for the employee.
+     *
+     * @param  Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function disconnect(Request $request)
+    {
+        $user = Auth::user();
+        
+        try {
+            $this->driveService->disconnect($user);
+            
+            return redirect()->route('employee.clients.index', ['username' => $user->username])
+                ->with('success', __('messages.google_drive_disconnected'));
+        } catch (\Exception $e) {
+            return redirect()->route('employee.clients.index', ['username' => $user->username])
+                ->with('error', __('messages.google_drive_disconnect_failed'));
+        }
     }
 
     /**
@@ -90,14 +111,12 @@ class UploadController extends Controller
             'google_drive_root_folder_id' => ['required', 'string'],
         ]);
 
-        $this->drive_manager->updateRootFolder(
-            Auth::user(),
-            $validated['google_drive_root_folder_id']
-        );
+        $user = Auth::user();
+        $user->update(['google_drive_root_folder_id' => $validated['google_drive_root_folder_id']]);
 
         return redirect()->route(
             'employee.upload.show',
-            ['username' => Auth::user()->username]
+            ['username' => $user->username]
         )
         ->with('success', __('messages.save_root_folder'));
     }
@@ -132,9 +151,10 @@ class UploadController extends Controller
                     'validation_method' => 'employee',
                     'mime_type' => $file->getMimeType(),
                     'file_size' => $file->getSize(),
+                    'uploaded_by_user_id' => $user->id, // Track which employee this upload belongs to
                 ]);
 
-                $this->drive_manager->dispatchUploadJob($upload, $user);
+                UploadToGoogleDrive::dispatch($upload);
             }
         }
 
