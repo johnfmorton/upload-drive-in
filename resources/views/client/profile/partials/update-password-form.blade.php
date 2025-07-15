@@ -17,6 +17,13 @@
             <x-input-label for="update_password_current_password" :value="__('messages.password_current')" />
             <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
             <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
+            <p class="mt-2 text-sm text-gray-600">
+                {{ __('Don\'t know your current password?') }} 
+                <button type="button" onclick="sendPasswordReset()" class="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer">
+                    {{ __('Click here to send a password reset link to your email address.') }}
+                </button>
+            </p>
+            <div id="password-reset-status" class="mt-2 text-sm" style="display: none;"></div>
         </div>
 
         <div>

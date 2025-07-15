@@ -111,6 +111,13 @@
                                 <x-input-label for="current_password" :value="__('Current Password')" />
                                 <x-text-input id="current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
                                 <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
+                                <p class="mt-2 text-sm text-gray-600">
+                                    {{ __('Don\'t know your current password?') }} 
+                                    <button type="button" onclick="sendPasswordReset()" class="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer">
+                                        {{ __('Click here to send a password reset link to your email address.') }}
+                                    </button>
+                                </p>
+                                <div id="password-reset-status" class="mt-2 text-sm" style="display: none;"></div>
                             </div>
 
                             <div>
@@ -204,4 +211,51 @@
             </div>
         </div>
     </div>
+
+    <script>
+        async function sendPasswordReset() {
+            const statusDiv = document.getElementById('password-reset-status');
+            const userEmail = '{{ auth()->user()->email }}';
+            
+            // Show loading state
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'mt-2 text-sm text-blue-600';
+            statusDiv.textContent = 'Sending password reset email...';
+            
+            try {
+                const response = await fetch('{{ route("profile.password.reset") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: userEmail
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Success
+                    statusDiv.className = 'mt-2 text-sm text-green-600';
+                    statusDiv.textContent = 'Password reset link sent to your email address!';
+                } else {
+                    // Error
+                    statusDiv.className = 'mt-2 text-sm text-red-600';
+                    statusDiv.textContent = data.message || 'Failed to send password reset email. Please try again.';
+                }
+            } catch (error) {
+                // Network error
+                statusDiv.className = 'mt-2 text-sm text-red-600';
+                statusDiv.textContent = 'Network error. Please try again.';
+            }
+            
+            // Hide the message after 5 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
 </x-app-layout>

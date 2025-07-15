@@ -37,6 +37,11 @@ Route::get('reset-password/{token}', [\App\Http\Controllers\Auth\NewPasswordCont
 Route::post('reset-password', [\App\Http\Controllers\Auth\NewPasswordController::class, 'store'])
     ->name('password.store');
 
+// Password reset for authenticated users (from profile page)
+Route::post('profile/send-password-reset', [\App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])
+    ->middleware('auth')
+    ->name('profile.password.reset');
+
 // Auth routes
 Route::middleware(['guest'])->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
