@@ -13,6 +13,9 @@
         @csrf
         @method('put')
 
+        <!-- Hidden username field for accessibility and password managers -->
+        <input type="hidden" name="username" value="{{ auth()->user()->email }}" autocomplete="username">
+
         <div>
             <x-input-label for="update_password_current_password" :value="__('messages.password_current')" />
             <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />

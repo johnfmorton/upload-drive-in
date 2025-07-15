@@ -29,6 +29,9 @@
             @csrf
             @method('delete')
 
+            <!-- Hidden username field for accessibility and password managers -->
+            <input type="hidden" name="username" value="{{ auth()->user()->email }}" autocomplete="username">
+
             <h2 class="text-lg font-medium text-gray-900">
                 {{ __('messages.delete_account_confirm_title') }}
             </h2>
@@ -39,14 +42,15 @@
 
             @if ($showPasswordField)
                 <div class="mt-6">
-                    <x-input-label for="password" value="{{ __('messages.password') }}" class="sr-only" />
+                    <x-input-label for="employee_delete_password" value="{{ __('messages.password') }}" class="sr-only" />
 
                     <x-text-input
-                        id="password"
+                        id="employee_delete_password"
                         name="password"
                         type="password"
                         class="mt-1 block w-3/4"
                         placeholder="{{ __('messages.password') }}"
+                        autocomplete="current-password"
                     />
 
                     <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2" />

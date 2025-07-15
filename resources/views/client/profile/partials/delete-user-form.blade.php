@@ -20,6 +20,9 @@
             @csrf
             @method('delete')
 
+            <!-- Hidden username field for accessibility and password managers -->
+            <input type="hidden" name="username" value="{{ auth()->user()->email }}" autocomplete="username">
+
             <h2 class="text-lg font-medium text-gray-900">
                 {{ __('messages.delete_account_confirm_title') }}
             </h2>

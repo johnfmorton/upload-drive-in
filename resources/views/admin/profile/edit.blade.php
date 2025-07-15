@@ -107,6 +107,9 @@
                             @csrf
                             @method('put')
 
+                            <!-- Hidden username field for accessibility and password managers -->
+                            <input type="hidden" name="username" value="{{ auth()->user()->email }}" autocomplete="username">
+
                             <div>
                                 <x-input-label for="current_password" :value="__('Current Password')" />
                                 <x-text-input id="current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
@@ -121,8 +124,8 @@
                             </div>
 
                             <div>
-                                <x-input-label for="password" :value="__('New Password')" />
-                                <x-text-input id="password" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
+                                <x-input-label for="update_password_new" :value="__('New Password')" />
+                                <x-text-input id="update_password_new" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
                                 <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-2" />
                             </div>
 
@@ -173,6 +176,9 @@
                                 @csrf
                                 @method('delete')
 
+                                <!-- Hidden username field for accessibility and password managers -->
+                                <input type="hidden" name="username" value="{{ auth()->user()->email }}" autocomplete="username">
+
                                 <h2 class="text-lg font-medium text-gray-900">
                                     {{ __('Are you sure you want to delete your account?') }}
                                 </h2>
@@ -182,14 +188,15 @@
                                 </p>
 
                                 <div class="mt-6">
-                                    <x-input-label for="password" value="{{ __('Password') }}" class="sr-only" />
+                                    <x-input-label for="delete_account_password" value="{{ __('Password') }}" class="sr-only" />
 
                                     <x-text-input
-                                        id="password"
+                                        id="delete_account_password"
                                         name="password"
                                         type="password"
                                         class="mt-1 block w-3/4"
                                         placeholder="{{ __('Password') }}"
+                                        autocomplete="current-password"
                                     />
 
                                     <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2" />
