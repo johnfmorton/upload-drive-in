@@ -22,7 +22,7 @@ enum UserRole: string
         return match($this) {
             self::ADMIN => true,
             self::CLIENT => false,
-            self::EMPLOYEE => false,
+            self::EMPLOYEE => true,
         };
     }
 }

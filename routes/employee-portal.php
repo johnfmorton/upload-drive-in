@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Employee\DashboardController;
 use App\Http\Controllers\Employee\UploadController;
 use App\Http\Controllers\Employee\ProfileController;
+use App\Http\Controllers\Employee\ClientManagementController;
 
 // Employee Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -14,6 +15,10 @@ Route::get('/google-drive/connect', [UploadController::class, 'connect'])->name(
 Route::get('/google-drive/callback', [UploadController::class, 'callback'])->name('google-drive.callback');
 Route::put('/google-drive/folder', [UploadController::class, 'updateFolder'])->name('google-drive.folder.update');
 Route::post('/upload', [UploadController::class, 'upload'])->name('upload');
+
+// Client Management Routes
+Route::get('/clients', [ClientManagementController::class, 'index'])->name('clients.index');
+Route::post('/clients', [ClientManagementController::class, 'store'])->name('clients.store');
 
 // Profile Routes
 Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

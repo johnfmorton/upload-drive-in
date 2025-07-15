@@ -14,13 +14,25 @@ $pendingUploads = \App\Models\FileUpload::where('email', auth()->user()->email)
             ->orWhere('google_drive_file_id', '');
     })
     ->count();
+$totalClients = auth()->user()->clientUsers()->count();
 @endphp
 
 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
     <div class="p-6">
         <h2 class="text-xl font-semibold mb-4">{{ __('Upload Statistics') }}</h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total Clients -->
+            <div class="bg-blue-50 p-4 rounded-lg">
+                <div class="text-blue-600 text-sm">My Clients</div>
+                <div class="text-2xl font-bold text-blue-700">{{ $totalClients }}</div>
+                <div class="mt-2">
+                    <a href="{{ route('employee.clients.index', ['username' => auth()->user()->username]) }}" class="text-blue-600 hover:text-blue-800 text-sm underline">
+                        {{ __('messages.manage_clients') }}
+                    </a>
+                </div>
+            </div>
+
             <!-- Total Uploads -->
             <div class="bg-gray-50 p-4 rounded-lg">
                 <div class="text-gray-500 text-sm">Total Uploads</div>

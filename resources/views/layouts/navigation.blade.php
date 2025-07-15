@@ -33,6 +33,9 @@
                         <x-nav-link :href="route('employee.dashboard', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.dashboard')">
                             {{ __('Dashboard') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('employee.clients.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.clients.*')">
+                            {{ __('messages.nav_client_management') }}
+                        </x-nav-link>
                     @endif
                 </div>
                 {{-- <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
@@ -137,12 +140,19 @@
                     <x-responsive-nav-link :href="route('admin.cloud-storage.index')" :active="request()->routeIs('admin.cloud-storage.index')">
                         {{ __('messages.nav_cloud_storage') }}
                     </x-responsive-nav-link>
-                @else
+                @elseif (Auth::user()->isClient())
                     <x-responsive-nav-link :href="route('client.dashboard')" :active="request()->routeIs('client.dashboard')">
                         {{ __('messages.nav_dashboard') }}
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('client.upload-files')" :active="request()->routeIs('client.upload-files')">
                         {{ __('messages.nav_upload_files') }}
+                    </x-responsive-nav-link>
+                @elseif (Auth::user()->isEmployee())
+                    <x-responsive-nav-link :href="route('employee.dashboard', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.dashboard')">
+                        {{ __('messages.nav_dashboard') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('employee.clients.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.clients.*')">
+                        {{ __('messages.nav_client_management') }}
                     </x-responsive-nav-link>
                 @endif
             </div>

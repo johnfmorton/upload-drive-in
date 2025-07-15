@@ -371,4 +371,20 @@
     'chunk_received_successfully' => 'Chunk received successfully.',
     'failed_to_save_uploaded_file' => 'Failed to save the uploaded file. Please try again.',
     'failed_to_record_file_upload' => 'Failed to record the file upload. Please try again.',
+
+    // Employee Client Management
+    'nav_client_management' => 'Client Management',
+    'client_management_title' => 'Client Management',
+    'my_clients_title' => 'My Clients',
+    'create_client_user' => 'Create Client User',
+    'create_client_description' => 'Create a new client user and send them an invitation email.',
+    'create_client_error_intro' => 'Please correct the following errors:',
+    'client_created_success' => 'Client user created and invitation sent successfully.',
+    'create_and_invite_button' => 'Create & Invite Client',
+    'toggle_client_columns_title' => 'Show/Hide Columns:',
+    'filter_clients_label' => 'Filter clients',
+    'filter_clients_placeholder' => 'Filter by name or email...',
+    'no_clients_match_filter' => 'No clients match your filter criteria.',
+    'no_clients_found' => 'No clients found.',
+    'manage_clients' => 'Manage Clients',
 ];
