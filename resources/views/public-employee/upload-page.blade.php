@@ -1,7 +1,5 @@
 <?php /* resources/views/public-employee/upload-page.blade.php */ ?>
-@extends('layouts.guest')
-
-@section('content')
+<x-guest-layout>
     <div class="py-12">
         <div class="max-w-xl mx-auto sm:px-6 lg:px-8">
             <h1 class="text-2xl font-bold mb-4">{{ __('messages.drop_files_for', ['name' => $username]) }}*</h1>
@@ -48,4 +46,4 @@
             </form>
         </div>
     </div>
-@endsection
+</x-guest-layout>

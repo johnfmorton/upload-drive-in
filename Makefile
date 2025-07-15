@@ -4,6 +4,9 @@ dev:
 	ddev launch
 	ddev php artisan migrate
 	ddev exec php artisan queue:work &
+	@echo "Starting Vite dev server..."
+	@ddev exec pkill -f "vite" || true
+	@sleep 1
 	ddev exec npm run dev
 
 build:
