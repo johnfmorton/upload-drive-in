@@ -76,8 +76,8 @@ class AuthenticatedSessionController extends Controller
      */
     public function loginViaToken(Request $request, User $user): RedirectResponse
     {
-        // Allow both client and employee users via token.
-        if (!$user || (! $user->isClient() && ! $user->isEmployee())) {
+        // Allow admin, client, and employee users via token.
+        if (!$user || (!$user->isAdmin() && !$user->isClient() && !$user->isEmployee())) {
             Log::warning("Attempt to use login token for invalid user: {$user->id}");
             return redirect()->route('home')->with('error', 'Invalid login link.');
         }
@@ -89,7 +89,19 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         // Redirect based on user role
-        if ($user->isClient()) {
+        if ($user->isAdmin()) {
+            // Check if admin has 2FA enabled
+            if ($user->two_factor_enabled) {
+                // Store the intended URL before redirecting to 2FA verification
+                session(['url.intended' => route('admin.dashboard')]);
+                return redirect()->route('admin.2fa.verify')
+                    ->with('warning', 'Please verify your two-factor authentication code.');
+            }
+            
+            // If admin but no 2FA, redirect to admin dashboard
+            return redirect()->route('admin.dashboard')
+                ->with('success', 'Logged in successfully.');
+        } elseif ($user->isClient()) {
             return redirect()->route('client.dashboard')
                 ->with('success', 'Logged in successfully.');
         } else {

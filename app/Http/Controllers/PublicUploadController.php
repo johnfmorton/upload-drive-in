@@ -156,15 +156,18 @@ class PublicUploadController extends Controller
             'verified_at' => now()
         ]);
 
-        // Create a user account if it doesn't exist
-        $user = \App\Models\User::firstOrCreate(
-            ['email' => $email],
-            [
+        // Find existing user or create new client user
+        $user = \App\Models\User::where('email', $email)->first();
+        
+        if (!$user) {
+            // Create new client user if none exists
+            $user = \App\Models\User::create([
                 'name' => explode('@', $email)[0],
+                'email' => $email,
                 'password' => \Illuminate\Support\Str::random(32),
                 'role' => 'client'
-            ]
-        );
+            ]);
+        }
 
         // Log the user in
         \Illuminate\Support\Facades\Auth::login($user);
@@ -174,11 +177,20 @@ class PublicUploadController extends Controller
         if ($intendedUrl) {
             session()->forget('intended_url');
             return redirect($intendedUrl)
-                ->with('success', 'Email verified successfully. You can now upload files.');
+                ->with('success', 'Email verified successfully.');
         }
 
-        // Default redirect to client upload files
-        return redirect()->route('client.upload-files')
-            ->with('success', 'Email verified successfully. You can now upload files.');
+        // Redirect based on user role
+        if ($user->isAdmin()) {
+            return redirect()->route('admin.dashboard')
+                ->with('success', 'Email verified successfully.');
+        } elseif ($user->isEmployee()) {
+            return redirect()->route('employee.dashboard', ['username' => $user->username])
+                ->with('success', 'Email verified successfully.');
+        } else {
+            // Default redirect for client users
+            return redirect()->route('client.upload-files')
+                ->with('success', 'Email verified successfully. You can now upload files.');
+        }
     }
 }
