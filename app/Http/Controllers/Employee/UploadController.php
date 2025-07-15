@@ -15,14 +15,13 @@ class UploadController extends Controller
     protected GoogleDriveManager $drive_manager;
 
     /**
-     * Construct the controller and apply middleware.
+     * Construct the controller.
      *
      * @param  GoogleDriveManager  $drive_manager
      * @return void
      */
     public function __construct(GoogleDriveManager $drive_manager)
     {
-        $this->middleware(['auth', 'employee']);
         $this->drive_manager = $drive_manager;
     }
 
