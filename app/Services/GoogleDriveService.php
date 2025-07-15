@@ -39,98 +39,7 @@ class GoogleDriveService
         $this->client->setPrompt('consent');
     }
 
-    /**
-     * Initializes the Google API client and authenticates.
-     * Stores the client and service instance for reuse within the request lifecycle.
-     *
-     * @throws Exception If authentication fails or configuration is missing.
-     */
-    private function initializeClient(): void
-    {
-        // Only initialize once per service instance
-        if ($this->client) {
-            return;
-        }
 
-        // Check for credentials file
-        $credentialsPath = Storage::path('google-credentials.json');
-        if (!file_exists($credentialsPath)) {
-            Log::error('Google Drive credentials file not found.', ['path' => $credentialsPath]);
-            throw new Exception('Google Drive token (google-credentials.json) not found. Please connect Google Drive in admin settings.');
-        }
-
-        // Check for required configuration values
-        $clientId = config('cloud-storage.providers.google-drive.client_id');
-        $clientSecret = config('cloud-storage.providers.google-drive.client_secret');
-        if (!$clientId || !$clientSecret) {
-            Log::error('Google Drive client ID or secret is not configured.');
-            throw new Exception('Google Drive API client ID or secret is missing in configuration.');
-        }
-
-        try {
-            $client = new Client();
-            $client->setClientId($clientId);
-            $client->setClientSecret($clientSecret);
-            // Requesting full DRIVE scope allows creating folders, uploading files, deleting files/folders
-            $client->addScope(Drive::DRIVE);
-            $client->setAccessType('offline'); // Required to get refresh tokens
-            $client->setPrompt('select_account consent'); // Useful during the initial auth flow
-
-            // Load token
-            $token = json_decode(file_get_contents($credentialsPath), true);
-            if (!$token || !isset($token['access_token'])) {
-                Log::error('Invalid Google Drive token format found.', ['path' => $credentialsPath]);
-                throw new Exception('Invalid Google Drive token format.');
-            }
-            $client->setAccessToken($token);
-
-            // Refresh token if expired
-            if ($client->isAccessTokenExpired()) {
-                Log::info('Google Drive access token expired, attempting refresh.');
-                $refreshToken = $client->getRefreshToken();
-                if ($refreshToken) {
-                    $client->fetchAccessTokenWithRefreshToken($refreshToken);
-                    $newAccessToken = $client->getAccessToken();
-                    // Persist the new token (includes refresh token if granted)
-                    file_put_contents($credentialsPath, json_encode($newAccessToken));
-                    Log::info('Google Drive token refreshed and saved successfully.');
-                    // Update the client's token in memory
-                    $client->setAccessToken($newAccessToken);
-                } else {
-                    // No refresh token available - requires re-authentication by the user
-                    Log::error('Google Drive token expired, but no refresh token available.');
-                    // Optionally: trigger an event or notification to prompt re-authentication
-                    throw new Exception('Google Drive token expired, and no refresh token available. Please reconnect Google Drive.');
-                }
-            }
-
-            $this->client = $client;
-            $this->service = new Drive($client);
-        } catch (Exception $e) {
-            Log::error('Failed to initialize Google Drive client.', [
-                'error' => $e->getMessage(),
-                // Avoid logging full trace in production unless necessary for debugging
-                // 'trace' => $e->getTraceAsString()
-            ]);
-            // Re-throw the exception to be handled by the caller
-            throw $e;
-        }
-    }
-
-    /**
-     * Returns an authenticated Google Drive service instance.
-     * Initializes the client if it hasn't been already.
-     *
-     * @return Drive The authenticated Google Drive service.
-     * @throws Exception If initialization fails.
-     */
-    public function getService(): Drive
-    {
-        if (!$this->service) {
-            $this->initializeClient();
-        }
-        return $this->service;
-    }
 
     /**
      * Returns the configured Google Drive Root Folder ID.
@@ -171,14 +80,15 @@ class GoogleDriveService
      * Finds the Google Drive folder ID for a given user email within the root application folder.
      * Constructs the expected folder name using sanitizeEmailForFolderName.
      *
+     * @param User $user The user whose Google Drive to search in.
      * @param string $email The user's email address.
      * @return string|null The Google Drive folder ID if found, otherwise null.
      * @throws Exception If Google Drive API interaction fails.
      */
-    public function findUserFolderId(string $email): ?string
+    public function findUserFolderId(User $user, string $email): ?string
     {
         try {
-            $service = $this->getService();
+            $service = $this->getDriveService($user);
             $sanitizedEmail = $this->sanitizeEmailForFolderName($email);
             $folderName = "User: {$sanitizedEmail}"; // Consistent naming convention
             $rootFolderId = $this->getRootFolderId();
@@ -232,13 +142,14 @@ class GoogleDriveService
      * Gets the folder ID for a user, creating the folder if it doesn't exist.
      * Uses findUserFolderId first, then creates if necessary.
      *
+     * @param User $user The user whose Google Drive to use.
      * @param string $email The user's email address.
      * @return string The Google Drive folder ID (existing or newly created).
      * @throws Exception If folder cannot be found or created.
      */
-    public function getOrCreateUserFolderId(string $email): string
+    public function getOrCreateUserFolderId(User $user, string $email): string
     {
-        $folderId = $this->findUserFolderId($email);
+        $folderId = $this->findUserFolderId($user, $email);
 
         if ($folderId) {
             return $folderId;
@@ -246,7 +157,7 @@ class GoogleDriveService
 
         // If not found, create it
         try {
-            $service = $this->getService();
+            $service = $this->getDriveService($user);
             $sanitizedEmail = $this->sanitizeEmailForFolderName($email);
             $folderName = "User: {$sanitizedEmail}";
             $rootFolderId = $this->getRootFolderId();
@@ -286,14 +197,15 @@ class GoogleDriveService
     /**
      * Deletes a Google Drive folder (moves it to trash).
      *
+     * @param User $user The user whose Google Drive to use.
      * @param string $folderId The ID of the folder to delete.
      * @return bool True on success, false otherwise.
      * @throws Exception If the API call fails.
      */
-    public function deleteFolder(string $folderId): bool
+    public function deleteFolder(User $user, string $folderId): bool
     {
         try {
-            $service = $this->getService();
+            $service = $this->getDriveService($user);
             Log::info('Attempting to delete Google Drive folder.', ['folder_id' => $folderId]);
             $service->files->delete($folderId);
             Log::info('Successfully deleted Google Drive folder (moved to trash).', ['folder_id' => $folderId]);
@@ -314,6 +226,7 @@ class GoogleDriveService
     /**
      * Uploads a file from local storage to a specified Google Drive folder.
      *
+     * @param User $user The user whose Google Drive to use.
      * @param string $localRelativePath The path of the file in Laravel's public storage (e.g., 'uploads/filename.ext').
      * @param string $driveFolderId The ID of the Google Drive folder to upload into.
      * @param string $originalFilename The desired name of the file in Google Drive.
@@ -323,6 +236,7 @@ class GoogleDriveService
      * @throws Exception If the local file doesn't exist or the upload fails.
      */
     public function uploadFile(
+        User $user,
         string $localRelativePath,
         string $driveFolderId,
         string $originalFilename,
@@ -336,7 +250,7 @@ class GoogleDriveService
         }
 
         try {
-            $service = $this->getService();
+            $service = $this->getDriveService($user);
             Log::info('Starting file upload to Google Drive.', [
                 'local_path' => $localRelativePath,
                 'drive_folder_id' => $driveFolderId,
@@ -388,14 +302,15 @@ class GoogleDriveService
     /**
      * Deletes a file from Google Drive.
      *
+     * @param User $user The user whose Google Drive to use.
      * @param string $fileId The ID of the file to delete.
      * @return bool True on success, false otherwise.
      * @throws Exception If the API call fails.
      */
-    public function deleteFile(string $fileId): bool
+    public function deleteFile(User $user, string $fileId): bool
     {
         try {
-            $service = $this->getService();
+            $service = $this->getDriveService($user);
             Log::info('Attempting to delete Google Drive file.', ['file_id' => $fileId]);
             $service->files->delete($fileId);
             Log::info('Successfully deleted Google Drive file.', ['file_id' => $fileId]);

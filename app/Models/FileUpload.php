@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Services\CloudStorage\CloudStorageFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -62,35 +61,48 @@ class FileUpload extends Model
     }
 
     /**
-     * Get the cloud storage provider instance for this file upload.
-     *
-     * @return \App\Services\CloudStorage\CloudStorageProvider
-     */
-    public function getStorageProvider()
-    {
-        $factory = new CloudStorageFactory();
-        return $factory->create($this->storage_provider);
-    }
-
-    /**
-     * Delete the file from cloud storage.
+     * Delete the file from Google Drive using the new service approach.
      *
      * @return bool True if deletion was successful, false otherwise
      */
-    public function deleteFromCloudStorage(): bool
+    public function deleteFromGoogleDrive(): bool
     {
-        if (!$this->provider_file_id) {
+        if (!$this->google_drive_file_id) {
             return true; // Nothing to delete
         }
 
         try {
-            $provider = $this->getStorageProvider();
-            return $provider->deleteFile($this->provider_file_id);
-        } catch (\Exception $e) {
-            \Log::error('Failed to delete file from cloud storage', [
+            // Find a user with Google Drive connected to perform the deletion
+            $user = $this->uploadedByUser;
+            if (!$user || !$user->hasGoogleDriveConnected()) {
+                // Fallback to admin user
+                $user = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)
+                    ->whereHas('googleDriveToken')
+                    ->first();
+            }
+
+            if (!$user) {
+                \Log::warning('No user with Google Drive connection found for file deletion', [
+                    'file_upload_id' => $this->id,
+                    'google_drive_file_id' => $this->google_drive_file_id
+                ]);
+                return false;
+            }
+
+            $driveService = app(\App\Services\GoogleDriveService::class);
+            $service = $driveService->getDriveService($user);
+            $service->files->delete($this->google_drive_file_id);
+            
+            \Log::info('Successfully deleted file from Google Drive', [
                 'file_upload_id' => $this->id,
-                'provider' => $this->storage_provider,
-                'provider_file_id' => $this->provider_file_id,
+                'google_drive_file_id' => $this->google_drive_file_id
+            ]);
+            
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete file from Google Drive', [
+                'file_upload_id' => $this->id,
+                'google_drive_file_id' => $this->google_drive_file_id,
                 'error' => $e->getMessage()
             ]);
             return false;

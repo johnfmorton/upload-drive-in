@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\PublicUploadController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileUploadController;

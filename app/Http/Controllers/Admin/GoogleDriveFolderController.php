@@ -4,37 +4,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Google\Client;
 use Google\Service\Drive;
 use Google\Service\Drive\DriveFile;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Services\GoogleDriveService;
 
 class GoogleDriveFolderController extends Controller
 {
-    protected Client $client;
-    protected Drive $service;
+    protected GoogleDriveService $driveService;
     protected string $defaultFolderId;
 
-    public function __construct()
+    public function __construct(GoogleDriveService $driveService)
     {
-        $this->client = new Client();
-        $this->client->setClientId(config('cloud-storage.providers.google-drive.client_id'));
-        $this->client->setClientSecret(config('cloud-storage.providers.google-drive.client_secret'));
-        $this->client->setRedirectUri(config('cloud-storage.providers.google-drive.redirect_uri'));
-        $this->client->addScope(Drive::DRIVE_METADATA_READONLY);
-        $this->client->addScope(Drive::DRIVE);
-        $this->client->setAccessType('offline');
-        $this->client->setPrompt('consent');
-
-        if (Storage::exists('google-credentials.json')) {
-            $token = json_decode(Storage::get('google-credentials.json'), true);
-            $this->client->setAccessToken($token);
-        } else {
-            throw new \Exception('Google Drive not connected.');
-        }
-
-        $this->service = new Drive($this->client);
+        $this->driveService = $driveService;
         $this->defaultFolderId = 'root';
     }
 
@@ -44,10 +27,16 @@ class GoogleDriveFolderController extends Controller
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         $parentId = $request->input('parent_id', $this->defaultFolderId);
+        $user = Auth::user();
+
+        if (!$user->hasGoogleDriveConnected()) {
+            return response()->json(['error' => 'Google Drive not connected'], 403);
+        }
 
         try {
+            $service = $this->driveService->getDriveService($user);
             $query = sprintf("mimeType='application/vnd.google-apps.folder' and trashed=false and '%s' in parents", $parentId);
-            $response = $this->service->files->listFiles([
+            $response = $service->files->listFiles([
                 'q' => $query,
                 'fields' => 'files(id,name)',
             ]);
@@ -71,14 +60,21 @@ class GoogleDriveFolderController extends Controller
             'name' => ['required', 'string'],
         ]);
 
+        $user = Auth::user();
+
+        if (!$user->hasGoogleDriveConnected()) {
+            return response()->json(['error' => 'Google Drive not connected'], 403);
+        }
+
         try {
+            $service = $this->driveService->getDriveService($user);
             $fileMetadata = new DriveFile([
                 'name' => $validated['name'],
                 'mimeType' => 'application/vnd.google-apps.folder',
                 'parents' => [$validated['parent_id']],
             ]);
 
-            $folder = $this->service->files->create($fileMetadata, ['fields' => 'id,name']);
+            $folder = $service->files->create($fileMetadata, ['fields' => 'id,name']);
 
             return response()->json(['folder' => ['id' => $folder->id, 'name' => $folder->name]]);
         } catch (\Exception $e) {
@@ -92,8 +88,15 @@ class GoogleDriveFolderController extends Controller
      */
     public function show(string $folderId): \Illuminate\Http\JsonResponse
     {
+        $user = Auth::user();
+
+        if (!$user->hasGoogleDriveConnected()) {
+            return response()->json(['error' => 'Google Drive not connected'], 403);
+        }
+
         try {
-            $folder = $this->service->files->get($folderId, ['fields' => 'id,name']);
+            $service = $this->driveService->getDriveService($user);
+            $folder = $service->files->get($folderId, ['fields' => 'id,name']);
             return response()->json(['folder' => ['id' => $folder->id, 'name' => $folder->name]]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch Google Drive folder', ['error' => $e->getMessage(), 'folderId' => $folderId]);
