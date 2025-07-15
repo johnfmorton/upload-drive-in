@@ -79,7 +79,7 @@ class GoogleDriveService
             // Load token
             $token = json_decode(file_get_contents($credentialsPath), true);
             if (!$token || !isset($token['access_token'])) {
-                 Log::error('Invalid Google Drive token format found.', ['path' => $credentialsPath]);
+                Log::error('Invalid Google Drive token format found.', ['path' => $credentialsPath]);
                 throw new Exception('Invalid Google Drive token format.');
             }
             $client->setAccessToken($token);
@@ -106,7 +106,6 @@ class GoogleDriveService
 
             $this->client = $client;
             $this->service = new Drive($client);
-
         } catch (Exception $e) {
             Log::error('Failed to initialize Google Drive client.', [
                 'error' => $e->getMessage(),
@@ -213,7 +212,7 @@ class GoogleDriveService
                 return $folderId;
             } else {
                 Log::info('User folder not found in Google Drive.', [
-                     'email' => $email,
+                    'email' => $email,
                     'searched_name' => $folderName,
                     'parent_id' => $rootFolderId
                 ]);
@@ -229,7 +228,7 @@ class GoogleDriveService
         }
     }
 
-     /**
+    /**
      * Gets the folder ID for a user, creating the folder if it doesn't exist.
      * Uses findUserFolderId first, then creates if necessary.
      *
@@ -253,9 +252,9 @@ class GoogleDriveService
             $rootFolderId = $this->getRootFolderId();
 
             Log::info('User folder not found, creating new folder in Google Drive.', [
-                 'email' => $email,
-                 'folder_name' => $folderName,
-                 'parent_id' => $rootFolderId
+                'email' => $email,
+                'folder_name' => $folderName,
+                'parent_id' => $rootFolderId
             ]);
 
             $folderMetadata = new DriveFile([
@@ -268,13 +267,12 @@ class GoogleDriveService
             $newFolderId = $createdFolder->getId();
 
             Log::info('Successfully created new user folder in Google Drive.', [
-                 'email' => $email,
-                 'folder_name' => $folderName,
-                 'folder_id' => $newFolderId
+                'email' => $email,
+                'folder_name' => $folderName,
+                'folder_id' => $newFolderId
             ]);
 
             return $newFolderId;
-
         } catch (Exception $e) {
             Log::error('Failed to create user folder in Google Drive.', [
                 'email' => $email,
@@ -298,18 +296,18 @@ class GoogleDriveService
             $service = $this->getService();
             Log::info('Attempting to delete Google Drive folder.', ['folder_id' => $folderId]);
             $service->files->delete($folderId);
-             Log::info('Successfully deleted Google Drive folder (moved to trash).', ['folder_id' => $folderId]);
+            Log::info('Successfully deleted Google Drive folder (moved to trash).', ['folder_id' => $folderId]);
             return true;
         } catch (Exception $e) {
-             // Check for specific "not found" errors if needed (e.g., $e->getCode() == 404)
+            // Check for specific "not found" errors if needed (e.g., $e->getCode() == 404)
             Log::error('Failed to delete Google Drive folder.', [
                 'folder_id' => $folderId,
                 'error' => $e->getMessage(),
             ]);
-             // Depending on requirements, you might want to return false or re-throw
-             // Returning false allows the caller to potentially continue other operations
-             // throw $e; // Uncomment if failure should halt the process
-             return false;
+            // Depending on requirements, you might want to return false or re-throw
+            // Returning false allows the caller to potentially continue other operations
+            // throw $e; // Uncomment if failure should halt the process
+            return false;
         }
     }
 
@@ -357,8 +355,8 @@ class GoogleDriveService
             // Get file content (consider streaming for very large files)
             $content = Storage::disk('public')->get($localRelativePath);
             if ($content === false) {
-                 Log::error('Failed to read local file content.', ['path' => $localRelativePath]);
-                 throw new Exception("Could not read local file: {$localRelativePath}");
+                Log::error('Failed to read local file content.', ['path' => $localRelativePath]);
+                throw new Exception("Could not read local file: {$localRelativePath}");
             }
 
             // Perform the upload
@@ -371,13 +369,12 @@ class GoogleDriveService
 
             $newFileId = $createdFile->getId();
             Log::info('File successfully uploaded to Google Drive.', [
-                 'local_path' => $localRelativePath,
-                 'drive_file_id' => $newFileId,
-                 'drive_folder_id' => $driveFolderId
+                'local_path' => $localRelativePath,
+                'drive_file_id' => $newFileId,
+                'drive_folder_id' => $driveFolderId
             ]);
 
             return $newFileId;
-
         } catch (Exception $e) {
             Log::error('Failed to upload file to Google Drive.', [
                 'local_path' => $localRelativePath,
@@ -423,7 +420,7 @@ class GoogleDriveService
         } else {
             $this->client->setRedirectUri(route('admin.cloud-storage.google-drive.callback'));
         }
-        
+
         return $this->client->createAuthUrl();
     }
 
@@ -438,7 +435,7 @@ class GoogleDriveService
         } else {
             $this->client->setRedirectUri(route('admin.cloud-storage.google-drive.callback'));
         }
-        
+
         $token = $this->client->fetchAccessTokenWithAuthCode($code);
 
         if (!isset($token['access_token'])) {
@@ -549,14 +546,59 @@ class GoogleDriveService
         string $mimeType,
         ?string $description = null
     ): string {
-        // Get the appropriate Drive service
+        $driveService = null;
+        $rootFolderId = null;
+
+        // Try to get the employee's Drive service if they have it connected
         if ($targetUser->isEmployee() && $targetUser->hasGoogleDriveConnected()) {
-            $driveService = $this->getDriveService($targetUser);
-            $rootFolderId = $targetUser->google_drive_root_folder_id ?? config('cloud-storage.providers.google-drive.root_folder_id');
-        } else {
-            // Fallback to admin's Drive
-            $driveService = $this->getService();
-            $rootFolderId = config('cloud-storage.providers.google-drive.root_folder_id');
+            try {
+                $driveService = $this->getDriveService($targetUser);
+                $rootFolderId = $targetUser->google_drive_root_folder_id ?? config('cloud-storage.providers.google-drive.root_folder_id');
+                Log::info('Using employee Google Drive for upload', [
+                    'employee_id' => $targetUser->id,
+                    'employee_email' => $targetUser->email
+                ]);
+            } catch (Exception $e) {
+                Log::warning('Failed to get employee Google Drive service, falling back to admin', [
+                    'employee_id' => $targetUser->id,
+                    'error' => $e->getMessage()
+                ]);
+                $driveService = null;
+            }
+        }
+
+        // Fallback to admin's Drive if employee doesn't have Drive connected or there was an error
+        if (!$driveService) {
+            // Find an admin user with Google Drive connected
+            $adminUser = User::where('role', \App\Enums\UserRole::ADMIN)
+                ->whereHas('googleDriveToken')
+                ->first();
+
+            if ($adminUser && $adminUser->hasGoogleDriveConnected()) {
+                try {
+                    $driveService = $this->getDriveService($adminUser);
+                    $rootFolderId = config('cloud-storage.providers.google-drive.root_folder_id');
+                    Log::info('Using admin Google Drive for upload as fallback', [
+                        'admin_id' => $adminUser->id,
+                        'target_employee_id' => $targetUser->id
+                    ]);
+                } catch (Exception $e) {
+                    Log::error('Failed to get admin Google Drive service', [
+                        'admin_id' => $adminUser->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    throw new Exception('No valid Google Drive connection available for upload. Please ensure either the employee or an admin has connected their Google Drive account.');
+                }
+            } else {
+                Log::error('No Google Drive connection available - no admin user with Google Drive token found', [
+                    'target_user_id' => $targetUser->id
+                ]);
+                throw new Exception('No Google Drive connection available. Please ensure either the employee has connected their Google Drive account, or an admin user has connected their Google Drive account.');
+            }
+        }
+
+        if (!$driveService) {
+            throw new Exception('Unable to establish Google Drive connection for upload.');
         }
 
         // Create or find the client folder
@@ -602,7 +644,7 @@ class GoogleDriveService
             'name' => $originalFilename,
             'parents' => [$userFolderId]
         ]);
-        
+
         if ($description) {
             $fileMetadata->setDescription($description);
         }

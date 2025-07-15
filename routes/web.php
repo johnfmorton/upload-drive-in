@@ -18,6 +18,9 @@ Route::get('/', [PublicUploadController::class, 'index'])->name('home');
 // Employee upload page (public access)
 Route::get('/upload/{name}', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'showByName'])->name('upload.employee');
 Route::post('/upload/{name}', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'uploadByName'])->name('upload.employee.submit');
+Route::post('/upload/{name}/chunk', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'chunkUpload'])->name('upload.employee.chunk');
+Route::post('/upload/{name}/associate-message', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'associateMessage'])->name('upload.employee.associate-message');
+Route::post('/upload/{name}/batch-complete', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'batchComplete'])->name('upload.employee.batch-complete');
 
 // Token-based login route (needs to be accessible to everyone)
 Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'loginViaToken'])
