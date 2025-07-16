@@ -79,9 +79,27 @@ class AdminUserController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(User $user)
     {
-        //
+        // Ensure the user is a client
+        if ($user->role->value !== 'client') {
+            abort(404);
+        }
+        
+        $client = $user->load(['companyUsers', 'clientUserRelationships.companyUser']);
+        
+        // Get all employees and admins for assignment
+        $availableTeamMembers = User::whereIn('role', ['admin', 'employee'])
+            ->where('owner_id', Auth::id())
+            ->orWhere('id', Auth::id())
+            ->get();
+        
+        // Get client's upload history
+        $uploads = FileUpload::where('email', $client->email)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+        
+        return view('admin.users.show', compact('client', 'availableTeamMembers', 'uploads'));
     }
 
     /**
@@ -270,5 +288,48 @@ class AdminUserController extends Controller
         }
 
         return redirect()->route('admin.users.index')->with('success', $message);
+    }
+
+    /**
+     * Update team assignments for a client user.
+     */
+    public function updateTeamAssignments(Request $request, User $user)
+    {
+        // Ensure the user is a client
+        if ($user->role->value !== 'client') {
+            abort(404);
+        }
+        
+        $client = $user;
+        
+        $validated = $request->validate([
+            'team_members' => 'array',
+            'team_members.*' => 'exists:users,id',
+            'primary_contact' => 'nullable|exists:users,id',
+        ]);
+
+        try {
+            // Remove existing relationships
+            $client->companyUsers()->detach();
+            
+            // Add new relationships
+            if (!empty($validated['team_members'])) {
+                $teamData = [];
+                foreach ($validated['team_members'] as $memberId) {
+                    $teamData[$memberId] = [
+                        'is_primary' => $memberId == $validated['primary_contact']
+                    ];
+                }
+                $client->companyUsers()->attach($teamData);
+            }
+            
+            return redirect()->route('admin.users.show', $client->id)
+                ->with('success', 'Team assignments updated successfully.');
+                
+        } catch (Exception $e) {
+            Log::error("Error updating team assignments for client {$id}: " . $e->getMessage());
+            return redirect()->route('admin.users.show', $client->id)
+                ->with('error', 'Failed to update team assignments.');
+        }
     }
 }

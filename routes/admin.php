@@ -32,10 +32,12 @@ Route::post('/files/process-pending', [DashboardController::class, 'processPendi
 
 // User Management
 Route::resource('/users', AdminUserController::class)
-    ->only(['index', 'destroy'])
+    ->only(['index', 'show', 'destroy'])
     ->names('users');
 Route::post('/users', [AdminUserController::class, 'store'])
     ->name('users.store');
+Route::post('/users/{user}/team', [AdminUserController::class, 'updateTeamAssignments'])
+    ->name('users.team.update');
 
 // Employee Management
 Route::resource('/employees', EmployeeController::class)

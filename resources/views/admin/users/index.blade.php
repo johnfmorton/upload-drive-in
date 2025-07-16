@@ -269,6 +269,10 @@
                                     <div class="flex justify-between items-start gap-2">
                                         <div class="font-medium text-gray-900 break-words" x-text="client.name"></div>
                                         <div class="flex shrink-0 space-x-2">
+                                            {{-- Manage Button --}}
+                                            <a :href="`/admin/users/${client.id}`" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-[var(--brand-color)] bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)]">
+                                                Manage
+                                            </a>
                                             {{-- Copy URL Button --}}
                                             <button @click="copyLoginUrl(client)" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)]">
                                                 <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
@@ -356,6 +360,7 @@
                                             </template>
                                             <template x-if="columns.actions">
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                                    <a :href="`/admin/users/${client.id}`" class="text-[var(--brand-color)] hover:text-[var(--brand-color)]/80">Manage</a>
                                                     <button @click="deleteUser(client.id)" class="text-red-600 hover:text-red-900">{{ __('messages.delete_button') }}</button>
                                                 </td>
                                             </template>
