@@ -34,15 +34,15 @@
     - Write tests for bulk download functionality
     - _Requirements: 4.4, 4.5_
 
-- [ ] 4. Implement file preview system
-  - [ ] 4.1 Create FilePreviewService
+- [x] 4. Implement file preview system
+  - [x] 4.1 Create FilePreviewService
     - Write service class with MIME type detection
     - Implement preview generation for images, PDFs, and text files
     - Add thumbnail generation capabilities
     - Create unit tests for preview service
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-  - [ ] 4.2 Add preview endpoints and logic
+  - [x] 4.2 Add preview endpoints and logic
     - Create preview route in FileManagerController
     - Implement file content retrieval from local/Google Drive
     - Add error handling for unsupported file types

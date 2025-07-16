@@ -190,7 +190,7 @@ class FileUpload extends Model
             return null;
         }
 
-        return route('admin.files.preview', $this);
+        return route('files.preview', $this);
     }
 
     /**
@@ -200,7 +200,7 @@ class FileUpload extends Model
      */
     public function getDownloadUrl(): string
     {
-        return route('admin.files.download', $this);
+        return route('admin.file-manager.download', $this);
     }
 
     /**
@@ -214,7 +214,7 @@ class FileUpload extends Model
             return null;
         }
 
-        return route('admin.files.thumbnail', $this);
+        return route('files.thumbnail', $this);
     }
 
     /**

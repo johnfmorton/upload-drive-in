@@ -87,3 +87,11 @@ Route::post('/api/uploads/batch-complete', [UploadController::class, 'batchCompl
 Route::get('/notifications/upload/unsubscribe/{user}', [NotificationSettingsController::class, 'unsubscribeUploads'])
     ->name('notifications.upload.unsubscribe')
     ->middleware('signed');
+
+// File preview and thumbnail routes (accessible to all authenticated users)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/files/{file}/preview', [\App\Http\Controllers\Admin\FileManagerController::class, 'preview'])
+        ->name('files.preview');
+    Route::get('/files/{file}/thumbnail', [\App\Http\Controllers\Admin\FileManagerController::class, 'thumbnail'])
+        ->name('files.thumbnail');
+});
