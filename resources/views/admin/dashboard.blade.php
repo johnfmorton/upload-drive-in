@@ -196,9 +196,29 @@
                         }
                     }"
                     class="max-w-full">
-                    <h2 class="text-lg font-medium text-gray-900 mb-4">
-                        {{ __('messages.uploaded_files_title') }}
-                    </h2>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-medium text-gray-900">
+                            {{ __('messages.uploaded_files_title') }}
+                        </h2>
+                        <div class="flex items-center space-x-2">
+                            @php
+                                $pendingCount = \App\Models\FileUpload::pending()->count();
+                            @endphp
+                            @if($pendingCount > 0)
+                                <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                                    {{ $pendingCount }} pending
+                                </span>
+                                <form action="{{ route('admin.files.process-pending') }}" method="POST" class="inline">
+                                    @csrf
+                                    <button type="submit" 
+                                            class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            onclick="return confirm('Process {{ $pendingCount }} pending uploads? This will queue them for Google Drive upload.')">
+                                        Process Pending
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
 
                     <!-- Column Visibility Controls -->
                     <div class="mb-4 p-4 border rounded bg-gray-50 hidden lg:block">

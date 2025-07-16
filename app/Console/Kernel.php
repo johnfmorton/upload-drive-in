@@ -45,6 +45,13 @@ class Kernel extends ConsoleKernel
                  ->withoutOverlapping()
                  ->runInBackground()
                  ->appendOutputTo(storage_path('logs/token-refresh.log'));
+
+        // Process pending uploads every 30 minutes
+        $schedule->command('uploads:process-pending --limit=25')
+                 ->everyThirtyMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/pending-uploads.log'));
     }
 
     /**

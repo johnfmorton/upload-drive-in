@@ -50,30 +50,67 @@ ddev artisan uploads:clear-old --hours=1
 
 ### `uploads:process-pending`
 
-**Purpose**: Manually trigger processing of files that haven't been uploaded to Google Drive yet.
+**Purpose**: Process pending file uploads that failed to upload to Google Drive due to connection issues or other temporary problems.
 
-**Signature**: `uploads:process-pending`
+**Signature**: `uploads:process-pending {--user-id=} {--dry-run} {--limit=50}`
 
-**Description**: Finds all file uploads without a Google Drive file ID and dispatches background jobs to upload them to Google Drive.
+**Description**: Identifies files without a `google_drive_file_id` and re-queues them for Google Drive upload. Includes validation for local file existence and Google Drive connectivity.
 
-**Usage**:
+**Options**:
+
+- `--user-id=` (optional): Process pending uploads for a specific user ID only
+- `--dry-run` (optional): Show what would be processed without actually processing
+- `--limit=50` (optional): Maximum number of uploads to process (default: 50)
+
+**Usage Examples**:
 
 ```bash
+# Process all pending uploads (default limit: 50)
 ddev artisan uploads:process-pending
+
+# See what would be processed without actually processing
+ddev artisan uploads:process-pending --dry-run
+
+# Process uploads for a specific user
+ddev artisan uploads:process-pending --user-id=123
+
+# Process with custom limit
+ddev artisan uploads:process-pending --limit=10
+
+# Combine options
+ddev artisan uploads:process-pending --user-id=123 --limit=5 --dry-run
 ```
 
 **Behavior**:
 
 - Queries `file_uploads` table for records missing `google_drive_file_id`
-- Dispatches `UploadToGoogleDrive` job for each pending file
-- Provides detailed logging and console output
-- Handles exceptions gracefully for individual files
+- Validates local files still exist in storage
+- Determines appropriate user with Google Drive connection
+- Dispatches `UploadToGoogleDrive` job for valid files
+- Provides detailed console output with status indicators
+- Logs all operations for monitoring
+
+**Output Indicators**:
+
+- ✅ Successfully queued for processing
+- ⚠️ Skipped (missing connection, file issues)
+- ❌ Error occurred
+- 🔍 Dry run indicator
+
+**User Priority for Google Drive**:
+
+1. **Uploaded By User**: Employee who uploaded the file
+2. **Company User**: Assigned company user for the upload
+3. **Admin Fallback**: Any admin user with Google Drive connected
 
 **Use Cases**:
 
-- Recovery after queue worker failures
-- Manual processing during development
+- Recovery after Google Drive connection issues
+- Processing uploads after service outages
+- Manual intervention during development
 - Batch processing of accumulated uploads
+
+**Automatic Processing**: This command also runs automatically every 30 minutes via Laravel scheduler (see [Pending Uploads Documentation](docs/pending-uploads.md) for details).
 
 ## User Administration Commands
 

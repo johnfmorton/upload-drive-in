@@ -50,4 +50,38 @@ class DashboardController extends AdminController
                 ->with('error', 'Error deleting file: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Process pending uploads that failed to upload to Google Drive.
+     */
+    public function processPendingUploads()
+    {
+        try {
+            // Get pending uploads count
+            $pendingCount = FileUpload::whereNull('google_drive_file_id')
+                ->orWhere('google_drive_file_id', '')
+                ->count();
+
+            if ($pendingCount === 0) {
+                return redirect()->route('admin.dashboard')
+                    ->with('info', 'No pending uploads found.');
+            }
+
+            // Call the artisan command to process pending uploads
+            \Illuminate\Support\Facades\Artisan::call('uploads:process-pending', [
+                '--limit' => 50
+            ]);
+
+            $output = \Illuminate\Support\Facades\Artisan::output();
+            Log::info('Processed pending uploads via admin interface', ['output' => $output]);
+
+            return redirect()->route('admin.dashboard')
+                ->with('success', "Processing {$pendingCount} pending uploads. Check the queue status for progress.");
+
+        } catch (\Exception $e) {
+            Log::error('Failed to process pending uploads', ['error' => $e->getMessage()]);
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Failed to process pending uploads: ' . $e->getMessage());
+        }
+    }
 }

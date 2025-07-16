@@ -161,4 +161,34 @@ class FileUpload extends Model
 
         return round($maxSize, 2) . ' ' . $units[$index];
     }
+
+    /**
+     * Check if this upload is pending (not yet uploaded to cloud storage).
+     *
+     * @return bool
+     */
+    public function isPending(): bool
+    {
+        return empty($this->google_drive_file_id);
+    }
+
+    /**
+     * Scope to get only pending uploads.
+     */
+    public function scopePending($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('google_drive_file_id')
+              ->orWhere('google_drive_file_id', '');
+        });
+    }
+
+    /**
+     * Scope to get only completed uploads.
+     */
+    public function scopeCompleted($query)
+    {
+        return $query->whereNotNull('google_drive_file_id')
+                    ->where('google_drive_file_id', '!=', '');
+    }
 }

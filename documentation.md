@@ -3,6 +3,7 @@
 Upload Drive-In is a Laravel-based web application that enables businesses to receive files from their clients directly into their Google Drive accounts. The system provides a streamlined file upload experience with email validation and organized storage.
 
 ## Table of Contents
+
 - [Upload Drive-In Documentation](#upload-drive-in-documentation)
   - [Table of Contents](#table-of-contents)
   - [Getting Started](#getting-started)
@@ -33,6 +34,7 @@ Upload Drive-In is a Laravel-based web application that enables businesses to re
 ### Prerequisites
 
 Before setting up Upload Drive-In, ensure you have the following installed:
+
 - [DDEV](https://ddev.readthedocs.io/en/stable/)
 - [Docker](https://www.docker.com/get-started)
 - [Composer](https://getcomposer.org/)
@@ -41,17 +43,20 @@ Before setting up Upload Drive-In, ensure you have the following installed:
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/yourusername/upload-drive-in.git
 cd upload-drive-in
 ```
 
 2. Initialize the project using the make command:
+
 ```bash
 make init
 ```
 
 This command will:
+
 - Create `.env` file from `.env.example`
 - Install Composer dependencies
 - Generate application key
@@ -60,6 +65,7 @@ This command will:
 - Run database migrations and seeders
 
 3. Configure your Google Drive credentials:
+
 - Set up a Google Cloud Project
 - Enable the Google Drive API
 - Create OAuth 2.0 credentials
@@ -68,6 +74,7 @@ This command will:
 ### Initial Setup
 
 After installation, you'll need to:
+
 1. Configure your `.env` file with:
    - Database credentials
    - Mail server settings
@@ -75,6 +82,7 @@ After installation, you'll need to:
    - Other environment-specific settings
 
 2. Create an admin user:
+
 ```bash
 ddev exec php artisan user:set-role your@email.com admin
 ```
@@ -84,21 +92,25 @@ ddev exec php artisan user:set-role your@email.com admin
 The project uses DDEV for local development. Here are some key commands:
 
 - Start the development environment:
+
 ```bash
 make dev
 ```
 
 - Build production assets:
+
 ```bash
 make build
 ```
 
 - Access MailHog (for email testing):
+
 ```bash
 make mailhog
 ```
 
 - Run the queue worker:
+
 ```bash
 make queue
 ```
@@ -106,6 +118,7 @@ make queue
 ## Available Commands
 
 ### Make Commands
+
 - `make dev`: Launches the development environment with hot-reloading
 - `make build`: Builds the project for production
 - `make mailhog`: Opens MailHog for email testing
@@ -113,6 +126,7 @@ make queue
 - `make init`: Initializes the project with all dependencies
 
 ### Artisan Commands
+
 - `ddev exec php artisan migrate`: Run database migrations
 - `ddev exec php artisan db:seed`: Seed the database
 - `ddev exec php artisan queue:work`: Start the queue worker
@@ -122,26 +136,31 @@ make queue
 ## Features
 
 ### Public Upload Page
+
 - Email validation system
 - Multiple file upload support
 - Optional message field
 - Pre-validated token links
 
 ### Google Drive Integration
+
 - Automatic file organization
 - Folder creation by email
 - Secure OAuth 2.0 authentication
 - Token management
 
 ### Admin Dashboard
+
 - Upload monitoring
 - User management
 - File organization
 - Activity logs
+- Pending uploads management (see [Pending Uploads Documentation](docs/pending-uploads.md))
 
 ## Configuration
 
 ### Environment Variables
+
 Key environment variables in `.env`:
 
 ```env
@@ -165,6 +184,7 @@ GOOGLE_DRIVE_FOLDER_ID=
 ```
 
 ### Google Drive Setup
+
 1. Create a Google Cloud Project
 2. Enable the Google Drive API
 3. Configure OAuth 2.0 credentials
@@ -174,16 +194,19 @@ GOOGLE_DRIVE_FOLDER_ID=
 ## API Documentation
 
 ### Authentication Endpoints
+
 - POST `/api/auth/email-verification`
 - POST `/api/auth/validate-token`
 - POST `/api/auth/logout`
 
 ### Upload Endpoints
+
 - POST `/api/upload`
 - GET `/api/uploads`
 - GET `/api/uploads/{id}`
 
 ### Admin Endpoints
+
 - GET `/api/admin/users`
 - POST `/api/admin/users`
 - PUT `/api/admin/users/{id}`
@@ -209,6 +232,7 @@ GOOGLE_DRIVE_FOLDER_ID=
    - Restart queue: `make queue`
 
 ### Debug Tools
+
 - MailHog for email testing
 - Laravel Telescope for request monitoring
 - Laravel Log Viewer for error logs

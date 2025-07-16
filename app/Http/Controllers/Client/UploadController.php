@@ -211,12 +211,12 @@ class UploadController extends Controller
     public function associateMessage(Request $request)
     {
         $validated = $request->validate([
-            'upload_ids' => 'required|array',
-            'upload_ids.*' => 'required|exists:file_uploads,id',
+            'file_upload_ids' => 'required|array',
+            'file_upload_ids.*' => 'required|exists:file_uploads,id',
             'message' => 'nullable|string|max:1000',
         ]);
 
-        FileUpload::whereIn('id', $validated['upload_ids'])
+        FileUpload::whereIn('id', $validated['file_upload_ids'])
             ->where('client_user_id', Auth::id())
             ->update(['message' => $validated['message']]);
 
@@ -233,11 +233,11 @@ class UploadController extends Controller
     public function batchComplete(Request $request)
     {
         $validated = $request->validate([
-            'upload_ids' => 'required|array',
-            'upload_ids.*' => 'required|exists:file_uploads,id',
+            'file_upload_ids' => 'required|array',
+            'file_upload_ids.*' => 'required|exists:file_uploads,id',
         ]);
 
-        $uploads = FileUpload::whereIn('id', $validated['upload_ids'])
+        $uploads = FileUpload::whereIn('id', $validated['file_upload_ids'])
             ->where('client_user_id', Auth::id())
             ->get();
 

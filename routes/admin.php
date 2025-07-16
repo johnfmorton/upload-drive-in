@@ -27,6 +27,8 @@ Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.
 // File management
 Route::delete('/files/{file}', [DashboardController::class, 'destroy'])
     ->name('files.destroy');
+Route::post('/files/process-pending', [DashboardController::class, 'processPendingUploads'])
+    ->name('files.process-pending');
 
 // User Management
 Route::resource('/users', AdminUserController::class)
