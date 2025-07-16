@@ -344,41 +344,41 @@
                     <div class="hidden lg:block">
                         <div class="relative border border-gray-200 rounded-lg overflow-hidden">
                             <div class="overflow-x-auto">
-                                <table class="min-w-full divide-y divide-gray-200">
+                                <table class="min-w-full divide-y divide-gray-200 table-fixed">
                                     <thead class="bg-gray-50">
                                         <tr>
                                             <template x-if="columns.fileName">
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('original_filename')">
+                                                <th scope="col" class="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('original_filename')">
                                                     {{ __('messages.column_file_name') }} <span x-show="sortColumn === 'original_filename'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
                                                 </th>
                                             </template>
                                             <template x-if="columns.user">
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('email')">
+                                                <th scope="col" class="w-1/6 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('email')">
                                                     {{ __('messages.column_user') }} <span x-show="sortColumn === 'email'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
                                                 </th>
                                             </template>
                                             <template x-if="columns.size">
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('file_size')">
+                                                <th scope="col" class="w-20 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('file_size')">
                                                     {{ __('messages.column_size') }} <span x-show="sortColumn === 'file_size'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
                                                 </th>
                                             </template>
                                             <template x-if="columns.message">
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th scope="col" class="w-1/4 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     {{ __('messages.column_message') }}
                                                 </th>
                                             </template>
                                             <template x-if="columns.status">
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th scope="col" class="w-24 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     {{ __('messages.column_status') }}
                                                 </th>
                                             </template>
                                             <template x-if="columns.uploadedAt">
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('created_at')">
+                                                <th scope="col" class="w-32 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @click="sortBy('created_at')">
                                                     {{ __('messages.column_uploaded_at') }} <span x-show="sortColumn === 'created_at'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
                                                 </th>
                                             </template>
                                             <template x-if="columns.actions">
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('messages.column_actions') }}</th>
+                                                <th scope="col" class="w-32 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ __('messages.column_actions') }}</th>
                                             </template>
                                         </tr>
                                     </thead>
@@ -387,8 +387,8 @@
                                             <tr>
                                                 <template x-if="columns.fileName">
                                                     <td class="px-6 py-4 text-sm text-gray-900">
-                                                        {{-- Allow wrapping, remove truncation/max-width --}}
-                                                        <div x-text="file.original_filename" :title="file.original_filename"></div>
+                                                        {{-- Allow wrapping with proper word-break --}}
+                                                        <div class="break-words hyphens-auto" x-text="file.original_filename" :title="file.original_filename"></div>
                                                     </td>
                                                 </template>
                                                 <template x-if="columns.user">
