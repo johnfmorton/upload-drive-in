@@ -155,6 +155,7 @@ class UploadController extends Controller
             $fileUpload = FileUpload::create([
                 'client_user_id' => Auth::user()->id,
                 'company_user_id' => $companyUser->id,
+                'email' => Auth::user()->email,
                 'filename' => $fileName,
                 'original_filename' => $originalFilename,
                 'google_drive_file_id' => '',
