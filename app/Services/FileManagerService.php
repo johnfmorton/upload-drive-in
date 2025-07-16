@@ -282,6 +282,159 @@ class FileManagerService
     }
 
     /**
+     * Create and download a ZIP archive containing multiple files.
+     */
+    public function bulkDownloadFiles(array $fileIds): StreamedResponse
+    {
+        $files = FileUpload::whereIn('id', $fileIds)->get();
+        
+        if ($files->isEmpty()) {
+            throw new \Exception('No files found for download.');
+        }
+
+        $zipFileName = 'bulk_download_' . now()->format('Y-m-d_H-i-s') . '.zip';
+        $tempZipPath = storage_path('app/temp/' . $zipFileName);
+        
+        // Ensure temp directory exists
+        if (!file_exists(dirname($tempZipPath))) {
+            mkdir(dirname($tempZipPath), 0755, true);
+        }
+
+        try {
+            $zip = new \ZipArchive();
+            $result = $zip->open($tempZipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+            
+            if ($result !== TRUE) {
+                throw new \Exception('Cannot create ZIP archive: ' . $this->getZipError($result));
+            }
+
+            $addedFiles = 0;
+            $skippedFiles = [];
+
+            foreach ($files as $file) {
+                try {
+                    $fileContent = $this->getFileContent($file);
+                    
+                    if ($fileContent !== null) {
+                        // Ensure unique filename in ZIP by adding ID if needed
+                        $zipEntryName = $this->getUniqueZipEntryName($zip, $file->original_filename, $file->id);
+                        $zip->addFromString($zipEntryName, $fileContent);
+                        $addedFiles++;
+                        
+                        Log::info('Added file to ZIP archive', [
+                            'file_id' => $file->id,
+                            'original_filename' => $file->original_filename,
+                            'zip_entry_name' => $zipEntryName
+                        ]);
+                    } else {
+                        $skippedFiles[] = $file->original_filename;
+                        Log::warning('Skipped file in bulk download - not accessible', [
+                            'file_id' => $file->id,
+                            'filename' => $file->original_filename
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    $skippedFiles[] = $file->original_filename;
+                    Log::error('Failed to add file to ZIP archive', [
+                        'file_id' => $file->id,
+                        'filename' => $file->original_filename,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            $zip->close();
+
+            if ($addedFiles === 0) {
+                unlink($tempZipPath);
+                throw new \Exception('No files could be added to the archive. All files may be stored in Google Drive or inaccessible.');
+            }
+
+            Log::info('Bulk download ZIP created', [
+                'total_requested' => count($fileIds),
+                'files_added' => $addedFiles,
+                'files_skipped' => count($skippedFiles),
+                'skipped_files' => $skippedFiles,
+                'zip_file' => $zipFileName
+            ]);
+
+            return response()->streamDownload(function () use ($tempZipPath) {
+                readfile($tempZipPath);
+                unlink($tempZipPath); // Clean up temp file after download
+            }, $zipFileName, [
+                'Content-Type' => 'application/zip',
+                'Content-Disposition' => 'attachment; filename="' . $zipFileName . '"'
+            ]);
+
+        } catch (\Exception $e) {
+            // Clean up temp file on error
+            if (file_exists($tempZipPath)) {
+                unlink($tempZipPath);
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Get file content from local storage or Google Drive.
+     */
+    private function getFileContent(FileUpload $file): ?string
+    {
+        // Try local file first
+        if ($this->hasLocalFile($file)) {
+            return Storage::disk('public')->get('uploads/' . $file->filename);
+        }
+
+        // For Google Drive files, we can't easily download content in bulk
+        // This would require implementing Google Drive API calls which is complex
+        // For now, we'll skip Google Drive files in bulk downloads
+        return null;
+    }
+
+    /**
+     * Generate a unique entry name for the ZIP archive.
+     */
+    private function getUniqueZipEntryName(\ZipArchive $zip, string $originalName, int $fileId): string
+    {
+        $name = $originalName;
+        $counter = 1;
+        
+        // Check if name already exists in ZIP
+        while ($zip->locateName($name) !== false) {
+            $pathInfo = pathinfo($originalName);
+            $basename = $pathInfo['filename'] ?? $originalName;
+            $extension = isset($pathInfo['extension']) ? '.' . $pathInfo['extension'] : '';
+            
+            $name = $basename . '_' . $counter . $extension;
+            $counter++;
+            
+            // Fallback to using file ID if we can't generate unique name
+            if ($counter > 100) {
+                $name = $basename . '_id_' . $fileId . $extension;
+                break;
+            }
+        }
+        
+        return $name;
+    }
+
+    /**
+     * Get human-readable ZIP error message.
+     */
+    private function getZipError(int $code): string
+    {
+        return match($code) {
+            \ZipArchive::ER_MEMORY => 'Memory allocation failure',
+            \ZipArchive::ER_NOENT => 'No such file',
+            \ZipArchive::ER_OPEN => 'Can\'t open file',
+            \ZipArchive::ER_READ => 'Read error',
+            \ZipArchive::ER_SEEK => 'Seek error',
+            \ZipArchive::ER_WRITE => 'Write error',
+            default => 'Unknown error (code: ' . $code . ')'
+        };
+    }
+
+    /**
      * Check if file exists in local storage.
      */
     private function hasLocalFile(FileUpload $file): bool

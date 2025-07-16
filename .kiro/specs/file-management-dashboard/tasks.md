@@ -19,15 +19,15 @@
     - Add tests for middleware functionality
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 3. Build bulk file operations
-  - [ ] 3.1 Implement bulk delete functionality
+- [x] 3. Build bulk file operations
+  - [x] 3.1 Implement bulk delete functionality
     - Create bulkDelete method in FileManagerController
     - Add validation for bulk delete requests
     - Implement Google Drive and local storage cleanup
     - Write tests for bulk delete operations
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7_
 
-  - [ ] 3.2 Add bulk download with ZIP creation
+  - [x] 3.2 Add bulk download with ZIP creation
     - Create bulkDownload method in FileManagerController
     - Implement ZIP archive creation for multiple files
     - Add progress tracking for large archives

@@ -33,6 +33,7 @@ Route::prefix('file-manager')
         Route::patch('/{file}', [\App\Http\Controllers\Admin\FileManagerController::class, 'update'])->name('update');
         Route::delete('/{file}', [\App\Http\Controllers\Admin\FileManagerController::class, 'destroy'])->name('destroy');
         Route::delete('/', [\App\Http\Controllers\Admin\FileManagerController::class, 'bulkDestroy'])->name('bulk-destroy');
+        Route::post('/bulk-download', [\App\Http\Controllers\Admin\FileManagerController::class, 'bulkDownload'])->name('bulk-download');
         Route::post('/process-pending', [\App\Http\Controllers\Admin\FileManagerController::class, 'processPending'])->name('process-pending');
         Route::get('/{file}/download', [\App\Http\Controllers\Admin\FileManagerController::class, 'download'])->name('download');
     });

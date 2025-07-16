@@ -218,4 +218,30 @@ class FileManagerController extends AdminController
                 ->with('error', 'Error downloading file: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Bulk download multiple files as a ZIP archive.
+     */
+    public function bulkDownload(Request $request)
+    {
+        $request->validate([
+            'file_ids' => 'required|array',
+            'file_ids.*' => 'exists:file_uploads,id'
+        ]);
+
+        try {
+            return $this->fileManagerService->bulkDownloadFiles($request->file_ids);
+        } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error creating bulk download: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()
+                ->back()
+                ->with('error', 'Error creating bulk download: ' . $e->getMessage());
+        }
+    }
 }
