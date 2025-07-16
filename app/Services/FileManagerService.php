@@ -116,7 +116,7 @@ class FileManagerService
             ->orderByDesc('count')
             ->limit(5)
             ->get()
-            ->map(function ($item) {
+            ->map(function ($item) use ($totalFiles) {
                 return [
                     'type' => $item->mime_type,
                     'count' => $item->count,

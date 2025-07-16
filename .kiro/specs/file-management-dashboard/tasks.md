@@ -64,15 +64,15 @@
     - Write tests for download functionality
     - _Requirements: 4.1, 4.2, 4.3, 4.5, 4.6, 4.7_
 
-- [ ] 6. Create unified responsive frontend
-  - [ ] 6.1 Build base responsive layout structure
+- [x] 6. Create unified responsive frontend
+  - [x] 6.1 Build base responsive layout structure
     - Create new unified dashboard Blade template
     - Implement CSS Grid/Flexbox responsive layout
     - Add mobile-first responsive design patterns
     - Test layout across different screen sizes
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-  - [ ] 6.2 Implement file selection and bulk actions UI
+  - [x] 6.2 Implement file selection and bulk actions UI
     - Add checkbox selection for individual files
     - Create "Select All" functionality
     - Implement selected file counter display
@@ -80,8 +80,8 @@
     - Write Alpine.js components for selection management
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 7. Add interactive file management features
-  - [ ] 7.1 Create file preview modal system
+- [-] 7. Add interactive file management features
+  - [-] 7.1 Create file preview modal system
     - Build modal component for file previews
     - Implement image viewer with zoom/pan capabilities
     - Add PDF viewer integration

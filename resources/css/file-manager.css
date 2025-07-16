@@ -1,0 +1,289 @@
+/* File Manager Responsive Styles */
+
+/* Base file manager container */
+.file-manager {
+    @apply flex flex-col;
+}
+
+/* File list container with responsive behavior */
+.file-list-container {
+    @apply min-h-0 flex-1;
+}
+
+/* File card styles for grid view */
+.file-card {
+    @apply transition-all duration-200 ease-in-out;
+}
+
+.file-card:hover {
+    @apply shadow-lg transform scale-105;
+}
+
+/* Responsive grid layout - Mobile First */
+.file-grid {
+    @apply grid gap-4;
+}
+
+/* Mobile: Single column */
+@media (max-width: 640px) {
+    .file-grid {
+        @apply grid-cols-1 gap-3 p-3;
+    }
+    
+    .file-card {
+        @apply max-w-full;
+    }
+}
+
+/* Small tablets: 2 columns */
+@media (min-width: 641px) and (max-width: 768px) {
+    .file-grid {
+        @apply grid-cols-2 gap-4 p-4;
+    }
+}
+
+/* Large tablets: 3 columns */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .file-grid {
+        @apply grid-cols-3 gap-4 p-4;
+    }
+}
+
+/* Desktop: 4 columns */
+@media (min-width: 1025px) and (max-width: 1280px) {
+    .file-grid {
+        @apply grid-cols-4 gap-6 p-6;
+    }
+}
+
+/* Large desktop: 5 columns */
+@media (min-width: 1281px) {
+    .file-grid {
+        @apply grid-cols-5 gap-6 p-6;
+    }
+}
+
+/* Table responsive behavior */
+@media (max-width: 768px) {
+    .file-table-container {
+        @apply overflow-x-auto;
+    }
+    
+    .file-table {
+        @apply min-w-full;
+    }
+    
+    .file-table th,
+    .file-table td {
+        @apply px-3 py-2 text-xs;
+    }
+    
+    .file-table .filename-col {
+        @apply min-w-48;
+    }
+    
+    .file-table .email-col {
+        @apply min-w-32;
+    }
+    
+    .file-table .actions-col {
+        @apply min-w-32;
+    }
+}
+
+/* Filename text wrapping */
+.filename-text {
+    @apply break-words hyphens-auto;
+    word-break: break-word;
+    hyphens: auto;
+}
+
+/* Mobile-first toolbar layout */
+.toolbar {
+    @apply flex flex-col space-y-4;
+}
+
+@media (min-width: 1024px) {
+    .toolbar {
+        @apply flex-row items-center justify-between space-y-0;
+    }
+}
+
+/* Bulk actions responsive layout */
+.bulk-actions {
+    @apply flex flex-wrap items-center gap-2;
+}
+
+@media (max-width: 640px) {
+    .bulk-actions {
+        @apply flex-col items-start gap-3;
+    }
+    
+    .bulk-actions > * {
+        @apply w-full;
+    }
+}
+
+/* Search and filter controls */
+.search-filters {
+    @apply flex flex-col gap-3;
+}
+
+@media (min-width: 640px) {
+    .search-filters {
+        @apply flex-row items-center;
+    }
+}
+
+/* File preview modal responsive */
+@media (max-width: 640px) {
+    .preview-modal {
+        @apply mx-4 my-8;
+    }
+    
+    .preview-modal .modal-content {
+        @apply max-h-screen overflow-y-auto;
+    }
+}
+
+/* Status badges responsive sizing */
+.status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+@media (max-width: 640px) {
+    .status-badge {
+        @apply px-2 py-1 text-xs;
+    }
+}
+
+/* Action buttons responsive */
+.action-buttons {
+    @apply flex items-center space-x-2;
+}
+
+@media (max-width: 640px) {
+    .action-buttons {
+        @apply flex-col space-x-0 space-y-2;
+    }
+    
+    .action-buttons button {
+        @apply w-full text-center;
+    }
+}
+
+/* File size and date formatting */
+.file-meta {
+    @apply text-xs text-gray-500;
+}
+
+@media (max-width: 640px) {
+    .file-meta {
+        @apply text-xs;
+    }
+}
+
+/* Checkbox styling improvements */
+.file-checkbox {
+    @apply rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500;
+}
+
+/* Loading states */
+.loading-spinner {
+    @apply animate-spin rounded-full border-b-2 border-blue-600;
+}
+
+/* Empty state styling */
+.empty-state {
+    @apply text-center py-12;
+}
+
+.empty-state svg {
+    @apply mx-auto h-12 w-12 text-gray-400;
+}
+
+.empty-state h3 {
+    @apply mt-2 text-sm font-medium text-gray-900;
+}
+
+.empty-state p {
+    @apply mt-1 text-sm text-gray-500;
+}
+
+/* Pagination responsive */
+.pagination-container {
+    @apply flex items-center justify-between;
+}
+
+@media (max-width: 640px) {
+    .pagination-container {
+        @apply flex-col space-y-3;
+    }
+}
+
+/* Focus states for accessibility */
+.file-card:focus-within {
+    @apply ring-2 ring-blue-500 ring-offset-2;
+}
+
+.file-table tr:focus-within {
+    @apply bg-blue-50;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .file-card {
+        @apply border-2 border-gray-900;
+    }
+    
+    .status-badge {
+        @apply border border-current;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .file-card {
+        @apply transition-none transform-none;
+    }
+    
+    .file-card:hover {
+        @apply transform-none;
+    }
+    
+    .loading-spinner {
+        @apply animate-none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .file-manager {
+        @apply text-black bg-white;
+    }
+    
+    .toolbar,
+    .action-buttons,
+    .bulk-actions {
+        @apply hidden;
+    }
+    
+    .file-card {
+        @apply shadow-none border border-gray-300;
+    }
+}
+
+/* Dark mode support (if implemented) */
+@media (prefers-color-scheme: dark) {
+    .file-manager {
+        @apply bg-gray-900 text-white;
+    }
+    
+    .file-card {
+        @apply bg-gray-800 border-gray-700;
+    }
+    
+    .status-badge {
+        @apply bg-gray-700/80;
+    }
+}
