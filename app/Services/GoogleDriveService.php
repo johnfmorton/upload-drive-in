@@ -18,10 +18,7 @@ use Exception;
  */
 class GoogleDriveService
 {
-    /**
-     * @var Drive|null The authenticated Google Drive service instance.
-     */
-    private ?Drive $service = null;
+
 
     /**
      * @var Client|null The Google API client instance.
@@ -421,6 +418,149 @@ class GoogleDriveService
         }
 
         return $token;
+    }
+
+    /**
+     * Downloads a file from Google Drive and returns its content.
+     *
+     * @param User $user The user whose Google Drive to use.
+     * @param string $fileId The ID of the file to download.
+     * @return string The file content.
+     * @throws Exception If the file doesn't exist or download fails.
+     */
+    public function downloadFile(User $user, string $fileId): string
+    {
+        try {
+            $service = $this->getDriveService($user);
+            
+            Log::info('Starting file download from Google Drive.', [
+                'file_id' => $fileId,
+                'user_id' => $user->id
+            ]);
+
+            // First, verify the file exists and get its metadata
+            $file = $service->files->get($fileId, ['fields' => 'id,name,size,mimeType']);
+            
+            if (!$file) {
+                Log::error('File not found in Google Drive.', ['file_id' => $fileId]);
+                throw new Exception("File not found: {$fileId}");
+            }
+
+            // Download the file content
+            $content = $service->files->get($fileId, ['alt' => 'media']);
+
+            Log::info('File successfully downloaded from Google Drive.', [
+                'file_id' => $fileId,
+                'file_name' => $file->getName(),
+                'file_size' => $file->getSize()
+            ]);
+
+            return $content;
+        } catch (Exception $e) {
+            Log::error('Failed to download file from Google Drive.', [
+                'file_id' => $fileId,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Downloads a file from Google Drive as a stream for large files.
+     *
+     * @param User $user The user whose Google Drive to use.
+     * @param string $fileId The ID of the file to download.
+     * @return resource The file stream resource.
+     * @throws Exception If the file doesn't exist or download fails.
+     */
+    public function downloadFileStream(User $user, string $fileId)
+    {
+        try {
+            $service = $this->getDriveService($user);
+            
+            Log::info('Starting streaming file download from Google Drive.', [
+                'file_id' => $fileId,
+                'user_id' => $user->id
+            ]);
+
+            // First, verify the file exists and get its metadata
+            $file = $service->files->get($fileId, ['fields' => 'id,name,size,mimeType']);
+            
+            if (!$file) {
+                Log::error('File not found in Google Drive.', ['file_id' => $fileId]);
+                throw new Exception("File not found: {$fileId}");
+            }
+
+            // Get the file content as a stream
+            $response = $service->files->get($fileId, ['alt' => 'media']);
+            
+            // For Google Drive API, the response is already the content
+            // Create a stream from the content
+            $stream = fopen('php://memory', 'r+');
+            fwrite($stream, $response);
+            rewind($stream);
+
+            Log::info('File stream successfully created from Google Drive.', [
+                'file_id' => $fileId,
+                'file_name' => $file->getName(),
+                'file_size' => $file->getSize()
+            ]);
+
+            return $stream;
+        } catch (Exception $e) {
+            Log::error('Failed to create file stream from Google Drive.', [
+                'file_id' => $fileId,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Gets file metadata from Google Drive.
+     *
+     * @param User $user The user whose Google Drive to use.
+     * @param string $fileId The ID of the file.
+     * @return DriveFile The file metadata.
+     * @throws Exception If the file doesn't exist or API call fails.
+     */
+    public function getFileMetadata(User $user, string $fileId): DriveFile
+    {
+        try {
+            $service = $this->getDriveService($user);
+            
+            Log::debug('Getting file metadata from Google Drive.', [
+                'file_id' => $fileId,
+                'user_id' => $user->id
+            ]);
+
+            $file = $service->files->get($fileId, [
+                'fields' => 'id,name,size,mimeType,createdTime,modifiedTime,parents'
+            ]);
+
+            if (!$file) {
+                Log::error('File not found in Google Drive.', ['file_id' => $fileId]);
+                throw new Exception("File not found: {$fileId}");
+            }
+
+            Log::debug('File metadata retrieved from Google Drive.', [
+                'file_id' => $fileId,
+                'file_name' => $file->getName(),
+                'file_size' => $file->getSize(),
+                'mime_type' => $file->getMimeType()
+            ]);
+
+            return $file;
+        } catch (Exception $e) {
+            Log::error('Failed to get file metadata from Google Drive.', [
+                'file_id' => $fileId,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
     }
 
     /**

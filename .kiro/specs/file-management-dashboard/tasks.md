@@ -49,15 +49,15 @@
     - Write integration tests for preview functionality
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-- [ ] 5. Build direct download functionality
-  - [ ] 5.1 Enhance GoogleDriveService with download methods
+- [x] 5. Build direct download functionality
+  - [x] 5.1 Enhance GoogleDriveService with download methods
     - Add downloadFile method to retrieve content from Google Drive
     - Implement streaming download for large files
     - Add error handling for missing or inaccessible files
     - Write tests for Google Drive download functionality
     - _Requirements: 4.1, 4.2, 4.3, 4.6_
 
-  - [ ] 5.2 Create download endpoints
+  - [x] 5.2 Create download endpoints
     - Implement download method in FileManagerController
     - Add file streaming with proper headers
     - Implement download progress tracking

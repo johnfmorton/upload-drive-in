@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\FileUpload;
+use App\Models\User;
+use App\Services\GoogleDriveService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
@@ -17,6 +19,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class FileManagerService
 {
+    public function __construct(
+        private GoogleDriveService $googleDriveService
+    ) {
+    }
     /**
      * Get filtered and paginated files based on provided criteria.
      */
@@ -261,24 +267,143 @@ class FileManagerService
     }
 
     /**
-     * Download a file from local storage or Google Drive.
+     * Download a file from local storage or Google Drive with streaming support.
      */
-    public function downloadFile(FileUpload $file): StreamedResponse
+    public function downloadFile(FileUpload $file, ?User $user = null): StreamedResponse
     {
+        Log::info('Starting file download', [
+            'file_id' => $file->id,
+            'filename' => $file->original_filename,
+            'has_local' => $this->hasLocalFile($file),
+            'has_google_drive' => !empty($file->google_drive_file_id)
+        ]);
+
         // Try local file first
         if ($this->hasLocalFile($file)) {
-            return Storage::disk('public')->download(
-                'uploads/' . $file->filename,
-                $file->original_filename
-            );
+            return $this->downloadLocalFile($file);
         }
 
-        // If no local file and has Google Drive ID, redirect to Google Drive
+        // Try Google Drive if file has Google Drive ID
         if ($file->google_drive_file_id) {
-            throw new \Exception('File is stored in Google Drive. Please use the "View" button to access it.');
+            return $this->downloadGoogleDriveFile($file, $user);
         }
 
         throw new \Exception('File not found in local storage or Google Drive.');
+    }
+
+    /**
+     * Download file from local storage with proper headers.
+     */
+    private function downloadLocalFile(FileUpload $file): StreamedResponse
+    {
+        $filePath = 'uploads/' . $file->filename;
+        
+        Log::info('Downloading file from local storage', [
+            'file_id' => $file->id,
+            'path' => $filePath
+        ]);
+
+        return Storage::disk('public')->download($filePath, $file->original_filename, [
+            'Content-Type' => $file->mime_type,
+            'Content-Length' => $file->file_size,
+            'Cache-Control' => 'no-cache, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0'
+        ]);
+    }
+
+    /**
+     * Download file from Google Drive with streaming support.
+     */
+    private function downloadGoogleDriveFile(FileUpload $file, ?User $user = null): StreamedResponse
+    {
+        // Find a user with Google Drive access
+        $driveUser = $this->findGoogleDriveUser($user);
+        
+        if (!$driveUser) {
+            throw new \Exception('No Google Drive connection available for download. Please ensure an admin has connected their Google Drive account.');
+        }
+
+        Log::info('Downloading file from Google Drive', [
+            'file_id' => $file->id,
+            'google_drive_file_id' => $file->google_drive_file_id,
+            'drive_user_id' => $driveUser->id
+        ]);
+
+        try {
+            // For large files, use streaming download
+            if ($file->file_size > 10 * 1024 * 1024) { // 10MB threshold
+                return $this->streamGoogleDriveFile($file, $driveUser);
+            } else {
+                return $this->downloadGoogleDriveFileContent($file, $driveUser);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to download file from Google Drive', [
+                'file_id' => $file->id,
+                'google_drive_file_id' => $file->google_drive_file_id,
+                'error' => $e->getMessage()
+            ]);
+            throw new \Exception('Failed to download file from Google Drive: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Stream large files from Google Drive.
+     */
+    private function streamGoogleDriveFile(FileUpload $file, User $driveUser): StreamedResponse
+    {
+        return response()->streamDownload(function () use ($file, $driveUser) {
+            $stream = $this->googleDriveService->downloadFileStream($driveUser, $file->google_drive_file_id);
+            
+            // Stream the file content in chunks
+            while (!feof($stream)) {
+                echo fread($stream, 8192); // 8KB chunks
+                flush();
+            }
+            
+            fclose($stream);
+        }, $file->original_filename, [
+            'Content-Type' => $file->mime_type,
+            'Content-Length' => $file->file_size,
+            'Cache-Control' => 'no-cache, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+            'Accept-Ranges' => 'bytes'
+        ]);
+    }
+
+    /**
+     * Download smaller files from Google Drive as content.
+     */
+    private function downloadGoogleDriveFileContent(FileUpload $file, User $driveUser): StreamedResponse
+    {
+        $content = $this->googleDriveService->downloadFile($driveUser, $file->google_drive_file_id);
+        
+        return response()->streamDownload(function () use ($content) {
+            echo $content;
+        }, $file->original_filename, [
+            'Content-Type' => $file->mime_type,
+            'Content-Length' => strlen($content),
+            'Cache-Control' => 'no-cache, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0'
+        ]);
+    }
+
+    /**
+     * Find a user with Google Drive access for downloading files.
+     */
+    private function findGoogleDriveUser(?User $requestingUser = null): ?User
+    {
+        // If requesting user has Google Drive access, use their account
+        if ($requestingUser && $requestingUser->hasGoogleDriveConnected()) {
+            return $requestingUser;
+        }
+
+        // Otherwise, find an admin with Google Drive access
+        return User::where('role', \App\Enums\UserRole::ADMIN)
+            ->whereHas('googleDriveToken')
+            ->first();
     }
 
     /**

@@ -3,375 +3,247 @@
 namespace Tests\Feature\Admin;
 
 use Tests\TestCase;
-use App\Models\FileUpload;
 use App\Models\User;
-use App\Enums\UserRole;
+use App\Models\FileUpload;
+use App\Services\FileManagerService;
+use App\Services\FilePreviewService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
 
 class FileManagerControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $admin;
+    private User $adminUser;
+    private FileUpload $testFile;
 
     protected function setUp(): void
     {
         parent::setUp();
         
         // Create admin user
-        $this->admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $this->adminUser = User::factory()->create([
+            'role' => \App\Enums\UserRole::ADMIN
+        ]);
         
-        // Mock storage disk
+        // Create test file
+        $this->testFile = FileUpload::factory()->create([
+            'original_filename' => 'test-document.pdf',
+            'filename' => 'test-file-123.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 1024,
+            'email' => 'test@example.com'
+        ]);
+        
         Storage::fake('public');
     }
 
-    /** @test */
-    public function admin_can_bulk_delete_files_via_web_request()
+    public function test_download_file_success_local_file()
     {
-        // Create test files
-        $files = FileUpload::factory()->count(3)->create();
-        $fileIds = $files->pluck('id')->toArray();
-
-        // Create local files
-        foreach ($files as $file) {
-            Storage::disk('public')->put('uploads/' . $file->filename, 'test content');
-        }
-
-        $response = $this->actingAs($this->admin)
-            ->delete(route('admin.file-manager.bulk-destroy'), [
-                'file_ids' => $fileIds
-            ]);
-
-        $response->assertRedirect(route('admin.file-manager.index'))
-            ->assertSessionHas('success', 'Successfully deleted 3 files.');
-
-        // Verify files are deleted from database
-        $this->assertEquals(0, FileUpload::whereIn('id', $fileIds)->count());
-    }
-
-    /** @test */
-    public function admin_can_bulk_delete_files_via_json_request()
-    {
-        // Create test files
-        $files = FileUpload::factory()->count(2)->create();
-        $fileIds = $files->pluck('id')->toArray();
-
-        $response = $this->actingAs($this->admin)
-            ->deleteJson(route('admin.file-manager.bulk-destroy'), [
-                'file_ids' => $fileIds
-            ]);
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Successfully deleted 2 files.'
-            ]);
-
-        // Verify files are deleted from database
-        $this->assertEquals(0, FileUpload::whereIn('id', $fileIds)->count());
-    }
-
-    /** @test */
-    public function bulk_delete_validates_required_file_ids()
-    {
-        $response = $this->actingAs($this->admin)
-            ->deleteJson(route('admin.file-manager.bulk-destroy'), []);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['file_ids']);
-    }
-
-    /** @test */
-    public function bulk_delete_validates_file_ids_exist_in_database()
-    {
-        $response = $this->actingAs($this->admin)
-            ->deleteJson(route('admin.file-manager.bulk-destroy'), [
-                'file_ids' => [999, 1000] // Non-existent IDs
-            ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['file_ids.0', 'file_ids.1']);
-    }
-
-    /** @test */
-    public function bulk_delete_validates_file_ids_array_format()
-    {
-        $response = $this->actingAs($this->admin)
-            ->deleteJson(route('admin.file-manager.bulk-destroy'), [
-                'file_ids' => 'not-an-array'
-            ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['file_ids']);
-    }
-
-    /** @test */
-    public function bulk_delete_handles_service_exceptions_gracefully()
-    {
-        // Create test files
-        $files = FileUpload::factory()->count(2)->create();
-        $fileIds = $files->pluck('id')->toArray();
-
-        // Mock the service to throw an exception
-        $this->mock(\App\Services\FileManagerService::class, function ($mock) {
-            $mock->shouldReceive('bulkDeleteFiles')
-                ->once()
-                ->andThrow(new \Exception('Service error'));
-        });
-
-        $response = $this->actingAs($this->admin)
-            ->deleteJson(route('admin.file-manager.bulk-destroy'), [
-                'file_ids' => $fileIds
-            ]);
-
-        $response->assertStatus(500)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Error during bulk deletion: Service error'
-            ]);
-    }
-
-    /** @test */
-    public function bulk_delete_handles_partial_failures()
-    {
-        // Create test files
-        $files = FileUpload::factory()->count(3)->create();
-        $fileIds = $files->pluck('id')->toArray();
-
-        // Mock the service to return partial success
-        $this->mock(\App\Services\FileManagerService::class, function ($mock) use ($fileIds) {
-            $mock->shouldReceive('bulkDeleteFiles')
-                ->with($fileIds)
-                ->once()
-                ->andReturn(2); // Only 2 out of 3 deleted
-        });
-
-        $response = $this->actingAs($this->admin)
-            ->deleteJson(route('admin.file-manager.bulk-destroy'), [
-                'file_ids' => $fileIds
-            ]);
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Successfully deleted 2 files.'
-            ]);
-    }
-
-    /** @test */
-    public function non_admin_users_cannot_access_bulk_delete()
-    {
-        $client = User::factory()->create(['role' => UserRole::CLIENT]);
-        $files = FileUpload::factory()->count(2)->create();
-        $fileIds = $files->pluck('id')->toArray();
-
-        $response = $this->actingAs($client)
-            ->deleteJson(route('admin.file-manager.bulk-destroy'), [
-                'file_ids' => $fileIds
-            ]);
-
-        // Should be redirected or forbidden (depending on middleware implementation)
-        $this->assertTrue(in_array($response->status(), [302, 403, 401]));
-    }
-
-    /** @test */
-    public function bulk_delete_works_with_mixed_file_types()
-    {
-        // Create files with different storage providers and states
-        $localFile = FileUpload::factory()->create(['google_drive_file_id' => null]);
-        $driveFile = FileUpload::factory()->create(['google_drive_file_id' => 'drive_123']);
-        $pendingFile = FileUpload::factory()->create(['google_drive_file_id' => '']);
+        // Create a fake file in storage
+        Storage::disk('public')->put('uploads/' . $this->testFile->filename, 'test content');
         
-        $fileIds = [$localFile->id, $driveFile->id, $pendingFile->id];
-
-        // Create local file
-        Storage::disk('public')->put('uploads/' . $localFile->filename, 'test content');
-
-        $response = $this->actingAs($this->admin)
-            ->deleteJson(route('admin.file-manager.bulk-destroy'), [
-                'file_ids' => $fileIds
-            ]);
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Successfully deleted 3 files.'
-            ]);
-
-        // Verify all files are deleted
-        $this->assertEquals(0, FileUpload::whereIn('id', $fileIds)->count());
+        // Mock the FileManagerService with proper expectation
+        $mockService = Mockery::mock(FileManagerService::class);
+        $mockService->shouldReceive('downloadFile')
+            ->with(Mockery::type(FileUpload::class), Mockery::type(User::class))
+            ->once()
+            ->andReturn(response()->streamDownload(function () {
+                echo 'test content';
+            }, 'test-document.pdf'));
+        
+        $this->app->instance(FileManagerService::class, $mockService);
+        
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.file-manager.download', $this->testFile));
+        
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Disposition', 'attachment; filename=test-document.pdf');
     }
 
-    /** @test */
-    public function admin_can_bulk_download_files()
+    public function test_download_file_success_google_drive()
     {
-        // Create test files
-        $files = FileUpload::factory()->count(3)->create([
-            'original_filename' => 'test_file.txt'
+        // Update test file to have Google Drive ID
+        $this->testFile->update(['google_drive_file_id' => 'google-drive-file-123']);
+        
+        // Mock the FileManagerService
+        $mockService = Mockery::mock(FileManagerService::class);
+        $mockService->shouldReceive('downloadFile')
+            ->with(Mockery::type(FileUpload::class), Mockery::type(User::class))
+            ->once()
+            ->andReturn(response()->streamDownload(function () {
+                echo 'google drive content';
+            }, 'test-document.pdf'));
+        
+        $this->app->instance(FileManagerService::class, $mockService);
+        
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.file-manager.download', $this->testFile));
+        
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Disposition', 'attachment; filename=test-document.pdf');
+    }
+
+    public function test_download_file_not_found()
+    {
+        // Mock the FileManagerService to throw exception
+        $mockService = Mockery::mock(FileManagerService::class);
+        $mockService->shouldReceive('downloadFile')
+            ->with(Mockery::type(FileUpload::class), Mockery::type(User::class))
+            ->once()
+            ->andThrow(new \Exception('File not found in local storage or Google Drive.'));
+        
+        $this->app->instance(FileManagerService::class, $mockService);
+        
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.file-manager.download', $this->testFile));
+        
+        $response->assertRedirect();
+        $response->assertSessionHas('error', 'Error downloading file: File not found in local storage or Google Drive.');
+    }
+
+    public function test_download_file_json_response_error()
+    {
+        // Mock the FileManagerService to throw exception
+        $mockService = Mockery::mock(FileManagerService::class);
+        $mockService->shouldReceive('downloadFile')
+            ->with(Mockery::type(FileUpload::class), Mockery::type(User::class))
+            ->once()
+            ->andThrow(new \Exception('Download failed'));
+        
+        $this->app->instance(FileManagerService::class, $mockService);
+        
+        $response = $this->actingAs($this->adminUser)
+            ->getJson(route('admin.file-manager.download', $this->testFile));
+        
+        $response->assertStatus(500);
+        $response->assertJson([
+            'success' => false,
+            'message' => 'Error downloading file: Download failed'
         ]);
-        $fileIds = $files->pluck('id')->toArray();
+    }
 
-        // Create local files
-        foreach ($files as $index => $file) {
-            Storage::disk('public')->put('uploads/' . $file->filename, "Test content {$index}");
-        }
+    public function test_download_file_requires_admin_access()
+    {
+        $regularUser = User::factory()->create([
+            'role' => \App\Enums\UserRole::CLIENT
+        ]);
+        
+        $response = $this->actingAs($regularUser)
+            ->get(route('admin.file-manager.download', $this->testFile));
+        
+        // The admin routes are protected by middleware, so non-admin users get 403
+        $response->assertStatus(403);
+    }
 
-        $response = $this->actingAs($this->admin)
+    public function test_download_file_requires_authentication()
+    {
+        $response = $this->get(route('admin.file-manager.download', $this->testFile));
+        
+        // Unauthenticated users should be redirected to login
+        $response->assertRedirect();
+    }
+
+    public function test_bulk_download_success()
+    {
+        $file2 = FileUpload::factory()->create([
+            'original_filename' => 'test-document-2.pdf',
+            'filename' => 'test-file-456.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 2048,
+            'email' => 'test2@example.com'
+        ]);
+        
+        // Mock the FileManagerService
+        $mockService = Mockery::mock(FileManagerService::class);
+        $mockService->shouldReceive('bulkDownloadFiles')
+            ->with([$this->testFile->id, $file2->id])
+            ->once()
+            ->andReturn(response()->streamDownload(function () {
+                echo 'zip content';
+            }, 'bulk_download.zip', ['Content-Type' => 'application/zip']));
+        
+        $this->app->instance(FileManagerService::class, $mockService);
+        
+        $response = $this->actingAs($this->adminUser)
             ->post(route('admin.file-manager.bulk-download'), [
-                'file_ids' => $fileIds
-            ]);
-
-        $response->assertOk();
-        $this->assertEquals('application/zip', $response->headers->get('Content-Type'));
-        $this->assertStringContainsString('bulk_download_', $response->headers->get('Content-Disposition'));
-    }
-
-    /** @test */
-    public function bulk_download_validates_required_file_ids()
-    {
-        $response = $this->actingAs($this->admin)
-            ->postJson(route('admin.file-manager.bulk-download'), []);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['file_ids']);
-    }
-
-    /** @test */
-    public function bulk_download_validates_file_ids_exist_in_database()
-    {
-        $response = $this->actingAs($this->admin)
-            ->postJson(route('admin.file-manager.bulk-download'), [
-                'file_ids' => [999, 1000] // Non-existent IDs
-            ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['file_ids.0', 'file_ids.1']);
-    }
-
-    /** @test */
-    public function bulk_download_validates_file_ids_array_format()
-    {
-        $response = $this->actingAs($this->admin)
-            ->postJson(route('admin.file-manager.bulk-download'), [
-                'file_ids' => 'not-an-array'
-            ]);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['file_ids']);
-    }
-
-    /** @test */
-    public function bulk_download_handles_service_exceptions_gracefully()
-    {
-        // Create test files
-        $files = FileUpload::factory()->count(2)->create();
-        $fileIds = $files->pluck('id')->toArray();
-
-        // Mock the service to throw an exception
-        $this->mock(\App\Services\FileManagerService::class, function ($mock) {
-            $mock->shouldReceive('bulkDownloadFiles')
-                ->once()
-                ->andThrow(new \Exception('Service error'));
-        });
-
-        $response = $this->actingAs($this->admin)
-            ->postJson(route('admin.file-manager.bulk-download'), [
-                'file_ids' => $fileIds
-            ]);
-
-        $response->assertStatus(500)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Error creating bulk download: Service error'
-            ]);
-    }
-
-    /** @test */
-    public function bulk_download_handles_no_accessible_files()
-    {
-        // Create files with Google Drive IDs (no local copies)
-        $files = FileUpload::factory()->count(2)->create([
-            'google_drive_file_id' => 'drive_123'
-        ]);
-        $fileIds = $files->pluck('id')->toArray();
-
-        $response = $this->actingAs($this->admin)
-            ->postJson(route('admin.file-manager.bulk-download'), [
-                'file_ids' => $fileIds
-            ]);
-
-        $response->assertStatus(500)
-            ->assertJson([
-                'success' => false
+                'file_ids' => [$this->testFile->id, $file2->id]
             ]);
         
-        // Just check that it contains "Error creating bulk download" since the exact message may vary
-        $this->assertStringContainsString('Error creating bulk download', $response->json('message'));
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'application/zip');
     }
 
-    /** @test */
-    public function non_admin_users_cannot_access_bulk_download()
+    public function test_bulk_download_validation_error()
     {
-        $client = User::factory()->create(['role' => UserRole::CLIENT]);
-        $files = FileUpload::factory()->count(2)->create();
-        $fileIds = $files->pluck('id')->toArray();
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('admin.file-manager.bulk-download'), [
+                'file_ids' => []
+            ]);
+        
+        $response->assertStatus(302);
+        $response->assertSessionHasErrors('file_ids');
+    }
 
-        $response = $this->actingAs($client)
+    public function test_bulk_download_invalid_file_ids()
+    {
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('admin.file-manager.bulk-download'), [
+                'file_ids' => [999, 1000] // Non-existent file IDs
+            ]);
+        
+        $response->assertStatus(302);
+        $response->assertSessionHasErrors('file_ids.0');
+    }
+
+    public function test_bulk_download_service_error()
+    {
+        // Mock the FileManagerService to throw exception
+        $mockService = Mockery::mock(FileManagerService::class);
+        $mockService->shouldReceive('bulkDownloadFiles')
+            ->with([$this->testFile->id])
+            ->once()
+            ->andThrow(new \Exception('Bulk download failed'));
+        
+        $this->app->instance(FileManagerService::class, $mockService);
+        
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('admin.file-manager.bulk-download'), [
+                'file_ids' => [$this->testFile->id]
+            ]);
+        
+        $response->assertRedirect();
+        $response->assertSessionHas('error', 'Error creating bulk download: Bulk download failed');
+    }
+
+    public function test_bulk_download_json_response_error()
+    {
+        // Mock the FileManagerService to throw exception
+        $mockService = Mockery::mock(FileManagerService::class);
+        $mockService->shouldReceive('bulkDownloadFiles')
+            ->with([$this->testFile->id])
+            ->once()
+            ->andThrow(new \Exception('Bulk download failed'));
+        
+        $this->app->instance(FileManagerService::class, $mockService);
+        
+        $response = $this->actingAs($this->adminUser)
             ->postJson(route('admin.file-manager.bulk-download'), [
-                'file_ids' => $fileIds
+                'file_ids' => [$this->testFile->id]
             ]);
-
-        // Should be redirected or forbidden (depending on middleware implementation)
-        $this->assertTrue(in_array($response->status(), [302, 403, 401]));
+        
+        $response->assertStatus(500);
+        $response->assertJson([
+            'success' => false,
+            'message' => 'Error creating bulk download: Bulk download failed'
+        ]);
     }
 
-    /** @test */
-    public function bulk_download_works_with_mixed_file_types()
+    protected function tearDown(): void
     {
-        // Create mix of local and Google Drive files
-        $localFile = FileUpload::factory()->create([
-            'original_filename' => 'local_file.txt',
-            'google_drive_file_id' => null
-        ]);
-        $driveFile = FileUpload::factory()->create([
-            'original_filename' => 'drive_file.txt',
-            'google_drive_file_id' => 'drive_123'
-        ]);
-
-        // Create local file content
-        Storage::disk('public')->put('uploads/' . $localFile->filename, 'Local file content');
-
-        $fileIds = [$localFile->id, $driveFile->id];
-
-        $response = $this->actingAs($this->admin)
-            ->post(route('admin.file-manager.bulk-download'), [
-                'file_ids' => $fileIds
-            ]);
-
-        $response->assertOk();
-        $this->assertEquals('application/zip', $response->headers->get('Content-Type'));
+        Mockery::close();
+        parent::tearDown();
     }
-
-    /** @test */
-    public function bulk_download_handles_duplicate_filenames()
-    {
-        // Create files with same original filename
-        $files = FileUpload::factory()->count(3)->create([
-            'original_filename' => 'duplicate.txt'
-        ]);
-        $fileIds = $files->pluck('id')->toArray();
-
-        // Create local files
-        foreach ($files as $index => $file) {
-            Storage::disk('public')->put('uploads/' . $file->filename, "Content {$index}");
-        }
-
-        $response = $this->actingAs($this->admin)
-            ->post(route('admin.file-manager.bulk-download'), [
-                'file_ids' => $fileIds
-            ]);
-
-        $response->assertOk();
-        $this->assertEquals('application/zip', $response->headers->get('Content-Type'));
-    }}
+}

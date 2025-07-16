@@ -227,14 +227,14 @@ class FileManagerController extends AdminController
     }
 
     /**
-     * Download a file.
+     * Download a file with streaming support and progress tracking.
      */
     public function download(FileUpload $file)
     {
         $this->checkAdminAccess();
         
         try {
-            return $this->fileManagerService->downloadFile($file);
+            return $this->fileManagerService->downloadFile($file, auth()->user());
         } catch (\Exception $e) {
             if (request()->expectsJson()) {
                 return response()->json([
