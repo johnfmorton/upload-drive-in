@@ -268,7 +268,7 @@
                                 <!-- Header Section -->
                                 <div class="border-b border-gray-200 pb-3 mb-3">
                                     <div class="flex justify-between items-start gap-2">
-                                        <div class="font-medium text-gray-900 break-words" x-text="file.original_filename"></div>
+                                        <div class="font-medium text-gray-900 break-words hyphens-auto min-w-0 flex-1 pr-2" x-text="file.original_filename"></div>
                                         <div class="flex shrink-0">
                                             <div class="flex flex-wrap gap-2">
                                                 <template x-if="file.google_drive_file_id">
