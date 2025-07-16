@@ -24,7 +24,20 @@ Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit')
 Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-// File management
+// Enhanced File Management
+Route::prefix('file-manager')
+    ->name('file-manager.')
+    ->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\FileManagerController::class, 'index'])->name('index');
+        Route::get('/{file}', [\App\Http\Controllers\Admin\FileManagerController::class, 'show'])->name('show');
+        Route::patch('/{file}', [\App\Http\Controllers\Admin\FileManagerController::class, 'update'])->name('update');
+        Route::delete('/{file}', [\App\Http\Controllers\Admin\FileManagerController::class, 'destroy'])->name('destroy');
+        Route::delete('/', [\App\Http\Controllers\Admin\FileManagerController::class, 'bulkDestroy'])->name('bulk-destroy');
+        Route::post('/process-pending', [\App\Http\Controllers\Admin\FileManagerController::class, 'processPending'])->name('process-pending');
+        Route::get('/{file}/download', [\App\Http\Controllers\Admin\FileManagerController::class, 'download'])->name('download');
+    });
+
+// Legacy File management (for backward compatibility)
 Route::delete('/files/{file}', [DashboardController::class, 'destroy'])
     ->name('files.destroy');
 Route::post('/files/process-pending', [DashboardController::class, 'processPendingUploads'])

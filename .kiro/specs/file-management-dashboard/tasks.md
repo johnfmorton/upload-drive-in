@@ -1,19 +1,19 @@
 # Implementation Plan
 
-- [ ] 1. Set up enhanced file management infrastructure
+- [x] 1. Set up enhanced file management infrastructure
   - Create FileManagerController with basic CRUD operations
   - Add new routes for file management endpoints
   - Create FileManagerService class with core business logic
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 2. Implement file access control and permissions
-  - [ ] 2.1 Add permission methods to FileUpload model
+- [x] 2. Implement file access control and permissions
+  - [x] 2.1 Add permission methods to FileUpload model
     - Write canBeAccessedBy() method with role-based logic
     - Create scope methods for user-accessible files
     - Add unit tests for permission checking
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-  - [ ] 2.2 Create file access middleware
+  - [x] 2.2 Create file access middleware
     - Write middleware to verify file access permissions
     - Implement role-based access control logic
     - Add tests for middleware functionality

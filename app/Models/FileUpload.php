@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
+use App\Enums\UserRole;
 
 class FileUpload extends Model
 {
@@ -37,6 +40,19 @@ class FileUpload extends Model
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'can_preview',
+        'preview_url',
+        'download_url',
+        'thumbnail_url',
+        'file_size_human'
+    ];
+
+    /**
      * Get the client user who uploaded this file.
      */
     public function clientUser(): BelongsTo
@@ -58,6 +74,197 @@ class FileUpload extends Model
     public function uploadedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by_user_id');
+    }
+
+    /**
+     * Check if a user can access this file based on their role and relationships.
+     *
+     * @param User $user The user to check access for
+     * @return bool True if the user can access the file, false otherwise
+     */
+    public function canBeAccessedBy(User $user): bool
+    {
+        // Admin users can access all files
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        // Client users can only access files they uploaded
+        if ($user->isClient()) {
+            return $this->client_user_id === $user->id;
+        }
+
+        // Employee users can access files from clients they manage
+        if ($user->isEmployee()) {
+            // Allow access to files they uploaded themselves
+            if ($this->uploaded_by_user_id === $user->id) {
+                return true;
+            }
+
+            // Check if this employee manages the client who uploaded the file
+            if ($this->client_user_id) {
+                return $user->clientUsers()->where('client_user_id', $this->client_user_id)->exists();
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * Scope to get files accessible by a specific user.
+     *
+     * @param Builder $query
+     * @param User $user
+     * @return Builder
+     */
+    public function scopeAccessibleBy(Builder $query, User $user): Builder
+    {
+        // Admin users can access all files
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        // Client users can only access their own files
+        if ($user->isClient()) {
+            return $query->where('client_user_id', $user->id);
+        }
+
+        // Employee users can access files from clients they manage or files they uploaded
+        if ($user->isEmployee()) {
+            $clientIds = $user->clientUsers()->pluck('client_user_id')->toArray();
+            
+            return $query->where(function ($q) use ($user, $clientIds) {
+                $q->whereIn('client_user_id', $clientIds)
+                  ->orWhere('uploaded_by_user_id', $user->id);
+            });
+        }
+
+        // Default: no access
+        return $query->whereRaw('1 = 0');
+    }
+
+    /**
+     * Check if the file can be previewed based on its MIME type.
+     *
+     * @return bool
+     */
+    public function isPreviewable(): bool
+    {
+        if (!$this->mime_type) {
+            return false;
+        }
+
+        $previewableMimeTypes = [
+            // Images
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+            'image/svg+xml',
+            // PDFs
+            'application/pdf',
+            // Text files
+            'text/plain',
+            'text/html',
+            'text/css',
+            'text/javascript',
+            'application/json',
+            'application/xml',
+            'text/xml',
+        ];
+
+        return in_array($this->mime_type, $previewableMimeTypes);
+    }
+
+    /**
+     * Get the preview URL for this file.
+     *
+     * @return string|null
+     */
+    public function getPreviewUrl(): ?string
+    {
+        if (!$this->isPreviewable()) {
+            return null;
+        }
+
+        return route('admin.files.preview', $this);
+    }
+
+    /**
+     * Get the download URL for this file.
+     *
+     * @return string
+     */
+    public function getDownloadUrl(): string
+    {
+        return route('admin.files.download', $this);
+    }
+
+    /**
+     * Get the thumbnail URL for this file.
+     *
+     * @return string|null
+     */
+    public function getThumbnailUrl(): ?string
+    {
+        if (!$this->isPreviewable() || !str_starts_with($this->mime_type, 'image/')) {
+            return null;
+        }
+
+        return route('admin.files.thumbnail', $this);
+    }
+
+    /**
+     * Accessor for can_preview attribute.
+     *
+     * @return bool
+     */
+    public function getCanPreviewAttribute(): bool
+    {
+        return $this->isPreviewable();
+    }
+
+    /**
+     * Accessor for preview_url attribute.
+     *
+     * @return string|null
+     */
+    public function getPreviewUrlAttribute(): ?string
+    {
+        return $this->getPreviewUrl();
+    }
+
+    /**
+     * Accessor for download_url attribute.
+     *
+     * @return string
+     */
+    public function getDownloadUrlAttribute(): string
+    {
+        return $this->getDownloadUrl();
+    }
+
+    /**
+     * Accessor for thumbnail_url attribute.
+     *
+     * @return string|null
+     */
+    public function getThumbnailUrlAttribute(): ?string
+    {
+        return $this->getThumbnailUrl();
+    }
+
+    /**
+     * Accessor for file_size_human attribute.
+     *
+     * @return string
+     */
+    public function getFileSizeHumanAttribute(): string
+    {
+        return $this->getHumanFileSize();
     }
 
     /**
