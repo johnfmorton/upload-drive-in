@@ -531,7 +531,7 @@ hanced Table Controls */
 }
 
 .column-resize-handle:hover,
-.group:hover .column-resize-handle {
+[group]:hover .column-resize-handle {
     @apply opacity-100;
 }
 
@@ -554,7 +554,8 @@ hanced Table Controls */
 
 /* Column header with controls */
 .column-header {
-    @apply flex items-center justify-between group;
+    @apply flex items-center justify-between;
+    [group]: '';
 }
 
 .column-header-content {
