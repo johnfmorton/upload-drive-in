@@ -108,17 +108,71 @@
                                     <option value="pending">{{ __('messages.status_pending') }}</option>
                                 </select>
                                 
-                                <button 
-                                    @click="toggleViewMode()"
-                                    class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    <svg x-show="viewMode === 'grid'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-                                    </svg>
-                                    <svg x-show="viewMode === 'table'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
-                                    </svg>
-                                </button>
+                                <div class="flex items-center space-x-2">
+                                    <!-- Column Visibility Toggle (only show in table mode) -->
+                                    <div x-show="viewMode === 'table'" class="relative" x-data="{ open: false }">
+                                        <button 
+                                            @click="open = !open"
+                                            class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        >
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                                            </svg>
+                                            {{ __('messages.columns') }}
+                                        </button>
+                                        
+                                        <!-- Column visibility dropdown -->
+                                        <div 
+                                            x-show="open"
+                                            @click.away="open = false"
+                                            x-transition:enter="transition ease-out duration-100"
+                                            x-transition:enter-start="transform opacity-0 scale-95"
+                                            x-transition:enter-end="transform opacity-100 scale-100"
+                                            x-transition:leave="transition ease-in duration-75"
+                                            x-transition:leave-start="transform opacity-100 scale-100"
+                                            x-transition:leave-end="transform opacity-0 scale-95"
+                                            class="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10"
+                                        >
+                                            <div class="py-1">
+                                                <div class="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                                                    {{ __('messages.show_columns') }}
+                                                </div>
+                                                <template x-for="column in availableColumns" :key="column.key">
+                                                    <label class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            :checked="visibleColumns[column.key]"
+                                                            @change="toggleColumn(column.key)"
+                                                            class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500 mr-3"
+                                                        >
+                                                        <span x-text="column.label"></span>
+                                                    </label>
+                                                </template>
+                                                <div class="border-t border-gray-100 pt-1">
+                                                    <button 
+                                                        @click="resetColumns()"
+                                                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                                    >
+                                                        {{ __('messages.reset_columns') }}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- View Mode Toggle -->
+                                    <button 
+                                        @click="toggleViewMode()"
+                                        class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    >
+                                        <svg x-show="viewMode === 'grid'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                                        </svg>
+                                        <svg x-show="viewMode === 'table'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -241,52 +295,48 @@
                         <!-- Table View -->
                         <div x-show="viewMode === 'table'" class="overflow-hidden">
                             <div class="overflow-x-auto">
-                                <table class="min-w-full divide-y divide-gray-200">
+                                <table class="min-w-full divide-y divide-gray-200" :style="tableStyles">
                                     <thead class="bg-gray-50">
                                         <tr>
-                                            <th scope="col" class="w-12 px-6 py-3">
+                                            <!-- Selection Column (always visible) -->
+                                            <th scope="col" class="w-12 px-6 py-3 sticky left-0 bg-gray-50 z-10">
                                                 <input 
                                                     type="checkbox" 
                                                     x-model="selectAll"
                                                     class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500"
                                                 >
                                             </th>
-                                            <th 
-                                                scope="col" 
-                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                                @click="sortBy('original_filename')"
-                                            >
-                                                {{ __('messages.filename') }}
-                                                <span x-show="sortColumn === 'original_filename'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
-                                            </th>
-                                            <th 
-                                                scope="col" 
-                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                                @click="sortBy('email')"
-                                            >
-                                                {{ __('messages.uploaded_by') }}
-                                                <span x-show="sortColumn === 'email'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
-                                            </th>
-                                            <th 
-                                                scope="col" 
-                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                                @click="sortBy('file_size')"
-                                            >
-                                                {{ __('messages.size') }}
-                                                <span x-show="sortColumn === 'file_size'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                {{ __('messages.status') }}
-                                            </th>
-                                            <th 
-                                                scope="col" 
-                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                                @click="sortBy('created_at')"
-                                            >
-                                                {{ __('messages.uploaded_at') }}
-                                                <span x-show="sortColumn === 'created_at'" x-text="sortDirection === 'asc' ? '▲' : '▼'"></span>
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            
+                                            <!-- Dynamic Columns -->
+                                            <template x-for="column in visibleColumnsList" :key="column.key">
+                                                <th 
+                                                    scope="col" 
+                                                    :class="getColumnHeaderClass(column)"
+                                                    @click="column.sortable ? sortBy(column.key) : null"
+                                                    :style="getColumnStyle(column.key)"
+                                                >
+                                                    <div class="flex items-center justify-between group">
+                                                        <span x-text="column.label"></span>
+                                                        <div class="flex items-center space-x-1">
+                                                            <!-- Sort indicator -->
+                                                            <span 
+                                                                x-show="column.sortable && sortColumn === column.key" 
+                                                                x-text="sortDirection === 'asc' ? '▲' : '▼'"
+                                                                class="text-blue-600"
+                                                            ></span>
+                                                            <!-- Resize handle -->
+                                                            <div 
+                                                                x-show="column.resizable"
+                                                                class="w-1 h-4 bg-gray-300 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                @mousedown="startColumnResize($event, column.key)"
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                </th>
+                                            </template>
+                                            
+                                            <!-- Actions Column (always visible) -->
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 bg-gray-50 z-10">
                                                 {{ __('messages.actions') }}
                                             </th>
                                         </tr>
@@ -294,7 +344,8 @@
                                     <tbody class="bg-white divide-y divide-gray-200">
                                         <template x-for="file in filteredFiles" :key="file.id">
                                             <tr class="hover:bg-gray-50">
-                                                <td class="px-6 py-4 whitespace-nowrap">
+                                                <!-- Selection Column (always visible) -->
+                                                <td class="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-10">
                                                     <input 
                                                         type="checkbox" 
                                                         :value="file.id"
@@ -302,53 +353,18 @@
                                                         class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500"
                                                     >
                                                 </td>
-                                                <td class="px-6 py-4 text-sm text-gray-900">
-                                                    <div class="flex items-center space-x-3">
-                                                        <div class="flex-shrink-0 w-8 h-8">
-                                                            <template x-if="file.can_preview && file.thumbnail_url">
-                                                                <img 
-                                                                    :src="file.thumbnail_url" 
-                                                                    :alt="file.original_filename"
-                                                                    class="w-8 h-8 object-cover rounded"
-                                                                >
-                                                            </template>
-                                                            <template x-if="!file.can_preview || !file.thumbnail_url">
-                                                                <div class="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                                                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                                    </svg>
-                                                                </div>
-                                                            </template>
-                                                        </div>
-                                                        <div class="min-w-0 flex-1">
-                                                            <p 
-                                                                class="text-sm font-medium text-gray-900 break-words"
-                                                                :title="file.original_filename"
-                                                                x-text="file.original_filename"
-                                                            ></p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td class="px-6 py-4 text-sm text-gray-500">
-                                                    <div class="truncate max-w-48" :title="file.email" x-text="file.email"></div>
-                                                </td>
-                                                <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap" x-text="formatBytes(file.file_size)"></td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <span 
-                                                        x-show="file.google_drive_file_id" 
-                                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                                                    >
-                                                        {{ __('messages.status_uploaded') }}
-                                                    </span>
-                                                    <span 
-                                                        x-show="!file.google_drive_file_id" 
-                                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
-                                                    >
-                                                        {{ __('messages.status_pending') }}
-                                                    </span>
-                                                </td>
-                                                <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap" x-text="formatDate(file.created_at)"></td>
-                                                <td class="px-6 py-4 text-sm font-medium whitespace-nowrap">
+                                                
+                                                <!-- Dynamic Columns -->
+                                                <template x-for="column in visibleColumnsList" :key="column.key">
+                                                    <td 
+                                                        :class="getColumnCellClass(column)"
+                                                        :style="getColumnStyle(column.key)"
+                                                        x-html="getCellContent(file, column)"
+                                                    ></td>
+                                                </template>
+                                                
+                                                <!-- Actions Column (always visible) -->
+                                                <td class="px-6 py-4 text-sm font-medium whitespace-nowrap sticky right-0 bg-white z-10">
                                                     <div class="flex items-center space-x-2">
                                                         <button 
                                                             x-show="file.can_preview"
@@ -416,6 +432,23 @@
                 sortDirection: 'desc',
                 viewMode: localStorage.getItem('fileManagerViewMode') || 'grid',
                 
+                // Column management
+                availableColumns: [
+                    { key: 'original_filename', label: 'Filename', sortable: true, resizable: true, defaultWidth: 300, minWidth: 200 },
+                    { key: 'email', label: 'Uploaded By', sortable: true, resizable: true, defaultWidth: 200, minWidth: 150 },
+                    { key: 'file_size', label: 'Size', sortable: true, resizable: true, defaultWidth: 120, minWidth: 80 },
+                    { key: 'status', label: 'Status', sortable: false, resizable: true, defaultWidth: 120, minWidth: 100 },
+                    { key: 'created_at', label: 'Uploaded At', sortable: true, resizable: true, defaultWidth: 180, minWidth: 150 }
+                ],
+                visibleColumns: this.getStoredColumnVisibility(),
+                columnWidths: this.getStoredColumnWidths(),
+                
+                // Column resizing state
+                isResizing: false,
+                resizingColumn: null,
+                startX: 0,
+                startWidth: 0,
+                
                 // Computed
                 get selectAll() {
                     return this.filteredFiles.length > 0 && this.selectedFiles.length === this.filteredFiles.length;
@@ -480,9 +513,188 @@
                     return filtered;
                 },
                 
+                // Computed properties
+                get visibleColumnsList() {
+                    return this.availableColumns.filter(column => this.visibleColumns[column.key]);
+                },
+                
+                get tableStyles() {
+                    return `table-layout: fixed; width: ${this.getTotalTableWidth()}px;`;
+                },
+                
                 // Methods
                 init() {
                     // Initialize component
+                    this.setupColumnResizing();
+                },
+                
+                // Column management methods
+                getStoredColumnVisibility() {
+                    const stored = localStorage.getItem('fileManagerColumnVisibility');
+                    const defaults = {
+                        original_filename: true,
+                        email: true,
+                        file_size: true,
+                        status: true,
+                        created_at: true
+                    };
+                    return stored ? { ...defaults, ...JSON.parse(stored) } : defaults;
+                },
+                
+                getStoredColumnWidths() {
+                    const stored = localStorage.getItem('fileManagerColumnWidths');
+                    const defaults = {
+                        original_filename: 300,
+                        email: 200,
+                        file_size: 120,
+                        status: 120,
+                        created_at: 180
+                    };
+                    return stored ? { ...defaults, ...JSON.parse(stored) } : defaults;
+                },
+                
+                toggleColumn(columnKey) {
+                    this.visibleColumns[columnKey] = !this.visibleColumns[columnKey];
+                    this.saveColumnPreferences();
+                },
+                
+                resetColumns() {
+                    this.visibleColumns = {
+                        original_filename: true,
+                        email: true,
+                        file_size: true,
+                        status: true,
+                        created_at: true
+                    };
+                    this.columnWidths = {
+                        original_filename: 300,
+                        email: 200,
+                        file_size: 120,
+                        status: 120,
+                        created_at: 180
+                    };
+                    this.saveColumnPreferences();
+                },
+                
+                saveColumnPreferences() {
+                    localStorage.setItem('fileManagerColumnVisibility', JSON.stringify(this.visibleColumns));
+                    localStorage.setItem('fileManagerColumnWidths', JSON.stringify(this.columnWidths));
+                },
+                
+                // Column styling methods
+                getColumnHeaderClass(column) {
+                    let classes = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                    if (column.sortable) {
+                        classes += ' cursor-pointer hover:bg-gray-100';
+                    }
+                    return classes;
+                },
+                
+                getColumnCellClass(column) {
+                    let classes = 'px-6 py-4 text-sm';
+                    if (column.key === 'original_filename') {
+                        classes += ' text-gray-900';
+                    } else if (column.key === 'status') {
+                        classes += ' whitespace-nowrap';
+                    } else {
+                        classes += ' text-gray-500';
+                    }
+                    if (column.key === 'file_size' || column.key === 'created_at') {
+                        classes += ' whitespace-nowrap';
+                    }
+                    return classes;
+                },
+                
+                getColumnStyle(columnKey) {
+                    const width = this.columnWidths[columnKey] || 150;
+                    return `width: ${width}px; min-width: ${width}px; max-width: ${width}px;`;
+                },
+                
+                getTotalTableWidth() {
+                    const selectionWidth = 60; // Selection column
+                    const actionsWidth = 200; // Actions column
+                    const visibleColumnsWidth = this.visibleColumnsList.reduce((total, column) => {
+                        return total + (this.columnWidths[column.key] || 150);
+                    }, 0);
+                    return selectionWidth + visibleColumnsWidth + actionsWidth;
+                },
+                
+                // Cell content generation
+                getCellContent(file, column) {
+                    switch (column.key) {
+                        case 'original_filename':
+                            return this.getFilenameCell(file);
+                        case 'email':
+                            return `<div class="truncate" title="${file.email}">${file.email}</div>`;
+                        case 'file_size':
+                            return this.formatBytes(file.file_size);
+                        case 'status':
+                            return this.getStatusCell(file);
+                        case 'created_at':
+                            return this.formatDate(file.created_at);
+                        default:
+                            return '';
+                    }
+                },
+                
+                getFilenameCell(file) {
+                    const thumbnailHtml = file.can_preview && file.thumbnail_url 
+                        ? `<img src="${file.thumbnail_url}" alt="${file.original_filename}" class="w-8 h-8 object-cover rounded">`
+                        : `<div class="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                             </svg>
+                           </div>`;
+                    
+                    return `<div class="flex items-center space-x-3">
+                              <div class="flex-shrink-0 w-8 h-8">${thumbnailHtml}</div>
+                              <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium text-gray-900 break-words" title="${file.original_filename}">${file.original_filename}</p>
+                              </div>
+                            </div>`;
+                },
+                
+                getStatusCell(file) {
+                    if (file.google_drive_file_id) {
+                        return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Uploaded</span>';
+                    } else {
+                        return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>';
+                    }
+                },
+                
+                // Column resizing methods
+                setupColumnResizing() {
+                    document.addEventListener('mousemove', (e) => this.handleColumnResize(e));
+                    document.addEventListener('mouseup', () => this.endColumnResize());
+                },
+                
+                startColumnResize(event, columnKey) {
+                    event.preventDefault();
+                    this.isResizing = true;
+                    this.resizingColumn = columnKey;
+                    this.startX = event.clientX;
+                    this.startWidth = this.columnWidths[columnKey] || 150;
+                    document.body.style.cursor = 'col-resize';
+                },
+                
+                handleColumnResize(event) {
+                    if (!this.isResizing || !this.resizingColumn) return;
+                    
+                    const diff = event.clientX - this.startX;
+                    const column = this.availableColumns.find(col => col.key === this.resizingColumn);
+                    const minWidth = column?.minWidth || 100;
+                    const newWidth = Math.max(minWidth, this.startWidth + diff);
+                    
+                    this.columnWidths[this.resizingColumn] = newWidth;
+                },
+                
+                endColumnResize() {
+                    if (this.isResizing) {
+                        this.isResizing = false;
+                        this.resizingColumn = null;
+                        document.body.style.cursor = '';
+                        this.saveColumnPreferences();
+                    }
                 },
                 
                 toggleViewMode() {

@@ -48,6 +48,9 @@
     'column_message' => 'Message',
     'column_uploaded_at' => 'Uploaded At',
     'column_actions' => 'Actions',
+    'columns' => 'Columns',
+    'show_columns' => 'Show Columns',
+    'reset_columns' => 'Reset to Default',
     'filter_files_label' => 'Filter files', // sr-only
     'filter_files_placeholder' => 'Filter by filename, user, or message...',
     'view_button' => 'View',

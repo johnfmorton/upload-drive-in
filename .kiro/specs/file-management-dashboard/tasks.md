@@ -80,8 +80,8 @@
     - Write Alpine.js components for selection management
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [-] 7. Add interactive file management features
-  - [-] 7.1 Create file preview modal system
+- [ ] 7. Add interactive file management features
+  - [x] 7.1 Create file preview modal system
     - Build modal component for file previews
     - Implement image viewer with zoom/pan capabilities
     - Add PDF viewer integration

@@ -135,14 +135,219 @@
     }
 }
 
-/* File preview modal responsive */
+/* Enhanced File Preview Modal Styles */
+.preview-modal {
+    @apply fixed inset-0 z-50;
+}
+
+.preview-modal-overlay {
+    @apply fixed inset-0 bg-black/75 transition-opacity;
+}
+
+.preview-modal-panel {
+    @apply inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all;
+    max-height: 95vh;
+}
+
+/* Image viewer styles */
+.image-viewer {
+    @apply h-full overflow-hidden relative bg-gray-100;
+}
+
+.image-viewer-container {
+    @apply h-full overflow-auto;
+    cursor: grab;
+}
+
+.image-viewer-container:active {
+    cursor: grabbing;
+}
+
+.image-viewer img {
+    @apply block mx-auto transition-transform duration-200;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* PDF viewer styles */
+.pdf-viewer {
+    @apply h-full bg-gray-100;
+}
+
+.pdf-container {
+    @apply h-full overflow-auto flex items-center justify-center p-4;
+}
+
+.pdf-canvas {
+    @apply max-w-full max-h-full shadow-lg bg-white;
+}
+
+/* Text and code viewer styles */
+.text-viewer {
+    @apply h-full overflow-auto p-6;
+}
+
+.text-viewer pre {
+    @apply text-sm font-mono whitespace-pre-wrap break-words bg-gray-50 p-4 rounded border;
+}
+
+.code-viewer {
+    @apply h-full overflow-auto;
+}
+
+.code-viewer .code-block {
+    @apply bg-gray-900 text-gray-100 p-4 rounded overflow-auto text-sm font-mono;
+}
+
+.code-viewer .code-block pre {
+    @apply m-0 p-0 bg-transparent text-inherit;
+}
+
+/* Preview controls */
+.preview-controls {
+    @apply flex items-center space-x-2;
+}
+
+.preview-control-btn {
+    @apply p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded transition-colors;
+}
+
+.preview-control-btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+}
+
+.preview-control-btn svg {
+    @apply w-5 h-5;
+}
+
+/* Zoom indicator */
+.zoom-indicator {
+    @apply text-xs text-gray-500 min-w-12 text-center;
+}
+
+/* Page indicator */
+.page-indicator {
+    @apply text-xs text-gray-500 min-w-16 text-center;
+}
+
+/* File metadata display */
+.file-metadata {
+    @apply grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2;
+}
+
+.file-metadata dt {
+    @apply text-sm font-medium text-gray-500;
+}
+
+.file-metadata dd {
+    @apply text-sm text-gray-900;
+}
+
+/* Error and loading states */
+.preview-loading {
+    @apply flex items-center justify-center py-12;
+}
+
+.preview-error {
+    @apply flex items-center justify-center py-12;
+}
+
+.preview-error svg {
+    @apply mx-auto h-12 w-12 text-red-400;
+}
+
+.preview-unsupported {
+    @apply flex items-center justify-center py-12;
+}
+
+.preview-unsupported svg {
+    @apply mx-auto h-16 w-16 text-gray-400;
+}
+
+/* Responsive adjustments */
 @media (max-width: 640px) {
-    .preview-modal {
-        @apply mx-4 my-8;
+    .preview-modal-panel {
+        @apply mx-4 my-8 max-w-none w-auto;
+        max-height: calc(100vh - 4rem);
     }
     
-    .preview-modal .modal-content {
-        @apply max-h-screen overflow-y-auto;
+    .preview-controls {
+        @apply flex-wrap gap-2;
+    }
+    
+    .preview-control-btn {
+        @apply p-1.5;
+    }
+    
+    .preview-control-btn svg {
+        @apply w-4 h-4;
+    }
+    
+    .image-viewer-container {
+        touch-action: pan-x pan-y pinch-zoom;
+    }
+    
+    .text-viewer {
+        @apply p-4;
+    }
+    
+    .text-viewer pre {
+        @apply text-xs p-3;
+    }
+    
+    .code-viewer .code-block {
+        @apply text-xs p-3;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+    .preview-modal-panel {
+        @apply max-w-4xl;
+    }
+}
+
+@media (min-width: 1025px) {
+    .preview-modal-panel {
+        @apply max-w-6xl;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .preview-modal-overlay {
+        @apply bg-black;
+    }
+    
+    .image-viewer {
+        @apply bg-white border-2 border-gray-900;
+    }
+    
+    .preview-control-btn {
+        @apply border border-current;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .preview-modal-panel {
+        @apply transition-none;
+    }
+    
+    .image-viewer img {
+        @apply transition-none;
+    }
+    
+    .preview-control-btn {
+        @apply transition-none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .preview-modal {
+        @apply hidden;
     }
 }
 
@@ -285,5 +490,247 @@
     
     .status-badge {
         @apply bg-gray-700/80;
+    }
+}
+/* En
+hanced Table Controls */
+
+/* Column visibility dropdown */
+.column-dropdown {
+    @apply absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black/5 z-10;
+}
+
+.column-dropdown-item {
+    @apply flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer;
+}
+
+.column-dropdown-header {
+    @apply px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-100;
+}
+
+.column-dropdown-divider {
+    @apply border-t border-gray-100 pt-1;
+}
+
+/* Enhanced table with fixed layout */
+.enhanced-table {
+    @apply table-fixed w-full divide-y divide-gray-200;
+}
+
+.enhanced-table th {
+    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.enhanced-table td {
+    @apply px-6 py-4 text-sm;
+}
+
+/* Column resizing */
+.column-resize-handle {
+    @apply w-1 h-4 bg-gray-300 cursor-col-resize opacity-0 transition-opacity;
+}
+
+.column-resize-handle:hover,
+.group:hover .column-resize-handle {
+    @apply opacity-100;
+}
+
+.column-resize-handle:active {
+    @apply bg-blue-500;
+}
+
+/* Sticky columns */
+.sticky-column {
+    @apply sticky z-10;
+}
+
+.sticky-left {
+    @apply left-0;
+}
+
+.sticky-right {
+    @apply right-0;
+}
+
+/* Column header with controls */
+.column-header {
+    @apply flex items-center justify-between group;
+}
+
+.column-header-content {
+    @apply flex items-center space-x-1;
+}
+
+.sort-indicator {
+    @apply text-blue-600 font-bold;
+}
+
+/* Table container with horizontal scroll */
+.table-container {
+    @apply overflow-x-auto;
+}
+
+.table-container::-webkit-scrollbar {
+    @apply h-2;
+}
+
+.table-container::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 rounded;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+}
+
+/* Column width constraints */
+.column-min-width {
+    min-width: var(--min-width, 100px);
+}
+
+.column-max-width {
+    max-width: var(--max-width, 500px);
+}
+
+/* Resizing cursor */
+.resizing {
+    cursor: col-resize !important;
+}
+
+.resizing * {
+    cursor: col-resize !important;
+}
+
+/* Column controls button */
+.column-controls-btn {
+    @apply inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+}
+
+/* Enhanced sorting indicators */
+.sort-asc::after {
+    content: "▲";
+    @apply text-blue-600 ml-1;
+}
+
+.sort-desc::after {
+    content: "▼";
+    @apply text-blue-600 ml-1;
+}
+
+/* Column visibility checkbox */
+.column-visibility-checkbox {
+    @apply rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500;
+}
+
+/* Responsive table enhancements */
+@media (max-width: 768px) {
+    .enhanced-table th,
+    .enhanced-table td {
+        @apply px-3 py-2 text-xs;
+    }
+    
+    .column-controls-btn {
+        @apply px-2 py-1 text-xs;
+    }
+    
+    .column-dropdown {
+        @apply w-48;
+    }
+    
+    .column-resize-handle {
+        @apply w-2 h-3;
+    }
+}
+
+/* Table row hover effects */
+.enhanced-table tbody tr:hover {
+    @apply bg-gray-50;
+}
+
+.enhanced-table tbody tr:hover .sticky-column {
+    @apply bg-gray-50;
+}
+
+/* Column header hover effects */
+.enhanced-table th:hover {
+    @apply bg-gray-100;
+}
+
+.enhanced-table th.sortable:hover {
+    @apply bg-gray-100 cursor-pointer;
+}
+
+/* Focus states for accessibility */
+.column-controls-btn:focus {
+    @apply ring-2 ring-blue-500 ring-offset-2;
+}
+
+.column-dropdown-item:focus {
+    @apply bg-blue-50 outline-none;
+}
+
+/* Loading state for table */
+.table-loading {
+    @apply opacity-50 pointer-events-none;
+}
+
+.table-loading::after {
+    content: "";
+    @apply absolute inset-0 bg-white/50 flex items-center justify-center;
+}
+
+/* Column width transition */
+.column-width-transition {
+    @apply transition-all duration-200 ease-in-out;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .enhanced-table {
+        @apply border-2 border-gray-900;
+    }
+    
+    .enhanced-table th,
+    .enhanced-table td {
+        @apply border border-gray-900;
+    }
+    
+    .column-resize-handle {
+        @apply bg-gray-900;
+    }
+    
+    .column-controls-btn {
+        @apply border-2 border-gray-900;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .column-width-transition {
+        @apply transition-none;
+    }
+    
+    .column-dropdown {
+        @apply transition-none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .column-controls-btn,
+    .column-dropdown,
+    .column-resize-handle {
+        @apply hidden;
+    }
+    
+    .enhanced-table {
+        @apply table-auto;
+    }
+    
+    .sticky-column {
+        @apply static;
     }
 }
