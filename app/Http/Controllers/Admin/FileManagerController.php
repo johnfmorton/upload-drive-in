@@ -49,6 +49,8 @@ class FileManagerController extends AdminController
             'date_to',
             'user_email',
             'file_type',
+            'file_size_min',
+            'file_size_max',
             'sort_by',
             'sort_direction'
         ]);
@@ -57,15 +59,17 @@ class FileManagerController extends AdminController
         
         $files = $this->fileManagerService->getFilteredFiles($filters, $perPage);
         $statistics = $this->fileManagerService->getFileStatistics();
+        $filterOptions = $this->fileManagerService->getFilterOptions();
 
         if ($request->expectsJson()) {
             return response()->json([
                 'files' => $files,
-                'statistics' => $statistics
+                'statistics' => $statistics,
+                'filter_options' => $filterOptions
             ]);
         }
 
-        return view('admin.file-manager.index', compact('files', 'statistics', 'filters'));
+        return view('admin.file-manager.index', compact('files', 'statistics', 'filters', 'filterOptions'));
     }
 
     /**

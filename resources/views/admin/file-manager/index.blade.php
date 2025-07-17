@@ -84,29 +84,71 @@
                             </div>
 
                             <!-- Search and Filters -->
-                            <div class="flex flex-col sm:flex-row gap-3">
+                            <div class="flex flex-col lg:flex-row gap-3">
+                                <!-- Enhanced Search Input -->
                                 <div class="relative">
                                     <input 
                                         type="text" 
-                                        x-model.debounce.300ms="searchQuery"
+                                        x-model.debounce.500ms="searchQuery"
                                         placeholder="{{ __('messages.search_files_placeholder') }}"
-                                        class="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm pl-10"
+                                        class="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm pl-10 pr-10"
                                     >
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                         </svg>
                                     </div>
+                                    <div x-show="searchQuery" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                        <button 
+                                            @click="searchQuery = ''"
+                                            class="text-gray-400 hover:text-gray-600"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                                 
-                                <select 
-                                    x-model="statusFilter"
-                                    class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                >
-                                    <option value="">{{ __('messages.all_statuses') }}</option>
-                                    <option value="uploaded">{{ __('messages.status_uploaded') }}</option>
-                                    <option value="pending">{{ __('messages.status_pending') }}</option>
-                                </select>
+                                <!-- Quick Filters -->
+                                <div class="flex flex-wrap gap-2">
+                                    <!-- Status Filter -->
+                                    <select 
+                                        x-model="statusFilter"
+                                        class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                    >
+                                        <option value="">{{ __('messages.all_statuses') }}</option>
+                                        <option value="uploaded">{{ __('messages.status_uploaded') }}</option>
+                                        <option value="pending">{{ __('messages.status_pending') }}</option>
+                                    </select>
+
+                                    <!-- File Type Filter -->
+                                    <select 
+                                        x-model="fileTypeFilter"
+                                        class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                    >
+                                        <option value="">All File Types</option>
+                                        <option value="image">Images</option>
+                                        <option value="document">Documents</option>
+                                        <option value="video">Videos</option>
+                                        <option value="audio">Audio</option>
+                                        <option value="archive">Archives</option>
+                                        <option value="other">Other</option>
+                                    </select>
+
+                                    <!-- Advanced Filters Toggle -->
+                                    <button 
+                                        @click="showAdvancedFilters = !showAdvancedFilters"
+                                        class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        :class="{ 'bg-blue-50 border-blue-300 text-blue-700': showAdvancedFilters }"
+                                    >
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                                        </svg>
+                                        Filters
+                                        <span x-show="activeFiltersCount > 0" class="ml-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full" x-text="activeFiltersCount"></span>
+                                    </button>
+                                </div>
                                 
                                 <div class="flex items-center space-x-2">
                                     <!-- Column Visibility Toggle (only show in table mode) -->
@@ -172,6 +214,85 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
                                         </svg>
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Filters Panel -->
+                    <div 
+                        x-show="showAdvancedFilters" 
+                        x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 -translate-y-2"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-150"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 -translate-y-2"
+                        class="px-4 py-4 sm:px-6 border-b border-gray-200 bg-gray-50"
+                    >
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- Date Range Filter -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+                                <div class="space-y-2">
+                                    <input 
+                                        type="date" 
+                                        x-model="dateFromFilter"
+                                        placeholder="From date"
+                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                    >
+                                    <input 
+                                        type="date" 
+                                        x-model="dateToFilter"
+                                        placeholder="To date"
+                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                    >
+                                </div>
+                            </div>
+
+                            <!-- User Email Filter -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Uploaded By</label>
+                                <input 
+                                    type="email" 
+                                    x-model.debounce.300ms="userEmailFilter"
+                                    placeholder="Enter email address"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                >
+                            </div>
+
+                            <!-- File Size Filter -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">File Size</label>
+                                <div class="space-y-2">
+                                    <input 
+                                        type="text" 
+                                        x-model.debounce.300ms="fileSizeMinFilter"
+                                        placeholder="Min size (e.g., 1MB)"
+                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                    >
+                                    <input 
+                                        type="text" 
+                                        x-model.debounce.300ms="fileSizeMaxFilter"
+                                        placeholder="Max size (e.g., 10MB)"
+                                        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                    >
+                                </div>
+                            </div>
+
+                            <!-- Filter Actions -->
+                            <div class="flex flex-col justify-end space-y-2">
+                                <button 
+                                    @click="clearAllFilters()"
+                                    class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                    Clear All
+                                </button>
+                                <div class="text-xs text-gray-500 text-center">
+                                    <span x-text="filteredFiles.length"></span> of <span x-text="files.length"></span> files
                                 </div>
                             </div>
                         </div>
@@ -428,6 +549,13 @@
                 selectedFiles: [],
                 searchQuery: '',
                 statusFilter: '',
+                fileTypeFilter: '',
+                dateFromFilter: '',
+                dateToFilter: '',
+                userEmailFilter: '',
+                fileSizeMinFilter: '',
+                fileSizeMaxFilter: '',
+                showAdvancedFilters: false,
                 sortColumn: 'created_at',
                 sortDirection: 'desc',
                 viewMode: localStorage.getItem('fileManagerViewMode') || 'grid',
@@ -465,14 +593,17 @@
                 get filteredFiles() {
                     let filtered = [...this.files];
                     
-                    // Apply search filter
+                    // Apply search filter with enhanced multi-term search
                     if (this.searchQuery.trim()) {
-                        const query = this.searchQuery.toLowerCase();
-                        filtered = filtered.filter(file => 
-                            file.original_filename.toLowerCase().includes(query) ||
-                            file.email.toLowerCase().includes(query) ||
-                            (file.message && file.message.toLowerCase().includes(query))
-                        );
+                        const searchTerms = this.searchQuery.toLowerCase().split(' ').filter(term => term.length >= 2);
+                        filtered = filtered.filter(file => {
+                            return searchTerms.every(term => 
+                                file.original_filename.toLowerCase().includes(term) ||
+                                file.email.toLowerCase().includes(term) ||
+                                (file.message && file.message.toLowerCase().includes(term)) ||
+                                (file.mime_type && file.mime_type.toLowerCase().includes(term))
+                            );
+                        });
                     }
                     
                     // Apply status filter
@@ -485,6 +616,75 @@
                             }
                             return true;
                         });
+                    }
+
+                    // Apply file type filter
+                    if (this.fileTypeFilter) {
+                        filtered = filtered.filter(file => {
+                            const mimeType = file.mime_type || '';
+                            switch (this.fileTypeFilter) {
+                                case 'image':
+                                    return mimeType.startsWith('image/');
+                                case 'document':
+                                    return mimeType.includes('pdf') || 
+                                           mimeType.includes('msword') || 
+                                           mimeType.includes('officedocument') ||
+                                           mimeType.startsWith('text/');
+                                case 'video':
+                                    return mimeType.startsWith('video/');
+                                case 'audio':
+                                    return mimeType.startsWith('audio/');
+                                case 'archive':
+                                    return mimeType.includes('zip') || 
+                                           mimeType.includes('rar') || 
+                                           mimeType.includes('7z');
+                                case 'other':
+                                    return !mimeType.startsWith('image/') &&
+                                           !mimeType.startsWith('video/') &&
+                                           !mimeType.startsWith('audio/') &&
+                                           !mimeType.includes('pdf') &&
+                                           !mimeType.includes('msword') &&
+                                           !mimeType.includes('officedocument') &&
+                                           !mimeType.startsWith('text/') &&
+                                           !mimeType.includes('zip') &&
+                                           !mimeType.includes('rar') &&
+                                           !mimeType.includes('7z');
+                                default:
+                                    return true;
+                            }
+                        });
+                    }
+
+                    // Apply date range filters
+                    if (this.dateFromFilter) {
+                        const fromDate = new Date(this.dateFromFilter);
+                        filtered = filtered.filter(file => new Date(file.created_at) >= fromDate);
+                    }
+                    if (this.dateToFilter) {
+                        const toDate = new Date(this.dateToFilter + 'T23:59:59');
+                        filtered = filtered.filter(file => new Date(file.created_at) <= toDate);
+                    }
+
+                    // Apply user email filter
+                    if (this.userEmailFilter.trim()) {
+                        const emailQuery = this.userEmailFilter.toLowerCase();
+                        filtered = filtered.filter(file => 
+                            file.email && file.email.toLowerCase().includes(emailQuery)
+                        );
+                    }
+
+                    // Apply file size filters
+                    if (this.fileSizeMinFilter) {
+                        const minSize = this.parseFileSize(this.fileSizeMinFilter);
+                        if (minSize > 0) {
+                            filtered = filtered.filter(file => (file.file_size || 0) >= minSize);
+                        }
+                    }
+                    if (this.fileSizeMaxFilter) {
+                        const maxSize = this.parseFileSize(this.fileSizeMaxFilter);
+                        if (maxSize > 0) {
+                            filtered = filtered.filter(file => (file.file_size || 0) <= maxSize);
+                        }
                     }
                     
                     // Apply sorting
@@ -511,6 +711,19 @@
                     });
                     
                     return filtered;
+                },
+
+                get activeFiltersCount() {
+                    let count = 0;
+                    if (this.searchQuery.trim()) count++;
+                    if (this.statusFilter) count++;
+                    if (this.fileTypeFilter) count++;
+                    if (this.dateFromFilter) count++;
+                    if (this.dateToFilter) count++;
+                    if (this.userEmailFilter.trim()) count++;
+                    if (this.fileSizeMinFilter.trim()) count++;
+                    if (this.fileSizeMaxFilter.trim()) count++;
+                    return count;
                 },
                 
                 // Computed properties
@@ -778,6 +991,49 @@
                 
                 getFileExtension(filename) {
                     return filename.split('.').pop().toUpperCase();
+                },
+
+                // Advanced filter methods
+                clearAllFilters() {
+                    this.searchQuery = '';
+                    this.statusFilter = '';
+                    this.fileTypeFilter = '';
+                    this.dateFromFilter = '';
+                    this.dateToFilter = '';
+                    this.userEmailFilter = '';
+                    this.fileSizeMinFilter = '';
+                    this.fileSizeMaxFilter = '';
+                    this.selectedFiles = [];
+                },
+
+                parseFileSize(sizeString) {
+                    if (!sizeString || typeof sizeString !== 'string') return 0;
+                    
+                    const sizeStr = sizeString.trim().toUpperCase();
+                    const match = sizeStr.match(/^(\d+(?:\.\d+)?)\s*([KMGT]?B?)$/);
+                    
+                    if (!match) {
+                        // If it's just a number, treat as bytes
+                        const num = parseFloat(sizeString);
+                        return isNaN(num) ? 0 : num;
+                    }
+                    
+                    const number = parseFloat(match[1]);
+                    const unit = match[2] || 'B';
+                    
+                    const multipliers = {
+                        'B': 1,
+                        'KB': 1024,
+                        'MB': 1024 * 1024,
+                        'GB': 1024 * 1024 * 1024,
+                        'TB': 1024 * 1024 * 1024 * 1024,
+                        'K': 1024,
+                        'M': 1024 * 1024,
+                        'G': 1024 * 1024 * 1024,
+                        'T': 1024 * 1024 * 1024 * 1024
+                    };
+                    
+                    return Math.floor(number * (multipliers[unit] || 1));
                 }
             }
         }

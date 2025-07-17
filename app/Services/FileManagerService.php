@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Exceptions\FileAccessException;
+use App\Exceptions\FileManagerException;
+use App\Exceptions\GoogleDriveException;
 use App\Models\FileUpload;
 use App\Models\User;
 use App\Services\GoogleDriveService;
@@ -31,13 +34,22 @@ class FileManagerService
         $query = FileUpload::query()
             ->with(['clientUser', 'companyUser', 'uploadedByUser']);
 
-        // Apply search filter
+        // Apply search filter with enhanced multi-column search
         if (!empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function (Builder $q) use ($search) {
-                $q->where('original_filename', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('message', 'like', "%{$search}%");
+            $search = trim($filters['search']);
+            $searchTerms = explode(' ', $search);
+            
+            $query->where(function (Builder $q) use ($searchTerms) {
+                foreach ($searchTerms as $term) {
+                    if (strlen($term) >= 2) { // Only search terms with 2+ characters
+                        $q->where(function (Builder $subQ) use ($term) {
+                            $subQ->where('original_filename', 'like', "%{$term}%")
+                                 ->orWhere('email', 'like', "%{$term}%")
+                                 ->orWhere('message', 'like', "%{$term}%")
+                                 ->orWhere('mime_type', 'like', "%{$term}%");
+                        });
+                    }
+                }
             });
         }
 
@@ -50,35 +62,111 @@ class FileManagerService
             }
         }
 
-        // Apply date range filter
+        // Apply date range filter with enhanced date handling
         if (!empty($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
+            try {
+                $dateFrom = \Carbon\Carbon::parse($filters['date_from'])->startOfDay();
+                $query->where('created_at', '>=', $dateFrom);
+            } catch (\Exception $e) {
+                Log::warning('Invalid date_from filter', ['date' => $filters['date_from']]);
+            }
         }
+        
         if (!empty($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
+            try {
+                $dateTo = \Carbon\Carbon::parse($filters['date_to'])->endOfDay();
+                $query->where('created_at', '<=', $dateTo);
+            } catch (\Exception $e) {
+                Log::warning('Invalid date_to filter', ['date' => $filters['date_to']]);
+            }
         }
 
-        // Apply user email filter
+        // Apply user email filter with exact and partial matching
         if (!empty($filters['user_email'])) {
-            $query->where('email', 'like', "%{$filters['user_email']}%");
+            $email = trim($filters['user_email']);
+            if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                // Exact email match
+                $query->where('email', $email);
+            } else {
+                // Partial email match
+                $query->where('email', 'like', "%{$email}%");
+            }
         }
 
-        // Apply file type filter
+        // Apply enhanced file type filter
         if (!empty($filters['file_type'])) {
-            $query->where('mime_type', 'like', "{$filters['file_type']}%");
+            $fileType = $filters['file_type'];
+            
+            // Handle both specific MIME types and general categories
+            if (str_contains($fileType, '/')) {
+                // Specific MIME type (e.g., "image/jpeg")
+                $query->where('mime_type', $fileType);
+            } else {
+                // General category (e.g., "image", "document")
+                $query->where(function (Builder $q) use ($fileType) {
+                    switch ($fileType) {
+                        case 'image':
+                            $q->where('mime_type', 'like', 'image/%');
+                            break;
+                        case 'document':
+                            $q->where(function (Builder $subQ) {
+                                $subQ->where('mime_type', 'like', 'application/pdf')
+                                     ->orWhere('mime_type', 'like', 'application/msword')
+                                     ->orWhere('mime_type', 'like', 'application/vnd.openxmlformats%')
+                                     ->orWhere('mime_type', 'like', 'text/%');
+                            });
+                            break;
+                        case 'video':
+                            $q->where('mime_type', 'like', 'video/%');
+                            break;
+                        case 'audio':
+                            $q->where('mime_type', 'like', 'audio/%');
+                            break;
+                        case 'archive':
+                            $q->where(function (Builder $subQ) {
+                                $subQ->where('mime_type', 'like', 'application/zip')
+                                     ->orWhere('mime_type', 'like', 'application/x-rar%')
+                                     ->orWhere('mime_type', 'like', 'application/x-7z%');
+                            });
+                            break;
+                        default:
+                            $q->where('mime_type', 'like', "{$fileType}%");
+                    }
+                });
+            }
         }
 
-        // Apply sorting
+        // Apply file size filters
+        if (!empty($filters['file_size_min'])) {
+            $minSize = $this->parseFileSize($filters['file_size_min']);
+            if ($minSize > 0) {
+                $query->where('file_size', '>=', $minSize);
+            }
+        }
+        
+        if (!empty($filters['file_size_max'])) {
+            $maxSize = $this->parseFileSize($filters['file_size_max']);
+            if ($maxSize > 0) {
+                $query->where('file_size', '<=', $maxSize);
+            }
+        }
+
+        // Apply sorting with enhanced options
         $sortBy = $filters['sort_by'] ?? 'created_at';
         $sortDirection = $filters['sort_direction'] ?? 'desc';
         
         $allowedSortFields = [
-            'created_at', 'original_filename', 'file_size', 
-            'email', 'mime_type', 'updated_at'
+            'created_at', 'updated_at', 'original_filename', 'file_size', 
+            'email', 'mime_type'
         ];
         
         if (in_array($sortBy, $allowedSortFields)) {
-            $query->orderBy($sortBy, $sortDirection);
+            if ($sortBy === 'original_filename') {
+                // Case-insensitive sorting for filenames
+                $query->orderByRaw("LOWER(original_filename) {$sortDirection}");
+            } else {
+                $query->orderBy($sortBy, $sortDirection);
+            }
         } else {
             $query->orderBy('created_at', 'desc');
         }
@@ -173,39 +261,92 @@ class FileManagerService
     }
 
     /**
-     * Delete a file from all storage locations and database.
+     * Delete a file from all storage locations and database with comprehensive error handling.
      */
     public function deleteFile(FileUpload $file): bool
     {
         try {
+            $errors = [];
+            $warnings = [];
+
             // Delete from Google Drive if exists
             if ($file->google_drive_file_id) {
-                $deleted = $file->deleteFromGoogleDrive();
-                if (!$deleted) {
-                    Log::warning('Failed to delete file from Google Drive', [
+                try {
+                    $deleted = $file->deleteFromGoogleDrive();
+                    if (!$deleted) {
+                        $warnings[] = 'File may still exist in Google Drive';
+                        Log::warning('Failed to delete file from Google Drive', [
+                            'file_id' => $file->id,
+                            'google_drive_file_id' => $file->google_drive_file_id
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    $warnings[] = 'Google Drive deletion failed: ' . $e->getMessage();
+                    Log::error('Google Drive deletion error', [
                         'file_id' => $file->id,
-                        'google_drive_file_id' => $file->google_drive_file_id
+                        'google_drive_file_id' => $file->google_drive_file_id,
+                        'error' => $e->getMessage()
                     ]);
                 }
             }
 
             // Delete local file if exists
             if ($this->hasLocalFile($file)) {
-                Storage::disk('public')->delete('uploads/' . $file->filename);
+                try {
+                    $deleted = Storage::disk('public')->delete('uploads/' . $file->filename);
+                    if (!$deleted) {
+                        $warnings[] = 'Local file may still exist';
+                    }
+                } catch (\Exception $e) {
+                    $warnings[] = 'Local file deletion failed: ' . $e->getMessage();
+                    Log::error('Local file deletion error', [
+                        'file_id' => $file->id,
+                        'filename' => $file->filename,
+                        'error' => $e->getMessage()
+                    ]);
+                }
             }
 
             // Delete database record
-            $file->delete();
+            try {
+                $file->delete();
+            } catch (\Exception $e) {
+                throw new FileManagerException(
+                    message: "Failed to delete file record from database: {$e->getMessage()}",
+                    userMessage: "The file could not be completely removed. Please try again or contact support.",
+                    code: 500,
+                    previous: $e,
+                    context: [
+                        'file_id' => $file->id,
+                        'warnings' => $warnings,
+                        'type' => 'database_deletion_failed'
+                    ]
+                );
+            }
 
-            Log::info('File deleted successfully', ['file_id' => $file->id]);
+            if (!empty($warnings)) {
+                Log::warning('File deleted with warnings', [
+                    'file_id' => $file->id,
+                    'warnings' => $warnings
+                ]);
+            } else {
+                Log::info('File deleted successfully', ['file_id' => $file->id]);
+            }
             
             return true;
-        } catch (\Exception $e) {
-            Log::error('Failed to delete file', [
-                'file_id' => $file->id,
-                'error' => $e->getMessage()
-            ]);
+        } catch (FileManagerException $e) {
             throw $e;
+        } catch (\Exception $e) {
+            throw new FileManagerException(
+                message: "Unexpected error during file deletion: {$e->getMessage()}",
+                userMessage: "An unexpected error occurred while deleting the file. Please try again.",
+                code: 500,
+                previous: $e,
+                context: [
+                    'file_id' => $file->id,
+                    'type' => 'unexpected_deletion_error'
+                ]
+            );
         }
     }
 
@@ -605,5 +746,139 @@ class FileManagerService
         }
 
         return 'other';
+    }
+
+    /**
+     * Get available filter options for the UI.
+     */
+    public function getFilterOptions(): array
+    {
+        // Get unique file types with counts
+        $fileTypes = FileUpload::selectRaw('mime_type, COUNT(*) as count')
+            ->groupBy('mime_type')
+            ->orderByDesc('count')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'value' => $item->mime_type,
+                    'label' => $this->getMimeTypeLabel($item->mime_type),
+                    'count' => $item->count,
+                    'category' => $this->getMimeTypeCategory($item->mime_type)
+                ];
+            });
+
+        // Group by categories
+        $categorizedTypes = $fileTypes->groupBy('category');
+
+        // Get unique uploaders
+        $uploaders = FileUpload::select('email')
+            ->distinct()
+            ->orderBy('email')
+            ->pluck('email')
+            ->filter()
+            ->values();
+
+        // Get date range
+        $dateRange = FileUpload::selectRaw('MIN(created_at) as min_date, MAX(created_at) as max_date')
+            ->first();
+
+        // Get file size range
+        $sizeRange = FileUpload::selectRaw('MIN(file_size) as min_size, MAX(file_size) as max_size')
+            ->first();
+
+        return [
+            'file_types' => [
+                'categories' => [
+                    'image' => $categorizedTypes->get('image', collect())->values(),
+                    'document' => $categorizedTypes->get('document', collect())->values(),
+                    'video' => $categorizedTypes->get('video', collect())->values(),
+                    'audio' => $categorizedTypes->get('audio', collect())->values(),
+                    'archive' => $categorizedTypes->get('archive', collect())->values(),
+                    'other' => $categorizedTypes->get('other', collect())->values(),
+                ],
+                'all' => $fileTypes->values()
+            ],
+            'uploaders' => $uploaders,
+            'date_range' => [
+                'min' => $dateRange->min_date ? \Carbon\Carbon::parse($dateRange->min_date)->format('Y-m-d') : null,
+                'max' => $dateRange->max_date ? \Carbon\Carbon::parse($dateRange->max_date)->format('Y-m-d') : null,
+            ],
+            'size_range' => [
+                'min' => $sizeRange->min_size ?? 0,
+                'max' => $sizeRange->max_size ?? 0,
+                'min_formatted' => $this->formatBytes($sizeRange->min_size ?? 0),
+                'max_formatted' => $this->formatBytes($sizeRange->max_size ?? 0),
+            ],
+            'status_options' => [
+                ['value' => '', 'label' => 'All Files'],
+                ['value' => 'completed', 'label' => 'Uploaded'],
+                ['value' => 'pending', 'label' => 'Pending'],
+            ]
+        ];
+    }
+
+    /**
+     * Get human-readable label for MIME type.
+     */
+    private function getMimeTypeLabel(string $mimeType): string
+    {
+        $labels = [
+            'image/jpeg' => 'JPEG Image',
+            'image/png' => 'PNG Image',
+            'image/gif' => 'GIF Image',
+            'image/webp' => 'WebP Image',
+            'application/pdf' => 'PDF Document',
+            'application/msword' => 'Word Document',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'Word Document (DOCX)',
+            'application/vnd.ms-excel' => 'Excel Spreadsheet',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'Excel Spreadsheet (XLSX)',
+            'text/plain' => 'Text File',
+            'text/csv' => 'CSV File',
+            'video/mp4' => 'MP4 Video',
+            'video/avi' => 'AVI Video',
+            'video/quicktime' => 'QuickTime Video',
+            'audio/mpeg' => 'MP3 Audio',
+            'audio/wav' => 'WAV Audio',
+            'application/zip' => 'ZIP Archive',
+            'application/x-rar-compressed' => 'RAR Archive',
+        ];
+
+        return $labels[$mimeType] ?? ucfirst(str_replace(['/', '-', '_'], [' ', ' ', ' '], $mimeType));
+    }
+
+    /**
+     * Parse file size string to bytes.
+     * Supports formats like "10MB", "1.5GB", "500KB", etc.
+     */
+    private function parseFileSize(string $sizeString): int
+    {
+        $sizeString = trim(strtoupper($sizeString));
+        
+        // Extract number and unit
+        if (preg_match('/^(\d+(?:\.\d+)?)\s*([KMGT]?B?)$/', $sizeString, $matches)) {
+            $number = (float) $matches[1];
+            $unit = $matches[2] ?? 'B';
+            
+            $multipliers = [
+                'B' => 1,
+                'KB' => 1024,
+                'MB' => 1024 * 1024,
+                'GB' => 1024 * 1024 * 1024,
+                'TB' => 1024 * 1024 * 1024 * 1024,
+                'K' => 1024,
+                'M' => 1024 * 1024,
+                'G' => 1024 * 1024 * 1024,
+                'T' => 1024 * 1024 * 1024 * 1024,
+            ];
+            
+            return (int) ($number * ($multipliers[$unit] ?? 1));
+        }
+        
+        // If it's just a number, treat as bytes
+        if (is_numeric($sizeString)) {
+            return (int) $sizeString;
+        }
+        
+        return 0;
     }
 }
