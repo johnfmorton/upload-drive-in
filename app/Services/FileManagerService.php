@@ -28,9 +28,12 @@ class FileManagerService
     }
     /**
      * Get filtered and paginated files based on provided criteria.
+     * 
+     * @throws FileManagerException When database query fails
      */
     public function getFilteredFiles(array $filters, int $perPage = 15): LengthAwarePaginator
     {
+        try {
         $query = FileUpload::query()
             ->with(['clientUser', 'companyUser', 'uploadedByUser']);
 
@@ -171,7 +174,45 @@ class FileManagerService
             $query->orderBy('created_at', 'desc');
         }
 
-        return $query->paginate($perPage);
+            return $query->paginate($perPage);
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database query error in getFilteredFiles', [
+                'filters' => $filters,
+                'per_page' => $perPage,
+                'error' => $e->getMessage(),
+                'sql' => $e->getSql() ?? 'N/A'
+            ]);
+            
+            throw new FileManagerException(
+                message: "Database query failed: {$e->getMessage()}",
+                userMessage: "Unable to load files due to a database error. Please try again or contact support.",
+                code: 500,
+                previous: $e,
+                context: [
+                    'filters' => $filters,
+                    'type' => 'database_query_error'
+                ],
+                isRetryable: true
+            );
+        } catch (\Exception $e) {
+            Log::error('Unexpected error in getFilteredFiles', [
+                'filters' => $filters,
+                'per_page' => $perPage,
+                'error' => $e->getMessage()
+            ]);
+            
+            throw new FileManagerException(
+                message: "Unexpected error while filtering files: {$e->getMessage()}",
+                userMessage: "An unexpected error occurred while loading files. Please try again.",
+                code: 500,
+                previous: $e,
+                context: [
+                    'filters' => $filters,
+                    'type' => 'unexpected_filter_error'
+                ],
+                isRetryable: true
+            );
+        }
     }
 
     /**

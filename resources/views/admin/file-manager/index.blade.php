@@ -298,6 +298,645 @@
                         </div>
                     </div>
 
+                    <!-- Success Notification -->
+                    <div 
+                        x-show="showSuccessNotification" 
+                        x-cloak
+                        x-transition:enter="transition ease-out duration-300"
+                        x-transition:enter-start="opacity-0 translate-y-2"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-200"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 translate-y-2"
+                        class="fixed top-4 right-4 z-50 max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5"
+                    >
+                        <div class="p-4">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3 w-0 flex-1 pt-0.5">
+                                    <p class="text-sm font-medium text-gray-900">Success!</p>
+                                    <p class="mt-1 text-sm text-gray-500" x-text="successMessage"></p>
+                                </div>
+                                <div class="ml-4 flex-shrink-0 flex">
+                                    <button 
+                                        @click="showSuccessNotification = false"
+                                        class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    >
+                                        <span class="sr-only">Close</span>
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Error Notification -->
+                    <div 
+                        x-show="showErrorModal" 
+                        x-cloak
+                        x-transition:enter="transition ease-out duration-300"
+                        x-transition:enter-start="opacity-0 translate-y-2"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-200"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 translate-y-2"
+                        class="fixed top-4 right-4 z-50 max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-red-500 ring-opacity-5"
+                    >
+                        <div class="p-4">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3 w-0 flex-1 pt-0.5">
+                                    <p class="text-sm font-medium text-gray-900">Error</p>
+                                    <p class="mt-1 text-sm text-gray-500" x-text="errorMessage"></p>
+                                    <div x-show="isErrorRetryable" class="mt-3">
+                                        <button 
+                                            @click="retryLastOperation()"
+                                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                        >
+                                            Retry
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="ml-4 flex-shrink-0 flex">
+                                    <button 
+                                        @click="showErrorModal = false"
+                                        class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                    >
+                                        <span class="sr-only">Close</span>
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Confirmation Dialog -->
+                    <div 
+                        x-show="showConfirmDialog" 
+                        x-cloak
+                        class="fixed inset-0 z-50 overflow-y-auto"
+                        aria-labelledby="confirm-modal-title"
+                        role="dialog"
+                        aria-modal="true"
+                    >
+                        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                            <!-- Background overlay -->
+                            <div 
+                                x-show="showConfirmDialog"
+                                x-transition:enter="ease-out duration-300"
+                                x-transition:enter-start="opacity-0"
+                                x-transition:enter-end="opacity-100"
+                                x-transition:leave="ease-in duration-200"
+                                x-transition:leave-start="opacity-100"
+                                x-transition:leave-end="opacity-0"
+                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                                @click="showConfirmDialog = false"
+                                aria-hidden="true"
+                            ></div>
+
+                            <!-- Modal panel -->
+                            <div 
+                                x-show="showConfirmDialog"
+                                x-transition:enter="ease-out duration-300"
+                                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                                x-transition:leave="ease-in duration-200"
+                                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                            >
+                                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                    <div class="sm:flex sm:items-start">
+                                        <div 
+                                            class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full sm:mx-0 sm:h-10 sm:w-10"
+                                            :class="{
+                                                'bg-red-100': confirmDialogType === 'danger',
+                                                'bg-yellow-100': confirmDialogType === 'warning',
+                                                'bg-blue-100': confirmDialogType === 'info'
+                                            }"
+                                        >
+                                            <svg 
+                                                x-show="confirmDialogType === 'danger'"
+                                                class="h-6 w-6 text-red-600" 
+                                                xmlns="http://www.w3.org/2000/svg" 
+                                                fill="none" 
+                                                viewBox="0 0 24 24" 
+                                                stroke="currentColor" 
+                                                aria-hidden="true"
+                                            >
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                            <svg 
+                                                x-show="confirmDialogType === 'warning'"
+                                                class="h-6 w-6 text-yellow-600" 
+                                                xmlns="http://www.w3.org/2000/svg" 
+                                                fill="none" 
+                                                viewBox="0 0 24 24" 
+                                                stroke="currentColor" 
+                                                aria-hidden="true"
+                                            >
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                            <svg 
+                                                x-show="confirmDialogType === 'info'"
+                                                class="h-6 w-6 text-blue-600" 
+                                                xmlns="http://www.w3.org/2000/svg" 
+                                                fill="none" 
+                                                viewBox="0 0 24 24" 
+                                                stroke="currentColor" 
+                                                aria-hidden="true"
+                                            >
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="confirm-modal-title" x-text="confirmDialogTitle">
+                                            </h3>
+                                            <div class="mt-2">
+                                                <p class="text-sm text-gray-500" x-text="confirmDialogMessage"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                    <button 
+                                        type="button" 
+                                        @click="confirmAction()"
+                                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
+                                        :class="confirmDialogDestructive ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'"
+                                    >
+                                        <span x-show="!isLoading">Confirm</span>
+                                        <span x-show="isLoading" class="flex items-center">
+                                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Processing...
+                                        </span>
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        @click="cancelConfirmation()"
+                                        :disabled="isLoading"
+                                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Operation Progress Modal -->
+                    <div 
+                        x-show="bulkOperationProgress.show" 
+                        x-cloak
+                        class="fixed inset-0 z-50 overflow-y-auto"
+                        aria-labelledby="progress-modal-title"
+                        role="dialog"
+                        aria-modal="true"
+                    >
+                        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                            <!-- Background overlay -->
+                            <div 
+                                x-show="bulkOperationProgress.show"
+                                x-transition:enter="ease-out duration-300"
+                                x-transition:enter-start="opacity-0"
+                                x-transition:enter-end="opacity-100"
+                                x-transition:leave="ease-in duration-200"
+                                x-transition:leave-start="opacity-100"
+                                x-transition:leave-end="opacity-0"
+                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                                aria-hidden="true"
+                            ></div>
+
+                            <!-- Modal panel -->
+                            <div 
+                                x-show="bulkOperationProgress.show"
+                                x-transition:enter="ease-out duration-300"
+                                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                                x-transition:leave="ease-in duration-200"
+                                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                            >
+                                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                    <div class="sm:flex sm:items-start">
+                                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                            <svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="progress-modal-title">
+                                                <span x-text="bulkOperationProgress.operation"></span> Files
+                                            </h3>
+                                            <div class="mt-2">
+                                                <p class="text-sm text-gray-500 mb-4" x-text="bulkOperationProgress.message"></p>
+                                                
+                                                <!-- Progress Bar -->
+                                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                                    <div 
+                                                        class="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                                                        :style="`width: ${bulkOperationProgress.total > 0 ? (bulkOperationProgress.current / bulkOperationProgress.total) * 100 : 0}%`"
+                                                    ></div>
+                                                </div>
+                                                
+                                                <div class="flex justify-between text-xs text-gray-500 mt-2">
+                                                    <span x-text="`${bulkOperationProgress.current} of ${bulkOperationProgress.total}`"></span>
+                                                    <span x-text="`${bulkOperationProgress.total > 0 ? Math.round((bulkOperationProgress.current / bulkOperationProgress.total) * 100) : 0}%`"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Download Progress Modal -->
+                    <div 
+                        x-show="downloadProgress.show" 
+                        x-cloak
+                        class="fixed inset-0 z-50 overflow-y-auto"
+                        aria-labelledby="download-progress-modal-title"
+                        role="dialog"
+                        aria-modal="true"
+                    >
+                        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                            <!-- Background overlay -->
+                            <div 
+                                x-show="downloadProgress.show"
+                                x-transition:enter="ease-out duration-300"
+                                x-transition:enter-start="opacity-0"
+                                x-transition:enter-end="opacity-100"
+                                x-transition:leave="ease-in duration-200"
+                                x-transition:leave-start="opacity-100"
+                                x-transition:leave-end="opacity-0"
+                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                                aria-hidden="true"
+                            ></div>
+
+                            <!-- Modal panel -->
+                            <div 
+                                x-show="downloadProgress.show"
+                                x-transition:enter="ease-out duration-300"
+                                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                                x-transition:leave="ease-in duration-200"
+                                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                            >
+                                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                    <div class="sm:flex sm:items-start">
+                                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                                            <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="download-progress-modal-title">
+                                                Downloading File
+                                            </h3>
+                                            <div class="mt-2">
+                                                <p class="text-sm text-gray-500 mb-4" x-text="downloadProgress.filename"></p>
+                                                
+                                                <!-- Progress Bar -->
+                                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                                    <div 
+                                                        class="bg-green-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                                                        :style="`width: ${downloadProgress.percentage}%`"
+                                                    ></div>
+                                                </div>
+                                                
+                                                <div class="flex justify-center text-xs text-gray-500 mt-2">
+                                                    <span x-text="`${downloadProgress.percentage}%`"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="confirm-modal-title" x-text="confirmDialogTitle">
+                                            </h3>
+                                            <div class="mt-2">
+                                                <p class="text-sm text-gray-500" x-text="confirmDialogMessage"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                    <button 
+                                        type="button" 
+                                        @click="confirmAction()"
+                                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
+                                        :class="confirmDialogDestructive ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'"
+                                    >
+                                        <span x-text="confirmDialogDestructive ? 'Delete' : 'Confirm'"></span>
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        @click="cancelConfirmation()"
+                                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Operation Progress Modal -->
+                    <div 
+                        x-show="bulkOperationProgress.show" 
+                        x-cloak
+                        class="fixed inset-0 z-50 overflow-y-auto"
+                        aria-labelledby="progress-modal-title"
+                        role="dialog"
+                        aria-modal="true"
+                    >
+                        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                            <!-- Background overlay -->
+                            <div 
+                                x-show="bulkOperationProgress.show"
+                                x-transition:enter="ease-out duration-300"
+                                x-transition:enter-start="opacity-0"
+                                x-transition:enter-end="opacity-100"
+                                x-transition:leave="ease-in duration-200"
+                                x-transition:leave-start="opacity-100"
+                                x-transition:leave-end="opacity-0"
+                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                                aria-hidden="true"
+                            ></div>
+
+                            <!-- Modal panel -->
+                            <div 
+                                x-show="bulkOperationProgress.show"
+                                x-transition:enter="ease-out duration-300"
+                                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                                x-transition:leave="ease-in duration-200"
+                                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                            >
+                                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                    <div class="sm:flex sm:items-start">
+                                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                            <svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="progress-modal-title">
+                                                <span x-text="bulkOperationProgress.operation"></span> Files
+                                            </h3>
+                                            <div class="mt-4">
+                                                <div class="bg-gray-200 rounded-full h-2">
+                                                    <div 
+                                                        class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                                        :style="`width: ${bulkOperationProgress.total > 0 ? (bulkOperationProgress.current / bulkOperationProgress.total) * 100 : 0}%`"
+                                                    ></div>
+                                                </div>
+                                                <div class="mt-2 flex justify-between text-sm text-gray-600">
+                                                    <span x-text="bulkOperationProgress.message"></span>
+                                                    <span x-text="`${bulkOperationProgress.current} / ${bulkOperationProgress.total}`"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Download Progress Modal -->
+                    <div 
+                        x-show="downloadProgress.show" 
+                        x-cloak
+                        class="fixed inset-0 z-50 overflow-y-auto"
+                        aria-labelledby="download-progress-modal-title"
+                        role="dialog"
+                        aria-modal="true"
+                    >
+                        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                            <!-- Background overlay -->
+                            <div 
+                                x-show="downloadProgress.show"
+                                x-transition:enter="ease-out duration-300"
+                                x-transition:enter-start="opacity-0"
+                                x-transition:enter-end="opacity-100"
+                                x-transition:leave="ease-in duration-200"
+                                x-transition:leave-start="opacity-100"
+                                x-transition:leave-end="opacity-0"
+                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                                aria-hidden="true"
+                            ></div>
+
+                            <!-- Modal panel -->
+                            <div 
+                                x-show="downloadProgress.show"
+                                x-transition:enter="ease-out duration-300"
+                                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                                x-transition:leave="ease-in duration-200"
+                                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                            >
+                                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                    <div class="sm:flex sm:items-start">
+                                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                                            <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="download-progress-modal-title">
+                                                Downloading File
+                                            </h3>
+                                            <div class="mt-2">
+                                                <p class="text-sm text-gray-500" x-text="downloadProgress.filename"></p>
+                                            </div>
+                                            <div class="mt-4">
+                                                <div class="bg-gray-200 rounded-full h-2">
+                                                    <div 
+                                                        class="bg-green-600 h-2 rounded-full transition-all duration-300"
+                                                        :style="`width: ${downloadProgress.percentage}%`"
+                                                    ></div>
+                                                </div>
+                                                <div class="mt-2 text-center text-sm text-gray-600">
+                                                    <span x-text="`${Math.round(downloadProgress.percentage)}%`"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="confirm-modal-title" x-text="confirmDialogTitle"></h3>
+                                            <div class="mt-2">
+                                                <p class="text-sm text-gray-500" x-text="confirmDialogMessage"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                    <button 
+                                        type="button" 
+                                        @click="confirmAction()"
+                                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
+                                        :class="confirmDialogDestructive ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'"
+                                    >
+                                        Confirm
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        @click="showConfirmDialog = false"
+                                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Operation Progress Modal -->
+                    <div 
+                        x-show="bulkOperationProgress.show" 
+                        x-cloak
+                        class="fixed inset-0 z-50 overflow-y-auto"
+                        aria-labelledby="progress-modal-title"
+                        role="dialog"
+                        aria-modal="true"
+                    >
+                        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                            <!-- Background overlay -->
+                            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+
+                            <!-- Modal panel -->
+                            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                    <div class="sm:flex sm:items-start">
+                                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                            <svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="progress-modal-title" x-text="bulkOperationProgress.operation"></h3>
+                                            <div class="mt-2">
+                                                <p class="text-sm text-gray-500 mb-4" x-text="bulkOperationProgress.message"></p>
+                                                
+                                                <!-- Progress Bar -->
+                                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                                    <div 
+                                                        class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                                                        :style="`width: ${(bulkOperationProgress.current / bulkOperationProgress.total) * 100}%`"
+                                                    ></div>
+                                                </div>
+                                                
+                                                <!-- Progress Text -->
+                                                <div class="flex justify-between text-sm text-gray-600 mt-2">
+                                                    <span x-text="`${bulkOperationProgress.current} of ${bulkOperationProgress.total}`"></span>
+                                                    <span x-text="`${Math.round((bulkOperationProgress.current / bulkOperationProgress.total) * 100)}%`"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Download Progress Notification -->
+                    <div 
+                        x-show="downloadProgress.show" 
+                        x-cloak
+                        x-transition:enter="transition ease-out duration-300"
+                        x-transition:enter-start="opacity-0 translate-y-2"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-200"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 translate-y-2"
+                        class="fixed bottom-4 right-4 z-50 max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5"
+                    >
+                        <div class="p-4">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3 w-0 flex-1">
+                                    <p class="text-sm font-medium text-gray-900">Downloading...</p>
+                                    <p class="mt-1 text-sm text-gray-500 truncate" x-text="downloadProgress.filename"></p>
+                                    
+                                    <!-- Progress Bar -->
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                        <div 
+                                            class="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                                            :style="`width: ${downloadProgress.percentage}%`"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div 
+                        x-show="isLoading" 
+                        x-cloak
+                        class="fixed inset-0 z-40 bg-gray-500 bg-opacity-75 flex items-center justify-center"
+                    >
+                        <div class="bg-white rounded-lg p-6 shadow-xl max-w-md w-full">
+                            <div class="flex flex-col space-y-4">
+                                <div class="flex items-center space-x-4">
+                                    <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="text-lg font-medium text-gray-900" x-text="operationInProgress || 'Loading...'"></span>
+                                </div>
+                                
+                                <!-- Progress bar for operations that support it -->
+                                <div x-show="downloadProgress > 0" class="w-full">
+                                    <div class="text-xs font-medium text-gray-500 mb-1">
+                                        <span x-text="Math.round(downloadProgress) + '%'"></span>
+                                        <span x-show="downloadTotal > 0" x-text="' - ' + formatBytes(downloadProgress / 100 * downloadTotal) + ' of ' + formatBytes(downloadTotal)"></span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div class="bg-blue-600 h-2.5 rounded-full" :style="'width: ' + downloadProgress + '%'"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- File List Container -->
                     <div class="file-list-container">
                         <!-- Grid View -->
@@ -534,6 +1173,44 @@
         </div>
     </div>
 
+    <!-- Success Notification -->
+    <div 
+        x-show="showSuccessNotification" 
+        x-cloak
+        x-transition:enter="transform ease-out duration-300 transition"
+        x-transition:enter-start="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+        x-transition:enter-end="translate-y-0 opacity-100 sm:translate-x-0"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed top-4 right-4 z-50 max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden"
+    >
+        <div class="p-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="ml-3 w-0 flex-1 pt-0.5">
+                    <p class="text-sm font-medium text-gray-900">Success</p>
+                    <p class="mt-1 text-sm text-gray-500" x-text="successMessage"></p>
+                </div>
+                <div class="ml-4 flex-shrink-0 flex">
+                    <button 
+                        class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        @click="showSuccessNotification = false"
+                    >
+                        <span class="sr-only">Close</span>
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modals -->
     @include('admin.file-manager.partials.preview-modal')
     @include('admin.file-manager.partials.delete-modal')
@@ -576,6 +1253,47 @@
                 resizingColumn: null,
                 startX: 0,
                 startWidth: 0,
+                
+                // User feedback states
+                isLoading: false,
+                showErrorModal: false,
+                errorMessage: '',
+                isErrorRetryable: false,
+                showSuccessNotification: false,
+                successMessage: '',
+                showConfirmDialog: false,
+                confirmDialogTitle: '',
+                confirmDialogMessage: '',
+                confirmDialogAction: null,
+                confirmDialogType: 'info', // 'danger', 'warning', 'info'
+                
+                // Download progress tracking
+                downloadProgress: 0,
+                downloadTotal: 0,
+                downloadStartTime: null,
+                downloadEstimatedTime: null,
+                
+                // Operation states
+                isDeleting: false,
+                isDownloading: false,
+                operationInProgress: '',
+                lastOperation: null,
+                currentFile: null,
+                isDownloading: false,
+                operationInProgress: '',
+                downloadProgress: 0,
+                bulkOperationProgress: {
+                    show: false,
+                    current: 0,
+                    total: 0,
+                    operation: '',
+                    message: ''
+                },
+                downloadProgress: {
+                    show: false,
+                    percentage: 0,
+                    filename: ''
+                },
                 
                 // Computed
                 get selectAll() {
@@ -930,43 +1648,178 @@
                 },
                 
                 async downloadFile(file) {
-                    window.location.href = `/admin/file-manager/${file.id}/download`;
+                    this.isLoading = true;
+                    this.isDownloading = true;
+                    this.operationInProgress = `Preparing download for ${file.original_filename}...`;
+                    this.downloadProgress = 0;
+                    this.downloadTotal = file.file_size || 0;
+                    this.downloadStartTime = new Date();
+                    
+                    try {
+                        // For small files, show a simple success notification
+                        if (file.file_size < 5 * 1024 * 1024) { // Less than 5MB
+                            this.showSuccess(`Downloading ${file.original_filename}...`, 2000);
+                            
+                            // Create an invisible iframe for download
+                            const iframe = document.createElement('iframe');
+                            iframe.style.display = 'none';
+                            iframe.name = 'download-frame';
+                            iframe.src = `/admin/file-manager/${file.id}/download`;
+                            document.body.appendChild(iframe);
+                            
+                            // Remove iframe after download starts (after a short delay)
+                            setTimeout(() => {
+                                document.body.removeChild(iframe);
+                                this.isLoading = false;
+                                this.isDownloading = false;
+                                this.operationInProgress = '';
+                            }, 2000);
+                        } else {
+                            // For larger files, use XHR to track progress
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('GET', `/admin/file-manager/${file.id}/download`, true);
+                            xhr.responseType = 'blob';
+                            
+                            // Track download progress
+                            xhr.onprogress = (event) => {
+                                if (event.lengthComputable) {
+                                    this.downloadProgress = (event.loaded / event.total) * 100;
+                                    this.downloadTotal = event.total;
+                                    
+                                    // Update operation message with progress
+                                    this.operationInProgress = `Downloading ${file.original_filename}... ${Math.round(this.downloadProgress)}%`;
+                                    
+                                    // Calculate estimated time remaining
+                                    if (this.downloadProgress > 0) {
+                                        const elapsedTime = (new Date() - this.downloadStartTime) / 1000;
+                                        const estimatedTotalTime = elapsedTime / (this.downloadProgress / 100);
+                                        this.downloadEstimatedTime = Math.round(estimatedTotalTime - elapsedTime);
+                                    }
+                                }
+                            };
+                            
+                            // Handle download completion
+                            xhr.onload = () => {
+                                if (xhr.status === 200) {
+                                    // Create download link
+                                    const blob = new Blob([xhr.response], { type: xhr.getResponseHeader('Content-Type') });
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = file.original_filename;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                    
+                                    // Show success notification
+                                    this.showSuccess(`Successfully downloaded ${file.original_filename}`);
+                                } else {
+                                    this.showError(`Failed to download ${file.original_filename}`);
+                                }
+                                
+                                // Reset download state
+                                this.isLoading = false;
+                                this.isDownloading = false;
+                                this.operationInProgress = '';
+                                this.downloadProgress = 0;
+                            };
+                            
+                            // Handle download errors
+                            xhr.onerror = () => {
+                                this.showError(`Failed to download ${file.original_filename}. Please try again.`);
+                                this.isLoading = false;
+                                this.isDownloading = false;
+                                this.operationInProgress = '';
+                                this.downloadProgress = 0;
+                            };
+                            
+                            // Start download
+                            xhr.send();
+                        }
+                    } catch (error) {
+                        this.isLoading = false;
+                        this.isDownloading = false;
+                        this.operationInProgress = '';
+                        this.showError('Failed to initiate download. Please try again.');
+                    }
                 },
                 
                 async deleteFile(file) {
-                    this.$dispatch('open-delete-modal', file);
+                    this.showConfirmation(
+                        'Delete File',
+                        `Are you sure you want to delete "${file.original_filename}"? This action cannot be undone.`,
+                        () => this.performDeleteFile(file),
+                        'danger'
+                    );
+                },
+                
+                async performDeleteFile(file) {
+                    this.isLoading = true;
+                    this.isDeleting = true;
+                    this.operationInProgress = 'Deleting file...';
+                    
+                    try {
+                        const response = await fetch(`/admin/file-manager/${file.id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // Remove the file from the list
+                            this.files = this.files.filter(f => f.id !== file.id);
+                            this.showSuccess(`File "${file.original_filename}" has been deleted successfully.`);
+                            
+                            // Update statistics if available
+                            if (data.statistics) {
+                                this.statistics = data.statistics;
+                            }
+                        } else {
+                            this.showError(data.message || 'Failed to delete file.');
+                        }
+                    } catch (error) {
+                        this.handleApiError(error, 'file deletion');
+                    } finally {
+                        this.isLoading = false;
+                        this.isDeleting = false;
+                        this.operationInProgress = '';
+                    }
                 },
                 
                 async bulkDelete() {
-                    if (this.selectedFiles.length === 0) return;
-                    this.$dispatch('open-bulk-delete-modal', this.selectedFiles);
+                    if (this.selectedFiles.length === 0) {
+                        this.showError('Please select files to delete.');
+                        return;
+                    }
+                    
+                    const fileCount = this.selectedFiles.length;
+                    this.showConfirmation(
+                        'Delete Files',
+                        `Are you sure you want to delete ${fileCount} file${fileCount > 1 ? 's' : ''}? This action cannot be undone.`,
+                        () => this.performBulkDelete(),
+                        'danger'
+                    );
                 },
                 
                 async bulkDownload() {
-                    if (this.selectedFiles.length === 0) return;
+                    if (this.selectedFiles.length === 0) {
+                        this.showError('Please select files to download.');
+                        return;
+                    }
                     
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '/admin/file-manager/bulk-download';
-                    form.style.display = 'none';
-                    
-                    const csrfInput = document.createElement('input');
-                    csrfInput.type = 'hidden';
-                    csrfInput.name = '_token';
-                    csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                    form.appendChild(csrfInput);
-                    
-                    this.selectedFiles.forEach(fileId => {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = 'file_ids[]';
-                        input.value = fileId;
-                        form.appendChild(input);
-                    });
-                    
-                    document.body.appendChild(form);
-                    form.submit();
-                    document.body.removeChild(form);
+                    const fileCount = this.selectedFiles.length;
+                    this.showConfirmation(
+                        'Download Files',
+                        `Download ${fileCount} file${fileCount > 1 ? 's' : ''} as a ZIP archive?`,
+                        () => this.performBulkDownload(),
+                        'info'
+                    );
                 },
                 
                 // Utility methods
@@ -987,6 +1840,57 @@
                         minute: '2-digit' 
                     };
                     return new Date(dateString).toLocaleString(undefined, options);
+                },
+                
+                // Retry functionality
+                retryLastOperation() {
+                    if (!this.lastOperation) {
+                        this.showError('No operation to retry.');
+                        return;
+                    }
+                    
+                    this.showErrorModal = false;
+                    
+                    // Delay slightly to allow modal to close
+                    setTimeout(() => {
+                        switch (this.lastOperation.type) {
+                            case 'file deletion':
+                                if (this.lastOperation.params && this.lastOperation.params.file) {
+                                    this.performDeleteFile(this.lastOperation.params.file);
+                                }
+                                break;
+                            case 'bulk delete':
+                                this.performBulkDelete();
+                                break;
+                            case 'download':
+                                if (this.lastOperation.params && this.lastOperation.params.file) {
+                                    this.downloadFile(this.lastOperation.params.file);
+                                }
+                                break;
+                            case 'bulk download':
+                                this.performBulkDownload();
+                                break;
+                            default:
+                                this.refreshData();
+                                break;
+                        }
+                    }, 300);
+                },
+                
+                getOperationParams(operation) {
+                    // Store relevant parameters for retry functionality
+                    switch (operation) {
+                        case 'file deletion':
+                            return { file: this.currentFile };
+                        case 'download':
+                            return { file: this.currentFile };
+                        case 'bulk delete':
+                            return { fileIds: [...this.selectedFiles] };
+                        case 'bulk download':
+                            return { fileIds: [...this.selectedFiles] };
+                        default:
+                            return {};
+                    }
                 },
                 
                 getFileExtension(filename) {
@@ -1034,6 +1938,288 @@
                     };
                     
                     return Math.floor(number * (multipliers[unit] || 1));
+                },
+
+                // User feedback methods
+                showSuccess(message, duration = 3000) {
+                    this.successMessage = message;
+                    this.showSuccessNotification = true;
+                    
+                    setTimeout(() => {
+                        this.showSuccessNotification = false;
+                    }, duration);
+                },
+
+                showConfirmation(title, message, action, type = 'info') {
+                    this.confirmDialogTitle = title;
+                    this.confirmDialogMessage = message;
+                    this.confirmDialogAction = action;
+                    this.confirmDialogType = type;
+                    this.showConfirmDialog = true;
+                },
+
+                confirmAction() {
+                    if (this.confirmDialogAction && typeof this.confirmDialogAction === 'function') {
+                        this.confirmDialogAction();
+                    }
+                    this.showConfirmDialog = false;
+                },
+
+                cancelConfirmation() {
+                    this.showConfirmDialog = false;
+                    this.confirmDialogAction = null;
+                },
+
+                showBulkProgress(operation, total, message = '') {
+                    this.bulkOperationProgress = {
+                        show: true,
+                        current: 0,
+                        total: total,
+                        operation: operation,
+                        message: message
+                    };
+                },
+
+                updateBulkProgress(current, message = '') {
+                    this.bulkOperationProgress.current = current;
+                    if (message) {
+                        this.bulkOperationProgress.message = message;
+                    }
+                },
+
+                hideBulkProgress() {
+                    this.bulkOperationProgress.show = false;
+                },
+
+                showDownloadProgress(filename) {
+                    this.downloadProgress = {
+                        show: true,
+                        percentage: 0,
+                        filename: filename
+                    };
+                },
+
+                updateDownloadProgress(percentage) {
+                    this.downloadProgress.percentage = Math.min(100, Math.max(0, percentage));
+                },
+
+                hideDownloadProgress() {
+                    this.downloadProgress.show = false;
+                },
+                
+                showError(message, isRetryable = false) {
+                    this.errorMessage = message;
+                    this.isErrorRetryable = isRetryable;
+                    this.showErrorModal = true;
+                    
+                    // Auto-hide non-critical errors after 5 seconds
+                    if (!isRetryable) {
+                        setTimeout(() => {
+                            this.showErrorModal = false;
+                        }, 5000);
+                    }
+                },
+                
+                handleApiError(error, operation = 'operation') {
+                    console.error(`Error during ${operation}:`, error);
+                    
+                    let message = 'An unexpected error occurred. Please try again.';
+                    let isRetryable = false;
+                    
+                    if (error.response) {
+                        // Server responded with an error
+                        if (error.response.data && error.response.data.message) {
+                            message = error.response.data.message;
+                        }
+                        isRetryable = error.response.data && error.response.data.is_retryable;
+                    } else if (error.request) {
+                        // Request was made but no response
+                        message = 'No response from server. Please check your connection and try again.';
+                        isRetryable = true;
+                    }
+                    
+                    // Store the last operation for retry functionality
+                    this.lastOperation = {
+                        type: operation,
+                        params: this.getOperationParams(operation)
+                    };
+                    
+                    this.showError(message, isRetryable);
+                },
+
+                // Enhanced bulk delete with confirmation and progress
+                confirmBulkDelete() {
+                    if (this.selectedFiles.length === 0) {
+                        this.showError('Please select files to delete.');
+                        return;
+                    }
+
+                    const fileCount = this.selectedFiles.length;
+                    const message = `Are you sure you want to delete ${fileCount} selected file${fileCount > 1 ? 's' : ''}? This action cannot be undone.`;
+                    
+                    this.showConfirmation(
+                        'Confirm Bulk Delete',
+                        message,
+                        () => this.performBulkDelete(),
+                        true
+                    );
+                },
+
+                async performBulkDelete() {
+                    const selectedIds = [...this.selectedFiles];
+                    const totalFiles = selectedIds.length;
+                    
+                    this.showBulkProgress('Deleting', totalFiles, 'Preparing to delete files...');
+                    
+                    try {
+                        const response = await fetch('/admin/file-manager/bulk-delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                file_ids: selectedIds
+                            })
+                        });
+
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.hideBulkProgress();
+                            this.showSuccess(`Successfully deleted ${data.deleted_count} file${data.deleted_count > 1 ? 's' : ''}.`);
+                            
+                            // Remove deleted files from the UI
+                            this.files = this.files.filter(file => !selectedIds.includes(file.id));
+                            this.selectedFiles = [];
+                            
+                            // Update statistics if available
+                            if (data.statistics) {
+                                this.statistics = data.statistics;
+                            }
+                        } else {
+                            this.hideBulkProgress();
+                            this.showError(data.message || 'Failed to delete files.');
+                        }
+                    } catch (error) {
+                        this.hideBulkProgress();
+                        this.handleApiError(error, 'bulk delete');
+                    }
+                },
+
+                // Enhanced bulk download with progress
+                async performBulkDownload() {
+                    if (this.selectedFiles.length === 0) {
+                        this.showError('Please select files to download.');
+                        return;
+                    }
+
+                    const selectedIds = [...this.selectedFiles];
+                    const totalFiles = selectedIds.length;
+                    
+                    // Calculate total size of selected files
+                    let totalSize = 0;
+                    selectedIds.forEach(id => {
+                        const file = this.files.find(f => f.id === id);
+                        if (file && file.file_size) {
+                            totalSize += file.file_size;
+                        }
+                    });
+                    
+                    // Set up download tracking
+                    this.isLoading = true;
+                    this.isDownloading = true;
+                    this.operationInProgress = `Preparing download for ${totalFiles} file${totalFiles > 1 ? 's' : ''}...`;
+                    this.downloadProgress = 0;
+                    this.downloadTotal = totalSize;
+                    this.downloadStartTime = new Date();
+                    
+                    try {
+                        // Use XHR for progress tracking
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('POST', '/admin/file-manager/bulk-download', true);
+                        xhr.responseType = 'blob';
+                        xhr.setRequestHeader('Content-Type', 'application/json');
+                        xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+                        xhr.setRequestHeader('Accept', 'application/octet-stream');
+                        
+                        // Track download progress
+                        xhr.onprogress = (event) => {
+                            if (event.lengthComputable) {
+                                this.downloadProgress = (event.loaded / event.total) * 100;
+                                this.downloadTotal = event.total;
+                                
+                                // Update operation message with progress
+                                this.operationInProgress = `Downloading ${totalFiles} file${totalFiles > 1 ? 's' : ''}... ${Math.round(this.downloadProgress)}%`;
+                                
+                                // Calculate estimated time remaining
+                                if (this.downloadProgress > 0) {
+                                    const elapsedTime = (new Date() - this.downloadStartTime) / 1000;
+                                    const estimatedTotalTime = elapsedTime / (this.downloadProgress / 100);
+                                    this.downloadEstimatedTime = Math.round(estimatedTotalTime - elapsedTime);
+                                }
+                            }
+                        };
+                        
+                        // Handle download completion
+                        xhr.onload = () => {
+                            if (xhr.status === 200) {
+                                // Create download link
+                                const blob = new Blob([xhr.response], { type: xhr.getResponseHeader('Content-Type') || 'application/zip' });
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `files-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.zip`;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                                
+                                // Show success notification
+                                this.showSuccess(`Successfully downloaded ${totalFiles} file${totalFiles > 1 ? 's' : ''}.`);
+                            } else {
+                                // Try to parse error response
+                                try {
+                                    const reader = new FileReader();
+                                    reader.onload = () => {
+                                        try {
+                                            const errorData = JSON.parse(reader.result);
+                                            this.showError(errorData.message || 'Failed to download files.');
+                                        } catch (e) {
+                                            this.showError('Failed to download files. Please try again.');
+                                        }
+                                    };
+                                    reader.readAsText(xhr.response);
+                                } catch (e) {
+                                    this.showError('Failed to download files. Please try again.');
+                                }
+                            }
+                            
+                            // Reset download state
+                            this.isLoading = false;
+                            this.isDownloading = false;
+                            this.operationInProgress = '';
+                            this.downloadProgress = 0;
+                        };
+                        
+                        // Handle download errors
+                        xhr.onerror = () => {
+                            this.showError('Failed to download files. Please try again.');
+                            this.isLoading = false;
+                            this.isDownloading = false;
+                            this.operationInProgress = '';
+                            this.downloadProgress = 0;
+                        };
+                        
+                        // Start download
+                        xhr.send(JSON.stringify({
+                            file_ids: selectedIds
+                        }));
+                    } catch (error) {
+                        this.hideBulkProgress();
+                        this.handleApiError(error, 'bulk download');
+                    }
                 }
             }
         }

@@ -2,63 +2,117 @@
 
 namespace App\Exceptions;
 
+use App\Models\FileUpload;
+use App\Models\User;
+
 class FileAccessException extends FileManagerException
 {
-    public static function fileNotFound(string $filename, int $fileId = null): self
+    /**
+     * Create an exception for unauthorized file access.
+     */
+    public static function unauthorized(FileUpload $file, ?User $user = null): self
     {
+        $userId = $user ? $user->id : 'guest';
+        $userRole = $user ? $user->role : 'guest';
+        
         return new self(
-            message: "File not found: {$filename}" . ($fileId ? " (ID: {$fileId})" : ''),
-            userMessage: "The file '{$filename}' could not be found. It may have been deleted or moved.",
-            code: 404,
-            context: [
-                'filename' => $filename,
-                'file_id' => $fileId,
-                'type' => 'file_not_found'
-            ]
-        );
-    }
-
-    public static function permissionDenied(string $filename, string $userRole, int $userId): self
-    {
-        return new self(
-            message: "Permission denied for user {$userId} ({$userRole}) to access file: {$filename}",
-            userMessage: "You don't have permission to access this file. Please contact your administrator if you believe this is an error.",
+            message: "Unauthorized access to file {$file->id} by user {$userId} with role {$userRole}",
+            userMessage: "You do not have permission to access this file.",
             code: 403,
             context: [
-                'filename' => $filename,
+                'file_id' => $file->id,
                 'user_id' => $userId,
                 'user_role' => $userRole,
-                'type' => 'permission_denied'
+                'file_owner' => $file->client_user_id,
+                'type' => 'unauthorized_file_access'
             ]
         );
     }
 
-    public static function fileCorrupted(string $filename, string $reason = null): self
+    /**
+     * Create an exception for bulk operation with unauthorized files.
+     */
+    public static function unauthorizedBulkAccess(array $fileIds, ?User $user = null): self
     {
+        $userId = $user ? $user->id : 'guest';
+        $userRole = $user ? $user->role : 'guest';
+        
         return new self(
-            message: "File corrupted: {$filename}" . ($reason ? " - {$reason}" : ''),
-            userMessage: "The file '{$filename}' appears to be corrupted and cannot be accessed.",
-            code: 422,
+            message: "Unauthorized bulk access to files by user {$userId} with role {$userRole}",
+            userMessage: "You do not have permission to access one or more of the selected files.",
+            code: 403,
             context: [
-                'filename' => $filename,
-                'reason' => $reason,
-                'type' => 'file_corrupted'
+                'file_ids' => $fileIds,
+                'user_id' => $userId,
+                'user_role' => $userRole,
+                'type' => 'unauthorized_bulk_access'
             ]
         );
     }
 
-    public static function fileTooLarge(string $filename, int $fileSize, int $maxSize): self
+    /**
+     * Create an exception for file download access denied.
+     */
+    public static function downloadDenied(FileUpload $file, ?User $user = null): self
     {
+        $userId = $user ? $user->id : 'guest';
+        
         return new self(
-            message: "File too large: {$filename} ({$fileSize} bytes, max: {$maxSize} bytes)",
-            userMessage: "The file '{$filename}' is too large to process. Maximum allowed size is " . format_bytes($maxSize) . ".",
-            code: 422,
+            message: "Download access denied for file {$file->id} by user {$userId}",
+            userMessage: "You do not have permission to download this file.",
+            code: 403,
             context: [
-                'filename' => $filename,
-                'file_size' => $fileSize,
-                'max_size' => $maxSize,
-                'type' => 'file_too_large'
+                'file_id' => $file->id,
+                'user_id' => $userId,
+                'type' => 'download_access_denied'
             ]
         );
+    }
+
+    /**
+     * Create an exception for file preview access denied.
+     */
+    public static function previewDenied(FileUpload $file, ?User $user = null): self
+    {
+        $userId = $user ? $user->id : 'guest';
+        
+        return new self(
+            message: "Preview access denied for file {$file->id} by user {$userId}",
+            userMessage: "You do not have permission to preview this file.",
+            code: 403,
+            context: [
+                'file_id' => $file->id,
+                'user_id' => $userId,
+                'type' => 'preview_access_denied'
+            ]
+        );
+    }
+
+    /**
+     * Create an exception for file deletion access denied.
+     */
+    public static function deletionDenied(FileUpload $file, ?User $user = null): self
+    {
+        $userId = $user ? $user->id : 'guest';
+        
+        return new self(
+            message: "Deletion access denied for file {$file->id} by user {$userId}",
+            userMessage: "You do not have permission to delete this file.",
+            code: 403,
+            context: [
+                'file_id' => $file->id,
+                'user_id' => $userId,
+                'type' => 'deletion_access_denied'
+            ]
+        );
+    }
+
+    /**
+     * Get the appropriate redirect route based on the exception context.
+     */
+    protected function getRedirectRoute(): string
+    {
+        // For file access exceptions, redirect to dashboard
+        return 'admin.dashboard';
     }
 }

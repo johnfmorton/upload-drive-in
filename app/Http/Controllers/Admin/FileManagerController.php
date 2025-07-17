@@ -41,35 +41,71 @@ class FileManagerController extends AdminController
      */
     public function index(Request $request): View|JsonResponse
     {
-        $this->checkAdminAccess();
-        $filters = $request->only([
-            'search',
-            'status',
-            'date_from',
-            'date_to',
-            'user_email',
-            'file_type',
-            'file_size_min',
-            'file_size_max',
-            'sort_by',
-            'sort_direction'
-        ]);
-
-        $perPage = $request->get('per_page', 15);
-        
-        $files = $this->fileManagerService->getFilteredFiles($filters, $perPage);
-        $statistics = $this->fileManagerService->getFileStatistics();
-        $filterOptions = $this->fileManagerService->getFilterOptions();
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'files' => $files,
-                'statistics' => $statistics,
-                'filter_options' => $filterOptions
+        try {
+            $this->checkAdminAccess();
+            
+            $filters = $request->only([
+                'search',
+                'status',
+                'date_from',
+                'date_to',
+                'user_email',
+                'file_type',
+                'file_size_min',
+                'file_size_max',
+                'sort_by',
+                'sort_direction'
             ]);
-        }
 
-        return view('admin.file-manager.index', compact('files', 'statistics', 'filters', 'filterOptions'));
+            $perPage = min($request->get('per_page', 15), 100); // Limit max per page
+            
+            $files = $this->fileManagerService->getFilteredFiles($filters, $perPage);
+            $statistics = $this->fileManagerService->getFileStatistics();
+            $filterOptions = $this->fileManagerService->getFilterOptions();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'files' => $files,
+                    'statistics' => $statistics,
+                    'filter_options' => $filterOptions
+                ]);
+            }
+
+            return view('admin.file-manager.index', compact('files', 'statistics', 'filters', 'filterOptions'));
+            
+        } catch (\App\Exceptions\FileManagerException $e) {
+            \Log::error('File manager index error', [
+                'user_id' => auth()->id(),
+                'filters' => $filters ?? [],
+                'error' => $e->getMessage(),
+                'context' => $e->getContext()
+            ]);
+
+            if ($request->expectsJson()) {
+                return $e->render($request);
+            }
+
+            return redirect()->route('admin.dashboard')
+                ->with('error', $e->getUserMessage());
+                
+        } catch (\Exception $e) {
+            \Log::error('Unexpected error in file manager index', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An unexpected error occurred while loading files. Please try again.'
+                ], 500);
+            }
+
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'An unexpected error occurred while loading files. Please try again.');
+        }
     }
 
     /**
@@ -77,15 +113,68 @@ class FileManagerController extends AdminController
      */
     public function show(FileUpload $file): View|JsonResponse
     {
-        $this->checkAdminAccess();
-        
-        $fileDetails = $this->fileManagerService->getFileDetails($file);
+        try {
+            $this->checkAdminAccess();
+            
+            $fileDetails = $this->fileManagerService->getFileDetails($file);
 
-        if (request()->expectsJson()) {
-            return response()->json($fileDetails);
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'file' => $fileDetails
+                ]);
+            }
+
+            return view('admin.file-manager.show', compact('file', 'fileDetails'));
+            
+        } catch (\App\Exceptions\FileAccessException $e) {
+            \Log::warning('File access denied', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage(),
+                'context' => $e->getContext()
+            ]);
+
+            if (request()->expectsJson()) {
+                return $e->render(request());
+            }
+
+            return redirect()->route('admin.file-manager.index')
+                ->with('error', $e->getUserMessage());
+                
+        } catch (\App\Exceptions\FileManagerException $e) {
+            \Log::error('File details retrieval error', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage(),
+                'context' => $e->getContext()
+            ]);
+
+            if (request()->expectsJson()) {
+                return $e->render(request());
+            }
+
+            return redirect()->route('admin.file-manager.index')
+                ->with('error', $e->getUserMessage());
+                
+        } catch (\Exception $e) {
+            \Log::error('Unexpected error retrieving file details', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An unexpected error occurred while loading file details. Please try again.'
+                ], 500);
+            }
+
+            return redirect()->route('admin.file-manager.index')
+                ->with('error', 'An unexpected error occurred while loading file details. Please try again.');
         }
-
-        return view('admin.file-manager.show', compact('file', 'fileDetails'));
     }
 
     /**
@@ -93,30 +182,83 @@ class FileManagerController extends AdminController
      */
     public function update(Request $request, FileUpload $file): RedirectResponse|JsonResponse
     {
-        $this->checkAdminAccess();
-        
-        $request->validate([
-            'message' => 'nullable|string|max:1000',
-            'tags' => 'nullable|array',
-            'tags.*' => 'string|max:50'
-        ]);
-
-        $updatedFile = $this->fileManagerService->updateFileMetadata(
-            $file,
-            $request->only(['message', 'tags'])
-        );
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'file' => $updatedFile,
-                'message' => 'File updated successfully.'
+        try {
+            $this->checkAdminAccess();
+            
+            $request->validate([
+                'message' => 'nullable|string|max:1000',
+                'tags' => 'nullable|array',
+                'tags.*' => 'string|max:50'
             ]);
-        }
 
-        return redirect()
-            ->route('admin.file-manager.show', $file)
-            ->with('success', 'File updated successfully.');
+            $updatedFile = $this->fileManagerService->updateFileMetadata(
+                $file,
+                $request->only(['message', 'tags'])
+            );
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'file' => $updatedFile,
+                    'message' => 'File updated successfully.'
+                ]);
+            }
+
+            return redirect()
+                ->route('admin.file-manager.show', $file)
+                ->with('success', 'File updated successfully.');
+                
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+
+            return redirect()
+                ->back()
+                ->withErrors($e->errors())
+                ->withInput();
+                
+        } catch (\App\Exceptions\FileManagerException $e) {
+            \Log::error('File update error', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage(),
+                'context' => $e->getContext()
+            ]);
+
+            if ($request->expectsJson()) {
+                return $e->render($request);
+            }
+
+            return redirect()
+                ->back()
+                ->with('error', $e->getUserMessage())
+                ->withInput();
+                
+        } catch (\Exception $e) {
+            \Log::error('Unexpected error updating file', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An unexpected error occurred while updating the file. Please try again.'
+                ], 500);
+            }
+
+            return redirect()
+                ->back()
+                ->with('error', 'An unexpected error occurred while updating the file. Please try again.')
+                ->withInput();
+        }
     }
 
     /**
@@ -124,9 +266,9 @@ class FileManagerController extends AdminController
      */
     public function destroy(FileUpload $file): RedirectResponse|JsonResponse
     {
-        $this->checkAdminAccess();
-        
         try {
+            $this->checkAdminAccess();
+            
             $this->fileManagerService->deleteFile($file);
 
             if (request()->expectsJson()) {
@@ -140,17 +282,53 @@ class FileManagerController extends AdminController
                 ->route('admin.file-manager.index')
                 ->with('success', 'File deleted successfully.');
 
+        } catch (\App\Exceptions\FileAccessException $e) {
+            \Log::warning('File deletion access denied', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage(),
+                'context' => $e->getContext()
+            ]);
+
+            if (request()->expectsJson()) {
+                return $e->render(request());
+            }
+
+            return redirect()->route('admin.file-manager.index')
+                ->with('error', $e->getUserMessage());
+                
+        } catch (\App\Exceptions\FileManagerException $e) {
+            \Log::error('File deletion error', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage(),
+                'context' => $e->getContext()
+            ]);
+
+            if (request()->expectsJson()) {
+                return $e->render(request());
+            }
+
+            return redirect()->back()
+                ->with('error', $e->getUserMessage());
+                
         } catch (\Exception $e) {
+            \Log::error('Unexpected error deleting file', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error deleting file: ' . $e->getMessage()
+                    'message' => 'An unexpected error occurred while deleting the file. Please try again.'
                 ], 500);
             }
 
-            return redirect()
-                ->back()
-                ->with('error', 'Error deleting file: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'An unexpected error occurred while deleting the file. Please try again.');
         }
     }
 
@@ -159,38 +337,88 @@ class FileManagerController extends AdminController
      */
     public function bulkDestroy(Request $request): RedirectResponse|JsonResponse
     {
-        $this->checkAdminAccess();
-        
-        $request->validate([
-            'file_ids' => 'required|array',
-            'file_ids.*' => 'exists:file_uploads,id'
-        ]);
-
         try {
-            $deletedCount = $this->fileManagerService->bulkDeleteFiles($request->file_ids);
+            $this->checkAdminAccess();
+            
+            $request->validate([
+                'file_ids' => 'required|array',
+                'file_ids.*' => 'exists:file_uploads,id'
+            ]);
+
+            $result = $this->fileManagerService->bulkDeleteFiles($request->file_ids);
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => "Successfully deleted {$deletedCount} files."
+                    'message' => "Successfully deleted {$result} files.",
+                    'deleted_count' => $result
                 ]);
             }
 
             return redirect()
                 ->route('admin.file-manager.index')
-                ->with('success', "Successfully deleted {$deletedCount} files.");
+                ->with('success', "Successfully deleted {$result} files.");
 
-        } catch (\Exception $e) {
+        } catch (\App\Exceptions\FileAccessException $e) {
+            \Log::warning('Bulk file deletion access denied', [
+                'user_id' => auth()->id(),
+                'file_ids' => $request->file_ids ?? [],
+                'error' => $e->getMessage(),
+                'context' => $e->getContext()
+            ]);
+
+            if ($request->expectsJson()) {
+                return $e->render($request);
+            }
+
+            return redirect()->route('admin.file-manager.index')
+                ->with('error', $e->getUserMessage());
+                
+        } catch (\App\Exceptions\FileManagerException $e) {
+            \Log::error('Bulk file deletion error', [
+                'user_id' => auth()->id(),
+                'file_ids' => $request->file_ids ?? [],
+                'error' => $e->getMessage(),
+                'context' => $e->getContext()
+            ]);
+
+            if ($request->expectsJson()) {
+                return $e->render($request);
+            }
+
+            return redirect()->back()
+                ->with('error', $e->getUserMessage());
+                
+        } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error during bulk deletion: ' . $e->getMessage()
+                    'message' => 'Validation failed.',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+
+            return redirect()->back()
+                ->withErrors($e->errors())
+                ->withInput();
+                
+        } catch (\Exception $e) {
+            \Log::error('Unexpected error during bulk file deletion', [
+                'user_id' => auth()->id(),
+                'file_ids' => $request->file_ids ?? [],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An unexpected error occurred during bulk deletion. Please try again.'
                 ], 500);
             }
 
-            return redirect()
-                ->back()
-                ->with('error', 'Error during bulk deletion: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'An unexpected error occurred during bulk deletion. Please try again.');
         }
     }
 
@@ -238,12 +466,51 @@ class FileManagerController extends AdminController
         $this->checkAdminAccess();
         
         try {
-            return $this->fileManagerService->downloadFile($file, auth()->user());
-        } catch (\Exception $e) {
+            // Add download tracking for analytics
+            \Log::info('File download initiated', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'file_name' => $file->original_filename,
+                'file_size' => $file->file_size
+            ]);
+            
+            // Get file size for Content-Length header to enable progress tracking
+            $response = $this->fileManagerService->downloadFile($file, auth()->user());
+            
+            // Return streaming response with proper headers for download progress tracking
+            return $response;
+        } catch (\App\Exceptions\FileAccessException $e) {
+            \Log::warning('File download access denied', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage()
+            ]);
+            
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error downloading file: ' . $e->getMessage()
+                    'message' => $e->getUserMessage(),
+                    'error_type' => 'access_denied'
+                ], 403);
+            }
+
+            return redirect()
+                ->back()
+                ->with('error', $e->getUserMessage());
+        } catch (\Exception $e) {
+            \Log::error('File download error', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error downloading file: ' . $e->getMessage(),
+                    'error_type' => 'download_failed',
+                    'is_retryable' => true
                 ], 500);
             }
 
@@ -266,12 +533,58 @@ class FileManagerController extends AdminController
         ]);
 
         try {
-            return $this->fileManagerService->bulkDownloadFiles($request->file_ids);
-        } catch (\Exception $e) {
+            // Log bulk download attempt for analytics
+            \Log::info('Bulk download initiated', [
+                'user_id' => auth()->id(),
+                'file_count' => count($request->file_ids),
+                'file_ids' => $request->file_ids
+            ]);
+            
+            // Get file information for progress tracking
+            $totalSize = FileUpload::whereIn('id', $request->file_ids)->sum('file_size');
+            
+            // Add headers for download progress tracking
+            $response = $this->fileManagerService->bulkDownloadFiles($request->file_ids);
+            
+            // Add additional headers for better download experience
+            if (method_exists($response, 'header')) {
+                $response->header('X-File-Count', count($request->file_ids));
+                $response->header('X-Total-Size', $totalSize);
+            }
+            
+            return $response;
+        } catch (\App\Exceptions\FileAccessException $e) {
+            \Log::warning('Bulk download access denied', [
+                'user_id' => auth()->id(),
+                'file_ids' => $request->file_ids,
+                'error' => $e->getMessage()
+            ]);
+            
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error creating bulk download: ' . $e->getMessage()
+                    'message' => $e->getUserMessage(),
+                    'error_type' => 'access_denied'
+                ], 403);
+            }
+
+            return redirect()
+                ->back()
+                ->with('error', $e->getUserMessage());
+        } catch (\Exception $e) {
+            \Log::error('Bulk download error', [
+                'user_id' => auth()->id(),
+                'file_ids' => $request->file_ids,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error creating bulk download: ' . $e->getMessage(),
+                    'error_type' => 'download_failed',
+                    'is_retryable' => true
                 ], 500);
             }
 

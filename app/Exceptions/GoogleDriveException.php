@@ -11,11 +11,22 @@ class GoogleDriveException extends FileManagerException
         $errors = $exception->getErrors();
         $reason = $errors[0]['reason'] ?? 'unknown';
         $domain = $errors[0]['domain'] ?? 'unknown';
+        $message = $exception->getMessage();
+        
+        // Handle rate limiting specifically
+        if ($reason === 'rateLimitExceeded' || $reason === 'userRateLimitExceeded') {
+            return self::quotaExceeded($operation);
+        }
+        
+        // Handle authentication errors
+        if ($reason === 'authError' || $reason === 'unauthorized') {
+            return self::authenticationFailed($operation);
+        }
 
         return new self(
-            message: "Google Drive API error during {$operation}: {$exception->getMessage()}",
+            message: "Google Drive API error during {$operation}: {$message}",
             userMessage: self::getUserFriendlyMessage($reason, $operation),
-            code: $exception->getCode(),
+            code: $exception->getCode() ?: 500,
             previous: $exception,
             context: [
                 'operation' => $operation,
@@ -79,6 +90,48 @@ class GoogleDriveException extends FileManagerException
                 'filename' => $filename,
                 'reason' => $reason,
                 'type' => 'upload_failed'
+            ],
+            isRetryable: true
+        );
+    }
+    
+    public static function authenticationFailed(string $operation): self
+    {
+        return new self(
+            message: "Google Drive authentication failed during {$operation}",
+            userMessage: "Google Drive authentication failed. Please reconnect your account in the settings.",
+            code: 401,
+            context: [
+                'operation' => $operation,
+                'type' => 'authentication_failed'
+            ]
+        );
+    }
+    
+    public static function downloadFailed(string $fileId, string $reason = null): self
+    {
+        return new self(
+            message: "Failed to download file from Google Drive: {$fileId}" . ($reason ? " - {$reason}" : ''),
+            userMessage: "Failed to download file from Google Drive. Please try again.",
+            code: 500,
+            context: [
+                'google_drive_file_id' => $fileId,
+                'reason' => $reason,
+                'type' => 'download_failed'
+            ],
+            isRetryable: true
+        );
+    }
+    
+    public static function connectionFailed(string $operation): self
+    {
+        return new self(
+            message: "Failed to connect to Google Drive during {$operation}",
+            userMessage: "Could not connect to Google Drive. Please check your internet connection and try again.",
+            code: 503,
+            context: [
+                'operation' => $operation,
+                'type' => 'connection_failed'
             ],
             isRetryable: true
         );
