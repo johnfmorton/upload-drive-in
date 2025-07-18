@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Models\FileUpload;
 use App\Services\FileManagerService;
 use App\Services\FilePreviewService;
+use App\Services\AuditLogService;
+use App\Services\FileSecurityService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +21,9 @@ class FileManagerController extends AdminController
 {
     public function __construct(
         private FileManagerService $fileManagerService,
-        private FilePreviewService $filePreviewService
+        private FilePreviewService $filePreviewService,
+        private AuditLogService $auditLogService,
+        private FileSecurityService $fileSecurityService
     ) {
         // Override parent constructor to handle authorization per method
         // instead of blanket admin-only restriction
@@ -116,6 +120,9 @@ class FileManagerController extends AdminController
         try {
             $this->checkAdminAccess();
             
+            // Audit log file view
+            $this->auditLogService->logFileAccess('view', $file, auth()->user(), request());
+            
             $fileDetails = $this->fileManagerService->getFileDetails($file);
 
             if (request()->expectsJson()) {
@@ -136,11 +143,13 @@ class FileManagerController extends AdminController
             ]);
 
             if (request()->expectsJson()) {
-                return $e->render(request());
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getUserMessage()
+                ], 403);
             }
 
-            return redirect()->route('admin.file-manager.index')
-                ->with('error', $e->getUserMessage());
+            abort(403, $e->getUserMessage());
                 
         } catch (\App\Exceptions\FileManagerException $e) {
             \Log::error('File details retrieval error', [
@@ -151,11 +160,13 @@ class FileManagerController extends AdminController
             ]);
 
             if (request()->expectsJson()) {
-                return $e->render(request());
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getUserMessage()
+                ], 500);
             }
 
-            return redirect()->route('admin.file-manager.index')
-                ->with('error', $e->getUserMessage());
+            abort(500, $e->getUserMessage());
                 
         } catch (\Exception $e) {
             \Log::error('Unexpected error retrieving file details', [
@@ -172,8 +183,7 @@ class FileManagerController extends AdminController
                 ], 500);
             }
 
-            return redirect()->route('admin.file-manager.index')
-                ->with('error', 'An unexpected error occurred while loading file details. Please try again.');
+            abort(500, 'An unexpected error occurred while loading file details. Please try again.');
         }
     }
 
@@ -189,6 +199,11 @@ class FileManagerController extends AdminController
                 'message' => 'nullable|string|max:1000',
                 'tags' => 'nullable|array',
                 'tags.*' => 'string|max:50'
+            ]);
+
+            // Audit log file update
+            $this->auditLogService->logFileAccess('update', $file, auth()->user(), $request, [
+                'updated_fields' => array_keys($request->only(['message', 'tags']))
             ]);
 
             $updatedFile = $this->fileManagerService->updateFileMetadata(
@@ -269,6 +284,9 @@ class FileManagerController extends AdminController
         try {
             $this->checkAdminAccess();
             
+            // Audit log file deletion
+            $this->auditLogService->logFileAccess('delete', $file, auth()->user(), request());
+            
             $this->fileManagerService->deleteFile($file);
 
             if (request()->expectsJson()) {
@@ -344,6 +362,9 @@ class FileManagerController extends AdminController
                 'file_ids' => 'required|array',
                 'file_ids.*' => 'exists:file_uploads,id'
             ]);
+
+            // Audit log bulk deletion
+            $this->auditLogService->logBulkFileOperation('delete', $request->file_ids, auth()->user(), $request);
 
             $result = $this->fileManagerService->bulkDeleteFiles($request->file_ids);
 
@@ -466,6 +487,30 @@ class FileManagerController extends AdminController
         $this->checkAdminAccess();
         
         try {
+            // Security validation
+            $securityViolations = $this->fileSecurityService->validateExistingFile($file);
+            $highSeverityViolations = array_filter($securityViolations, fn($v) => $v['severity'] === 'high');
+            
+            if (!empty($highSeverityViolations)) {
+                $this->auditLogService->logSecurityViolation('download_blocked_security', auth()->user(), request(), [
+                    'file_id' => $file->id,
+                    'violations' => $highSeverityViolations
+                ]);
+                
+                if (request()->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'File download blocked due to security concerns.',
+                        'error_type' => 'security_violation'
+                    ], 403);
+                }
+                
+                return redirect()->back()->with('error', 'File download blocked due to security concerns.');
+            }
+
+            // Audit log file download
+            $this->auditLogService->logFileAccess('download', $file, auth()->user(), request());
+            
             // Add download tracking for analytics
             \Log::info('File download initiated', [
                 'user_id' => auth()->id(),
@@ -533,6 +578,40 @@ class FileManagerController extends AdminController
         ]);
 
         try {
+            // Security validation for all files
+            $files = FileUpload::whereIn('id', $request->file_ids)->get();
+            $blockedFiles = [];
+            
+            foreach ($files as $file) {
+                $securityViolations = $this->fileSecurityService->validateExistingFile($file);
+                $highSeverityViolations = array_filter($securityViolations, fn($v) => $v['severity'] === 'high');
+                
+                if (!empty($highSeverityViolations)) {
+                    $blockedFiles[] = $file->id;
+                }
+            }
+            
+            if (!empty($blockedFiles)) {
+                $this->auditLogService->logSecurityViolation('bulk_download_blocked_security', auth()->user(), $request, [
+                    'blocked_files' => $blockedFiles,
+                    'total_files' => count($request->file_ids)
+                ]);
+                
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Some files blocked due to security concerns.',
+                        'error_type' => 'security_violation',
+                        'blocked_files' => $blockedFiles
+                    ], 403);
+                }
+                
+                return redirect()->back()->with('error', 'Some files blocked due to security concerns.');
+            }
+
+            // Audit log bulk download
+            $this->auditLogService->logBulkFileOperation('download', $request->file_ids, auth()->user(), $request);
+
             // Log bulk download attempt for analytics
             \Log::info('Bulk download initiated', [
                 'user_id' => auth()->id(),
@@ -607,6 +686,21 @@ class FileManagerController extends AdminController
         }
 
         try {
+            // Security validation for preview
+            if (!$this->fileSecurityService->isPreviewSafe($file->mime_type)) {
+                $this->auditLogService->logSecurityViolation('preview_blocked_unsafe_type', auth()->user(), request(), [
+                    'file_id' => $file->id,
+                    'mime_type' => $file->mime_type
+                ]);
+                
+                return response('Preview not available for this file type due to security restrictions.', 403, [
+                    'Content-Type' => 'text/plain'
+                ]);
+            }
+
+            // Audit log file preview
+            $this->auditLogService->logFileAccess('preview', $file, auth()->user(), request());
+
             return $this->filePreviewService->generatePreview($file, auth()->user());
         } catch (\Exception $e) {
             // Return a simple error response for preview failures
@@ -629,6 +723,25 @@ class FileManagerController extends AdminController
         }
 
         try {
+            // Security validation for thumbnail
+            if (!str_starts_with($file->mime_type, 'image/')) {
+                $this->auditLogService->logSecurityViolation('thumbnail_blocked_non_image', auth()->user(), request(), [
+                    'file_id' => $file->id,
+                    'mime_type' => $file->mime_type
+                ]);
+                
+                return response('Thumbnail not available for non-image files.', 403, [
+                    'Content-Type' => 'text/plain'
+                ]);
+            }
+
+            // Audit log thumbnail access (less verbose than full file access)
+            \Log::info('File thumbnail accessed', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'ip' => request()->ip()
+            ]);
+
             $thumbnail = $this->filePreviewService->getThumbnail($file, auth()->user());
             
             if ($thumbnail === null) {

@@ -135,6 +135,22 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'audit' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/audit.log'),
+            'level' => 'info',
+            'days' => 90, // Keep audit logs longer for compliance
+            'replace_placeholders' => true,
+        ],
+
+        'security' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/security.log'),
+            'level' => 'warning',
+            'days' => 90, // Keep security logs longer for analysis
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

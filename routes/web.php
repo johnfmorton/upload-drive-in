@@ -89,7 +89,7 @@ Route::get('/notifications/upload/unsubscribe/{user}', [NotificationSettingsCont
     ->middleware('signed');
 
 // File preview and thumbnail routes (accessible to all authenticated users)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\FileDownloadRateLimitMiddleware::class . ':120,1'])->group(function () {
     Route::get('/files/{file}/preview', [\App\Http\Controllers\Admin\FileManagerController::class, 'preview'])
         ->name('files.preview');
     Route::get('/files/{file}/thumbnail', [\App\Http\Controllers\Admin\FileManagerController::class, 'thumbnail'])

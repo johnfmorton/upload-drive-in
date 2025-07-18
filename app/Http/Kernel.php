@@ -74,6 +74,7 @@ class Kernel extends HttpKernel
         'employee' => EmployeeMiddleware::class,
         'prevent.client.password.login' => PreventClientPasswordLogin::class,
         '2fa' => RequireTwoFactorAuth::class,
+        'file.download.throttle' => \App\Http\Middleware\FileDownloadRateLimitMiddleware::class,
     ];
 
     public function handle($request)
