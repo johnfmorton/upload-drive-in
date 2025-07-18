@@ -19,6 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register model observers
+        \App\Models\FileUpload::observe(\App\Observers\FileUploadObserver::class);
+        
         // Merge base translations and overrides, then flatten under the 'messages' group
         $baseFile     = resource_path('lang/en/messages.php');
         $overrideFile = resource_path('lang/en/messages.override.php');

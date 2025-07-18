@@ -23,7 +23,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class FileManagerService
 {
     public function __construct(
-        private GoogleDriveService $googleDriveService
+        private GoogleDriveService $googleDriveService,
+        private FileMetadataCacheService $cacheService
     ) {
     }
     /**
@@ -220,51 +221,7 @@ class FileManagerService
      */
     public function getFileStatistics(): array
     {
-        $totalFiles = FileUpload::count();
-        $pendingFiles = FileUpload::pending()->count();
-        $completedFiles = FileUpload::completed()->count();
-        $totalSize = FileUpload::sum('file_size');
-        
-        // Get files uploaded today
-        $todayFiles = FileUpload::whereDate('created_at', today())->count();
-        
-        // Get files uploaded this week
-        $weekFiles = FileUpload::whereBetween('created_at', [
-            now()->startOfWeek(),
-            now()->endOfWeek()
-        ])->count();
-        
-        // Get files uploaded this month
-        $monthFiles = FileUpload::whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->count();
-
-        // Get most common file types
-        $fileTypes = FileUpload::selectRaw('mime_type, COUNT(*) as count')
-            ->groupBy('mime_type')
-            ->orderByDesc('count')
-            ->limit(5)
-            ->get()
-            ->map(function ($item) use ($totalFiles) {
-                return [
-                    'type' => $item->mime_type,
-                    'count' => $item->count,
-                    'percentage' => $totalFiles > 0 ? round(($item->count / $totalFiles) * 100, 1) : 0
-                ];
-            });
-
-        return [
-            'total_files' => $totalFiles,
-            'pending_files' => $pendingFiles,
-            'completed_files' => $completedFiles,
-            'total_size' => $totalSize,
-            'total_size_formatted' => $this->formatBytes($totalSize),
-            'today_files' => $todayFiles,
-            'week_files' => $weekFiles,
-            'month_files' => $monthFiles,
-            'completion_rate' => $totalFiles > 0 ? round(($completedFiles / $totalFiles) * 100, 1) : 0,
-            'file_types' => $fileTypes
-        ];
+        return $this->cacheService->getFileStatistics();
     }
 
     /**
@@ -272,17 +229,17 @@ class FileManagerService
      */
     public function getFileDetails(FileUpload $file): array
     {
+        $cachedMetadata = $this->cacheService->getFileMetadata($file);
+        
         return [
             'file' => $file->load(['clientUser', 'companyUser', 'uploadedByUser']),
-            'size_formatted' => $this->formatBytes($file->file_size),
+            'size_formatted' => $cachedMetadata['file_size_human'],
             'upload_date_formatted' => $file->created_at->format('M j, Y g:i A'),
-            'is_pending' => $file->isPending(),
+            'is_pending' => $cachedMetadata['is_pending'],
             'has_local_copy' => $this->hasLocalFile($file),
-            'google_drive_url' => $file->google_drive_file_id 
-                ? "https://drive.google.com/file/d/{$file->google_drive_file_id}/view"
-                : null,
-            'file_extension' => pathinfo($file->original_filename, PATHINFO_EXTENSION),
-            'mime_type_category' => $this->getMimeTypeCategory($file->mime_type)
+            'google_drive_url' => $cachedMetadata['google_drive_url'],
+            'file_extension' => $cachedMetadata['file_extension'],
+            'mime_type_category' => $cachedMetadata['mime_type_category']
         ];
     }
 
@@ -292,6 +249,9 @@ class FileManagerService
     public function updateFileMetadata(FileUpload $file, array $data): FileUpload
     {
         $file->update(array_filter($data));
+        
+        // Invalidate cache after update
+        $this->cacheService->invalidateFileCache($file);
         
         Log::info('File metadata updated', [
             'file_id' => $file->id,
@@ -350,6 +310,9 @@ class FileManagerService
 
             // Delete database record
             try {
+                // Invalidate cache before deletion
+                $this->cacheService->invalidateFileCache($file);
+                
                 $file->delete();
             } catch (\Exception $e) {
                 throw new FileManagerException(
@@ -794,68 +757,7 @@ class FileManagerService
      */
     public function getFilterOptions(): array
     {
-        // Get unique file types with counts
-        $fileTypes = FileUpload::selectRaw('mime_type, COUNT(*) as count')
-            ->groupBy('mime_type')
-            ->orderByDesc('count')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'value' => $item->mime_type,
-                    'label' => $this->getMimeTypeLabel($item->mime_type),
-                    'count' => $item->count,
-                    'category' => $this->getMimeTypeCategory($item->mime_type)
-                ];
-            });
-
-        // Group by categories
-        $categorizedTypes = $fileTypes->groupBy('category');
-
-        // Get unique uploaders
-        $uploaders = FileUpload::select('email')
-            ->distinct()
-            ->orderBy('email')
-            ->pluck('email')
-            ->filter()
-            ->values();
-
-        // Get date range
-        $dateRange = FileUpload::selectRaw('MIN(created_at) as min_date, MAX(created_at) as max_date')
-            ->first();
-
-        // Get file size range
-        $sizeRange = FileUpload::selectRaw('MIN(file_size) as min_size, MAX(file_size) as max_size')
-            ->first();
-
-        return [
-            'file_types' => [
-                'categories' => [
-                    'image' => $categorizedTypes->get('image', collect())->values(),
-                    'document' => $categorizedTypes->get('document', collect())->values(),
-                    'video' => $categorizedTypes->get('video', collect())->values(),
-                    'audio' => $categorizedTypes->get('audio', collect())->values(),
-                    'archive' => $categorizedTypes->get('archive', collect())->values(),
-                    'other' => $categorizedTypes->get('other', collect())->values(),
-                ],
-                'all' => $fileTypes->values()
-            ],
-            'uploaders' => $uploaders,
-            'date_range' => [
-                'min' => $dateRange->min_date ? \Carbon\Carbon::parse($dateRange->min_date)->format('Y-m-d') : null,
-                'max' => $dateRange->max_date ? \Carbon\Carbon::parse($dateRange->max_date)->format('Y-m-d') : null,
-            ],
-            'size_range' => [
-                'min' => $sizeRange->min_size ?? 0,
-                'max' => $sizeRange->max_size ?? 0,
-                'min_formatted' => $this->formatBytes($sizeRange->min_size ?? 0),
-                'max_formatted' => $this->formatBytes($sizeRange->max_size ?? 0),
-            ],
-            'status_options' => [
-                ['value' => '', 'label' => 'All Files'],
-                ['value' => 'completed', 'label' => 'Uploaded'],
-                ['value' => 'pending', 'label' => 'Pending'],
-            ]
-        ];
+        return $this->cacheService->getFilterOptions();
     }
 
     /**

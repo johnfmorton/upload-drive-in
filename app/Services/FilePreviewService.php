@@ -76,8 +76,10 @@ class FilePreviewService
         'image/tiff',
     ];
 
-    public function __construct(GoogleDriveService $googleDriveService)
-    {
+    public function __construct(
+        GoogleDriveService $googleDriveService,
+        private ThumbnailService $thumbnailService
+    ) {
         $this->googleDriveService = $googleDriveService;
     }
 

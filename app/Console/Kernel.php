@@ -19,6 +19,8 @@ class Kernel extends ConsoleKernel
         Commands\ImportToMariaDB::class,
         Commands\ListUsers::class,
         Commands\RefreshGoogleDriveTokens::class,
+        Commands\WarmUpCaches::class,
+        Commands\OptimizePerformance::class,
     ];
 
     /**
@@ -52,6 +54,22 @@ class Kernel extends ConsoleKernel
                  ->withoutOverlapping()
                  ->runInBackground()
                  ->appendOutputTo(storage_path('logs/pending-uploads.log'));
+
+        // Warm up caches daily at 6 AM
+        $schedule->command('cache:warm-up --files=200 --thumbnails=100')
+                 ->dailyAt('06:00')
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/cache-warmup.log'));
+
+        // Run performance optimization weekly
+        $schedule->command('performance:optimize')
+                 ->weekly()
+                 ->sundays()
+                 ->at('02:00')
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/performance-optimization.log'));
     }
 
     /**
