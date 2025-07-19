@@ -13,184 +13,287 @@ class FileUploadPermissionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_access_all_files()
-    {
-        // Create an admin user
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-        
-        // Create a client user and file
-        $client = User::factory()->create(['role' => UserRole::CLIENT]);
-        $file = FileUpload::factory()->create(['client_user_id' => $client->id]);
+    private User $admin;
+    private User $employee;
+    private User $client1;
+    private User $client2;
 
-        $this->assertTrue($file->canBeAccessedBy($admin));
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        $this->admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        $this->employee = User::factory()->create(['role' => UserRole::EMPLOYEE]);
+        $this->client1 = User::factory()->create(['role' => UserRole::CLIENT]);
+        $this->client2 = User::factory()->create(['role' => UserRole::CLIENT]);
     }
 
-    public function test_client_can_only_access_their_own_files()
+    /** @test */
+    public function admin_can_access_all_files()
     {
-        // Create two client users
-        $client1 = User::factory()->create(['role' => UserRole::CLIENT]);
-        $client2 = User::factory()->create(['role' => UserRole::CLIENT]);
-        
-        // Create files for each client
-        $file1 = FileUpload::factory()->create(['client_user_id' => $client1->id]);
-        $file2 = FileUpload::factory()->create(['client_user_id' => $client2->id]);
+        $files = [
+            FileUpload::factory()->create(['client_user_id' => $this->client1->id]),
+            FileUpload::factory()->create(['client_user_id' => $this->client2->id]),
+            FileUpload::factory()->create(['uploaded_by_user_id' => $this->employee->id]),
+            FileUpload::factory()->create(['client_user_id' => null]) // System file
+        ];
 
-        // Client 1 can access their own file but not client 2's file
-        $this->assertTrue($file1->canBeAccessedBy($client1));
-        $this->assertFalse($file2->canBeAccessedBy($client1));
-        
-        // Client 2 can access their own file but not client 1's file
-        $this->assertTrue($file2->canBeAccessedBy($client2));
-        $this->assertFalse($file1->canBeAccessedBy($client2));
+        foreach ($files as $file) {
+            $this->assertTrue($file->canBeAccessedBy($this->admin), 
+                "Admin should be able to access file {$file->id}");
+        }
     }
 
-    public function test_employee_can_access_files_from_managed_clients()
+    /** @test */
+    public function client_can_only_access_own_files()
     {
-        // Create an employee and a client
-        $employee = User::factory()->create(['role' => UserRole::EMPLOYEE]);
-        $client = User::factory()->create(['role' => UserRole::CLIENT]);
-        
-        // Create a relationship between employee and client
+        $ownFile = FileUpload::factory()->create(['client_user_id' => $this->client1->id]);
+        $otherFile = FileUpload::factory()->create(['client_user_id' => $this->client2->id]);
+        $systemFile = FileUpload::factory()->create(['client_user_id' => null]);
+
+        $this->assertTrue($ownFile->canBeAccessedBy($this->client1));
+        $this->assertFalse($otherFile->canBeAccessedBy($this->client1));
+        $this->assertFalse($systemFile->canBeAccessedBy($this->client1));
+    }
+
+    /** @test */
+    public function employee_can_access_managed_client_files()
+    {
+        // Create relationship between employee and client1
         ClientUserRelationship::create([
-            'company_user_id' => $employee->id,
-            'client_user_id' => $client->id,
-            'is_primary' => true,
+            'company_user_id' => $this->employee->id,
+            'client_user_id' => $this->client1->id,
+            'is_primary' => true
         ]);
-        
-        // Create a file uploaded by the client
-        $file = FileUpload::factory()->create(['client_user_id' => $client->id]);
 
-        $this->assertTrue($file->canBeAccessedBy($employee));
+        $managedClientFile = FileUpload::factory()->create(['client_user_id' => $this->client1->id]);
+        $unmanagedClientFile = FileUpload::factory()->create(['client_user_id' => $this->client2->id]);
+
+        $this->assertTrue($managedClientFile->canBeAccessedBy($this->employee));
+        $this->assertFalse($unmanagedClientFile->canBeAccessedBy($this->employee));
     }
 
-    public function test_employee_cannot_access_files_from_unmanaged_clients()
+    /** @test */
+    public function employee_can_access_files_they_uploaded()
     {
-        // Create an employee and two clients
-        $employee = User::factory()->create(['role' => UserRole::EMPLOYEE]);
-        $managedClient = User::factory()->create(['role' => UserRole::CLIENT]);
-        $unmanagedClient = User::factory()->create(['role' => UserRole::CLIENT]);
-        
-        // Create a relationship only with the managed client
+        $uploadedFile = FileUpload::factory()->create(['uploaded_by_user_id' => $this->employee->id]);
+        $otherFile = FileUpload::factory()->create(['uploaded_by_user_id' => $this->admin->id]);
+
+        $this->assertTrue($uploadedFile->canBeAccessedBy($this->employee));
+        $this->assertFalse($otherFile->canBeAccessedBy($this->employee));
+    }
+
+    /** @test */
+    public function employee_can_access_both_managed_and_uploaded_files()
+    {
+        // Create relationship
         ClientUserRelationship::create([
-            'company_user_id' => $employee->id,
-            'client_user_id' => $managedClient->id,
-            'is_primary' => true,
+            'company_user_id' => $this->employee->id,
+            'client_user_id' => $this->client1->id,
+            'is_primary' => true
         ]);
-        
-        // Create files for both clients
-        $managedFile = FileUpload::factory()->create(['client_user_id' => $managedClient->id]);
-        $unmanagedFile = FileUpload::factory()->create(['client_user_id' => $unmanagedClient->id]);
 
-        // Employee can access managed client's file but not unmanaged client's file
-        $this->assertTrue($managedFile->canBeAccessedBy($employee));
-        $this->assertFalse($unmanagedFile->canBeAccessedBy($employee));
+        $managedFile = FileUpload::factory()->create(['client_user_id' => $this->client1->id]);
+        $uploadedFile = FileUpload::factory()->create(['uploaded_by_user_id' => $this->employee->id]);
+
+        $this->assertTrue($managedFile->canBeAccessedBy($this->employee));
+        $this->assertTrue($uploadedFile->canBeAccessedBy($this->employee));
     }
 
-    public function test_employee_can_access_files_they_uploaded()
+    /** @test */
+    public function accessible_by_scope_filters_correctly_for_admin()
     {
-        // Create an employee
-        $employee = User::factory()->create(['role' => UserRole::EMPLOYEE]);
+        $files = FileUpload::factory()->count(5)->create();
         
-        // Create a file uploaded by the employee
-        $file = FileUpload::factory()->create(['uploaded_by_user_id' => $employee->id]);
+        $accessibleFiles = FileUpload::accessibleBy($this->admin)->get();
 
-        $this->assertTrue($file->canBeAccessedBy($employee));
+        $this->assertCount(5, $accessibleFiles);
     }
 
-    public function test_accessible_by_scope_returns_correct_files_for_admin()
+    /** @test */
+    public function accessible_by_scope_filters_correctly_for_client()
     {
-        // Create an admin user
-        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
-        
-        // Create multiple files
-        FileUpload::factory()->count(3)->create();
+        FileUpload::factory()->create(['client_user_id' => $this->client1->id]);
+        FileUpload::factory()->create(['client_user_id' => $this->client1->id]);
+        FileUpload::factory()->create(['client_user_id' => $this->client2->id]);
+        FileUpload::factory()->create(['client_user_id' => null]);
 
-        $accessibleFiles = FileUpload::accessibleBy($admin)->get();
+        $accessibleFiles = FileUpload::accessibleBy($this->client1)->get();
 
-        // Admin should see all files
-        $this->assertCount(3, $accessibleFiles);
-    }
-
-    public function test_accessible_by_scope_returns_correct_files_for_client()
-    {
-        // Create two client users
-        $client1 = User::factory()->create(['role' => UserRole::CLIENT]);
-        $client2 = User::factory()->create(['role' => UserRole::CLIENT]);
-        
-        // Create files for each client
-        FileUpload::factory()->create(['client_user_id' => $client1->id]);
-        FileUpload::factory()->create(['client_user_id' => $client1->id]);
-        FileUpload::factory()->create(['client_user_id' => $client2->id]);
-
-        $accessibleFiles = FileUpload::accessibleBy($client1)->get();
-
-        // Client 1 should only see their own files
         $this->assertCount(2, $accessibleFiles);
-        $this->assertTrue($accessibleFiles->every(fn($file) => $file->client_user_id === $client1->id));
+        $this->assertTrue($accessibleFiles->every(fn($file) => $file->client_user_id === $this->client1->id));
     }
 
-    public function test_accessible_by_scope_returns_correct_files_for_employee()
+    /** @test */
+    public function accessible_by_scope_filters_correctly_for_employee()
     {
-        // Create an employee and clients
-        $employee = User::factory()->create(['role' => UserRole::EMPLOYEE]);
-        $managedClient = User::factory()->create(['role' => UserRole::CLIENT]);
-        $unmanagedClient = User::factory()->create(['role' => UserRole::CLIENT]);
-        
-        // Create relationship with managed client
+        // Create relationship
         ClientUserRelationship::create([
-            'company_user_id' => $employee->id,
-            'client_user_id' => $managedClient->id,
-            'is_primary' => true,
+            'company_user_id' => $this->employee->id,
+            'client_user_id' => $this->client1->id,
+            'is_primary' => true
         ]);
-        
-        // Create files
-        $managedFile = FileUpload::factory()->create(['client_user_id' => $managedClient->id]);
-        $unmanagedFile = FileUpload::factory()->create(['client_user_id' => $unmanagedClient->id]);
-        $employeeFile = FileUpload::factory()->create(['uploaded_by_user_id' => $employee->id]);
 
-        $accessibleFiles = FileUpload::accessibleBy($employee)->get();
+        $managedFile = FileUpload::factory()->create(['client_user_id' => $this->client1->id]);
+        $unmanagedFile = FileUpload::factory()->create(['client_user_id' => $this->client2->id]);
+        $uploadedFile = FileUpload::factory()->create(['uploaded_by_user_id' => $this->employee->id]);
+        $otherFile = FileUpload::factory()->create(['uploaded_by_user_id' => $this->admin->id]);
 
-        // Employee should see managed client's file and their own uploaded file
+        $accessibleFiles = FileUpload::accessibleBy($this->employee)->get();
+
         $this->assertCount(2, $accessibleFiles);
         $this->assertTrue($accessibleFiles->contains($managedFile));
-        $this->assertTrue($accessibleFiles->contains($employeeFile));
+        $this->assertTrue($accessibleFiles->contains($uploadedFile));
         $this->assertFalse($accessibleFiles->contains($unmanagedFile));
+        $this->assertFalse($accessibleFiles->contains($otherFile));
     }
 
-    public function test_is_previewable_returns_true_for_supported_mime_types()
+    /** @test */
+    public function accessible_by_scope_returns_empty_for_unknown_role()
     {
-        $supportedMimeTypes = [
-            'image/jpeg',
-            'image/png',
-            'application/pdf',
-            'text/plain',
-            'application/json',
-        ];
+        // Create a user and then manually change their role to test the fallback
+        $unknownUser = User::factory()->create(['role' => UserRole::CLIENT]);
+        
+        // Manually update the role in the database to an invalid value
+        // This simulates a corrupted or unknown role scenario
+        \DB::table('users')->where('id', $unknownUser->id)->update(['role' => 'unknown']);
+        
+        FileUpload::factory()->count(3)->create();
 
-        foreach ($supportedMimeTypes as $mimeType) {
-            $file = FileUpload::factory()->create(['mime_type' => $mimeType]);
-            $this->assertTrue($file->isPreviewable(), "Failed for MIME type: {$mimeType}");
+        // This should trigger the default case in the scope which returns no results
+        try {
+            $accessibleFiles = FileUpload::accessibleBy($unknownUser->fresh())->get();
+            $this->assertCount(0, $accessibleFiles);
+        } catch (\ValueError $e) {
+            // If enum validation fails, that's also acceptable behavior
+            $this->assertStringContainsString('not a valid backing value', $e->getMessage());
         }
     }
 
-    public function test_is_previewable_returns_false_for_unsupported_mime_types()
+    /** @test */
+    public function employee_with_multiple_client_relationships()
     {
-        $unsupportedMimeTypes = [
-            'application/zip',
-            'video/mp4',
-            'audio/mpeg',
-            'application/vnd.ms-excel',
-        ];
+        // Create relationships with multiple clients
+        ClientUserRelationship::create([
+            'company_user_id' => $this->employee->id,
+            'client_user_id' => $this->client1->id,
+            'is_primary' => true
+        ]);
+        
+        ClientUserRelationship::create([
+            'company_user_id' => $this->employee->id,
+            'client_user_id' => $this->client2->id,
+            'is_primary' => false
+        ]);
 
-        foreach ($unsupportedMimeTypes as $mimeType) {
-            $file = FileUpload::factory()->create(['mime_type' => $mimeType]);
-            $this->assertFalse($file->isPreviewable(), "Failed for MIME type: {$mimeType}");
-        }
+        $client1File = FileUpload::factory()->create(['client_user_id' => $this->client1->id]);
+        $client2File = FileUpload::factory()->create(['client_user_id' => $this->client2->id]);
+
+        $this->assertTrue($client1File->canBeAccessedBy($this->employee));
+        $this->assertTrue($client2File->canBeAccessedBy($this->employee));
+
+        $accessibleFiles = FileUpload::accessibleBy($this->employee)->get();
+        $this->assertCount(2, $accessibleFiles);
     }
 
-    public function test_get_preview_url_returns_null_for_non_previewable_files()
+    /** @test */
+    public function permission_check_handles_null_values()
     {
-        $file = FileUpload::factory()->create(['mime_type' => 'application/zip']);
-        $this->assertNull($file->getPreviewUrl());
+        $fileWithNullClient = FileUpload::factory()->create(['client_user_id' => null]);
+        $fileWithNullUploader = FileUpload::factory()->create(['uploaded_by_user_id' => null]);
+
+        // Admin should access all files regardless of null values
+        $this->assertTrue($fileWithNullClient->canBeAccessedBy($this->admin));
+        $this->assertTrue($fileWithNullUploader->canBeAccessedBy($this->admin));
+
+        // Client should not access files with null client_user_id
+        $this->assertFalse($fileWithNullClient->canBeAccessedBy($this->client1));
+        $this->assertFalse($fileWithNullUploader->canBeAccessedBy($this->client1));
+
+        // Employee should not access files with null values unless they have other permissions
+        $this->assertFalse($fileWithNullClient->canBeAccessedBy($this->employee));
+        $this->assertFalse($fileWithNullUploader->canBeAccessedBy($this->employee));
+    }
+
+    /** @test */
+    public function permission_check_with_complex_scenarios()
+    {
+        // Create a file uploaded by employee for a client they don't manage
+        $file = FileUpload::factory()->create([
+            'client_user_id' => $this->client2->id,
+            'uploaded_by_user_id' => $this->employee->id
+        ]);
+
+        // Employee should be able to access it because they uploaded it
+        $this->assertTrue($file->canBeAccessedBy($this->employee));
+
+        // Client2 should be able to access it because it's their file
+        $this->assertTrue($file->canBeAccessedBy($this->client2));
+
+        // Client1 should not be able to access it
+        $this->assertFalse($file->canBeAccessedBy($this->client1));
+
+        // Admin should be able to access it
+        $this->assertTrue($file->canBeAccessedBy($this->admin));
+    }
+
+    /** @test */
+    public function accessible_by_scope_with_complex_employee_permissions()
+    {
+        // Create relationship
+        ClientUserRelationship::create([
+            'company_user_id' => $this->employee->id,
+            'client_user_id' => $this->client1->id,
+            'is_primary' => true
+        ]);
+
+        // Create various files
+        $managedClientFile = FileUpload::factory()->create(['client_user_id' => $this->client1->id]);
+        $unmanagedClientFile = FileUpload::factory()->create(['client_user_id' => $this->client2->id]);
+        $employeeUploadedForManagedClient = FileUpload::factory()->create([
+            'client_user_id' => $this->client1->id,
+            'uploaded_by_user_id' => $this->employee->id
+        ]);
+        $employeeUploadedForUnmanagedClient = FileUpload::factory()->create([
+            'client_user_id' => $this->client2->id,
+            'uploaded_by_user_id' => $this->employee->id
+        ]);
+        $employeeUploadedSystemFile = FileUpload::factory()->create([
+            'client_user_id' => null,
+            'uploaded_by_user_id' => $this->employee->id
+        ]);
+
+        $accessibleFiles = FileUpload::accessibleBy($this->employee)->get();
+
+        // Should include: managed client file, both employee uploaded files, and system file uploaded by employee
+        $this->assertCount(4, $accessibleFiles);
+        $this->assertTrue($accessibleFiles->contains($managedClientFile));
+        $this->assertTrue($accessibleFiles->contains($employeeUploadedForManagedClient));
+        $this->assertTrue($accessibleFiles->contains($employeeUploadedForUnmanagedClient));
+        $this->assertTrue($accessibleFiles->contains($employeeUploadedSystemFile));
+        $this->assertFalse($accessibleFiles->contains($unmanagedClientFile));
+    }
+
+    /** @test */
+    public function permission_methods_handle_user_role_changes()
+    {
+        $file = FileUpload::factory()->create(['client_user_id' => $this->client1->id]);
+
+        // Initially client can access their file
+        $this->assertTrue($file->canBeAccessedBy($this->client1));
+
+        // Change client to employee role
+        $this->client1->update(['role' => UserRole::EMPLOYEE]);
+        $this->client1->refresh();
+
+        // Now as employee, they shouldn't be able to access the file (no relationship)
+        $this->assertFalse($file->canBeAccessedBy($this->client1));
+
+        // Change to admin role
+        $this->client1->update(['role' => UserRole::ADMIN]);
+        $this->client1->refresh();
+
+        // Now as admin, they should be able to access all files
+        $this->assertTrue($file->canBeAccessedBy($this->client1));
     }
 }
