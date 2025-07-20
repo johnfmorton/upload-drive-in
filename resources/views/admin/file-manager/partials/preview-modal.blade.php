@@ -154,7 +154,7 @@
                             class="block mx-auto transition-transform duration-200"
                             :style="`transform: scale(${imageZoom}) translate(${imagePanX}px, ${imagePanY}px); transform-origin: center center;`"
                             @load="imageLoaded()"
-                            @error="imageError()"
+                            x-on:error="imageError()"
                             draggable="false"
                         >
                     </div>
