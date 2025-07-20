@@ -1,6 +1,6 @@
 <!-- Enhanced Preview Modal -->
 <div 
-    x-data="filePreviewModal()"
+    x-data="filePreviewModal"
     x-on:open-preview-modal.window="openModal($event.detail)"
     x-show="open"
     class="fixed inset-0 z-50 overflow-y-auto"
@@ -245,8 +245,8 @@
 </div>
 
 <script>
-function filePreviewModal() {
-    return {
+document.addEventListener('alpine:init', () => {
+    Alpine.data('filePreviewModal', () => ({
         open: false,
         file: null,
         previewContent: '',
@@ -661,6 +661,6 @@ function filePreviewModal() {
                     break;
             }
         }
-    };
-}
+    }));
+});
 </script>

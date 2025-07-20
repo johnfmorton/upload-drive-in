@@ -94,48 +94,5 @@
         </div>
     </div>
 
-    <script>
-        async function confirmBulkDelete() {
-            if (!this.fileIds.length || this.deleting) return;
-            
-            this.deleting = true;
-            
-            try {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/admin/file-manager';
-                form.style.display = 'none';
-                
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = '_token';
-                csrfInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                form.appendChild(csrfInput);
-                
-                const methodInput = document.createElement('input');
-                methodInput.type = 'hidden';
-                methodInput.name = '_method';
-                methodInput.value = 'DELETE';
-                form.appendChild(methodInput);
-                
-                this.fileIds.forEach(fileId => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'file_ids[]';
-                    input.value = fileId;
-                    form.appendChild(input);
-                });
-                
-                document.body.appendChild(form);
-                form.submit();
-                
-            } catch (error) {
-                console.error('Bulk delete error:', error);
-                alert('{{ __("messages.bulk_delete_error") }}');
-            } finally {
-                this.deleting = false;
-                this.open = false;
-            }
-        }
-    </script>
+
 </div>

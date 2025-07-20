@@ -655,13 +655,13 @@
                                 </div>
                                 
                                 <!-- Progress bar for operations that support it -->
-                                <div x-show="downloadProgressPercent > 0" class="w-full">
+                                <div x-show="(downloadProgressPercent || 0) > 0" class="w-full">
                                     <div class="text-xs font-medium text-gray-500 mb-1">
-                                        <span x-text="Math.round(downloadProgressPercent) + '%'"></span>
-                                        <span x-show="downloadTotal > 0" x-text="' - ' + formatBytes(downloadProgressPercent / 100 * downloadTotal) + ' of ' + formatBytes(downloadTotal)"></span>
+                                        <span x-text="Math.round(downloadProgressPercent || 0) + '%'"></span>
+                                        <span x-show="(downloadTotal || 0) > 0" x-text="' - ' + formatBytes((downloadProgressPercent || 0) / 100 * (downloadTotal || 0)) + ' of ' + formatBytes(downloadTotal || 0)"></span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div class="bg-blue-600 h-2.5 rounded-full" :style="'width: ' + downloadProgressPercent + '%'"></div>
+                                        <div class="bg-blue-600 h-2.5 rounded-full" :style="'width: ' + (downloadProgressPercent || 0) + '%'"></div>
                                     </div>
                                 </div>
                             </div>
@@ -922,7 +922,7 @@
                 </div>
                 <div class="ml-3 w-0 flex-1 pt-0.5">
                     <p class="text-sm font-medium text-gray-900">Success</p>
-                    <p class="mt-1 text-sm text-gray-500" x-text="successMessage"></p>
+                    <p class="mt-1 text-sm text-gray-500" x-text="successMessage || ''"></p>
                 </div>
                 <div class="ml-4 flex-shrink-0 flex">
                     <button 
@@ -951,8 +951,9 @@
 
     @push('scripts')
     <script>
-        function fileManager(initialFiles, initialStatistics) {
-            return {
+        // Define the component before Alpine.js processes it
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('fileManager', (initialFiles, initialStatistics) => ({
                 // Data
                 files: initialFiles || [],
                 statistics: initialStatistics || {},
@@ -1778,6 +1779,43 @@
                     this.showError(message, isRetryable);
                 },
 
+                // Modal methods
+                async confirmDelete() {
+                    if (!this.currentFile || this.isDeleting) return;
+                    
+                    this.isDeleting = true;
+                    
+                    try {
+                        const response = await fetch(`/admin/file-manager/${this.currentFile.id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.showSuccess(data.message || 'File deleted successfully.');
+                            
+                            // Remove file from the list
+                            this.files = this.files.filter(f => f.id !== this.currentFile.id);
+                            
+                            // Close modal
+                            this.currentFile = null;
+                        } else {
+                            const errorData = await response.json();
+                            this.showError(errorData.message || 'Failed to delete file.');
+                        }
+                    } catch (error) {
+                        console.error('Delete error:', error);
+                        this.showError('An error occurred while deleting the file.');
+                    } finally {
+                        this.isDeleting = false;
+                    }
+                },
+
                 // Enhanced bulk delete with confirmation and progress
                 confirmBulkDelete() {
                     if (this.selectedFiles.length === 0) {
@@ -1952,8 +1990,8 @@
                         this.handleApiError(error, 'bulk download');
                     }
                 }
-            }
-        }
+            }));
+        });
     </script>
     @endpush
 </x-app-layout>
