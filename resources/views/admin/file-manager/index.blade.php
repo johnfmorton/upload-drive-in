@@ -62,7 +62,7 @@
                                     <span class="text-sm text-gray-600" x-text="`${selectedFiles.length} selected`"></span>
                                     
                                     <button 
-                                        @click="bulkDelete()"
+                                        x-on:click="bulkDelete()"
                                         class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                     >
                                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,7 +72,7 @@
                                     </button>
                                     
                                     <button 
-                                        @click="bulkDownload()"
+                                        x-on:click="bulkDownload()"
                                         class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     >
                                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,7 +100,7 @@
                                     </div>
                                     <div x-show="searchQuery" class="absolute inset-y-0 right-0 pr-3 flex items-center">
                                         <button 
-                                            @click="searchQuery = ''"
+                                            x-on:click="searchQuery = ''"
                                             class="text-gray-400 hover:text-gray-600"
                                         >
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,7 +138,7 @@
 
                                     <!-- Advanced Filters Toggle -->
                                     <button 
-                                        @click="showAdvancedFilters = !showAdvancedFilters"
+                                        x-on:click="showAdvancedFilters = !showAdvancedFilters"
                                         class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                         :class="{ 'bg-blue-50 border-blue-300 text-blue-700': showAdvancedFilters }"
                                     >
@@ -154,7 +154,7 @@
                                     <!-- Column Visibility Toggle (only show in table mode) -->
                                     <div x-show="viewMode === 'table'" class="relative" x-data="{ open: false }">
                                         <button 
-                                            @click="open = !open"
+                                            x-on:click="open = !open"
                                             class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                         >
                                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +166,7 @@
                                         <!-- Column visibility dropdown -->
                                         <div 
                                             x-show="open"
-                                            @click.away="open = false"
+                                            x-on:click.away="open = false"
                                             x-transition:enter="transition ease-out duration-100"
                                             x-transition:enter-start="transform opacity-0 scale-95"
                                             x-transition:enter-end="transform opacity-100 scale-100"
@@ -184,7 +184,7 @@
                                                         <input 
                                                             type="checkbox" 
                                                             :checked="visibleColumns[column.key]"
-                                                            @change="toggleColumn(column.key)"
+                                                            x-on:change="toggleColumn(column.key)"
                                                             class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500 mr-3"
                                                         >
                                                         <span x-text="column.label"></span>
@@ -192,7 +192,7 @@
                                                 </template>
                                                 <div class="border-t border-gray-100 pt-1">
                                                     <button 
-                                                        @click="resetColumns()"
+                                                        x-on:click="resetColumns()"
                                                         class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                                     >
                                                         {{ __('messages.reset_columns') }}
@@ -204,7 +204,7 @@
                                     
                                     <!-- View Mode Toggle -->
                                     <button 
-                                        @click="toggleViewMode()"
+                                        x-on:click="toggleViewMode()"
                                         class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     >
                                         <svg x-show="viewMode === 'grid'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,7 +283,7 @@
                             <!-- Filter Actions -->
                             <div class="flex flex-col justify-end space-y-2">
                                 <button 
-                                    @click="clearAllFilters()"
+                                    x-on:click="clearAllFilters()"
                                     class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                 >
                                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -323,7 +323,7 @@
                                 </div>
                                 <div class="ml-4 flex-shrink-0 flex">
                                     <button 
-                                        @click="showSuccessNotification = false"
+                                        x-on:click="showSuccessNotification = false"
                                         class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                     >
                                         <span class="sr-only">Close</span>
@@ -360,7 +360,7 @@
                                     <p class="mt-1 text-sm text-gray-500" x-text="errorMessage"></p>
                                     <div x-show="isErrorRetryable" class="mt-3">
                                         <button 
-                                            @click="retryLastOperation()"
+                                            x-on:click="retryLastOperation()"
                                             class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                         >
                                             Retry
@@ -369,7 +369,7 @@
                                 </div>
                                 <div class="ml-4 flex-shrink-0 flex">
                                     <button 
-                                        @click="showErrorModal = false"
+                                        x-on:click="showErrorModal = false"
                                         class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                     >
                                         <span class="sr-only">Close</span>
@@ -402,7 +402,7 @@
                                 x-transition:leave-start="opacity-100"
                                 x-transition:leave-end="opacity-0"
                                 class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                                @click="showConfirmDialog = false"
+                                x-on:click="showConfirmDialog = false"
                                 aria-hidden="true"
                             ></div>
 
@@ -473,7 +473,7 @@
                                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                                     <button 
                                         type="button" 
-                                        @click="confirmAction()"
+                                        x-on:click="confirmAction()"
                                         class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
                                         :class="confirmDialogDestructive ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'"
                                     >
@@ -488,7 +488,7 @@
                                     </button>
                                     <button 
                                         type="button" 
-                                        @click="cancelConfirmation()"
+                                        x-on:click="cancelConfirmation()"
                                         :disabled="isLoading"
                                         class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
@@ -634,277 +634,9 @@
                             </div>
                         </div>
                     </div>
-                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="confirm-modal-title" x-text="confirmDialogTitle">
-                                            </h3>
-                                            <div class="mt-2">
-                                                <p class="text-sm text-gray-500" x-text="confirmDialogMessage"></p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                                    <button 
-                                        type="button" 
-                                        @click="confirmAction()"
-                                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
-                                        :class="confirmDialogDestructive ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'"
-                                    >
-                                        <span x-text="confirmDialogDestructive ? 'Delete' : 'Confirm'"></span>
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        @click="cancelConfirmation()"
-                                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Bulk Operation Progress Modal -->
-                    <div 
-                        x-show="bulkOperationProgress.show" 
-                        x-cloak
-                        class="fixed inset-0 z-50 overflow-y-auto"
-                        aria-labelledby="progress-modal-title"
-                        role="dialog"
-                        aria-modal="true"
-                    >
-                        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                            <!-- Background overlay -->
-                            <div 
-                                x-show="bulkOperationProgress.show"
-                                x-transition:enter="ease-out duration-300"
-                                x-transition:enter-start="opacity-0"
-                                x-transition:enter-end="opacity-100"
-                                x-transition:leave="ease-in duration-200"
-                                x-transition:leave-start="opacity-100"
-                                x-transition:leave-end="opacity-0"
-                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                                aria-hidden="true"
-                            ></div>
 
-                            <!-- Modal panel -->
-                            <div 
-                                x-show="bulkOperationProgress.show"
-                                x-transition:enter="ease-out duration-300"
-                                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                                x-transition:leave="ease-in duration-200"
-                                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
-                            >
-                                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                                    <div class="sm:flex sm:items-start">
-                                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                                            <svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="progress-modal-title">
-                                                <span x-text="bulkOperationProgress.operation"></span> Files
-                                            </h3>
-                                            <div class="mt-4">
-                                                <div class="bg-gray-200 rounded-full h-2">
-                                                    <div 
-                                                        class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                                        :style="`width: ${bulkOperationProgress.total > 0 ? (bulkOperationProgress.current / bulkOperationProgress.total) * 100 : 0}%`"
-                                                    ></div>
-                                                </div>
-                                                <div class="mt-2 flex justify-between text-sm text-gray-600">
-                                                    <span x-text="bulkOperationProgress.message"></span>
-                                                    <span x-text="`${bulkOperationProgress.current} / ${bulkOperationProgress.total}`"></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Download Progress Modal -->
-                    <div 
-                        x-show="downloadProgress.show" 
-                        x-cloak
-                        class="fixed inset-0 z-50 overflow-y-auto"
-                        aria-labelledby="download-progress-modal-title"
-                        role="dialog"
-                        aria-modal="true"
-                    >
-                        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                            <!-- Background overlay -->
-                            <div 
-                                x-show="downloadProgress.show"
-                                x-transition:enter="ease-out duration-300"
-                                x-transition:enter-start="opacity-0"
-                                x-transition:enter-end="opacity-100"
-                                x-transition:leave="ease-in duration-200"
-                                x-transition:leave-start="opacity-100"
-                                x-transition:leave-end="opacity-0"
-                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                                aria-hidden="true"
-                            ></div>
-
-                            <!-- Modal panel -->
-                            <div 
-                                x-show="downloadProgress.show"
-                                x-transition:enter="ease-out duration-300"
-                                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                                x-transition:leave="ease-in duration-200"
-                                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
-                            >
-                                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                                    <div class="sm:flex sm:items-start">
-                                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
-                                            <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                        </div>
-                                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="download-progress-modal-title">
-                                                Downloading File
-                                            </h3>
-                                            <div class="mt-2">
-                                                <p class="text-sm text-gray-500" x-text="downloadProgress.filename"></p>
-                                            </div>
-                                            <div class="mt-4">
-                                                <div class="bg-gray-200 rounded-full h-2">
-                                                    <div 
-                                                        class="bg-green-600 h-2 rounded-full transition-all duration-300"
-                                                        :style="`width: ${downloadProgress.percentage}%`"
-                                                    ></div>
-                                                </div>
-                                                <div class="mt-2 text-center text-sm text-gray-600">
-                                                    <span x-text="`${Math.round(downloadProgress.percentage)}%`"></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="confirm-modal-title" x-text="confirmDialogTitle"></h3>
-                                            <div class="mt-2">
-                                                <p class="text-sm text-gray-500" x-text="confirmDialogMessage"></p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                                    <button 
-                                        type="button" 
-                                        @click="confirmAction()"
-                                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
-                                        :class="confirmDialogDestructive ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'"
-                                    >
-                                        Confirm
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        @click="showConfirmDialog = false"
-                                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bulk Operation Progress Modal -->
-                    <div 
-                        x-show="bulkOperationProgress.show" 
-                        x-cloak
-                        class="fixed inset-0 z-50 overflow-y-auto"
-                        aria-labelledby="progress-modal-title"
-                        role="dialog"
-                        aria-modal="true"
-                    >
-                        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                            <!-- Background overlay -->
-                            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-
-                            <!-- Modal panel -->
-                            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                                    <div class="sm:flex sm:items-start">
-                                        <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                                            <svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="progress-modal-title" x-text="bulkOperationProgress.operation"></h3>
-                                            <div class="mt-2">
-                                                <p class="text-sm text-gray-500 mb-4" x-text="bulkOperationProgress.message"></p>
-                                                
-                                                <!-- Progress Bar -->
-                                                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                                    <div 
-                                                        class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                                                        :style="`width: ${(bulkOperationProgress.current / bulkOperationProgress.total) * 100}%`"
-                                                    ></div>
-                                                </div>
-                                                
-                                                <!-- Progress Text -->
-                                                <div class="flex justify-between text-sm text-gray-600 mt-2">
-                                                    <span x-text="`${bulkOperationProgress.current} of ${bulkOperationProgress.total}`"></span>
-                                                    <span x-text="`${Math.round((bulkOperationProgress.current / bulkOperationProgress.total) * 100)}%`"></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Download Progress Notification -->
-                    <div 
-                        x-show="downloadProgress.show" 
-                        x-cloak
-                        x-transition:enter="transition ease-out duration-300"
-                        x-transition:enter-start="opacity-0 translate-y-2"
-                        x-transition:enter-end="opacity-100 translate-y-0"
-                        x-transition:leave="transition ease-in duration-200"
-                        x-transition:leave-start="opacity-100 translate-y-0"
-                        x-transition:leave-end="opacity-0 translate-y-2"
-                        class="fixed bottom-4 right-4 z-50 max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5"
-                    >
-                        <div class="p-4">
-                            <div class="flex items-start">
-                                <div class="flex-shrink-0">
-                                    <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                </div>
-                                <div class="ml-3 w-0 flex-1">
-                                    <p class="text-sm font-medium text-gray-900">Downloading...</p>
-                                    <p class="mt-1 text-sm text-gray-500 truncate" x-text="downloadProgress.filename"></p>
-                                    
-                                    <!-- Progress Bar -->
-                                    <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                                        <div 
-                                            class="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-                                            :style="`width: ${downloadProgress.percentage}%`"
-                                        ></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Loading Overlay -->
                     <div 
@@ -923,13 +655,13 @@
                                 </div>
                                 
                                 <!-- Progress bar for operations that support it -->
-                                <div x-show="downloadProgress > 0" class="w-full">
+                                <div x-show="downloadProgressPercent > 0" class="w-full">
                                     <div class="text-xs font-medium text-gray-500 mb-1">
-                                        <span x-text="Math.round(downloadProgress) + '%'"></span>
-                                        <span x-show="downloadTotal > 0" x-text="' - ' + formatBytes(downloadProgress / 100 * downloadTotal) + ' of ' + formatBytes(downloadTotal)"></span>
+                                        <span x-text="Math.round(downloadProgressPercent) + '%'"></span>
+                                        <span x-show="downloadTotal > 0" x-text="' - ' + formatBytes(downloadProgressPercent / 100 * downloadTotal) + ' of ' + formatBytes(downloadTotal)"></span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div class="bg-blue-600 h-2.5 rounded-full" :style="'width: ' + downloadProgress + '%'"></div>
+                                        <div class="bg-blue-600 h-2.5 rounded-full" :style="'width: ' + downloadProgressPercent + '%'"></div>
                                     </div>
                                 </div>
                             </div>
@@ -967,7 +699,7 @@
                                                     :src="file.thumbnail_url" 
                                                     :alt="file.original_filename"
                                                     class="max-w-full max-h-full object-contain rounded"
-                                                    @click="previewFile(file)"
+                                                    x-on:click="previewFile(file)"
                                                     style="cursor: pointer;"
                                                 >
                                             </template>
@@ -1028,20 +760,20 @@
                                             <div class="flex space-x-2">
                                                 <button 
                                                     x-show="file.can_preview"
-                                                    @click="previewFile(file)"
+                                                    x-on:click="previewFile(file)"
                                                     class="text-xs text-blue-600 hover:text-blue-800 font-medium"
                                                 >
                                                     {{ __('messages.preview') }}
                                                 </button>
                                                 <button 
-                                                    @click="downloadFile(file)"
+                                                    x-on:click="downloadFile(file)"
                                                     class="text-xs text-green-600 hover:text-green-800 font-medium"
                                                 >
                                                     {{ __('messages.download') }}
                                                 </button>
                                             </div>
                                             <button 
-                                                @click="deleteFile(file)"
+                                                x-on:click="deleteFile(file)"
                                                 class="text-xs text-red-600 hover:text-red-800 font-medium"
                                             >
                                                 {{ __('messages.delete') }}
@@ -1072,7 +804,7 @@
                                                 <th 
                                                     scope="col" 
                                                     :class="getColumnHeaderClass(column)"
-                                                    @click="column.sortable ? sortBy(column.key) : null"
+                                                    x-on:click="column.sortable ? sortBy(column.key) : null"
                                                     :style="getColumnStyle(column.key)"
                                                 >
                                                     <div class="flex items-center justify-between group">
@@ -1088,7 +820,7 @@
                                                             <div 
                                                                 x-show="column.resizable"
                                                                 class="w-1 h-4 bg-gray-300 cursor-col-resize opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                @mousedown="startColumnResize($event, column.key)"
+                                                                x-on:mousedown="startColumnResize($event, column.key)"
                                                             ></div>
                                                         </div>
                                                     </div>
@@ -1128,19 +860,19 @@
                                                     <div class="flex items-center space-x-2">
                                                         <button 
                                                             x-show="file.can_preview"
-                                                            @click="previewFile(file)"
+                                                            x-on:click="previewFile(file)"
                                                             class="text-blue-600 hover:text-blue-900"
                                                         >
                                                             {{ __('messages.preview') }}
                                                         </button>
                                                         <button 
-                                                            @click="downloadFile(file)"
+                                                            x-on:click="downloadFile(file)"
                                                             class="text-green-600 hover:text-green-900"
                                                         >
                                                             {{ __('messages.download') }}
                                                         </button>
                                                         <button 
-                                                            @click="deleteFile(file)"
+                                                            x-on:click="deleteFile(file)"
                                                             class="text-red-600 hover:text-red-900"
                                                         >
                                                             {{ __('messages.delete') }}
@@ -1168,12 +900,8 @@
                     <div class="px-4 py-3 sm:px-6 border-t border-gray-200">
                         {{ $files->links() }}
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Success Notification -->
+                    <!-- Success Notification -->
     <div 
         x-show="showSuccessNotification" 
         x-cloak
@@ -1199,13 +927,18 @@
                 <div class="ml-4 flex-shrink-0 flex">
                     <button 
                         class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        @click="showSuccessNotification = false"
+                        x-on:click="showSuccessNotification = false"
                     >
                         <span class="sr-only">Close</span>
                         <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                         </svg>
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
                 </div>
             </div>
         </div>
@@ -1267,21 +1000,19 @@
                 confirmDialogAction: null,
                 confirmDialogType: 'info', // 'danger', 'warning', 'info'
                 
-                // Download progress tracking
-                downloadProgress: 0,
-                downloadTotal: 0,
-                downloadStartTime: null,
-                downloadEstimatedTime: null,
-                
                 // Operation states
                 isDeleting: false,
                 isDownloading: false,
                 operationInProgress: '',
                 lastOperation: null,
                 currentFile: null,
-                isDownloading: false,
-                operationInProgress: '',
-                downloadProgress: 0,
+                
+                // Download progress tracking (for progress bars in UI)
+                downloadProgressPercent: 0,
+                downloadTotal: 0,
+                downloadStartTime: null,
+                downloadEstimatedTime: null,
+                
                 bulkOperationProgress: {
                     show: false,
                     current: 0,
@@ -1651,7 +1382,7 @@
                     this.isLoading = true;
                     this.isDownloading = true;
                     this.operationInProgress = `Preparing download for ${file.original_filename}...`;
-                    this.downloadProgress = 0;
+                    this.downloadProgressPercent = 0;
                     this.downloadTotal = file.file_size || 0;
                     this.downloadStartTime = new Date();
                     
@@ -1683,16 +1414,16 @@
                             // Track download progress
                             xhr.onprogress = (event) => {
                                 if (event.lengthComputable) {
-                                    this.downloadProgress = (event.loaded / event.total) * 100;
+                                    this.downloadProgressPercent = (event.loaded / event.total) * 100;
                                     this.downloadTotal = event.total;
                                     
                                     // Update operation message with progress
-                                    this.operationInProgress = `Downloading ${file.original_filename}... ${Math.round(this.downloadProgress)}%`;
+                                    this.operationInProgress = `Downloading ${file.original_filename}... ${Math.round(this.downloadProgressPercent)}%`;
                                     
                                     // Calculate estimated time remaining
-                                    if (this.downloadProgress > 0) {
+                                    if (this.downloadProgressPercent > 0) {
                                         const elapsedTime = (new Date() - this.downloadStartTime) / 1000;
-                                        const estimatedTotalTime = elapsedTime / (this.downloadProgress / 100);
+                                        const estimatedTotalTime = elapsedTime / (this.downloadProgressPercent / 100);
                                         this.downloadEstimatedTime = Math.round(estimatedTotalTime - elapsedTime);
                                     }
                                 }
@@ -1722,7 +1453,7 @@
                                 this.isLoading = false;
                                 this.isDownloading = false;
                                 this.operationInProgress = '';
-                                this.downloadProgress = 0;
+                                this.downloadProgressPercent = 0;
                             };
                             
                             // Handle download errors
@@ -1731,7 +1462,7 @@
                                 this.isLoading = false;
                                 this.isDownloading = false;
                                 this.operationInProgress = '';
-                                this.downloadProgress = 0;
+                                this.downloadProgressPercent = 0;
                             };
                             
                             // Start download
@@ -2131,7 +1862,7 @@
                     this.isLoading = true;
                     this.isDownloading = true;
                     this.operationInProgress = `Preparing download for ${totalFiles} file${totalFiles > 1 ? 's' : ''}...`;
-                    this.downloadProgress = 0;
+                    this.downloadProgressPercent = 0;
                     this.downloadTotal = totalSize;
                     this.downloadStartTime = new Date();
                     
@@ -2147,16 +1878,16 @@
                         // Track download progress
                         xhr.onprogress = (event) => {
                             if (event.lengthComputable) {
-                                this.downloadProgress = (event.loaded / event.total) * 100;
+                                this.downloadProgressPercent = (event.loaded / event.total) * 100;
                                 this.downloadTotal = event.total;
                                 
                                 // Update operation message with progress
-                                this.operationInProgress = `Downloading ${totalFiles} file${totalFiles > 1 ? 's' : ''}... ${Math.round(this.downloadProgress)}%`;
+                                this.operationInProgress = `Downloading ${totalFiles} file${totalFiles > 1 ? 's' : ''}... ${Math.round(this.downloadProgressPercent)}%`;
                                 
                                 // Calculate estimated time remaining
-                                if (this.downloadProgress > 0) {
+                                if (this.downloadProgressPercent > 0) {
                                     const elapsedTime = (new Date() - this.downloadStartTime) / 1000;
-                                    const estimatedTotalTime = elapsedTime / (this.downloadProgress / 100);
+                                    const estimatedTotalTime = elapsedTime / (this.downloadProgressPercent / 100);
                                     this.downloadEstimatedTime = Math.round(estimatedTotalTime - elapsedTime);
                                 }
                             }
@@ -2200,7 +1931,7 @@
                             this.isLoading = false;
                             this.isDownloading = false;
                             this.operationInProgress = '';
-                            this.downloadProgress = 0;
+                            this.downloadProgressPercent = 0;
                         };
                         
                         // Handle download errors
@@ -2209,7 +1940,7 @@
                             this.isLoading = false;
                             this.isDownloading = false;
                             this.operationInProgress = '';
-                            this.downloadProgress = 0;
+                            this.downloadProgressPercent = 0;
                         };
                         
                         // Start download

@@ -243,7 +243,6 @@
         </div>
     </div>
 </div>
-
 <script>
 function filePreviewModal() {
     return {
@@ -413,20 +412,6 @@ function filePreviewModal() {
             }
         },
         
-        // Fit image to container
-        fitToContainer() {
-            this.imageZoom = 1;
-            this.imagePanX = 0;
-            this.imagePanY = 0;
-        },
-        
-        // Zoom to actual size (100%)
-        actualSize() {
-            this.imageZoom = 1;
-            this.imagePanX = 0;
-            this.imagePanY = 0;
-        },
-        
         imageLoaded() {
             // Image loaded successfully
         },
@@ -587,13 +572,6 @@ function filePreviewModal() {
             return div.innerHTML;
         },
         
-        downloadFile() {
-            if (this.file) {
-                window.location.href = `/admin/file-manager/${this.file.id}/download`;
-            }
-        },
-        
-        // Utility methods
         formatBytes(bytes) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
@@ -603,25 +581,18 @@ function filePreviewModal() {
         },
         
         formatDate(dateString) {
-            const options = { 
-                year: 'numeric', 
-                month: '2-digit', 
-                day: '2-digit', 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            };
-            return new Date(dateString).toLocaleString(undefined, options);
+            const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            return new Date(dateString).toLocaleDateString(undefined, options);
         },
-
-        // Keyboard shortcuts handler
+        
+        downloadFile() {
+            if (this.file) {
+                window.location.href = `/admin/file-manager/${this.file.id}/download`;
+            }
+        },
+        
         handleKeydown(event) {
             if (!this.open) return;
-            
-            // Prevent default for handled keys
-            const handledKeys = ['Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '-', '0', 'd', 'D'];
-            if (handledKeys.includes(event.key)) {
-                event.preventDefault();
-            }
             
             switch (event.key) {
                 case 'Escape':
