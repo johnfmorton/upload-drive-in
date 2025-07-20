@@ -979,8 +979,8 @@
                     { key: 'status', label: 'Status', sortable: false, resizable: true, defaultWidth: 120, minWidth: 100 },
                     { key: 'created_at', label: 'Uploaded At', sortable: true, resizable: true, defaultWidth: 180, minWidth: 150 }
                 ],
-                visibleColumns: this.getStoredColumnVisibility(),
-                columnWidths: this.getStoredColumnWidths(),
+                visibleColumns: {},
+                columnWidths: {},
                 
                 // Column resizing state
                 isResizing: false,
@@ -1188,7 +1188,34 @@
                 // Methods
                 init() {
                     // Initialize component
-                    this.setupColumnResizing();
+                    console.log('File Manager initializing...', {
+                        files: this.files,
+                        statistics: this.statistics
+                    });
+                    
+                    try {
+                        this.visibleColumns = this.getStoredColumnVisibility();
+                        this.columnWidths = this.getStoredColumnWidths();
+                        this.setupColumnResizing();
+                        console.log('File Manager initialized successfully');
+                    } catch (error) {
+                        console.error('Error initializing file manager:', error);
+                        // Set default values if initialization fails
+                        this.visibleColumns = {
+                            original_filename: true,
+                            email: true,
+                            file_size: true,
+                            status: true,
+                            created_at: true
+                        };
+                        this.columnWidths = {
+                            original_filename: 300,
+                            email: 200,
+                            file_size: 120,
+                            status: 120,
+                            created_at: 180
+                        };
+                    }
                 },
                 
                 // Column management methods
