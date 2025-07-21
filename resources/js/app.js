@@ -1,5 +1,8 @@
 import "./bootstrap";
 
+// Import File Manager coordination
+import "./file-manager-coordination";
+
 // Import Dropzone CSS
 import "dropzone/dist/dropzone.css";
 

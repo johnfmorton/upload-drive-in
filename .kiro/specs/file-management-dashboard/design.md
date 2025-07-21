@@ -282,6 +282,11 @@ protected $appends = [
 
 ```javascript
 function fileManager() {
+    // Check if already initialized by lazy loader
+    if (window.fileManagerLazyLoader) {
+        console.log('Using existing FileManagerLazyLoader instance');
+    }
+    
     return {
         files: [],
         selectedFiles: [],

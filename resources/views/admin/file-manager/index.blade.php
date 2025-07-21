@@ -11,8 +11,8 @@
             <div class="bg-white shadow sm:rounded-lg">
                 <div 
                     x-data="fileManager({{ json_encode($files->items()) }}, {{ json_encode($statistics ?? []) }})"
-                    x-init="init()"
                     class="file-manager"
+                    data-lazy-container
                 >
                     <!-- Header Section -->
                     <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
@@ -917,6 +917,14 @@
     <script>
         // Define the component before Alpine.js processes it
         document.addEventListener('alpine:init', () => {
+            // Prevent duplicate component registration
+            if (window.fileManagerComponentsRegistered) {
+                console.info('File Manager components already registered. Skipping registration.');
+                return;
+            }
+            window.fileManagerComponentsRegistered = true;
+            
+            // Register the main file manager component
             Alpine.data('fileManager', (initialFiles, initialStatistics) => ({
                 // Data
                 files: initialFiles || [],
@@ -1006,6 +1014,7 @@
                 },
                 
                 get filteredFiles() {
+                    console.log('filteredFiles getter called, files:', this.files);
                     let filtered = [...this.files];
                     
                     // Apply search filter with enhanced multi-term search
@@ -1163,6 +1172,13 @@
                         this.columnWidths = this.getStoredColumnWidths();
                         this.setupColumnResizing();
                         console.log('File Manager initialized successfully');
+                        
+                        // Register with coordination module if available
+                        if (window.fileManagerState) {
+                            window.fileManagerState.initialized = true;
+                            window.fileManagerState.initSource = 'alpine';
+                            window.fileManagerState.instance = this;
+                        }
                     } catch (error) {
                         console.error('Error initializing file manager:', error);
                         // Set default values if initialization fails
