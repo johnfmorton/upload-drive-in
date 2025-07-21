@@ -11,6 +11,7 @@
             <div class="bg-white shadow sm:rounded-lg">
                 <div 
                     x-data="fileManager({{ json_encode($files->items()) }}, {{ json_encode($statistics ?? []) }})"
+                    x-init="console.log('Alpine component initialized:', $data)"
                     class="file-manager"
                     data-lazy-container
                 >
@@ -671,13 +672,69 @@
 
                     <!-- File List Container -->
                     <div class="file-list-container">
+                        <!-- Debug Info -->
+                        <div class="p-4 bg-yellow-50 border border-yellow-200 rounded mb-4" x-show="true">
+                            <!-- Simple Alpine.js test -->
+                            <p class="text-sm text-red-800 font-bold">
+                                Alpine.js Test: <span x-text="'Alpine is working!'"></span>
+                            </p>
+                            <p class="text-sm text-red-800">
+                                Simple counter: <span x-text="1 + 1"></span>
+                            </p>
+                            <p class="text-sm text-red-800">
+                                Data test: <span x-text="$data ? 'Data exists' : 'No data'"></span>
+                            </p>
+                            <p class="text-sm text-red-800">
+                                Files test: <span x-text="$data.files ? 'Files property exists' : 'No files property'"></span>
+                            </p>
+                            
+                            <p class="text-sm text-yellow-800">
+                                Debug: View Mode = <span x-text="viewMode"></span>, 
+                                Files Count = <span x-text="files.length"></span>, 
+                                Filtered Files Count = <span x-text="filteredFiles.length"></span>
+                            </p>
+                            <p class="text-sm text-yellow-800 mt-2">
+                                First file test: <span x-text="files[0] ? files[0].original_filename : 'No first file'"></span>
+                            </p>
+                            <p class="text-sm text-yellow-800 mt-2">
+                                Files array type: <span x-text="typeof files"></span>, 
+                                Is array: <span x-text="Array.isArray(files)"></span>
+                            </p>
+                            <div class="mt-2 text-xs text-yellow-700">
+                                <p>Raw files data:</p>
+                                <pre x-text="JSON.stringify(files, null, 2)"></pre>
+                            </div>
+                        </div>
+
                         <!-- Grid View -->
                         <div 
                             x-show="viewMode === 'grid'" 
-                            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4 sm:p-6"
+                            class="p-4 sm:p-6"
                         >
-                            <template x-for="file in filteredFiles" :key="file.id">
-                                <div class="file-card bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+                            <!-- Debug: Show if we're in the right view mode -->
+                            <div class="p-2 bg-blue-100 border border-blue-300 rounded mb-4">
+                                <p class="text-blue-800 text-sm">Grid view is active. About to render <span x-text="files.length"></span> files...</p>
+                            </div>
+                            
+                            <!-- Simple test template -->
+                            <div class="space-y-4">
+                                <template x-for="(file, index) in files" :key="file.id">
+                                    <div class="p-4 bg-green-100 border-2 border-green-300 rounded-lg" style="min-height: 120px;">
+                                        <p class="text-green-800 font-bold">
+                                            <strong>Index:</strong> <span x-text="index"></span><br>
+                                            <strong>File ID:</strong> <span x-text="file.id"></span><br>
+                                            <strong>Name:</strong> <span x-text="file.original_filename || 'No name'"></span><br>
+                                            <strong>Email:</strong> <span x-text="file.email || 'No email'"></span>
+                                        </p>
+                                    </div>
+                                </template>
+                            </div>
+                            
+                            <!-- Debug: Show after template -->
+                            <div class="p-2 bg-purple-100 border border-purple-300 rounded mt-4">
+                                <p class="text-purple-800 text-sm">End of file list. Template should have rendered above.</p>
+                            </div>
+                                    </div>
                                     <!-- File Selection Checkbox -->
                                     <div class="p-3 border-b border-gray-100">
                                         <label class="flex items-center space-x-2">
@@ -1179,6 +1236,15 @@
                             window.fileManagerState.initSource = 'alpine';
                             window.fileManagerState.instance = this;
                         }
+                        
+                        // Make this instance globally accessible for debugging
+                        window.fileManagerInstance = this;
+                        
+                        // Load files if the initial array is empty
+                        if (this.files.length === 0) {
+                            console.log('No initial files, loading from server...');
+                            this.loadFiles();
+                        }
                     } catch (error) {
                         console.error('Error initializing file manager:', error);
                         // Set default values if initialization fails
@@ -1197,6 +1263,36 @@
                             created_at: 180
                         };
                     }
+                },
+                
+                // File loading method
+                async loadFiles() {
+                    console.log('Loading files from server...');
+                    try {
+                        const response = await fetch(window.location.pathname, {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.files && data.files.data) {
+                                console.log('Files loaded successfully:', data.files.data);
+                                this.files = data.files.data;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error loading files:', error);
+                    }
+                },
+                
+                // Force refresh method for debugging
+                forceRefresh() {
+                    console.log('Force refreshing files...');
+                    // Trigger reactivity by creating a new array
+                    this.files = [...this.files];
                 },
                 
                 // Column management methods
