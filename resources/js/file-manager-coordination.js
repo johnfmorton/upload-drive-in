@@ -6,7 +6,7 @@
  */
 
 // Global initialization state
-window.fileManagerState = {
+window.fileManagerState = window.fileManagerState || {
     initialized: false,
     initSource: null,
     instance: null

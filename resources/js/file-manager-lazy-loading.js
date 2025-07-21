@@ -56,6 +56,32 @@ class FileManagerLazyLoader {
 
         // Preload next page when approaching end
         this.setupPreloading();
+
+        // Load initial files if Alpine.js component has empty files array
+        this.loadInitialFiles();
+    }
+
+    loadInitialFiles() {
+        const alpineComponent = this.getAlpineComponent();
+        if (alpineComponent) {
+            console.log('Alpine.js component found, checking files...');
+            if (alpineComponent.files.length === 0) {
+                console.log('Alpine.js component has no files, loading initial page...');
+                this.loadMore();
+            } else {
+                console.log('Alpine.js component already has files:', alpineComponent.files.length);
+            }
+        } else {
+            console.warn('Alpine.js component not found, cannot load initial files');
+            // Try again after a short delay
+            setTimeout(() => {
+                const retryComponent = this.getAlpineComponent();
+                if (retryComponent && retryComponent.files.length === 0) {
+                    console.log('Retry: Alpine.js component found, loading initial page...');
+                    this.loadMore();
+                }
+            }, 500);
+        }
     }
 
     setupIntersectionObserver() {
@@ -187,7 +213,21 @@ class FileManagerLazyLoader {
     }
 
     appendFiles(files) {
-        if (!this.container || !files.length) {
+        if (!files.length) {
+            return;
+        }
+
+        // Check if Alpine.js component exists and update its files array
+        const alpineComponent = this.getAlpineComponent();
+        if (alpineComponent) {
+            console.log('Updating Alpine.js component with new files:', files);
+            // Add new files to the Alpine.js component's files array
+            alpineComponent.files.push(...files);
+            return;
+        }
+
+        // Fallback to DOM manipulation if Alpine.js component is not available
+        if (!this.container) {
             return;
         }
 
@@ -207,9 +247,6 @@ class FileManagerLazyLoader {
         } else {
             this.container.appendChild(fragment);
         }
-
-        // Note: Removed Alpine.initTree call to prevent duplicate initialization
-        // Alpine.js will handle its own initialization when the DOM is ready
     }
 
     createFileElement(file) {
@@ -333,6 +370,12 @@ class FileManagerLazyLoader {
         this.currentPage = 1;
         this.hasMoreItems = true;
 
+        // Clear Alpine.js component files if available
+        const alpineComponent = this.getAlpineComponent();
+        if (alpineComponent) {
+            alpineComponent.files = [];
+        }
+
         // Clear existing items except template
         if (this.container) {
             const items = this.container.querySelectorAll("[data-file-item]");
@@ -341,6 +384,36 @@ class FileManagerLazyLoader {
 
         // Load first page
         this.loadMore();
+    }
+
+    getAlpineComponent() {
+        // Try to get the Alpine.js component instance
+        if (this.container) {
+            // Check if Alpine.js is available and container has Alpine data
+            if (window.Alpine && this.container._x_dataStack) {
+                // Find the fileManager component in the data stack
+                for (const data of this.container._x_dataStack) {
+                    if (data.files !== undefined && data.filteredFiles !== undefined) {
+                        return data;
+                    }
+                }
+            } else if (window.Alpine) {
+                // Try to get the Alpine data directly
+                const alpineData = window.Alpine.$data(this.container);
+                if (alpineData && alpineData.files !== undefined) {
+                    return alpineData;
+                }
+            }
+            
+            // Log debugging info
+            console.debug('Alpine component detection:', {
+                alpineExists: !!window.Alpine,
+                containerHasXData: !!this.container.hasAttribute('x-data'),
+                containerHasDataStack: !!(this.container._x_dataStack),
+                containerDataStackLength: this.container._x_dataStack ? this.container._x_dataStack.length : 0
+            });
+        }
+        return null;
     }
 
     setupPerformanceMonitoring() {
@@ -531,21 +604,57 @@ class FileManagerLazyLoader {
 
 // Auto-initialize when DOM is ready
 document.addEventListener("DOMContentLoaded", () => {
-    // Check if the container exists and doesn't have Alpine.js data attribute
     const lazyContainer = document.querySelector("[data-lazy-container]");
     
-    // Only initialize if:
-    // 1. Container exists
-    // 2. Container doesn't have Alpine.js data attribute (meaning Alpine.js won't handle it)
-    // 3. Alpine.js isn't loaded yet
-    if (lazyContainer && 
-        !lazyContainer.hasAttribute("x-data") && 
-        !window.Alpine) {
+    if (!lazyContainer) {
+        console.info("No lazy container found. File manager initialization skipped.");
+        return;
+    }
+    
+    // Check if we should use the coordination module
+    if (window.initializeFileManager) {
+        console.info("Using coordination module to initialize file manager");
+        window.initializeFileManager('lazy-loader', {
+            container: lazyContainer
+        });
+        return;
+    }
+    
+    // Fallback to direct initialization
+    if (lazyContainer.hasAttribute("x-data")) {
+        // Container has Alpine.js, wait for Alpine to initialize then start lazy loader
+        console.info("Container has Alpine.js, waiting for initialization...");
         
+        const initializeLoader = () => {
+            console.info("Initializing FileManagerLazyLoader for Alpine.js integration");
+            
+            // Check if Alpine is properly initialized on the container
+            const checkAlpineInit = () => {
+                if (lazyContainer._x_dataStack) {
+                    console.info("Alpine.js data stack found, initializing lazy loader");
+                    new FileManagerLazyLoader();
+                } else {
+                    console.info("Alpine.js data stack not found yet, retrying...");
+                    setTimeout(checkAlpineInit, 100);
+                }
+            };
+            
+            checkAlpineInit();
+        };
+        
+        // Wait for Alpine.js to initialize
+        if (window.Alpine) {
+            // Alpine is already loaded, wait for next tick
+            setTimeout(initializeLoader, 100);
+        } else {
+            // Wait for Alpine to load
+            document.addEventListener('alpine:init', () => {
+                setTimeout(initializeLoader, 100);
+            });
+        }
+    } else if (lazyContainer) {
         console.info("Initializing FileManagerLazyLoader for non-Alpine.js container");
         new FileManagerLazyLoader();
-    } else {
-        console.info("Container will be handled by Alpine.js. Skipping lazy-loader initialization.");
     }
 });
 
