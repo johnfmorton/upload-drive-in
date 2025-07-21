@@ -1000,6 +1000,7 @@
                 confirmDialogMessage: '',
                 confirmDialogAction: null,
                 confirmDialogType: 'info', // 'danger', 'warning', 'info'
+                confirmDialogDestructive: false,
                 
                 // Operation states
                 isDeleting: false,
@@ -1714,6 +1715,7 @@
                     this.confirmDialogMessage = message;
                     this.confirmDialogAction = action;
                     this.confirmDialogType = type;
+                    this.confirmDialogDestructive = type === 'danger';
                     this.showConfirmDialog = true;
                 },
 
@@ -1727,6 +1729,7 @@
                 cancelConfirmation() {
                     this.showConfirmDialog = false;
                     this.confirmDialogAction = null;
+                    this.confirmDialogDestructive = false;
                 },
 
                 showBulkProgress(operation, total, message = '') {
@@ -1857,7 +1860,7 @@
                         'Confirm Bulk Delete',
                         message,
                         () => this.performBulkDelete(),
-                        true
+                        'danger'
                     );
                 },
 
