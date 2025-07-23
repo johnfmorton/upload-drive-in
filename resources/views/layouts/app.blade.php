@@ -38,8 +38,8 @@
               <main>
                   {{ $slot }}
               </main>
-              @include('components.footer')
             </div>
+            @include('components.footer')
         </div>
         @stack('scripts')
     </body>
