@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-6">
+    <div class="py-6" style="min-height: auto;">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <!-- File Management Dashboard -->
             <div class="bg-white shadow sm:rounded-lg">
@@ -785,7 +785,7 @@
 
                         <!-- Table View -->
                         <div x-show="viewMode === 'table'" class="overflow-hidden">
-                            <div class="overflow-x-auto">
+                            <div class="overflow-x-auto max-h-none">
                                 <table class="min-w-full divide-y divide-gray-200" :style="tableStyles">
                                     <thead class="bg-gray-50">
                                         <tr>
