@@ -1556,24 +1556,45 @@
                     this.downloadStartTime = new Date();
                     
                     try {
-                        // For small files, show a simple success notification
+                        // For small files, use fetch + blob approach (most reliable)
                         if (file.file_size < 5 * 1024 * 1024) { // Less than 5MB
-                            this.showSuccess(`Downloading ${file.original_filename}...`, 2000);
-                            
-                            // Create an invisible iframe for download
-                            const iframe = document.createElement('iframe');
-                            iframe.style.display = 'none';
-                            iframe.name = 'download-frame';
-                            iframe.src = `/admin/file-manager/${file.id}/download`;
-                            document.body.appendChild(iframe);
-                            
-                            // Remove iframe after download starts (after a short delay)
-                            setTimeout(() => {
-                                document.body.removeChild(iframe);
-                                this.isLoading = false;
-                                this.isDownloading = false;
-                                this.operationInProgress = '';
-                            }, 2000);
+                            // Use fetch API to get the file as a blob
+                            fetch(`/admin/file-manager/${file.id}/download`)
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! Status: ${response.status}`);
+                                    }
+                                    return response.blob();
+                                })
+                                .then(blob => {
+                                    // Create a download link with the blob
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = file.original_filename;
+                                    a.style.display = 'none';
+                                    document.body.appendChild(a);
+                                    
+                                    // Trigger the download
+                                    a.click();
+                                    
+                                    // Clean up
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                    
+                                    // Show success notification
+                                    this.showSuccess(`Successfully downloaded ${file.original_filename}`);
+                                    this.isLoading = false;
+                                    this.isDownloading = false;
+                                    this.operationInProgress = '';
+                                })
+                                .catch(error => {
+                                    console.error('Download error:', error);
+                                    this.showError(`Failed to download ${file.original_filename}. Please try again.`);
+                                    this.isLoading = false;
+                                    this.isDownloading = false;
+                                    this.operationInProgress = '';
+                                });
                         } else {
                             // For larger files, use XHR to track progress
                             const xhr = new XMLHttpRequest();

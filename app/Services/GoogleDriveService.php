@@ -447,12 +447,16 @@ class GoogleDriveService
             }
 
             // Download the file content
-            $content = $service->files->get($fileId, ['alt' => 'media']);
+            $response = $service->files->get($fileId, ['alt' => 'media']);
+            
+            // Extract the actual content from the response
+            $content = $response->getBody()->getContents();
 
             Log::info('File successfully downloaded from Google Drive.', [
                 'file_id' => $fileId,
                 'file_name' => $file->getName(),
-                'file_size' => $file->getSize()
+                'file_size' => $file->getSize(),
+                'content_length' => strlen($content)
             ]);
 
             return $content;
@@ -495,10 +499,10 @@ class GoogleDriveService
             // Get the file content as a stream
             $response = $service->files->get($fileId, ['alt' => 'media']);
             
-            // For Google Drive API, the response is already the content
-            // Create a stream from the content
+            // Extract the actual content from the response and create a stream
+            $content = $response->getBody()->getContents();
             $stream = fopen('php://memory', 'r+');
-            fwrite($stream, $response);
+            fwrite($stream, $content);
             rewind($stream);
 
             Log::info('File stream successfully created from Google Drive.', [
