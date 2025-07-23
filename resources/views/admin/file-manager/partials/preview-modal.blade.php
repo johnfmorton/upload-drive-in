@@ -158,14 +158,14 @@
                 </div>
 
                 <!-- Text Preview -->
-                <div x-show="!loading && previewType === 'text'" class="h-full p-6 flex flex-col">
+                <div x-show="!loading && previewType === 'text'" class="max-h-[600px] p-6 flex flex-col">
                     <template x-if="previewContent && previewType === 'text'">
                         <pre class="text-sm font-mono whitespace-pre-wrap break-words bg-gray-50 p-4 rounded border flex-1 overflow-auto min-h-0" x-text="previewContent"></pre>
                     </template>
                 </div>
 
                 <!-- Code Preview -->
-                <div x-show="!loading && previewType === 'code'" class="h-full p-6 flex flex-col">
+                <div x-show="!loading && previewType === 'code'" class="h-full max-h-[600px] p-6 flex flex-col">
                     <template x-if="previewContent && previewType === 'code'">
                         <pre class="text-sm font-mono whitespace-pre-wrap break-words bg-gray-50 p-4 rounded border flex-1 overflow-auto min-h-0" x-text="previewContent"></pre>
                     </template>
