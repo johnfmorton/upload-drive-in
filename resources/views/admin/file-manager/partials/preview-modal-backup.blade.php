@@ -6,6 +6,7 @@
     class="fixed inset-0 z-50 overflow-y-auto"
     style="display: none;"
     x-on:keydown.escape="closeModal()"
+    x-on:keydown.window="handleKeydown($event)"
 >
     <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <!-- Background overlay -->
@@ -87,7 +88,7 @@
                         </template>
                         
                         <!-- PDF Preview Info -->
-                        <template x-if="previewType === 'pdf'">
+                        <template x-if="previewType === 'pdf-native'">
                             <div class="flex items-center space-x-2">
                                 <span class="text-xs text-gray-500">PDF Preview</span>
                                 <div class="text-xs text-gray-400">
@@ -142,8 +143,8 @@
                     </div>
                 </div>
 
-                <!-- PDF Preview -->
-                <div x-show="!loading && previewType === 'pdf'" class="h-full">
+                <!-- PDF Preview (Native Browser) -->
+                <div x-show="!loading && previewType === 'pdf-native'" class="h-full">
                     <div class="h-full bg-gray-100">
                         <embed 
                             x-show="previewContent"
@@ -250,6 +251,13 @@ document.addEventListener('alpine:init', () => {
         dragStartX: 0,
         dragStartY: 0,
         
+        // PDF viewer state
+        pdfDoc: null,
+        pdfCurrentPage: 1,
+        pdfTotalPages: 0,
+        pdfCanvas: null,
+        pdfContext: null,
+        
         openModal(file) {
             this.file = file;
             this.open = true;
@@ -273,6 +281,7 @@ document.addEventListener('alpine:init', () => {
             this.loading = false;
             this.error = null;
             this.resetImageView();
+            this.resetPdfView();
         },
         
         async loadPreview() {
@@ -295,9 +304,11 @@ document.addEventListener('alpine:init', () => {
                     const blob = await response.blob();
                     this.previewContent = URL.createObjectURL(blob);
                 } else if (this.previewType === 'pdf') {
-                    // Use native browser PDF preview for better compatibility
+                    // Always try native browser preview first for better compatibility
+                    console.log('Using native browser PDF preview for better compatibility');
                     const blob = await response.blob();
                     this.previewContent = URL.createObjectURL(blob);
+                    this.previewType = 'pdf-native';
                 } else if (this.previewType === 'text' || this.previewType === 'code') {
                     const text = await response.text();
                     this.previewContent = this.previewType === 'code' ? this.highlightCode(text, this.file.original_filename) : this.escapeHtml(text);
@@ -399,6 +410,20 @@ document.addEventListener('alpine:init', () => {
             }
         },
         
+        // Fit image to container
+        fitToContainer() {
+            this.imageZoom = 1;
+            this.imagePanX = 0;
+            this.imagePanY = 0;
+        },
+        
+        // Zoom to actual size (100%)
+        actualSize() {
+            this.imageZoom = 1;
+            this.imagePanX = 0;
+            this.imagePanY = 0;
+        },
+        
         imageLoaded() {
             // Image loaded successfully
         },
@@ -407,7 +432,189 @@ document.addEventListener('alpine:init', () => {
             this.error = 'Failed to load image';
         },
         
-        // Download file
+        // PDF viewer methods
+        async loadPdf(arrayBuffer) {
+            try {
+                // Load PDF.js if not already loaded
+                if (typeof pdfjsLib === 'undefined') {
+                    await this.loadPdfJs();
+                }
+                
+                // Simple PDF loading without extra configuration
+                const loadingTask = pdfjsLib.getDocument(arrayBuffer);
+                this.pdfDoc = await loadingTask.promise;
+                this.pdfTotalPages = this.pdfDoc.numPages;
+                this.pdfCurrentPage = 1;
+                
+                // Wait for DOM to be ready
+                await this.$nextTick();
+                
+                // Get canvas elements
+                this.pdfCanvas = document.getElementById('pdf-canvas');
+                if (!this.pdfCanvas) {
+                    throw new Error('PDF canvas element not found');
+                }
+                
+                this.pdfContext = this.pdfCanvas.getContext('2d');
+                if (!this.pdfContext) {
+                    throw new Error('Failed to get canvas context');
+                }
+                
+                await this.renderPdfPage();
+            } catch (error) {
+                console.error('PDF loading error:', error);
+                throw error; // Re-throw to trigger fallback
+            }
+        },
+        
+        async loadPdfJs() {
+            return new Promise((resolve, reject) => {
+                if (typeof pdfjsLib !== 'undefined') {
+                    resolve();
+                    return;
+                }
+                
+                // Try a more stable version of PDF.js
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+                script.onload = () => {
+                    if (typeof pdfjsLib !== 'undefined') {
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+                        resolve();
+                    } else {
+                        reject(new Error('PDF.js failed to load'));
+                    }
+                };
+                script.onerror = () => reject(new Error('Failed to load PDF.js script'));
+                document.head.appendChild(script);
+            });
+        },
+        
+        async renderPdfPage() {
+            if (!this.pdfDoc || !this.pdfCanvas || !this.pdfContext) {
+                console.error('PDF rendering prerequisites not met');
+                return;
+            }
+            
+            try {
+                const page = await this.pdfDoc.getPage(this.pdfCurrentPage);
+                
+                // Use a simple fixed scale to avoid viewport issues
+                const scale = 1.5;
+                const viewport = page.getViewport(scale);
+                
+                // Set canvas dimensions
+                this.pdfCanvas.height = viewport.height;
+                this.pdfCanvas.width = viewport.width;
+                
+                // Clear canvas
+                this.pdfContext.clearRect(0, 0, this.pdfCanvas.width, this.pdfCanvas.height);
+                
+                // Render the page with simple context
+                const renderContext = {
+                    canvasContext: this.pdfContext,
+                    viewport: viewport
+                };
+                
+                await page.render(renderContext).promise;
+                
+            } catch (error) {
+                console.error('PDF rendering error:', error);
+                throw error; // Re-throw to trigger fallback
+            }
+        },
+        
+        async nextPage() {
+            if (this.pdfCurrentPage < this.pdfTotalPages) {
+                this.pdfCurrentPage++;
+                await this.renderPdfPage();
+            }
+        },
+        
+        async previousPage() {
+            if (this.pdfCurrentPage > 1) {
+                this.pdfCurrentPage--;
+                await this.renderPdfPage();
+            }
+        },
+        
+        resetPdfView() {
+            this.pdfDoc = null;
+            this.pdfCurrentPage = 1;
+            this.pdfTotalPages = 0;
+            this.pdfCanvas = null;
+            this.pdfContext = null;
+        },
+        
+        // Text/Code highlighting
+        highlightCode(code, filename) {
+            const ext = filename.toLowerCase().split('.').pop();
+            let highlighted = this.escapeHtml(code);
+            
+            // Enhanced syntax highlighting for common languages
+            if (['js', 'ts', 'jsx', 'tsx'].includes(ext)) {
+                // JavaScript/TypeScript keywords
+                highlighted = highlighted.replace(/\b(function|const|let|var|if|else|for|while|return|class|extends|import|export|from|async|await|try|catch|finally|throw|new|this|super|static|get|set|typeof|instanceof)\b/g, '<span class="text-blue-600 font-semibold">$1</span>');
+                // Strings
+                highlighted = highlighted.replace(/(['"`])((?:(?!\1)[^\\]|\\.)*)(\1)/g, '<span class="text-green-600">$1$2$3</span>');
+                // Comments
+                highlighted = highlighted.replace(/(\/\/.*$)/gm, '<span class="text-gray-500 italic">$1</span>');
+                highlighted = highlighted.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="text-gray-500 italic">$1</span>');
+                // Numbers
+                highlighted = highlighted.replace(/\b(\d+\.?\d*)\b/g, '<span class="text-orange-600">$1</span>');
+            } else if (ext === 'php') {
+                // PHP keywords
+                highlighted = highlighted.replace(/\b(function|class|public|private|protected|static|const|if|else|elseif|foreach|for|while|return|namespace|use|extends|implements|try|catch|finally|throw|new|this|self|parent|abstract|final|interface|trait)\b/g, '<span class="text-blue-600 font-semibold">$1</span>');
+                // PHP variables
+                highlighted = highlighted.replace(/(\$[a-zA-Z_][a-zA-Z0-9_]*)/g, '<span class="text-purple-600">$1</span>');
+                // Strings
+                highlighted = highlighted.replace(/(['"`])((?:(?!\1)[^\\]|\\.)*)(\1)/g, '<span class="text-green-600">$1$2$3</span>');
+                // Comments
+                highlighted = highlighted.replace(/(\/\/.*$|#.*$)/gm, '<span class="text-gray-500 italic">$1</span>');
+                highlighted = highlighted.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="text-gray-500 italic">$1</span>');
+                // PHP tags
+                highlighted = highlighted.replace(/(&lt;\?php|&lt;\?|\?&gt;)/g, '<span class="text-red-600 font-bold">$1</span>');
+            } else if (ext === 'css' || ext === 'scss' || ext === 'sass') {
+                // CSS selectors
+                highlighted = highlighted.replace(/([.#]?[a-zA-Z-_][a-zA-Z0-9-_]*)\s*\{/g, '<span class="text-purple-600 font-semibold">$1</span> {');
+                // CSS properties
+                highlighted = highlighted.replace(/([a-zA-Z-]+)\s*:/g, '<span class="text-blue-600">$1</span>:');
+                // CSS values
+                highlighted = highlighted.replace(/:\s*([^;]+);/g, ': <span class="text-green-600">$1</span>;');
+                // Comments
+                highlighted = highlighted.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="text-gray-500 italic">$1</span>');
+            } else if (['html', 'xml'].includes(ext)) {
+                // HTML tags
+                highlighted = highlighted.replace(/(&lt;\/?)([a-zA-Z][a-zA-Z0-9]*)(.*?)(&gt;)/g, '<span class="text-blue-600">$1</span><span class="text-red-600 font-semibold">$2</span><span class="text-green-600">$3</span><span class="text-blue-600">$4</span>');
+                // Comments
+                highlighted = highlighted.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="text-gray-500 italic">$1</span>');
+            } else if (['json'].includes(ext)) {
+                // JSON keys
+                highlighted = highlighted.replace(/("([^"\\]|\\.)*")\s*:/g, '<span class="text-blue-600">$1</span>:');
+                // JSON strings
+                highlighted = highlighted.replace(/:\s*("([^"\\]|\\.)*")/g, ': <span class="text-green-600">$1</span>');
+                // JSON numbers
+                highlighted = highlighted.replace(/:\s*(\d+\.?\d*)/g, ': <span class="text-orange-600">$1</span>');
+                // JSON booleans/null
+                highlighted = highlighted.replace(/:\s*(true|false|null)/g, ': <span class="text-purple-600">$1</span>');
+            } else if (['sql'].includes(ext)) {
+                // SQL keywords
+                highlighted = highlighted.replace(/\b(SELECT|FROM|WHERE|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TABLE|INDEX|PRIMARY|KEY|FOREIGN|REFERENCES|NOT|NULL|AUTO_INCREMENT|VARCHAR|INT|TEXT|DATETIME|TIMESTAMP|JOIN|LEFT|RIGHT|INNER|OUTER|ON|GROUP|BY|ORDER|HAVING|LIMIT|OFFSET|UNION|DISTINCT|AS|AND|OR|IN|LIKE|BETWEEN)\b/gi, '<span class="text-blue-600 font-semibold">$1</span>');
+                // Strings
+                highlighted = highlighted.replace(/(['"`])((?:(?!\1)[^\\]|\\.)*)(\1)/g, '<span class="text-green-600">$1$2$3</span>');
+                // Comments
+                highlighted = highlighted.replace(/(--.*$)/gm, '<span class="text-gray-500 italic">$1</span>');
+            }
+            
+            return `<div class="bg-gray-900 text-gray-100 p-4 rounded overflow-auto text-sm font-mono leading-relaxed"><pre class="whitespace-pre-wrap">${highlighted}</pre></div>`;
+        },
+        
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        },
+        
         downloadFile() {
             if (this.file) {
                 window.location.href = `/admin/file-manager/${this.file.id}/download`;
@@ -418,24 +625,69 @@ document.addEventListener('alpine:init', () => {
         formatBytes(bytes) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         },
         
         formatDate(dateString) {
-            return new Date(dateString).toLocaleDateString();
+            const options = { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            };
+            return new Date(dateString).toLocaleString(undefined, options);
         },
-        
-        escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        },
-        
-        highlightCode(code, filename) {
-            // Simple syntax highlighting - you can enhance this
-            return this.escapeHtml(code);
+
+        // Keyboard shortcuts handler
+        handleKeydown(event) {
+            if (!this.open) return;
+            
+            // Prevent default for handled keys
+            const handledKeys = ['Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '-', '0', 'd', 'D'];
+            if (handledKeys.includes(event.key)) {
+                event.preventDefault();
+            }
+            
+            switch (event.key) {
+                case 'Escape':
+                    this.closeModal();
+                    break;
+                case 'ArrowLeft':
+                    if (this.previewType === 'pdf') {
+                        this.previousPage();
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (this.previewType === 'pdf') {
+                        this.nextPage();
+                    }
+                    break;
+                case 'ArrowUp':
+                case '+':
+                case '=':
+                    if (this.previewType === 'image') {
+                        this.zoomIn();
+                    }
+                    break;
+                case 'ArrowDown':
+                case '-':
+                    if (this.previewType === 'image') {
+                        this.zoomOut();
+                    }
+                    break;
+                case '0':
+                    if (this.previewType === 'image') {
+                        this.resetImageView();
+                    }
+                    break;
+                case 'd':
+                case 'D':
+                    this.downloadFile();
+                    break;
+            }
         }
     }));
 });
