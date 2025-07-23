@@ -129,40 +129,46 @@
                         x-on:mouseleave="endImageDrag()"
                         x-on:wheel.prevent="wheelZoom($event)"
                     >
-                        <img 
-                            x-show="previewContent"
-                            :src="previewContent"
-                            :alt="file?.original_filename"
-                            class="block mx-auto transition-transform duration-200"
-                            :style="`transform: scale(${imageZoom}) translate(${imagePanX}px, ${imagePanY}px); transform-origin: center center;`"
-                            x-on:load="imageLoaded()"
-                            x-on:error="imageError()"
-                            draggable="false"
-                        >
+                        <template x-if="previewContent && previewType === 'image'">
+                            <img 
+                                :src="previewContent"
+                                :alt="file?.original_filename"
+                                class="block mx-auto transition-transform duration-200"
+                                :style="`transform: scale(${imageZoom}) translate(${imagePanX}px, ${imagePanY}px); transform-origin: center center;`"
+                                x-on:load="imageLoaded()"
+                                x-on:error="imageError()"
+                                draggable="false"
+                            >
+                        </template>
                     </div>
                 </div>
 
                 <!-- PDF Preview -->
                 <div x-show="!loading && previewType === 'pdf'" class="h-full">
                     <div class="h-full bg-gray-100">
-                        <embed 
-                            x-show="previewContent"
-                            :src="previewContent" 
-                            type="application/pdf" 
-                            class="w-full h-full border-0"
-                            style="min-height: 600px;"
-                        >
+                        <template x-if="previewContent && previewType === 'pdf'">
+                            <embed 
+                                :src="previewContent" 
+                                type="application/pdf" 
+                                class="w-full h-full border-0"
+                                style="min-height: 600px;"
+                            >
+                        </template>
                     </div>
                 </div>
 
                 <!-- Text Preview -->
                 <div x-show="!loading && previewType === 'text'" class="h-full overflow-auto p-6">
-                    <pre x-show="previewContent" class="text-sm font-mono whitespace-pre-wrap break-words bg-gray-50 p-4 rounded border" x-html="previewContent"></pre>
+                    <template x-if="previewContent && previewType === 'text'">
+                        <pre class="text-sm font-mono whitespace-pre-wrap break-words bg-gray-50 p-4 rounded border" x-text="previewContent"></pre>
+                    </template>
                 </div>
 
                 <!-- Code Preview -->
-                <div x-show="!loading && previewType === 'code'" class="h-full overflow-auto">
-                    <div x-show="previewContent" class="h-full" x-html="previewContent"></div>
+                <div x-show="!loading && previewType === 'code'" class="h-full overflow-auto p-6">
+                    <template x-if="previewContent && previewType === 'code'">
+                        <pre class="text-sm font-mono whitespace-pre-wrap break-words bg-gray-50 p-4 rounded border" x-text="previewContent"></pre>
+                    </template>
                 </div>
 
                 <!-- Unsupported Preview -->
@@ -302,7 +308,7 @@ document.addEventListener('alpine:init', () => {
                     this.error = null;
                 } else if (this.previewType === 'text' || this.previewType === 'code') {
                     const text = await response.text();
-                    this.previewContent = this.previewType === 'code' ? this.highlightCode(text, this.file.original_filename) : this.escapeHtml(text);
+                    this.previewContent = text; // x-text will handle escaping automatically
                 } else {
                     this.previewType = 'unsupported';
                 }
@@ -432,16 +438,7 @@ document.addEventListener('alpine:init', () => {
             return new Date(dateString).toLocaleDateString();
         },
         
-        escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        },
-        
-        highlightCode(code, filename) {
-            // Simple syntax highlighting - you can enhance this
-            return this.escapeHtml(code);
-        }
+
     }));
 });
 </script>
