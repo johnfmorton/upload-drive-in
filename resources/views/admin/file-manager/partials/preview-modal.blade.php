@@ -197,12 +197,12 @@
                 </div>
 
                 <!-- Error state -->
-                <div x-show="!loading && error" class="flex items-center justify-center py-12">
+                <div x-show="!loading && error && previewType !== 'pdf'" class="flex items-center justify-center py-12">
                     <div class="text-center">
                         <svg class="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                         </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">{{ __('messages.preview_error') }}</h3>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">Preview Error</h3>
                         <p class="mt-1 text-sm text-gray-500" x-text="error"></p>
                     </div>
                 </div>
@@ -298,6 +298,8 @@ document.addEventListener('alpine:init', () => {
                     // Use native browser PDF preview for better compatibility
                     const blob = await response.blob();
                     this.previewContent = URL.createObjectURL(blob);
+                    // Clear any previous errors since PDF loaded successfully
+                    this.error = null;
                 } else if (this.previewType === 'text' || this.previewType === 'code') {
                     const text = await response.text();
                     this.previewContent = this.previewType === 'code' ? this.highlightCode(text, this.file.original_filename) : this.escapeHtml(text);
@@ -404,7 +406,10 @@ document.addEventListener('alpine:init', () => {
         },
         
         imageError() {
-            this.error = 'Failed to load image';
+            // Only set error for image previews, not PDFs
+            if (this.previewType === 'image') {
+                this.error = 'Failed to load image';
+            }
         },
         
         // Download file
