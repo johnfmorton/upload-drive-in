@@ -11,7 +11,7 @@
             <div class="bg-white shadow sm:rounded-lg">
                 <div 
                     x-data="fileManager({{ json_encode($files->items()) }}, {{ json_encode($statistics ?? []) }})"
-                    x-init="console.log('Alpine component initialized:', $data)"
+                    x-init="console.log('Alpine component initialized:', $data); $nextTick(() => console.log('After next tick - files:', files, 'filteredFiles:', filteredFiles))"
                     class="file-manager"
                     data-lazy-container
                 >
@@ -666,15 +666,44 @@
                                     </div>
                                 </div>
                             </div>
-                            </div>
                         </div>
                     </div>
 
                     <!-- File List Container -->
-                    <div class="file-list-container">
+                    <div class="file-list-container" x-effect="console.log('File list container in Alpine scope, files:', files, 'filteredFiles:', filteredFiles)">
                         <!-- Debug Info -->
                         <div class="p-4 bg-yellow-50 border border-yellow-200 rounded mb-4" x-show="true">
-                            <!-- Simple Alpine.js test -->
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="text-sm font-bold text-yellow-800">File Manager Debug</h3>
+                                <div class="flex space-x-2">
+                                    <button 
+                                        @click="forceRefresh()"
+                                        class="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                                    >
+                                        Refresh UI
+                                    </button>
+                                    <button 
+                                        @click="loadFiles()"
+                                        class="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                                    >
+                                        Load Files
+                                    </button>
+                                    <button 
+                                        @click="window.debugFileManager()"
+                                        class="px-2 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600"
+                                    >
+                                        Debug
+                                    </button>
+                                    <button 
+                                        @click="$el.innerHTML = $el.innerHTML"
+                                        class="px-2 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                                    >
+                                        Force DOM Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Alpine.js test -->
                             <p class="text-sm text-red-800 font-bold">
                                 Alpine.js Test: <span x-text="'Alpine is working!'"></span>
                             </p>
@@ -686,6 +715,11 @@
                             </p>
                             <p class="text-sm text-red-800">
                                 Files test: <span x-text="$data.files ? 'Files property exists' : 'No files property'"></span>
+                            </p>
+                            <p class="text-sm text-yellow-800">
+                                Files count: <span x-text="files.length"></span>, 
+                                Filtered: <span x-text="filteredFiles.length"></span>, 
+                                View: <span x-text="viewMode"></span>
                             </p>
                             
                             <p class="text-sm text-yellow-800">
@@ -706,19 +740,20 @@
                             </div>
                         </div>
 
-                        <!-- Grid View -->
+                        <!-- Grid View (Debug) -->
                         <div 
                             x-show="viewMode === 'grid'" 
                             class="p-4 sm:p-6"
+                            x-effect="console.log('Grid view rendered, filteredFiles:', filteredFiles)"
                         >
                             <!-- Debug: Show if we're in the right view mode -->
                             <div class="p-2 bg-blue-100 border border-blue-300 rounded mb-4">
-                                <p class="text-blue-800 text-sm">Grid view is active. About to render <span x-text="files.length"></span> files...</p>
+                                <p class="text-blue-800 text-sm">Grid view is active. About to render <span x-text="filteredFiles.length"></span> files...</p>
                             </div>
                             
                             <!-- Simple test template -->
                             <div class="space-y-4">
-                                <template x-for="(file, index) in files" :key="file.id">
+                                <template x-for="(file, index) in filteredFiles" :key="file.id">
                                     <div class="p-4 bg-green-100 border-2 border-green-300 rounded-lg" style="min-height: 120px;">
                                         <p class="text-green-800 font-bold">
                                             <strong>Index:</strong> <span x-text="index"></span><br>
@@ -734,7 +769,15 @@
                             <div class="p-2 bg-purple-100 border border-purple-300 rounded mt-4">
                                 <p class="text-purple-800 text-sm">End of file list. Template should have rendered above.</p>
                             </div>
-                                    </div>
+                        </div>
+                        
+                        <!-- File Grid View (Actual Implementation) -->
+                        <div 
+                            x-show="viewMode === 'grid' && filteredFiles.length > 0" 
+                            class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 sm:p-6"
+                        >
+                            <template x-for="(file, index) in filteredFiles" :key="file.id">
+                                <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-200">
                                     <!-- File Selection Checkbox -->
                                     <div class="p-3 border-b border-gray-100">
                                         <label class="flex items-center space-x-2">
@@ -1072,6 +1115,13 @@
                 
                 get filteredFiles() {
                     console.log('filteredFiles getter called, files:', this.files);
+                    
+                    // Debug: Check if files is valid
+                    if (!Array.isArray(this.files)) {
+                        console.error('Files is not an array:', this.files);
+                        return [];
+                    }
+                    
                     let filtered = [...this.files];
                     
                     // Apply search filter with enhanced multi-term search
@@ -1217,12 +1267,26 @@
                 },
                 
                 // Methods
+                forceRefresh() {
+                    console.log('Force refreshing component...');
+                    // Force Alpine to re-evaluate the component
+                    this.$nextTick(() => {
+                        console.log('After refresh - files:', this.files, 'filteredFiles:', this.filteredFiles);
+                    });
+                },
+                
                 init() {
                     // Initialize component
                     console.log('File Manager initializing...', {
                         files: this.files,
                         statistics: this.statistics
                     });
+                    
+                    // Ensure files is always an array
+                    if (!Array.isArray(this.files)) {
+                        console.error('Files is not an array during initialization, fixing:', this.files);
+                        this.files = Array.isArray(this.files) ? this.files : [];
+                    }
                     
                     try {
                         this.visibleColumns = this.getStoredColumnVisibility();

@@ -221,13 +221,29 @@ class FileManagerLazyLoader {
         const alpineComponent = this.getAlpineComponent();
         if (alpineComponent) {
             console.log('Updating Alpine.js component with new files:', files);
-            // Add new files to the Alpine.js component's files array
-            alpineComponent.files.push(...files);
+            
+            // Check if files already exist to avoid duplicates
+            const existingIds = new Set(alpineComponent.files.map(f => f.id));
+            const newFiles = files.filter(file => !existingIds.has(file.id));
+            
+            if (newFiles.length > 0) {
+                // Add new files to the Alpine.js component's files array
+                alpineComponent.files.push(...newFiles);
+                console.log(`Added ${newFiles.length} new files to Alpine component`);
+                
+                // Force Alpine to update the UI by triggering reactivity
+                if (typeof alpineComponent.forceRefresh === 'function') {
+                    alpineComponent.forceRefresh();
+                }
+            } else {
+                console.log('No new files to add (all files already exist in component)');
+            }
             return;
         }
 
         // Fallback to DOM manipulation if Alpine.js component is not available
         if (!this.container) {
+            console.warn('No Alpine.js component or container found for appending files');
             return;
         }
 
@@ -389,19 +405,47 @@ class FileManagerLazyLoader {
     getAlpineComponent() {
         // Try to get the Alpine.js component instance
         if (this.container) {
+            // First check if we have a global instance from coordination
+            if (window.fileManagerState && window.fileManagerState.instance) {
+                console.log('Found file manager instance in global state');
+                return window.fileManagerState.instance;
+            }
+            
             // Check if Alpine.js is available and container has Alpine data
             if (window.Alpine && this.container._x_dataStack) {
                 // Find the fileManager component in the data stack
                 for (const data of this.container._x_dataStack) {
                     if (data.files !== undefined && data.filteredFiles !== undefined) {
+                        console.log('Found Alpine component in data stack');
                         return data;
                     }
                 }
-            } else if (window.Alpine) {
-                // Try to get the Alpine data directly
-                const alpineData = window.Alpine.$data(this.container);
-                if (alpineData && alpineData.files !== undefined) {
-                    return alpineData;
+            } 
+            
+            // Try to get the Alpine data directly
+            if (window.Alpine) {
+                try {
+                    const alpineData = window.Alpine.$data(this.container);
+                    if (alpineData && alpineData.files !== undefined) {
+                        console.log('Found Alpine component via $data');
+                        return alpineData;
+                    }
+                } catch (e) {
+                    console.warn('Error accessing Alpine $data:', e);
+                }
+                
+                // Try to find any Alpine component with files property
+                const allComponents = document.querySelectorAll('[x-data]');
+                for (const component of allComponents) {
+                    try {
+                        const data = window.Alpine.$data(component);
+                        if (data && data.files !== undefined && data.filteredFiles !== undefined) {
+                            console.log('Found Alpine component in another element');
+                            return data;
+                        }
+                    } catch (e) {
+                        // Ignore errors for other components
+                    }
                 }
             }
             

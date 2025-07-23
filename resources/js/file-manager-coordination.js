@@ -42,6 +42,10 @@ function initializeFileManager(source, options = {}) {
     // Create instance based on source
     if (source === 'lazy-loader') {
         window.fileManagerState.instance = new FileManagerLazyLoader(options);
+    } else if (source === 'alpine') {
+        // For Alpine.js initialization, we'll set the instance later
+        // when the Alpine component is fully initialized
+        console.info('Alpine.js initialization will set the instance when ready');
     }
     
     return window.fileManagerState.instance;
