@@ -905,7 +905,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- Modals -->
     @include('admin.file-manager.partials.preview-modal')
