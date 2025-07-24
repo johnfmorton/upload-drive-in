@@ -23,7 +23,7 @@
                         {{-- Form will go here --}}
                         <form method="post" action="{{ route('admin.settings.update') }}" class="mt-6 space-y-6" enctype="multipart/form-data">
                             @csrf
-                            @method('put')
+                            @method('patch')
 
                             {{-- Company Name --}}
                             <div>
