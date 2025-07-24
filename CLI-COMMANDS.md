@@ -114,11 +114,114 @@ ddev artisan uploads:process-pending --user-id=123 --limit=5 --dry-run
 
 ## User Administration Commands
 
+### `user:create`
+
+**Purpose**: Create new users with specified roles and details.
+
+**Signature**: `user:create {name} {email} {--role=admin} {--password=} {--owner=}`
+
+**Arguments**:
+
+- `name` (required): Full name of the user
+- `email` (required): Email address (must be unique)
+
+**Options**:
+
+- `--role=client` (optional): User role (admin, employee, client) - defaults to client
+- `--password=` (optional): Password (generated if not provided)
+- `--owner=` (optional): Owner email for employee users (required for employees)
+
+**Usage Examples**:
+
+```bash
+# Create client user (default role, uses token-based login)
+ddev artisan user:create "Client User" client@example.com
+
+# Create admin user with generated password
+ddev artisan user:create "John Doe" john@example.com --role=admin
+
+# Create employee with specific owner (owner required for employees)
+ddev artisan user:create "Jane Smith" jane@example.com --role=employee --owner=admin@example.com
+
+# Create user with specific password
+ddev artisan user:create "User Name" user@example.com --role=admin --password=mypassword123
+```
+
+**Important**: Name and email are positional arguments (not options), so they must be provided in order without `--name` or `--email` flags.
+
+**Behavior**:
+
+- Validates email uniqueness and format
+- Generates secure passwords if not provided
+- Shows login URL for client users
+- Sets appropriate default settings per role
+
+---
+
+### `user:list`
+
+**Purpose**: List users with filtering options.
+
+**Signature**: `user:list {--role=} {--owner=}`
+
+**Options**:
+
+- `--role=` (optional): Filter by role (admin, employee, client)
+- `--owner=` (optional): Filter by owner email (for employees)
+
+**Usage Examples**:
+
+```bash
+# List all users
+ddev artisan user:list
+
+# List only admin users
+ddev artisan user:list --role=admin
+
+# List employees of specific owner
+ddev artisan user:list --role=employee --owner=admin@example.com
+```
+
+**Displayed Information**:
+
+- User ID, name, email
+- Role and owner (if applicable)
+- Creation date
+- Total user count
+
+---
+
+### `user:show`
+
+**Purpose**: Display detailed information about a specific user.
+
+**Signature**: `user:show {email}`
+
+**Arguments**:
+
+- `email` (required): Email address of the user
+
+**Usage Examples**:
+
+```bash
+# Show detailed user information
+ddev artisan user:show user@example.com
+```
+
+**Displayed Information**:
+
+- Basic details (ID, name, email, role, owner)
+- Settings (notifications, 2FA status, Google Drive connection)
+- Login URLs (for client users)
+- Employee list (for admin users)
+
+---
+
 ### `user:set-role`
 
-**Purpose**: Assign roles to users for access control and permissions management.
+**Purpose**: Assign roles to existing users for access control and permissions management.
 
-**Signature**: `user:set-role {email} {--role=admin}`
+**Signature**: `user:set-role {email} {--role=admin} {--owner=}`
 
 **Arguments**:
 
@@ -127,6 +230,7 @@ ddev artisan uploads:process-pending --user-id=123 --limit=5 --dry-run
 **Options**:
 
 - `--role=admin` (optional): Role to assign (default: admin)
+- `--owner=` (optional): Owner email for employee users (auto-assigns to first admin if not specified)
 
 **Available Roles**:
 
@@ -140,17 +244,149 @@ ddev artisan uploads:process-pending --user-id=123 --limit=5 --dry-run
 # Set user as admin (default role)
 ddev artisan user:set-role user@example.com
 
-# Set user as employee
+# Set user as employee with specific owner
+ddev artisan user:set-role user@example.com --role=employee --owner=admin@example.com
+
+# Set user as employee (auto-assigns to first admin)
 ddev artisan user:set-role user@example.com --role=employee
 
 # Set user as client
 ddev artisan user:set-role user@example.com --role=client
 ```
 
+**Behavior**:
+
+- Automatically handles owner relationships for employees
+- Clears owner relationship when changing from employee to other roles
+- Updates notification settings based on role
+- Auto-assigns to first admin if no owner specified for employees
+
 **Error Handling**:
 
 - Returns error if user email not found
-- Provides confirmation of role assignment
+- Validates that owner exists and is an admin
+- Provides confirmation of role assignment and owner
+
+---
+
+### `user:delete`
+
+**Purpose**: Delete users from the system.
+
+**Signature**: `user:delete {email} {--force}`
+
+**Arguments**:
+
+- `email` (required): Email address of the user to delete
+
+**Options**:
+
+- `--force` (optional): Skip confirmation and handle employee relationships
+
+**Usage Examples**:
+
+```bash
+# Delete user with confirmation
+ddev artisan user:delete user@example.com
+
+# Force delete user (removes employee relationships)
+ddev artisan user:delete admin@example.com --force
+```
+
+**Behavior**:
+
+- Shows user details before deletion
+- Warns about employee relationships
+- Requires confirmation unless forced
+- Handles employee reassignment
+
+---
+
+### `user:reset-password`
+
+**Purpose**: Reset user passwords for admin and employee users.
+
+**Signature**: `user:reset-password {email} {--password=}`
+
+**Arguments**:
+
+- `email` (required): Email address of the user
+
+**Options**:
+
+- `--password=` (optional): New password (generated if not provided)
+
+**Usage Examples**:
+
+```bash
+# Reset password with interactive prompt
+ddev artisan user:reset-password user@example.com
+
+# Reset with specific password
+ddev artisan user:reset-password user@example.com --password=newpassword123
+```
+
+**Behavior**:
+
+- Only works for users who can login with passwords
+- Validates password length (minimum 8 characters)
+- Generates secure passwords if not provided
+- Warns about command-line password security
+
+---
+
+### `user:toggle-notifications`
+
+**Purpose**: Enable or disable upload notifications for users.
+
+**Signature**: `user:toggle-notifications {email} {--enable} {--disable}`
+
+**Arguments**:
+
+- `email` (required): Email address of the user
+
+**Options**:
+
+- `--enable` (optional): Enable notifications
+- `--disable` (optional): Disable notifications
+
+**Usage Examples**:
+
+```bash
+# Toggle current notification state
+ddev artisan user:toggle-notifications user@example.com
+
+# Explicitly enable notifications
+ddev artisan user:toggle-notifications user@example.com --enable
+
+# Explicitly disable notifications
+ddev artisan user:toggle-notifications user@example.com --disable
+```
+
+---
+
+### `user:login-url`
+
+**Purpose**: Generate login URLs for users (primarily for clients).
+
+**Signature**: `user:login-url {email}`
+
+**Arguments**:
+
+- `email` (required): Email address of the user
+
+**Usage Examples**:
+
+```bash
+# Generate login URL for client
+ddev artisan user:login-url client@example.com
+```
+
+**Behavior**:
+
+- Generates temporary signed URL (valid for 7 days)
+- Shows additional login options for password-enabled users
+- Provides security information about URL validity
 
 ---
 

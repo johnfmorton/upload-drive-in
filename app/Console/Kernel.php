@@ -21,6 +21,13 @@ class Kernel extends ConsoleKernel
         Commands\RefreshGoogleDriveTokens::class,
         Commands\WarmUpCaches::class,
         Commands\OptimizePerformance::class,
+        // User Management Commands
+        Commands\CreateUser::class,
+        Commands\ShowUser::class,
+        Commands\DeleteUser::class,
+        Commands\ResetUserPassword::class,
+        Commands\ToggleUserNotifications::class,
+        Commands\GenerateUserLoginUrl::class,
     ];
 
     /**

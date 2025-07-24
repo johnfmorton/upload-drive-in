@@ -5,135 +5,67 @@ namespace App\Console\Commands;
 use App\Models\User;
 use Illuminate\Console\Command;
 
+/**
+ * php artisan user:list {--role=} {--owner=}
+ *
+ * Examples:
+ * php artisan user:list
+ * php artisan user:list --role=admin
+ * php artisan user:list --role=employee --owner=admin@example.com
+ */
 class ListUsers extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'users {--format=table : Output format (table, json, csv)}';
+    protected $signature = 'user:list {--role=} {--owner=}';
+    protected $description = 'List all users or filter by role and owner';
 
-    /**
-     * List of command aliases.
-     *
-     * @var array
-     */
-    protected $aliases = ['users:list'];
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'List all user accounts with their username, email, and role';
-
-    /**
-     * Execute the console command.
-     */
-    public function handle(): int
+    public function handle()
     {
-        $format = $this->option('format');
-        
-        $users = User::select('id', 'name', 'username', 'email', 'role', 'created_at')
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+        $roleFilter = $this->option('role');
+        $ownerEmail = $this->option('owner');
+
+        $query = User::query()->with(['owner']);
+
+        // Filter by role if specified
+        if ($roleFilter) {
+            if (!in_array($roleFilter, ['admin', 'employee', 'client'])) {
+                $this->error("Invalid role '{$roleFilter}'. Valid roles are: admin, employee, client");
+                return 1;
+            }
+            $query->where('role', $roleFilter);
+        }
+
+        // Filter by owner if specified
+        if ($ownerEmail) {
+            $owner = User::where('email', $ownerEmail)->first();
+            if (!$owner) {
+                $this->error("Owner user with email {$ownerEmail} not found.");
+                return 1;
+            }
+            $query->where('owner_id', $owner->id);
+        }
+
+        $users = $query->orderBy('role')->orderBy('name')->get();
 
         if ($users->isEmpty()) {
-            $this->info('No users found in the database.');
-            return self::SUCCESS;
+            $this->info('No users found matching the criteria.');
+            return 0;
         }
 
-        switch ($format) {
-            case 'json':
-                $this->outputJson($users);
-                break;
-            case 'csv':
-                $this->outputCsv($users);
-                break;
-            case 'table':
-            default:
-                $this->outputTable($users);
-                break;
-        }
-
-        $this->info("\nTotal users: " . $users->count());
-        
-        return self::SUCCESS;
-    }
-
-    /**
-     * Output users in table format.
-     */
-    private function outputTable($users): void
-    {
-        $headers = ['ID', 'Name', 'Username', 'Email', 'Role', 'Created'];
-        
+        $headers = ['ID', 'Name', 'Email', 'Role', 'Owner', 'Created'];
         $rows = $users->map(function ($user) {
             return [
                 $user->id,
-                $user->name ?? 'N/A',
-                $user->username ?? 'N/A',
+                $user->name,
                 $user->email,
                 $user->role->label(),
-                $user->created_at->format('Y-m-d H:i:s'),
+                $user->owner ? $user->owner->name : '-',
+                $user->created_at->format('Y-m-d H:i'),
             ];
-        })->toArray();
+        });
 
         $this->table($headers, $rows);
-    }
+        $this->info("Total users: {$users->count()}");
 
-    /**
-     * Output users in JSON format.
-     */
-    private function outputJson($users): void
-    {
-        $data = $users->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'username' => $user->username,
-                'email' => $user->email,
-                'role' => $user->role->value,
-                'role_label' => $user->role->label(),
-                'created_at' => $user->created_at->toISOString(),
-            ];
-        });
-
-        $this->line(json_encode($data, JSON_PRETTY_PRINT));
-    }
-
-    /**
-     * Output users in CSV format.
-     */
-    private function outputCsv($users): void
-    {
-        // Output CSV header
-        $this->line('ID,Name,Username,Email,Role,Created');
-        
-        // Output CSV rows
-        $users->each(function ($user) {
-            $this->line(sprintf(
-                '%d,"%s","%s","%s","%s","%s"',
-                $user->id,
-                $this->escapeCsv($user->name ?? ''),
-                $this->escapeCsv($user->username ?? ''),
-                $this->escapeCsv($user->email),
-                $this->escapeCsv($user->role->label()),
-                $user->created_at->format('Y-m-d H:i:s')
-            ));
-        });
-    }
-
-    /**
-     * Escape CSV field values.
-     */
-    private function escapeCsv(?string $value): string
-    {
-        if ($value === null) {
-            return '';
-        }
-        
-        return str_replace('"', '""', $value);
+        return 0;
     }
 }
