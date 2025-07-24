@@ -31,6 +31,28 @@
                         </div>
                     @endif
 
+                    {{-- Recipient Selection (only show if client has multiple company users) --}}
+                    @if(auth()->user()->companyUsers->count() > 1)
+                        <div class="mb-6 p-4 bg-gray-50 rounded-lg border">
+                            <label for="company_user_id" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ __('messages.select_recipient') }}
+                            </label>
+                            <select id="company_user_id" name="company_user_id" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--brand-color)] focus:border-[var(--brand-color)] sm:text-sm">
+                                @foreach(auth()->user()->companyUsers as $companyUser)
+                                    <option value="{{ $companyUser->id }}" 
+                                            @if($companyUser->pivot->is_primary) selected @endif>
+                                        {{ $companyUser->name }} ({{ $companyUser->email }})
+                                        @if($companyUser->pivot->is_primary) - Primary @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                            <p class="mt-2 text-sm text-gray-500">
+                                {{ __('messages.select_recipient_help') }}
+                            </p>
+                        </div>
+                    @endif
+
                     <form id="messageForm" class="space-y-6">
                         @csrf {{-- Important for CSRF protection --}}
 

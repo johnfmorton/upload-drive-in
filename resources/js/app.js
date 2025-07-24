@@ -68,16 +68,25 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
             },
             // Must match the parameters expected by Pion's Dropzone handler
             params: function (files, xhr, chunk) {
+                const params = {};
+                
+                // Add chunk parameters if this is a chunked upload
                 if (chunk) {
-                    return {
-                        dzuuid: chunk.file.upload.uuid,
-                        dzchunkindex: chunk.index,
-                        dztotalfilesize: chunk.file.size,
-                        dzchunksize: this.options.chunkSize,
-                        dztotalchunkcount: chunk.file.upload.totalChunkCount,
-                        dzchunkbyteoffset: chunk.index * this.options.chunkSize,
-                    };
+                    params.dzuuid = chunk.file.upload.uuid;
+                    params.dzchunkindex = chunk.index;
+                    params.dztotalfilesize = chunk.file.size;
+                    params.dzchunksize = this.options.chunkSize;
+                    params.dztotalchunkcount = chunk.file.upload.totalChunkCount;
+                    params.dzchunkbyteoffset = chunk.index * this.options.chunkSize;
                 }
+                
+                // Add selected company user ID if available
+                const companyUserSelect = document.getElementById('company_user_id');
+                if (companyUserSelect && companyUserSelect.value) {
+                    params.company_user_id = companyUserSelect.value;
+                }
+                
+                return params;
             },
             uploadprogress: function (file, progress, bytesSent) {
                 // Update progress (optional, Dropzone handles visually)
