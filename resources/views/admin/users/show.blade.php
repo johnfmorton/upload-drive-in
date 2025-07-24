@@ -26,7 +26,18 @@
             @endif
 
             <!-- Tab Navigation -->
-            <div x-data="{ activeTab: 'info' }" class="bg-white shadow sm:rounded-lg">
+            <div x-data="{ 
+                activeTab: 'info',
+                copiedLoginUrl: false,
+                
+                copyLoginUrl() {
+                    navigator.clipboard.writeText('{{ $client->login_url }}');
+                    this.copiedLoginUrl = true;
+                    setTimeout(() => {
+                        this.copiedLoginUrl = false;
+                    }, 2000);
+                }
+            }" class="bg-white shadow sm:rounded-lg">
                 <div class="border-b border-gray-200">
                     <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
                         <button @click="activeTab = 'info'" 
@@ -88,9 +99,10 @@
                                         <div class="mt-1 flex">
                                             <input type="text" readonly value="{{ $client->login_url }}" 
                                                    class="flex-1 rounded-l-md border-gray-300 bg-gray-50 text-sm">
-                                            <button onclick="navigator.clipboard.writeText('{{ $client->login_url }}')" 
-                                                    class="px-3 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 hover:bg-gray-100">
-                                                Copy
+                                            <button @click="copyLoginUrl()" 
+                                                    class="px-3 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[var(--brand-color)] focus:ring-offset-2 transition-colors duration-200">
+                                                <span x-show="!copiedLoginUrl">Copy</span>
+                                                <span x-show="copiedLoginUrl" class="text-green-600">Copied!</span>
                                             </button>
                                         </div>
                                     </div>
