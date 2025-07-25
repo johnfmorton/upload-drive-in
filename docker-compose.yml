@@ -1,51 +1,46 @@
 version: '3.8'
 
 services:
-  # PHP-FPM Service
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile # Assumes your PHP Dockerfile is named 'Dockerfile'
-    container_name: laravel_app
-    restart: unless-stopped
-    working_dir: /var/www/html
-    volumes:
-      # Mount application code (Consider COPY in Dockerfile for pure production)
-      - .:/var/www/html
-      # Persistent storage for logs, cache, sessions, uploads etc.
-      - laravel_storage:/var/www/html/storage
-      # Persistent storage for the SQLite database file
-      # IMPORTANT: Ensure DB_DATABASE in .env is set to /var/www/html/database/database.sqlite
-      - sqlite_db:/var/www/html/database
-    depends_on:
-      # Optional: Add depends_on if you have other services like Redis/Meilisearch
-      - web # Ensures web starts after app, though Nginx handles PHP-FPM being down
-    # Environment variables can be loaded from an .env file at the root
-    # env_file:
-    #   - .env
-
-  # Nginx Service
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile.nginx # Assumes your Nginx Dockerfile is named 'Dockerfile.nginx'
-    container_name: laravel_web
-    restart: unless-stopped
+    build: .
     ports:
       - "80:80"
-      # Add "443:443" if you're handling TLS/SSL termination in this container
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
     volumes:
-      # Share code for Nginx to serve static files directly
-      - .:/var/www/html
-      # Share storage if serving files directly from storage/app/public
-      - laravel_storage:/var/www/html/storage
+      - ./storage:/var/www/html/storage
+      - uploads:/var/www/html/storage/app/public/uploads
     depends_on:
-      - app
+      - mysql
+      - redis
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_DATABASE:-upload_drive_in}
+      MYSQL_USER: ${DB_USERNAME:-laravel}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
 
 volumes:
-  # Named volume for persistent SQLite database
-  sqlite_db:
-    driver: local
-  # Named volume for persistent Laravel storage
-  laravel_storage:
-    driver: local
+  mysql_data:
+  redis_data:
+  uploads:

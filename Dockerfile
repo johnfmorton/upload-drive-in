@@ -1,95 +1,81 @@
-# Use an official PHP runtime as a parent image
-ARG PHP_VERSION=8.2
-FROM php:${PHP_VERSION}-fpm-alpine AS base
+# Multi-stage build for Upload Drive-In Laravel application
+FROM node:18-alpine AS frontend-builder
 
-# Set working directory
-WORKDIR /var/www/html
+WORKDIR /app
 
-# Install system dependencies required by Laravel and extensions
-# Add common extensions and any specific ones your app needs (e.g., gd, bcmath, redis)
+# Copy package files
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy source files and build
+COPY . .
+RUN npm run build
+
+# Production PHP image
+FROM php:8.3-fpm-alpine
+
+# Install system dependencies
 RUN apk add --no-cache \
-    libzip-dev \
+    nginx \
+    supervisor \
+    redis \
+    mysql-client \
     zip \
     unzip \
+    git \
+    curl \
     libpng-dev \
     libjpeg-turbo-dev \
     freetype-dev \
-    sqlite-libs \
+    libzip-dev \
     icu-dev \
-    libxml2-dev \
+    oniguruma-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install \
-    pdo \
-    pdo_sqlite \
-    zip \
-    gd \
-    exif \
-    pcntl \
-    intl \
-    xml \
-    && apk del libzip-dev
+    && docker-php-ext-install -j$(nproc) \
+        pdo_mysql \
+        mysqli \
+        gd \
+        zip \
+        intl \
+        mbstring \
+        opcache \
+        bcmath
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# --- Development Stage ---
-# This stage includes dev dependencies and keeps source mounted
-FROM base AS development
+# Create application directory
+WORKDIR /var/www/html
 
-ENV APP_ENV=development
-
-# Install dev dependencies
-RUN apk add --no-cache $PHPIZE_DEPS \
-    && pecl install xdebug \
-    && docker-php-ext-enable xdebug \
-    && apk del $PHPIZE_DEPS
-
-# Configure Xdebug (adjust as needed)
-# RUN echo "xdebug.mode=develop,debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
-#     && echo "xdebug.start_with_request=yes" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
-#     && echo "xdebug.client_host=host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
-
-# Copy existing application directory contents (useful for development with volume mounts)
-COPY . /var/www/html
-
-# Install composer dependencies including dev
-RUN composer install --prefer-dist --no-scripts --no-progress --no-interaction
-
-# Fix permissions for Laravel
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-
-# Expose port 9000 and start php-fpm server
-EXPOSE 9000
-CMD ["php-fpm"]
-
-# --- Production Stage ---
-# This stage builds a lean image for production
-FROM base AS production
-
-ENV APP_ENV=production
-
-# Copy composer files
-COPY composer.json composer.lock ./
-
-# Install production dependencies only
-RUN composer install --no-dev --no-scripts --no-progress --no-interaction --optimize-autoloader
-
-# Copy application code
+# Copy application files
 COPY . .
+COPY --from=frontend-builder /app/public/build ./public/build
 
-# Generate optimized class loader
-# RUN composer dump-autoload --optimize
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Optimize Laravel
-RUN php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Fix permissions for Laravel
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# Copy configuration files
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/php.ini /usr/local/etc/php/conf.d/custom.ini
 
-# Expose port 9000 and start php-fpm server
-EXPOSE 9000
-CMD ["php-fpm"]
+# Create required directories
+RUN mkdir -p /var/log/supervisor \
+    && mkdir -p /run/nginx \
+    && mkdir -p /var/www/html/storage/logs
+
+# Expose port
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1
+
+# Start supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

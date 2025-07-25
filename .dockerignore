@@ -1,0 +1,51 @@
+# Development files
+.ddev/
+.git/
+.github/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Laravel specific
+/storage/*.key
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/app/public/uploads/*
+
+# Testing
+/coverage/
+.phpunit.result.cache
+
+# Documentation
+README.md
+documentation.md
+docs/
+
+# Build artifacts
+/public/hot
+/public/storage
+/public/build/assets/.vite/
+
+# Backup files
+*.sql
+*.sql.gz
+backup-*
