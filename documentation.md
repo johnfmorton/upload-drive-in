@@ -13,12 +13,17 @@ Upload Drive-In is a Laravel-based web application that enables businesses to re
       - [Initial Setup](#initial-setup)
     - [Production Installation (Server)](#production-installation-server)
       - [Prerequisites](#prerequisites-1)
+      - [System Requirements](#system-requirements)
       - [Installation Steps](#installation-steps-1)
     - [Docker Installation](#docker-installation)
       - [Prerequisites](#prerequisites-2)
+      - [System Requirements](#system-requirements-1)
       - [Installation Steps](#installation-steps-2)
       - [Docker Management Commands](#docker-management-commands)
     - [Updating to Latest Version](#updating-to-latest-version)
+      - [Development Environment (DDEV)](#development-environment-ddev)
+      - [Production Server](#production-server)
+      - [Docker Installation](#docker-installation-1)
       - [Update Checklist](#update-checklist)
       - [Rollback Process](#rollback-process)
   - [Development Environment](#development-environment)
@@ -31,7 +36,17 @@ Upload Drive-In is a Laravel-based web application that enables businesses to re
     - [Admin Dashboard](#admin-dashboard)
   - [Configuration](#configuration)
     - [Environment Variables](#environment-variables)
+      - [Development Environment (DDEV)](#development-environment-ddev-1)
+      - [Production Environment](#production-environment)
     - [Google Drive Setup](#google-drive-setup)
+    - [Disk Space Management](#disk-space-management)
+      - [How File Storage Works](#how-file-storage-works)
+      - [Disk Space Configuration](#disk-space-configuration)
+      - [Monitoring Disk Space](#monitoring-disk-space)
+      - [Cleanup Commands](#cleanup-commands)
+      - [Disk Space Alerts](#disk-space-alerts)
+      - [Scaling Considerations](#scaling-considerations)
+      - [Troubleshooting Disk Space Issues](#troubleshooting-disk-space-issues)
   - [API Documentation](#api-documentation)
     - [Authentication Endpoints](#authentication-endpoints)
     - [Upload Endpoints](#upload-endpoints)
@@ -123,6 +138,23 @@ For production deployment on a bare-bones server (Ubuntu/Debian):
 - Nginx or Apache
 - Composer
 - Node.js 18+
+
+#### System Requirements
+
+**Minimum Hardware Requirements:**
+
+- **CPU**: 2 cores
+- **RAM**: 2GB (4GB recommended)
+- **Storage**: 20GB minimum (see disk space requirements below)
+
+**Disk Space Requirements:**
+
+- **Base Installation**: ~500MB
+- **Operating Buffer**: 2GB minimum free space (configurable)
+- **Upload Buffer**: 2-3x your largest expected file size
+- **Recommended**: 50GB+ for production use
+
+**Important**: Upload Drive-In temporarily stores files locally before uploading to Google Drive. For optimal performance, ensure you have sufficient disk space to handle concurrent uploads. The system will automatically clean up files after successful cloud uploads, but temporary storage requirements can be significant during peak usage.
 
 #### Installation Steps
 
@@ -279,6 +311,22 @@ For containerized deployment using Docker:
 - Docker 20.10+
 - Docker Compose 2.0+
 
+#### System Requirements
+
+**Minimum Hardware Requirements:**
+
+- **CPU**: 2 cores
+- **RAM**: 4GB (Docker overhead included)
+- **Storage**: 30GB minimum (see disk space requirements below)
+
+**Disk Space Requirements:**
+
+- **Docker Images**: ~2GB
+- **Database Volume**: 1-5GB (depending on usage)
+- **Upload Volume**: 2-3x your largest expected file size
+- **Operating Buffer**: 2GB minimum free space
+- **Recommended**: 100GB+ for production use
+
 #### Installation Steps
 
 1. **Clone repository**:
@@ -315,6 +363,11 @@ CACHE_DRIVER=redis
 SESSION_DRIVER=redis
 QUEUE_CONNECTION=redis
 REDIS_HOST=redis
+
+# Disk Space Management
+UPLOAD_MIN_FREE_SPACE=2147483648
+UPLOAD_WARNING_THRESHOLD=5368709120
+UPLOAD_EMERGENCY_CLEANUP=true
 
 # Google Drive credentials
 GOOGLE_DRIVE_CLIENT_ID=your_client_id
@@ -709,6 +762,136 @@ MAIL_ENCRYPTION=tls
 4. Set up the redirect URI
 5. Generate and store refresh tokens
 
+### Disk Space Management
+
+Upload Drive-In uses a temporary storage approach where files are stored locally before being uploaded to Google Drive. This section covers disk space requirements and management strategies.
+
+#### How File Storage Works
+
+1. **Upload Process**: Files are uploaded in 5MB chunks to `storage/app/public/uploads/`
+2. **Background Processing**: A queue job uploads the complete file to Google Drive
+3. **Cleanup**: Local files are automatically deleted after successful cloud upload
+4. **Failure Handling**: Failed uploads are cleaned up after 72 hours (configurable)
+
+#### Disk Space Configuration
+
+Add these environment variables to your `.env` file:
+
+```env
+# Minimum free space required (in bytes) - default 2GB
+UPLOAD_MIN_FREE_SPACE=2147483648
+
+# Warning threshold (in bytes) - default 5GB  
+UPLOAD_WARNING_THRESHOLD=5368709120
+
+# Enable automatic emergency cleanup
+UPLOAD_EMERGENCY_CLEANUP=true
+
+# Maximum file size (in bytes) - default 5GB
+UPLOAD_MAX_FILE_SIZE=5368709120
+
+# Chunk size (in bytes) - default 5MB
+UPLOAD_CHUNK_SIZE=5242880
+```
+
+#### Monitoring Disk Space
+
+**Check current disk usage:**
+
+```bash
+# Development (DDEV)
+ddev artisan uploads:monitor-disk-space
+
+# Production Server
+php artisan uploads:monitor-disk-space
+
+# Docker
+docker-compose exec app php artisan uploads:monitor-disk-space
+```
+
+**Automated monitoring with cleanup:**
+
+```bash
+php artisan uploads:monitor-disk-space --cleanup
+```
+
+#### Cleanup Commands
+
+**Manual cleanup of old files:**
+
+```bash
+# Remove files older than 24 hours (default)
+php artisan uploads:clear-old
+
+# Remove files older than 6 hours
+php artisan uploads:clear-old --hours=6
+
+# Remove files older than 1 hour (emergency cleanup)
+php artisan uploads:clear-old --hours=1
+```
+
+**Automated cleanup (recommended cron jobs):**
+
+```bash
+# Add to crontab for regular cleanup
+# Every hour - emergency cleanup if space is low
+0 * * * * cd /var/www/upload-drive-in && php artisan uploads:monitor-disk-space --cleanup
+
+# Every 6 hours - regular cleanup
+0 */6 * * * cd /var/www/upload-drive-in && php artisan uploads:clear-old --hours=12
+
+# Daily - comprehensive cleanup
+0 2 * * * cd /var/www/upload-drive-in && php artisan uploads:clear-old --hours=24
+```
+
+#### Disk Space Alerts
+
+The system provides automatic disk space monitoring:
+
+- **Warning Zone**: When free space < 5GB (configurable)
+  - Triggers preventive cleanup
+  - Logs warnings for monitoring
+
+- **Critical Zone**: When free space < 2GB (configurable)
+  - Blocks new uploads
+  - Triggers emergency cleanup
+  - Sends critical alerts
+
+#### Scaling Considerations
+
+**For High-Volume Deployments:**
+
+1. **Separate Storage Volume**: Mount a dedicated volume for `/var/www/html/storage`
+2. **Increased Buffer**: Set `UPLOAD_MIN_FREE_SPACE` to 10GB or higher
+3. **Faster Cleanup**: Reduce cleanup intervals to every 30 minutes
+4. **Multiple Workers**: Run multiple queue workers for faster processing
+5. **SSD Storage**: Use SSD storage for better I/O performance
+
+**Example high-volume configuration:**
+
+```env
+UPLOAD_MIN_FREE_SPACE=10737418240  # 10GB
+UPLOAD_WARNING_THRESHOLD=21474836480  # 20GB
+UPLOAD_EMERGENCY_CLEANUP=true
+UPLOAD_CLEANUP_DEFAULT_HOURS=1  # More aggressive cleanup
+```
+
+#### Troubleshooting Disk Space Issues
+
+**"Insufficient disk space" errors:**
+
+1. Check current disk usage: `df -h`
+2. Run emergency cleanup: `php artisan uploads:clear-old --hours=1`
+3. Monitor upload directory: `du -sh storage/app/public/uploads/`
+4. Check for stuck files: `find storage/app/public/uploads/ -type f -mtime +1`
+
+**Performance degradation:**
+
+1. Monitor disk I/O: `iostat -x 1`
+2. Check for large files: `find storage/app/public/uploads/ -size +100M`
+3. Verify queue workers are processing: `php artisan queue:work --once`
+4. Review failed jobs: `php artisan queue:failed`
+
 ## API Documentation
 
 ### Authentication Endpoints
@@ -761,6 +944,13 @@ MAIL_ENCRYPTION=tls
    - Clear Node modules: `ddev exec rm -rf node_modules && ddev npm install`
    - Rebuild assets: `ddev npm run build`
    - Check Vite configuration for Tailwind CSS 4.x compatibility
+
+6. **Disk Space Issues**
+   - Monitor disk usage: `php artisan uploads:monitor-disk-space`
+   - Emergency cleanup: `php artisan uploads:clear-old --hours=1`
+   - Check upload directory size: `du -sh storage/app/public/uploads/`
+   - Verify automatic cleanup is working: `php artisan queue:work --once`
+   - Configure disk space thresholds in `.env` file
 
 ### Debug Tools
 
