@@ -65,10 +65,60 @@
 
                     <!-- Files Table -->
                     @if($files->count() > 0)
-                        <div class="overflow-x-auto">
+                        <div x-data="{ 
+                            selectedFiles: [], 
+                            selectAll: false,
+                            allFileIds: {{ $files->pluck('id')->toJson() }},
+                            toggleSelectAll() {
+                                if (this.selectAll) {
+                                    this.selectedFiles = [...this.allFileIds];
+                                } else {
+                                    this.selectedFiles = [];
+                                }
+                            }
+                        }" x-init="
+                            $watch('selectedFiles', () => {
+                                selectAll = selectedFiles.length === allFileIds.length && allFileIds.length > 0;
+                            })
+                        ">
+                            <!-- Bulk Actions -->
+                            <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-4">
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" x-model="selectAll" @change="toggleSelectAll()" class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                                            <span class="text-sm text-gray-700">Select All</span>
+                                        </label>
+                                        <span class="text-sm text-gray-500" x-text="selectedFiles.length + ' files selected'"></span>
+                                    </div>
+                                    <div class="flex space-x-2" x-show="selectedFiles.length > 0">
+                                        <form method="POST" action="{{ route('employee.file-manager.bulk-download', ['username' => auth()->user()->username]) }}" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="file_ids" :value="JSON.stringify(selectedFiles)">
+                                            <button type="submit" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                                                Download Selected
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ route('employee.file-manager.bulk-destroy', ['username' => auth()->user()->username]) }}" class="inline" 
+                                              onsubmit="return confirm('Are you sure you want to delete the selected files?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <input type="hidden" name="file_ids" :value="JSON.stringify(selectedFiles)">
+                                            <button type="submit" class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700">
+                                                Delete Selected
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <input type="checkbox" x-model="selectAll" @change="toggleSelectAll()" class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                                        </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
@@ -81,12 +131,23 @@
                                     @foreach($files as $file)
                                         <tr class="hover:bg-gray-50">
                                             <td class="px-6 py-4 whitespace-nowrap">
+                                                <input type="checkbox" 
+                                                       value="{{ $file->id }}" 
+                                                       x-model="selectedFiles" 
+                                                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="flex items-center">
                                                     <div class="flex-shrink-0 h-10 w-10">
-                                                        <img class="h-10 w-10 rounded" src="{{ route('files.thumbnail', $file) }}" alt="File thumbnail">
+                                                        <img class="h-10 w-10 rounded" src="{{ route('employee.file-manager.thumbnail', ['username' => auth()->user()->username, 'file' => $file]) }}" alt="File thumbnail">
                                                     </div>
                                                     <div class="ml-4">
-                                                        <div class="text-sm font-medium text-gray-900">{{ $file->original_filename }}</div>
+                                                        <div class="text-sm font-medium text-gray-900">
+                                                            <a href="{{ route('employee.file-manager.show', ['username' => auth()->user()->username, 'file' => $file]) }}" 
+                                                               class="text-blue-600 hover:text-blue-900">
+                                                                {{ $file->original_filename }}
+                                                            </a>
+                                                        </div>
                                                         @if($file->message)
                                                             <div class="text-sm text-gray-500">{{ Str::limit($file->message, 50) }}</div>
                                                         @endif
@@ -114,20 +175,38 @@
                                                 {{ $file->created_at->format('M j, Y g:i A') }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <a href="{{ route('files.preview', $file) }}" target="_blank" 
-                                                   class="text-blue-600 hover:text-blue-900 mr-3">
-                                                    Preview
-                                                </a>
+                                                <div class="flex space-x-2">
+                                                    <a href="{{ route('employee.file-manager.preview', ['username' => auth()->user()->username, 'file' => $file]) }}" 
+                                                       target="_blank" 
+                                                       class="text-blue-600 hover:text-blue-900">
+                                                        Preview
+                                                    </a>
+                                                    <a href="{{ route('employee.file-manager.download', ['username' => auth()->user()->username, 'file' => $file]) }}" 
+                                                       class="text-green-600 hover:text-green-900">
+                                                        Download
+                                                    </a>
+                                                    <form method="POST" 
+                                                          action="{{ route('employee.file-manager.destroy', ['username' => auth()->user()->username, 'file' => $file]) }}" 
+                                                          class="inline"
+                                                          onsubmit="return confirm('Are you sure you want to delete this file?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="text-red-600 hover:text-red-900">
+                                                            Delete
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
                             </table>
-                        </div>
+                            </div>
 
-                        <!-- Pagination -->
-                        <div class="mt-6">
-                            {{ $files->appends(request()->query())->links() }}
+                            <!-- Pagination -->
+                            <div class="mt-6">
+                                {{ $files->appends(request()->query())->links() }}
+                            </div>
                         </div>
                     @else
                         <div class="text-center py-12">
