@@ -37,12 +37,8 @@ Route::prefix('file-manager')
                 Route::post('/bulk-download', [\App\Http\Controllers\Employee\FileManagerController::class, 'bulkDownload'])->name('bulk-download');
             });
         
-        // Preview endpoints with lighter rate limiting
-        Route::middleware([\App\Http\Middleware\FileDownloadRateLimitMiddleware::class . ':120,1'])
-            ->group(function () {
-                Route::get('/{file}/preview', [\App\Http\Controllers\Employee\FileManagerController::class, 'preview'])->name('preview');
-                Route::get('/{file}/thumbnail', [\App\Http\Controllers\Employee\FileManagerController::class, 'thumbnail'])->name('thumbnail');
-            });
+        // Note: Preview and thumbnail routes are handled by global routes in web.php
+        // This allows consistent access control across admin and employee interfaces
     });
 
 // Cloud Storage Routes

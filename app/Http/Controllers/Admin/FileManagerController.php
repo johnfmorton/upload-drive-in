@@ -679,10 +679,14 @@ class FileManagerController extends AdminController
      */
     public function preview(FileUpload $file): Response
     {
-        // Override admin-only restriction for preview functionality
-        // The FilePreviewService will handle proper access control based on user roles
+        // Ensure user is authenticated
         if (!auth()->check()) {
             abort(401, 'Authentication required');
+        }
+
+        // Check if the authenticated user can access this file
+        if (!$file->canBeAccessedBy(auth()->user())) {
+            abort(403, 'Access denied to this file');
         }
 
         try {

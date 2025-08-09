@@ -69,7 +69,16 @@ class FileManagerController extends Controller
 
         $files = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        return view('employee.file-manager.index', compact('files'));
+        // Add statistics
+        $statistics = [
+            'total' => $files->total(),
+            'pending' => $query->where(function ($q) {
+                $q->whereNull('google_drive_file_id')->orWhere('google_drive_file_id', '');
+            })->count(),
+            'total_size' => $query->sum('file_size')
+        ];
+
+        return view('employee.file-manager.index', compact('files', 'statistics'));
     }
 
     /**
@@ -515,10 +524,30 @@ class FileManagerController extends Controller
                 'ip' => request()->ip()
             ]);
 
-            // For now, return a generic file icon based on mime type
-            $iconPath = $this->getFileIcon($file->mime_type);
+            // If it's an image and exists locally, try to serve it
+            if (str_starts_with($file->mime_type, 'image/')) {
+                $path = 'public/uploads/' . $file->filename;
+                if (Storage::exists($path)) {
+                    return response(Storage::get($path), 200, [
+                        'Content-Type' => $file->mime_type,
+                        'Cache-Control' => 'public, max-age=3600'
+                    ]);
+                }
+            }
 
-            return response()->file(public_path($iconPath));
+            // Return a generic file icon
+            $iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14,2 14,8 20,8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10,9 9,9 8,9"></polyline>
+            </svg>';
+
+            return response($iconSvg, 200, [
+                'Content-Type' => 'image/svg+xml',
+                'Cache-Control' => 'public, max-age=3600'
+            ]);
         } catch (\Exception $e) {
             return response('Thumbnail generation failed: ' . $e->getMessage(), 500, [
                 'Content-Type' => 'text/plain'
@@ -531,20 +560,16 @@ class FileManagerController extends Controller
      */
     private function getFileIcon(string $mimeType): string
     {
-        if (str_starts_with($mimeType, 'image/')) {
-            return 'images/icons/image-icon.png';
-        } elseif (str_starts_with($mimeType, 'video/')) {
-            return 'images/icons/video-icon.png';
-        } elseif (str_starts_with($mimeType, 'audio/')) {
-            return 'images/icons/audio-icon.png';
-        } elseif ($mimeType === 'application/pdf') {
-            return 'images/icons/pdf-icon.png';
-        } elseif (str_contains($mimeType, 'word') || str_contains($mimeType, 'document')) {
-            return 'images/icons/doc-icon.png';
-        } elseif (str_contains($mimeType, 'sheet') || str_contains($mimeType, 'excel')) {
-            return 'images/icons/excel-icon.png';
-        } else {
-            return 'images/icons/file-icon.png';
-        }
+        // For now, return a generic file icon
+        // In the future, you can add specific icons for different file types
+        return 'data:image/svg+xml;base64,' . base64_encode('
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14,2 14,8 20,8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10,9 9,9 8,9"></polyline>
+            </svg>
+        ');
     }
 }

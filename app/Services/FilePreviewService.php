@@ -72,6 +72,7 @@ class FilePreviewService
         'image/png',
         'image/gif',
         'image/webp',
+        'image/svg+xml',
         'image/bmp',
         'image/tiff',
     ];
@@ -368,6 +369,15 @@ class FilePreviewService
     private function createThumbnailResponse(FileUpload $file, string $content, int $width, int $height): Response
     {
         try {
+            // For SVG files, return them directly without processing
+            if ($file->mime_type === 'image/svg+xml') {
+                return response($content, 200, [
+                    'Content-Type' => 'image/svg+xml',
+                    'Content-Disposition' => 'inline; filename="' . $file->original_filename . '"',
+                    'Cache-Control' => 'public, max-age=86400', // Cache for 24 hours
+                ]);
+            }
+
             // Create image manager with GD driver
             $manager = new ImageManager(new Driver());
             
