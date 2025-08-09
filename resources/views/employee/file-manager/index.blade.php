@@ -420,9 +420,8 @@
                 },
 
                 previewFile(file) {
-                    // Use the global preview route that works for all authenticated users
-                    const url = `{{ route('files.preview', ':id') }}`.replace(':id', file.id);
-                    window.open(url, '_blank');
+                    // Open preview modal
+                    this.$dispatch('open-preview-modal', file);
                 },
 
                 async downloadFile(file) {
@@ -584,4 +583,7 @@
         });
     </script>
     @endpush
+
+    <!-- Preview Modal -->
+    @include('employee.file-manager.partials.preview-modal')
 </x-app-layout>
