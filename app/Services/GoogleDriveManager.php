@@ -25,10 +25,16 @@ class GoogleDriveManager
     public function getAuthUrl(User $user): string
     {
         $client = $this->makeClient();
-        // Set dynamic redirect URI: /u/{username}/google-drive/callback
-        $redirect = rtrim(Config::get('app.url'), '/')
-            . '/u/' . $user->username . '/google-drive/callback';
-        $client->setRedirectUri($redirect);
+        // Use unified callback endpoint
+        $client->setRedirectUri(route('google-drive.unified-callback'));
+
+        // Add user ID as state parameter to identify user after callback
+        $state = base64_encode(json_encode([
+            'user_id' => $user->id,
+            'user_type' => $user->role->value
+        ]));
+        
+        $client->setState($state);
 
         return $client->createAuthUrl();
     }
@@ -145,10 +151,8 @@ class GoogleDriveManager
      */
     public function dispatchUploadJob(\App\Models\FileUpload $upload, User $user): void
     {
-        // Attach user context, e.g. by setting the current auth user
-        auth()->setUser($user);
-
-        \App\Jobs\UploadToGoogleDrive::dispatch($upload);
+        // Dispatch upload job with user context
+        \App\Jobs\UploadToGoogleDrive::dispatch($upload, $user);
     }
 
     /**

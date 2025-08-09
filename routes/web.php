@@ -48,6 +48,10 @@ Route::post('profile/send-password-reset', [\App\Http\Controllers\Auth\PasswordR
     ->middleware('auth')
     ->name('profile.password.reset');
 
+// Google Drive unified callback (no auth middleware - handles authentication internally)
+Route::get('/google-drive/callback', [\App\Http\Controllers\GoogleDriveUnifiedCallbackController::class, 'callback'])
+    ->name('google-drive.unified-callback');
+
 // Auth routes
 Route::middleware(['guest'])->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');

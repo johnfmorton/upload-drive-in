@@ -9,7 +9,7 @@ return array (
       'driver' => 'google-drive',
       'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
       'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
-      'redirect_uri' => config('app.url') . '/admin/cloud-storage/google-drive/callback',
+      'redirect_uri' => config('app.url') . '/google-drive/callback',
       'root_folder_id' => env('GOOGLE_DRIVE_ROOT_FOLDER_ID'),
     ),
     'microsoft-teams' =>

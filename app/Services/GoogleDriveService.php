@@ -326,12 +326,16 @@ class GoogleDriveService
      */
     public function getAuthUrl(User $user): string
     {
-        // Set the appropriate redirect URI based on user role
-        if ($user->isEmployee()) {
-            $this->client->setRedirectUri(route('employee.google-drive.callback', ['username' => $user->username]));
-        } else {
-            $this->client->setRedirectUri(route('admin.cloud-storage.google-drive.callback'));
-        }
+        // Use unified callback endpoint for all user types
+        $this->client->setRedirectUri(route('google-drive.unified-callback'));
+
+        // Add user ID as state parameter to identify user after callback
+        $state = base64_encode(json_encode([
+            'user_id' => $user->id,
+            'user_type' => $user->role->value
+        ]));
+        
+        $this->client->setState($state);
 
         return $this->client->createAuthUrl();
     }
@@ -341,12 +345,8 @@ class GoogleDriveService
      */
     public function handleCallback(User $user, string $code): void
     {
-        // Set the appropriate redirect URI based on user role
-        if ($user->isEmployee()) {
-            $this->client->setRedirectUri(route('employee.google-drive.callback', ['username' => $user->username]));
-        } else {
-            $this->client->setRedirectUri(route('admin.cloud-storage.google-drive.callback'));
-        }
+        // Use unified callback endpoint for all user types
+        $this->client->setRedirectUri(route('google-drive.unified-callback'));
 
         $token = $this->client->fetchAccessTokenWithAuthCode($code);
 
