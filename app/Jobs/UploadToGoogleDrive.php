@@ -98,14 +98,22 @@ class UploadToGoogleDrive implements ShouldQueue
                 ]);
             }
             
-            // Priority 3: Fallback to admin user if no specific user found or if selected user doesn't have Google Drive
-            if (!$targetUser || !$targetUser->hasGoogleDriveConnected()) {
-                if ($targetUser && !$targetUser->hasGoogleDriveConnected()) {
-                    Log::warning('Selected user does not have Google Drive connected, falling back to admin.', [
-                        'selected_user_id' => $targetUser->id,
-                        'selected_user_email' => $targetUser->email
+            // Priority 3: Only fall back to admin if target user doesn't have Google Drive OR no target user found
+            if (!$targetUser) {
+                // No target user found at all, try admin
+                $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
+                if ($adminUser && $adminUser->hasGoogleDriveConnected()) {
+                    $targetUser = $adminUser;
+                    Log::info('No target user found, using admin user as fallback.', [
+                        'admin_id' => $targetUser->id
                     ]);
                 }
+            } elseif (!$targetUser->hasGoogleDriveConnected()) {
+                // Target user exists but doesn't have Google Drive, try admin fallback
+                Log::warning('Selected user does not have Google Drive connected, attempting admin fallback.', [
+                    'selected_user_id' => $targetUser->id,
+                    'selected_user_email' => $targetUser->email
+                ]);
                 
                 $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
                 if ($adminUser && $adminUser->hasGoogleDriveConnected()) {
@@ -116,9 +124,15 @@ class UploadToGoogleDrive implements ShouldQueue
                         'original_uploaded_by_user_id' => $this->fileUpload->uploaded_by_user_id
                     ]);
                 } else {
-                    Log::error('No admin user with Google Drive connection found.');
-                    $targetUser = null;
+                    Log::error('Selected user has no Google Drive and admin also has no Google Drive connection.');
+                    throw new Exception('No user with Google Drive connection available for upload');
                 }
+            } else {
+                // Target user exists and has Google Drive - use them!
+                Log::info('Using target user with Google Drive connection.', [
+                    'target_user_id' => $targetUser->id,
+                    'target_user_email' => $targetUser->email
+                ]);
             }
 
             if (!$targetUser) {
