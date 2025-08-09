@@ -30,7 +30,7 @@
             x-transition:leave="ease-in duration-200"
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full max-h-screen"
+            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh]"
         >
             <!-- Header -->
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200">
@@ -112,7 +112,7 @@
             </div>
 
             <!-- Content -->
-            <div class="bg-white flex-1 overflow-hidden" style="max-height: calc(100vh - 200px);">
+            <div class="bg-white flex-1 overflow-hidden" style="max-height: 70vh;">
                 <!-- Loading state -->
                 <div x-show="loading" class="flex items-center justify-center py-12">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -120,9 +120,9 @@
                 </div>
 
                 <!-- Image Preview -->
-                <div x-show="!loading && previewType === 'image'" class="h-full overflow-hidden relative bg-gray-100">
+                <div x-show="!loading && previewType === 'image'" class="flex items-center justify-center overflow-hidden relative bg-gray-100" style="height: 60vh;">
                     <div 
-                        class="h-full overflow-auto cursor-move"
+                        class="w-full h-full overflow-auto cursor-move flex items-center justify-center"
                         x-on:mousedown="startImageDrag($event)"
                         x-on:mousemove="dragImage($event)"
                         x-on:mouseup="endImageDrag()"
@@ -133,7 +133,7 @@
                             <img 
                                 :src="previewContent"
                                 :alt="file?.original_filename"
-                                class="block mx-auto transition-transform duration-200"
+                                class="max-w-full max-h-full object-contain transition-transform duration-200"
                                 :style="`transform: scale(${imageZoom}) translate(${imagePanX}px, ${imagePanY}px); transform-origin: center center;`"
                                 x-on:load="imageLoaded()"
                                 x-on:error="imageError()"
