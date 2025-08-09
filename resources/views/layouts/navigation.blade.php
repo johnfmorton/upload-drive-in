@@ -36,8 +36,14 @@
                         <x-nav-link :href="route('employee.dashboard', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.dashboard')">
                             {{ __('Dashboard') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('employee.file-manager.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.file-manager.*')">
+                            {{ __('File Manager') }}
+                        </x-nav-link>
                         <x-nav-link :href="route('employee.clients.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.clients.*')">
                             {{ __('messages.nav_client_management') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.cloud-storage.*')">
+                            {{ __('Cloud Storage') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -157,8 +163,14 @@
                     <x-responsive-nav-link :href="route('employee.dashboard', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.dashboard')">
                         {{ __('messages.nav_dashboard') }}
                     </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('employee.file-manager.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.file-manager.*')">
+                        {{ __('File Manager') }}
+                    </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('employee.clients.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.clients.*')">
                         {{ __('messages.nav_client_management') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.cloud-storage.*')">
+                        {{ __('Cloud Storage') }}
                     </x-responsive-nav-link>
                 @endif
             </div>

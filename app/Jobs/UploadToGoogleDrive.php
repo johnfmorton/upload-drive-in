@@ -76,20 +76,49 @@ class UploadToGoogleDrive implements ShouldQueue
             // 2. Determine which user's Google Drive to use
             $targetUser = null;
             
-            // If this upload was made by an employee, use their Google Drive
-            if ($this->fileUpload->uploaded_by_user_id) {
-                $targetUser = \App\Models\User::find($this->fileUpload->uploaded_by_user_id);
-                Log::info('Found target user for upload.', [
+            // Priority 1: If client selected a specific company user (employee), use their Google Drive
+            if ($this->fileUpload->company_user_id) {
+                $targetUser = \App\Models\User::find($this->fileUpload->company_user_id);
+                Log::info('Using selected company user for upload.', [
+                    'company_user_id' => $this->fileUpload->company_user_id,
                     'target_user_id' => $targetUser?->id,
-                    'is_employee' => $targetUser?->isEmployee(),
+                    'target_user_email' => $targetUser?->email,
                     'has_drive_connected' => $targetUser?->hasGoogleDriveConnected()
                 ]);
             }
             
-            // Fallback to admin user if no employee specified
-            if (!$targetUser) {
-                $targetUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
-                Log::info('Using admin user as fallback for upload.', ['admin_id' => $targetUser?->id]);
+            // Priority 2: If this upload was made by an employee directly, use their Google Drive
+            if (!$targetUser && $this->fileUpload->uploaded_by_user_id) {
+                $targetUser = \App\Models\User::find($this->fileUpload->uploaded_by_user_id);
+                Log::info('Using employee uploader for upload.', [
+                    'uploaded_by_user_id' => $this->fileUpload->uploaded_by_user_id,
+                    'target_user_id' => $targetUser?->id,
+                    'target_user_email' => $targetUser?->email,
+                    'has_drive_connected' => $targetUser?->hasGoogleDriveConnected()
+                ]);
+            }
+            
+            // Priority 3: Fallback to admin user if no specific user found or if selected user doesn't have Google Drive
+            if (!$targetUser || !$targetUser->hasGoogleDriveConnected()) {
+                if ($targetUser && !$targetUser->hasGoogleDriveConnected()) {
+                    Log::warning('Selected user does not have Google Drive connected, falling back to admin.', [
+                        'selected_user_id' => $targetUser->id,
+                        'selected_user_email' => $targetUser->email
+                    ]);
+                }
+                
+                $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
+                if ($adminUser && $adminUser->hasGoogleDriveConnected()) {
+                    $targetUser = $adminUser;
+                    Log::info('Using admin user as fallback for upload.', [
+                        'admin_id' => $targetUser->id,
+                        'original_company_user_id' => $this->fileUpload->company_user_id,
+                        'original_uploaded_by_user_id' => $this->fileUpload->uploaded_by_user_id
+                    ]);
+                } else {
+                    Log::error('No admin user with Google Drive connection found.');
+                    $targetUser = null;
+                }
             }
 
             if (!$targetUser) {

@@ -15,7 +15,16 @@ Route::get('/google-drive/connect', [UploadController::class, 'connect'])->name(
 Route::get('/google-drive/callback', [UploadController::class, 'callback'])->name('google-drive.callback');
 Route::delete('/google-drive/disconnect', [UploadController::class, 'disconnect'])->name('google-drive.disconnect');
 Route::put('/google-drive/folder', [UploadController::class, 'updateFolder'])->name('google-drive.folder.update');
+Route::get('/google-drive/folders', [\App\Http\Controllers\Employee\GoogleDriveFolderController::class, 'index'])->name('google-drive.folders');
+Route::get('/google-drive/folders/{folderId}', [\App\Http\Controllers\Employee\GoogleDriveFolderController::class, 'show'])->name('google-drive.folders.show');
+Route::post('/google-drive/folders', [\App\Http\Controllers\Employee\GoogleDriveFolderController::class, 'store'])->name('google-drive.folders.store');
 Route::post('/upload', [UploadController::class, 'upload'])->name('upload');
+
+// File Manager Routes
+Route::get('/file-manager', [\App\Http\Controllers\Employee\FileManagerController::class, 'index'])->name('file-manager.index');
+
+// Cloud Storage Routes
+Route::get('/cloud-storage', [\App\Http\Controllers\Employee\CloudStorageController::class, 'index'])->name('cloud-storage.index');
 
 // Client Management Routes
 Route::get('/clients', [ClientManagementController::class, 'index'])->name('clients.index');
