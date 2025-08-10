@@ -9,7 +9,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <!-- File Management Dashboard -->
             <div class="bg-white shadow sm:rounded-lg">
-                <div x-data="employeeFileManager({{ json_encode($files->items()) }})" class="file-manager">
+                <div x-data="employeeFileManager({{ json_encode($files->items()) }}, {{ json_encode($statistics ?? []) }})" class="file-manager">
                     <!-- Header Section -->
                     <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -41,103 +41,10 @@
                     </div>
 
                     <!-- Toolbar -->
-                    <div class="px-4 py-4 sm:px-6 border-b border-gray-200 bg-gray-50">
-                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                            <!-- Bulk Actions -->
-                            <div class="flex items-center space-x-4">
-                                <label class="flex items-center space-x-2">
-                                    <input type="checkbox" x-model="selectAll" @change="toggleSelectAll()"
-                                        class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
-                                    <span class="text-sm text-gray-700">Select All</span>
-                                </label>
+                    <x-file-manager.toolbar user-type="employee" :username="auth()->user()->username" />
 
-                                <div x-show="selectedFiles.length > 0" class="flex items-center space-x-2">
-                                    <span class="text-sm text-gray-600" x-text="`${selectedFiles.length} selected`"></span>
-
-                                    <button x-on:click="bulkDelete()"
-                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                                            </path>
-                                        </svg>
-                                        Delete Selected
-                                    </button>
-
-                                    <button x-on:click="bulkDownload()"
-                                        class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                            </path>
-                                        </svg>
-                                        Download Selected
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Search and Filters -->
-                            <div class="flex flex-col lg:flex-row gap-3">
-                                <!-- Search Input -->
-                                <div class="relative">
-                                    <input type="text" x-model.debounce.500ms="searchQuery"
-                                        placeholder="Search files, users, or messages..."
-                                        class="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm pl-10 pr-10">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                        </svg>
-                                    </div>
-                                    <div x-show="searchQuery" class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                        <button x-on:click="searchQuery = ''" class="text-gray-400 hover:text-gray-600">
-                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M6 18L18 6M6 6l12 12"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Quick Filters -->
-                                <div class="flex flex-wrap gap-2">
-                                    <!-- Status Filter -->
-                                    <select x-model="statusFilter"
-                                        class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                                        <option value="">All Statuses</option>
-                                        <option value="uploaded">Uploaded</option>
-                                        <option value="pending">Processing</option>
-                                    </select>
-
-                                    <!-- File Type Filter -->
-                                    <select x-model="fileTypeFilter"
-                                        class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                                        <option value="">All File Types</option>
-                                        <option value="image">Images</option>
-                                        <option value="document">Documents</option>
-                                        <option value="video">Videos</option>
-                                        <option value="audio">Audio</option>
-                                        <option value="archive">Archives</option>
-                                        <option value="other">Other</option>
-                                    </select>
-
-                                    <!-- View Mode Toggle -->
-                                    <button x-on:click="toggleViewMode()"
-                                        class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                        <svg x-show="viewMode === 'grid'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-                                        </svg>
-                                        <svg x-show="viewMode === 'table'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z">
-                                            </path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Advanced Filters -->
+                    <x-file-manager.advanced-filters />
 
                     <!-- Success/Error Messages -->
                     @if(session('success'))
