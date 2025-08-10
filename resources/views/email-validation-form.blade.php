@@ -1,9 +1,5 @@
 <x-guest-layout>
-<div class="max-w-md mb-6 px-6 py-6 bg-white shadow-md overflow-hidden rounded-lg">
-    <div class="bg-gray-100 py-6 px-6">
-        <div class="max-w-7xl mx-auto">
-            <div class="bg-white overflow-hidden shadow-sm rounded-lg">
-                <div class="p-6 text-gray-900">
+    <div class="text-gray-900">
                     <div class="text-center mb-8">
                         @if(File::exists(public_path('images/app-icon.png')))
                             <img src="{{ asset('images/app-icon.png') }}?v={{ md5_file(public_path('images/app-icon.png')) }}" alt="{{ __('messages.nav_logo_alt', ['company_name' => config('app.company_name')]) }}" class="w-auto h-8 mx-auto mb-4">
@@ -39,11 +35,7 @@
                     <div id="errorMessage" class="mt-4 text-center hidden">
                         <p class="text-red-600">{{ __('messages.nav_validation_error') }}</p>
                     </div>
-                </div>
-            </div>
-        </div>
     </div>
-</div>
     @push('scripts')
     <script>
         document.getElementById('emailValidationForm').addEventListener('submit', function(e) {
