@@ -26,15 +26,15 @@
                             <div class="flex flex-wrap gap-4 text-sm">
                                 <div class="flex items-center space-x-2">
                                     <span class="text-gray-500">Total Files:</span>
-                                    <span class="font-medium" x-text="files.length"></span>
+                                    <span class="font-medium" x-text="statistics.total || 0"></span>
                                 </div>
                                 <div class="flex items-center space-x-2">
                                     <span class="text-gray-500">Pending:</span>
-                                    <span class="font-medium text-yellow-600" x-text="files.filter(f => !f.google_drive_file_id).length"></span>
+                                    <span class="font-medium text-yellow-600" x-text="statistics.pending || 0"></span>
                                 </div>
                                 <div class="flex items-center space-x-2">
                                     <span class="text-gray-500">Total Size:</span>
-                                    <span class="font-medium" x-text="formatBytes(files.reduce((sum, f) => sum + (f.file_size || 0), 0))"></span>
+                                    <span class="font-medium" x-text="formatBytes(statistics.total_size || 0)"></span>
                                 </div>
                             </div>
                         </div>

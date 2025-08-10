@@ -30,13 +30,24 @@ class FileManagerService
     /**
      * Get filtered and paginated files based on provided criteria.
      * 
+     * @param array $filters Filter criteria
+     * @param int $perPage Number of items per page
+     * @param User|null $user User to filter files for (if null, shows all files)
      * @throws FileManagerException When database query fails
      */
-    public function getFilteredFiles(array $filters, int $perPage = 15): LengthAwarePaginator
+    public function getFilteredFiles(array $filters, int $perPage = 15, ?User $user = null): LengthAwarePaginator
     {
         try {
         $query = FileUpload::query()
             ->with(['clientUser', 'companyUser', 'uploadedByUser']);
+
+        // Apply user-specific filtering if user is provided
+        if ($user) {
+            $query->where(function (Builder $q) use ($user) {
+                $q->where('company_user_id', $user->id)
+                  ->orWhere('uploaded_by_user_id', $user->id);
+            });
+        }
 
         // Apply search filter with enhanced multi-column search
         if (!empty($filters['search'])) {
@@ -218,11 +229,43 @@ class FileManagerService
 
     /**
      * Get comprehensive file statistics for dashboard.
+     * 
+     * @param User|null $user User to get statistics for (if null, gets global statistics)
      */
-    public function getFileStatistics(): array
+    public function getFileStatistics(?User $user = null): array
     {
+        if ($user) {
+            // Calculate user-specific statistics
+            $query = FileUpload::where(function (Builder $q) use ($user) {
+                $q->where('company_user_id', $user->id)
+                  ->orWhere('uploaded_by_user_id', $user->id);
+            });
+
+            $total = $query->count();
+            $pending = $query->where(function (Builder $q) {
+                $q->whereNull('google_drive_file_id')
+                  ->orWhere('google_drive_file_id', '');
+            })->count();
+            $completed = $total - $pending;
+            $totalSize = $query->sum('file_size') ?: 0;
+
+            return [
+                'total' => $total,
+                'pending' => $pending,
+                'completed' => $completed,
+                'total_size' => $totalSize,
+                'total_size_human' => $this->formatBytes($totalSize),
+                'average_size' => $total > 0 ? round($totalSize / $total) : 0,
+                'upload_rate_today' => $query->whereDate('created_at', today())->count(),
+                'upload_rate_week' => $query->where('created_at', '>=', now()->subWeek())->count(),
+                'upload_rate_month' => $query->where('created_at', '>=', now()->subMonth())->count(),
+            ];
+        }
+
         return $this->cacheService->getFileStatistics();
     }
+
+
 
     /**
      * Get detailed information about a specific file.

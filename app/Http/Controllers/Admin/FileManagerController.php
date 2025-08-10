@@ -63,8 +63,8 @@ class FileManagerController extends AdminController
 
             $perPage = min($request->get('per_page', 15), 100); // Limit max per page
             
-            $files = $this->fileManagerService->getFilteredFiles($filters, $perPage);
-            $statistics = $this->fileManagerService->getFileStatistics();
+            $files = $this->fileManagerService->getFilteredFiles($filters, $perPage, auth()->user());
+            $statistics = $this->fileManagerService->getFileStatistics(auth()->user());
             $filterOptions = $this->fileManagerService->getFilterOptions();
 
             if ($request->expectsJson()) {
