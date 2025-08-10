@@ -74,7 +74,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $appends = ['login_url', 'reset_url'];
+    protected $appends = ['login_url', 'reset_url', 'upload_url'];
 
     public function isAdmin(): bool
     {
@@ -213,5 +213,32 @@ class User extends Authenticatable
     public function clientUserRelationships(): HasMany
     {
         return $this->hasMany(ClientUserRelationship::class, 'client_user_id');
+    }
+
+    /**
+     * Get the personal upload URL for this user (admin or employee).
+     *
+     * @return string|null
+     */
+    public function getUploadUrl(): ?string
+    {
+        if (!$this->isAdmin() && !$this->isEmployee()) {
+            return null;
+        }
+
+        // Extract name from email (everything before @)
+        $name = explode('@', $this->email)[0];
+        
+        return route('upload.employee', ['name' => $name]);
+    }
+
+    /**
+     * Get the upload_url attribute for the user.
+     *
+     * @return string|null
+     */
+    public function getUploadUrlAttribute(): ?string
+    {
+        return $this->getUploadUrl();
     }
 }

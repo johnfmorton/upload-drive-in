@@ -26,7 +26,7 @@
                                 {{ __('messages.nav_cloud_storage') }}
                             </x-nav-link>
                     @elseif(auth()->user()->isClient())
-                        <x-nav-link :href="route('client.upload-files')" :active="request()->routeIs('client.upload-files')">
+                        <x-nav-link :href="route('client.upload-files')" :active="request()->routeIs('client.upload-files') || request()->routeIs('upload.employee')">
                             {{ __('Upload Files') }}
                         </x-nav-link>
                         <x-nav-link :href="route('client.my-uploads')" :active="request()->routeIs('client.my-uploads')">
@@ -156,8 +156,11 @@
                     <x-responsive-nav-link :href="route('client.dashboard')" :active="request()->routeIs('client.dashboard')">
                         {{ __('messages.nav_dashboard') }}
                     </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('client.upload-files')" :active="request()->routeIs('client.upload-files')">
+                    <x-responsive-nav-link :href="route('client.upload-files')" :active="request()->routeIs('client.upload-files') || request()->routeIs('upload.employee')">
                         {{ __('messages.nav_upload_files') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('client.my-uploads')" :active="request()->routeIs('client.my-uploads')">
+                        {{ __('My Uploads') }}
                     </x-responsive-nav-link>
                 @elseif (Auth::user()->isEmployee())
                     <x-responsive-nav-link :href="route('employee.dashboard', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.dashboard')">

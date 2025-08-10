@@ -1,23 +1,18 @@
 <?php /* resources/views/public-employee/upload-by-name.blade.php */ ?>
-<x-guest-layout>
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('messages.upload_files_for_employee', ['name' => $employee->name]) }}
+        </h2>
+    </x-slot>
+
     <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <div class="flex justify-between items-center mb-8">
-                        <div>
-                            <h1 class="text-2xl font-bold text-gray-900">{{ __('messages.upload_files_for_employee', ['name' => $employee->name]) }}</h1>
-                            <p class="text-gray-600">{{ __('messages.upload_files_description') }}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm text-gray-600">Logged in as: {{ auth()->user()->email }}</p>
-                            <form method="POST" action="{{ route('logout') }}" class="inline">
-                                @csrf
-                                <button type="submit" class="text-sm text-[var(--brand-color)] hover:brightness-75">
-                                    Not you? Sign out
-                                </button>
-                            </form>
-                        </div>
+                    <div class="mb-8">
+                        <h1 class="text-2xl font-bold text-gray-900">{{ __('messages.upload_files_for_employee', ['name' => $employee->name]) }}</h1>
+                        <p class="text-gray-600">{{ __('messages.upload_files_description') }}</p>
                     </div>
 
                     @if(!$hasGoogleDriveConnected)
@@ -90,6 +85,8 @@
                     </form>
                 </div>
             </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -133,4 +130,4 @@
         });
     </script>
     @endpush
-</x-guest-layout>
+</x-app-layout>

@@ -108,22 +108,22 @@ class PublicEmployeeUploadController extends Controller
     }
 
     /**
-     * Show the public upload page for an employee by name (extracted from email).
+     * Show the public upload page for an employee or admin by name (extracted from email).
      *
      * @param  string   $name
      * @return \Illuminate\View\View
      */
     public function showByName(string $name)
     {
-        // Find employee by extracting name from email
+        // Find employee or admin by extracting name from email
         // We need to escape special characters for the LIKE query
         $escapedName = str_replace(['%', '_'], ['\%', '\_'], $name);
         $employee = User::where('email', 'LIKE', $escapedName . '@%')
-            ->where('role', \App\Enums\UserRole::EMPLOYEE)
+            ->whereIn('role', [\App\Enums\UserRole::EMPLOYEE, \App\Enums\UserRole::ADMIN])
             ->first();
 
         if (!$employee) {
-            abort(404, 'Employee not found');
+            abort(404, 'User not found');
         }
 
         // Check if user is authenticated
@@ -142,7 +142,7 @@ class PublicEmployeeUploadController extends Controller
     }
 
     /**
-     * Handle public file uploads for an employee by name.
+     * Handle public file uploads for an employee or admin by name.
      *
      * @param  Request  $request
      * @param  string   $name
@@ -156,15 +156,15 @@ class PublicEmployeeUploadController extends Controller
             'message' => 'nullable|string|max:1000',
         ]);
 
-        // Find employee by extracting name from email
+        // Find employee or admin by extracting name from email
         // We need to escape special characters for the LIKE query
         $escapedName = str_replace(['%', '_'], ['\%', '\_'], $name);
         $employee = User::where('email', 'LIKE', $escapedName . '@%')
-            ->where('role', \App\Enums\UserRole::EMPLOYEE)
+            ->whereIn('role', [\App\Enums\UserRole::EMPLOYEE, \App\Enums\UserRole::ADMIN])
             ->first();
 
         if (!$employee) {
-            abort(404, 'Employee not found');
+            abort(404, 'User not found');
         }
 
         $clientEmail = $request->input('email');
@@ -197,7 +197,7 @@ class PublicEmployeeUploadController extends Controller
     }
 
     /**
-     * Handles the chunked file upload for an employee by name.
+     * Handles the chunked file upload for an employee or admin by name.
      *
      * @param  Request  $request
      * @param  string   $name
@@ -205,14 +205,14 @@ class PublicEmployeeUploadController extends Controller
      */
     public function chunkUpload(Request $request, string $name)
     {
-        // Find employee by extracting name from email
+        // Find employee or admin by extracting name from email
         $escapedName = str_replace(['%', '_'], ['\%', '\_'], $name);
         $employee = User::where('email', 'LIKE', $escapedName . '@%')
-            ->where('role', \App\Enums\UserRole::EMPLOYEE)
+            ->whereIn('role', [\App\Enums\UserRole::EMPLOYEE, \App\Enums\UserRole::ADMIN])
             ->first();
 
         if (!$employee) {
-            return response()->json(['error' => 'Employee not found'], 404);
+            return response()->json(['error' => 'User not found'], 404);
         }
 
         // Create the file receiver
@@ -360,14 +360,14 @@ class PublicEmployeeUploadController extends Controller
             'message' => 'nullable|string|max:1000',
         ]);
 
-        // Find employee by extracting name from email
+        // Find employee or admin by extracting name from email
         $escapedName = str_replace(['%', '_'], ['\%', '\_'], $name);
         $employee = User::where('email', 'LIKE', $escapedName . '@%')
-            ->where('role', \App\Enums\UserRole::EMPLOYEE)
+            ->whereIn('role', [\App\Enums\UserRole::EMPLOYEE, \App\Enums\UserRole::ADMIN])
             ->first();
 
         if (!$employee) {
-            return response()->json(['error' => 'Employee not found'], 404);
+            return response()->json(['error' => 'User not found'], 404);
         }
 
         // Update the message for uploads belonging to this employee and client
@@ -380,7 +380,7 @@ class PublicEmployeeUploadController extends Controller
     }
 
     /**
-     * Handles the completion of a batch upload for an employee.
+     * Handles the completion of a batch upload for an employee or admin.
      *
      * @param  Request  $request
      * @param  string   $name
@@ -393,14 +393,14 @@ class PublicEmployeeUploadController extends Controller
             'file_upload_ids.*' => 'required|exists:file_uploads,id',
         ]);
 
-        // Find employee by extracting name from email
+        // Find employee or admin by extracting name from email
         $escapedName = str_replace(['%', '_'], ['\%', '\_'], $name);
         $employee = User::where('email', 'LIKE', $escapedName . '@%')
-            ->where('role', \App\Enums\UserRole::EMPLOYEE)
+            ->whereIn('role', [\App\Enums\UserRole::EMPLOYEE, \App\Enums\UserRole::ADMIN])
             ->first();
 
         if (!$employee) {
-            return response()->json(['error' => 'Employee not found'], 404);
+            return response()->json(['error' => 'User not found'], 404);
         }
 
         // Get the uploads for this employee and client
@@ -412,8 +412,9 @@ class PublicEmployeeUploadController extends Controller
         if ($uploads->count() > 0) {
             // Trigger batch upload complete event if needed
             // For now, just return success as the upload jobs are already dispatched
-            \Illuminate\Support\Facades\Log::info('Employee batch upload completed', [
-                'employee_id' => $employee->id,
+            \Illuminate\Support\Facades\Log::info('User batch upload completed', [
+                'user_id' => $employee->id,
+                'user_role' => $employee->role->value,
                 'client_email' => \Illuminate\Support\Facades\Auth::user()->email,
                 'upload_count' => $uploads->count()
             ]);

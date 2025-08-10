@@ -53,6 +53,7 @@ class PublicUploadController extends Controller
         try {
             $validated = $request->validate([
                 'email' => ['required', 'string', 'email', 'max:255'],
+                'intended_url' => ['nullable', 'string', 'url'],
             ]);
 
             // Check if public registration is allowed
@@ -84,6 +85,14 @@ class PublicUploadController extends Controller
 
             $email = $validated['email'];
             $verificationCode = Str::random(32);
+
+            // Store intended URL if provided
+            if (!empty($validated['intended_url'])) {
+                session(['intended_url' => $validated['intended_url']]);
+                Log::info('Storing intended URL from form', [
+                    'intended_url' => $validated['intended_url']
+                ]);
+            }
 
             Log::info('Creating email validation record', [
                 'email' => $email
