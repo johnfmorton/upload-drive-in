@@ -40,6 +40,11 @@ document.addEventListener('alpine:init', () => {
             sortable: true,
             minWidth: 100
         }, {
+            key: 'status',
+            label: 'Status',
+            sortable: false,
+            minWidth: 120
+        }, {
             key: 'created_at',
             label: 'Date',
             sortable: true,
@@ -330,6 +335,7 @@ document.addEventListener('alpine:init', () => {
                 original_filename: true,
                 email: true,
                 file_size: true,
+                status: true,
                 created_at: true,
                 message: false
             };
@@ -347,6 +353,7 @@ document.addEventListener('alpine:init', () => {
                 original_filename: true,
                 email: true,
                 file_size: true,
+                status: true,
                 created_at: true,
                 message: false
             };

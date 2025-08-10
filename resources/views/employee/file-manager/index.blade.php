@@ -156,26 +156,21 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th scope="col" class="w-12 px-6 py-3">
+                                        <!-- Selection Column (always visible) -->
+                                        <th scope="col" class="w-12 px-6 py-3 sticky left-0 bg-gray-50 z-10">
                                             <input type="checkbox" x-model="selectAll" @change="toggleSelectAll()"
                                                 class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
                                         </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            File
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            From
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Size
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Date
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+
+                                        <!-- Dynamic Columns -->
+                                        <template x-for="column in visibleColumnsList" :key="column.key">
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                x-text="column.label">
+                                            </th>
+                                        </template>
+
+                                        <!-- Actions Column (always visible) -->
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 bg-gray-50 z-10">
                                             Actions
                                         </th>
                                     </tr>
@@ -183,38 +178,69 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <template x-for="file in filteredFiles" :key="file.id">
                                         <tr class="hover:bg-gray-50">
-                                            <td class="px-6 py-4 whitespace-nowrap">
+                                            <!-- Selection Column (always visible) -->
+                                            <td class="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-10">
                                                 <input type="checkbox" :value="file.id" x-model="selectedFiles"
                                                     class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500">
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="flex items-center">
-                                                    <div class="flex-shrink-0 h-10 w-10">
-                                                        <img class="h-10 w-10 rounded" :src="getThumbnailUrl(file)" alt="File thumbnail">
-                                                    </div>
-                                                    <div class="ml-4">
-                                                        <div class="text-sm font-medium text-gray-900">
-                                                            <a :href="getShowUrl(file)" class="text-blue-600 hover:text-blue-900" x-text="file.original_filename"></a>
+
+                                            <!-- Dynamic Columns -->
+                                            <template x-for="column in visibleColumnsList" :key="column.key">
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    <!-- Filename Column -->
+                                                    <template x-if="column.key === 'original_filename'">
+                                                        <div class="flex items-center">
+                                                            <div class="flex-shrink-0 h-10 w-10">
+                                                                <img class="h-10 w-10 rounded" :src="getThumbnailUrl(file)" alt="File thumbnail">
+                                                            </div>
+                                                            <div class="ml-4">
+                                                                <div class="text-sm font-medium text-gray-900">
+                                                                    <a :href="getShowUrl(file)" class="text-blue-600 hover:text-blue-900" x-text="file.original_filename"></a>
+                                                                </div>
+                                                                <div x-show="file.message" class="text-sm text-gray-500" x-text="truncateText(file.message, 50)"></div>
+                                                            </div>
                                                         </div>
-                                                        <div x-show="file.message" class="text-sm text-gray-500" x-text="truncateText(file.message, 50)"></div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="file.email"></td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatBytes(file.file_size)"></td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <span x-show="file.google_drive_file_id"
-                                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                    Uploaded to Drive
-                                                </span>
-                                                <span x-show="!file.google_drive_file_id"
-                                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                    Processing
-                                                </span>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(file.created_at)"></td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <div class="flex space-x-2">
+                                                    </template>
+                                                    
+                                                    <!-- Email Column -->
+                                                    <template x-if="column.key === 'email'">
+                                                        <span x-text="file.email"></span>
+                                                    </template>
+                                                    
+                                                    <!-- File Size Column -->
+                                                    <template x-if="column.key === 'file_size'">
+                                                        <span class="text-gray-500" x-text="formatBytes(file.file_size)"></span>
+                                                    </template>
+                                                    
+                                                    <!-- Date Column -->
+                                                    <template x-if="column.key === 'created_at'">
+                                                        <span class="text-gray-500" x-text="formatDate(file.created_at)"></span>
+                                                    </template>
+                                                    
+                                                    <!-- Status Column -->
+                                                    <template x-if="column.key === 'status'">
+                                                        <div>
+                                                            <span x-show="file.google_drive_file_id"
+                                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                Uploaded
+                                                            </span>
+                                                            <span x-show="!file.google_drive_file_id"
+                                                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                                Processing
+                                                            </span>
+                                                        </div>
+                                                    </template>
+                                                    
+                                                    <!-- Message Column -->
+                                                    <template x-if="column.key === 'message'">
+                                                        <span class="text-gray-500" x-text="truncateText(file.message || '', 100)"></span>
+                                                    </template>
+                                                </td>
+                                            </template>
+
+                                            <!-- Actions Column (always visible) -->
+                                            <td class="px-6 py-4 text-sm font-medium whitespace-nowrap sticky right-0 bg-white z-10">
+                                                <div class="flex items-center space-x-2">
                                                     <button x-on:click="previewFile(file)" class="text-blue-600 hover:text-blue-900">Preview</button>
                                                     <button x-on:click="downloadFile(file)" class="text-green-600 hover:text-green-900">Download</button>
                                                     <button x-on:click="deleteFile(file)" class="text-red-600 hover:text-red-900">Delete</button>
@@ -253,242 +279,7 @@
     </div>
 
     @push('scripts')
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('employeeFileManager', (initialFiles) => ({
-                // Data
-                files: initialFiles || [],
-                selectedFiles: [],
-                selectAll: false,
-                searchQuery: '',
-                statusFilter: '',
-                fileTypeFilter: '',
-                viewMode: localStorage.getItem('employeeFileManagerViewMode') || 'grid',
-
-                // Computed
-                get filteredFiles() {
-                    let filtered = this.files;
-
-                    // Search filter
-                    if (this.searchQuery) {
-                        const query = this.searchQuery.toLowerCase();
-                        filtered = filtered.filter(file => 
-                            file.original_filename.toLowerCase().includes(query) ||
-                            file.email.toLowerCase().includes(query) ||
-                            (file.message && file.message.toLowerCase().includes(query))
-                        );
-                    }
-
-                    // Status filter
-                    if (this.statusFilter) {
-                        if (this.statusFilter === 'uploaded') {
-                            filtered = filtered.filter(file => file.google_drive_file_id);
-                        } else if (this.statusFilter === 'pending') {
-                            filtered = filtered.filter(file => !file.google_drive_file_id);
-                        }
-                    }
-
-                    // File type filter
-                    if (this.fileTypeFilter) {
-                        filtered = filtered.filter(file => {
-                            const mimeType = file.mime_type || '';
-                            switch (this.fileTypeFilter) {
-                                case 'image': return mimeType.startsWith('image/');
-                                case 'document': return mimeType.includes('pdf') || mimeType.includes('document') || mimeType.includes('word') || mimeType.includes('text');
-                                case 'video': return mimeType.startsWith('video/');
-                                case 'audio': return mimeType.startsWith('audio/');
-                                case 'archive': return mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('tar');
-                                default: return true;
-                            }
-                        });
-                    }
-
-                    return filtered;
-                },
-
-                // Methods
-                init() {
-                    this.$watch('selectedFiles', () => {
-                        this.selectAll = this.selectedFiles.length === this.filteredFiles.length && this.filteredFiles.length > 0;
-                    });
-                },
-
-                toggleSelectAll() {
-                    if (this.selectAll) {
-                        this.selectedFiles = this.filteredFiles.map(file => file.id);
-                    } else {
-                        this.selectedFiles = [];
-                    }
-                },
-
-                toggleViewMode() {
-                    this.viewMode = this.viewMode === 'grid' ? 'table' : 'grid';
-                    localStorage.setItem('employeeFileManagerViewMode', this.viewMode);
-                },
-
-                previewFile(file) {
-                    // Open preview modal
-                    this.$dispatch('open-preview-modal', file);
-                },
-
-                async downloadFile(file) {
-                    try {
-                        // Use the employee-specific download route
-                        const url = `{{ route('employee.file-manager.download', ['username' => auth()->user()->username, 'file' => ':id']) }}`.replace(':id', file.id);
-                        
-                        // For small files, use fetch + blob approach (most reliable)
-                        if (file.file_size < 5 * 1024 * 1024) { // Less than 5MB
-                            fetch(url)
-                                .then(response => {
-                                    if (!response.ok) {
-                                        throw new Error(`HTTP error! Status: ${response.status}`);
-                                    }
-                                    return response.blob();
-                                })
-                                .then(blob => {
-                                    // Create a download link with the blob
-                                    const downloadUrl = window.URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = downloadUrl;
-                                    a.download = file.original_filename;
-                                    a.style.display = 'none';
-                                    document.body.appendChild(a);
-
-                                    // Trigger the download
-                                    a.click();
-
-                                    // Clean up
-                                    window.URL.revokeObjectURL(downloadUrl);
-                                    document.body.removeChild(a);
-                                })
-                                .catch(error => {
-                                    console.error('Download failed:', error);
-                                    // Fallback to direct navigation
-                                    window.location.href = url;
-                                });
-                        } else {
-                            // For larger files, use direct navigation
-                            window.location.href = url;
-                        }
-                    } catch (error) {
-                        console.error('Download error:', error);
-                        // Fallback to direct navigation
-                        const url = `{{ route('employee.file-manager.download', ['username' => auth()->user()->username, 'file' => ':id']) }}`.replace(':id', file.id);
-                        window.location.href = url;
-                    }
-                },
-
-                deleteFile(file) {
-                    if (confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = `{{ route('employee.file-manager.destroy', ['username' => auth()->user()->username, 'file' => ':id']) }}`.replace(':id', file.id);
-                        
-                        const csrfToken = document.createElement('input');
-                        csrfToken.type = 'hidden';
-                        csrfToken.name = '_token';
-                        csrfToken.value = '{{ csrf_token() }}';
-                        form.appendChild(csrfToken);
-                        
-                        const methodField = document.createElement('input');
-                        methodField.type = 'hidden';
-                        methodField.name = '_method';
-                        methodField.value = 'DELETE';
-                        form.appendChild(methodField);
-                        
-                        document.body.appendChild(form);
-                        form.submit();
-                    }
-                },
-
-                bulkDelete() {
-                    if (this.selectedFiles.length === 0) return;
-                    
-                    if (confirm(`Are you sure you want to delete ${this.selectedFiles.length} selected files? This action cannot be undone.`)) {
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = `{{ route('employee.file-manager.bulk-destroy', ['username' => auth()->user()->username]) }}`;
-                        
-                        const csrfToken = document.createElement('input');
-                        csrfToken.type = 'hidden';
-                        csrfToken.name = '_token';
-                        csrfToken.value = '{{ csrf_token() }}';
-                        form.appendChild(csrfToken);
-                        
-                        const methodField = document.createElement('input');
-                        methodField.type = 'hidden';
-                        methodField.name = '_method';
-                        methodField.value = 'DELETE';
-                        form.appendChild(methodField);
-                        
-                        const fileIdsField = document.createElement('input');
-                        fileIdsField.type = 'hidden';
-                        fileIdsField.name = 'file_ids';
-                        fileIdsField.value = JSON.stringify(this.selectedFiles);
-                        form.appendChild(fileIdsField);
-                        
-                        document.body.appendChild(form);
-                        form.submit();
-                    }
-                },
-
-                bulkDownload() {
-                    if (this.selectedFiles.length === 0) return;
-                    
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = `{{ route('employee.file-manager.bulk-download', ['username' => auth()->user()->username]) }}`;
-                    
-                    const csrfToken = document.createElement('input');
-                    csrfToken.type = 'hidden';
-                    csrfToken.name = '_token';
-                    csrfToken.value = '{{ csrf_token() }}';
-                    form.appendChild(csrfToken);
-                    
-                    const fileIdsField = document.createElement('input');
-                    fileIdsField.type = 'hidden';
-                    fileIdsField.name = 'file_ids';
-                    fileIdsField.value = JSON.stringify(this.selectedFiles);
-                    form.appendChild(fileIdsField);
-                    
-                    document.body.appendChild(form);
-                    form.submit();
-                },
-
-                // Utility functions
-                formatBytes(bytes) {
-                    if (bytes === 0) return '0 Bytes';
-                    const k = 1024;
-                    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                    const i = Math.floor(Math.log(bytes) / Math.log(k));
-                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-                },
-
-                formatDate(dateString) {
-                    const date = new Date(dateString);
-                    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                },
-
-                getFileExtension(filename) {
-                    return filename.split('.').pop().toUpperCase();
-                },
-
-                getThumbnailUrl(file) {
-                    // Use the global thumbnail route that works for all authenticated users
-                    return `{{ route('files.thumbnail', ':id') }}`.replace(':id', file.id);
-                },
-
-                getShowUrl(file) {
-                    return `{{ route('employee.file-manager.show', ['username' => auth()->user()->username, 'file' => ':id']) }}`.replace(':id', file.id);
-                },
-
-                truncateText(text, length) {
-                    if (!text) return '';
-                    return text.length > length ? text.substring(0, length) + '...' : text;
-                }
-            }));
-        });
-    </script>
+    <x-file-manager.shared-javascript user-type="employee" :username="auth()->user()->username" />
     @endpush
 
     <!-- Preview Modal -->
