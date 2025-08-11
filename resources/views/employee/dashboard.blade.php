@@ -1,83 +1,27 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Employee Dashboard') }}
+            {{ __('messages.employee_dashboard_title') }}
         </h2>
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <!-- Client Relationships -->
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    <h2 class="text-lg font-medium text-gray-900">Client Relationships</h2>
-                    <p class="mt-1 text-sm text-gray-600">View and manage your client relationships.</p>
-
-                    <div class="mt-6">
-                        @foreach($user->clientUsers as $clientUser)
-                            <div class="border-b border-gray-200 py-4 last:border-b-0">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h3 class="text-sm font-medium text-gray-900">{{ $clientUser->name }}</h3>
-                                        <p class="text-sm text-gray-500">{{ $clientUser->email }}</p>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        @if($clientUser->pivot->is_primary)
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                Primary
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-
-                        @if($user->clientUsers->isEmpty())
-                            <p class="text-sm text-gray-500">No client relationships found.</p>
-                        @endif
-                    </div>
-                </div>
-            </div>
+            <x-dashboard.client-relationships :user="$user" :is-admin="false" />
 
             <!-- Google Drive Connection Status -->
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-lg font-medium text-gray-900">Google Drive</h2>
-                        <p class="mt-1 text-sm text-gray-500">
-                            <a href="{{ route('employee.cloud-storage.index', ['username' => $user->username]) }}" 
-                               class="text-blue-500 hover:text-blue-700">
-                                Configure Google Drive storage settings and connection details.
-                            </a>
-                        </p>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        @if($user->hasGoogleDriveConnected())
-                            <span class="px-3 py-1 text-sm text-green-800 bg-green-100 rounded-full">Connected</span>
-                            <form action="{{ route('employee.google-drive.disconnect', ['username' => $user->username]) }}" method="POST" class="inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                    Disconnect
-                                </button>
-                            </form>
-                        @else
-                            <span class="px-3 py-1 text-sm text-gray-800 bg-gray-100 rounded-full">Not Connected</span>
-                            <a href="{{ route('employee.google-drive.connect', ['username' => $user->username]) }}" 
-                               class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                Connect
-                            </a>
-                        @endif
-                    </div>
-                </div>
-            </div>
+            <x-dashboard.google-drive-status :user="$user" :is-admin="false" />
+
+            <!-- Personal Upload Page -->
+            <x-dashboard.personal-upload-page :user="$user" />
 
             <!-- File Management Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                     <div>
                         <h2 class="text-lg font-medium text-gray-900">
-                            Uploaded Files
+                            {{ __('messages.uploaded_files_title') }}
                         </h2>
                         <p class="mt-1 text-sm text-gray-600">
                             Manage uploaded files with advanced filtering, bulk operations, and more.

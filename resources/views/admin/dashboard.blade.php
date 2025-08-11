@@ -8,106 +8,13 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             <!-- Client-Company User Relationships -->
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    <h2 class="text-lg font-medium text-gray-900">{{ __('messages.client_relationships_title') }}</h2>
-                    <p class="mt-1 text-sm text-gray-600">{{ __('messages.client_relationships_description') }}</p>
-
-                    <div class="mt-6">
-                        @foreach(Auth::user()->clientUsers as $clientUser)
-                            <div class="border-b border-gray-200 py-4 last:border-b-0">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h3 class="text-sm font-medium text-gray-900">{{ $clientUser->name }}</h3>
-                                        <p class="text-sm text-gray-500">{{ $clientUser->email }}</p>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        @if($clientUser->pivot->is_primary)
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                {{ __('messages.primary_client') }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-
-                        @if(Auth::user()->clientUsers->isEmpty())
-                            <p class="text-sm text-gray-500">{{ __('messages.no_client_relationships') }}</p>
-                        @endif
-                    </div>
-                </div>
-            </div>
+            <x-dashboard.client-relationships :user="Auth::user()" :is-admin="true" />
 
             <!-- Google Drive Connection Status -->
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-lg font-medium text-gray-900">Google Drive</h2>
-                        <p class="mt-1 text-sm text-gray-500">
-                            <a href="https://console.cloud.google.com/apis/credentials" target="_blank"
-                               class="text-blue-500 hover:text-blue-700">
-                                {{ __('messages.configure_google_drive_storage_link_description') }}
-                            </a>
-                        </p>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        @if(Auth::user()->hasGoogleDriveConnected())
-                            <span class="px-3 py-1 text-sm text-green-800 bg-green-100 rounded-full">{{ __('messages.connected') }}</span>
-                            <form action="{{ route('admin.cloud-storage.google-drive.disconnect') }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit" class="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                    {{ __('messages.disconnect') }}
-                                </button>
-                            </form>
-                        @else
-                            <span class="px-3 py-1 text-sm text-gray-800 bg-gray-100 rounded-full">{{ __('messages.not_connected') }}</span>
-                            <form action="{{ route('admin.cloud-storage.google-drive.connect') }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                    {{ __('messages.connect') }}
-                                </button>
-                            </form>
-                        @endif
-                    </div>
-                </div>
-            </div>
+            <x-dashboard.google-drive-status :user="Auth::user()" :is-admin="true" />
 
             <!-- Personal Upload Page -->
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-lg font-medium text-gray-900">Personal Upload Page</h2>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Share this URL with clients to allow them to upload files directly to you.
-                        </p>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        @if(Auth::user()->upload_url)
-                            <div class="flex items-center space-x-2">
-                                <input type="text" 
-                                       value="{{ Auth::user()->upload_url }}" 
-                                       readonly 
-                                       class="px-3 py-2 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                       style="width: 300px;"
-                                       id="upload-url-input">
-                                <button type="button" 
-                                        onclick="copyToClipboard('upload-url-input')"
-                                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                    Copy URL
-                                </button>
-                                <a href="{{ Auth::user()->upload_url }}" 
-                                   target="_blank"
-                                   class="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                    Visit Page
-                                </a>
-                            </div>
-                        @else
-                            <span class="px-3 py-1 text-sm text-gray-800 bg-gray-100 rounded-full">Not available</span>
-                        @endif
-                    </div>
-                </div>
-            </div>
+            <x-dashboard.personal-upload-page :user="Auth::user()" />
 
             <!-- File Management Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
@@ -269,31 +176,6 @@
         </div>
     </div>
 
-    <script>
-        function copyToClipboard(inputId) {
-            const input = document.getElementById(inputId);
-            input.select();
-            input.setSelectionRange(0, 99999); // For mobile devices
-            
-            try {
-                document.execCommand('copy');
-                
-                // Show feedback
-                const button = event.target;
-                const originalText = button.textContent;
-                button.textContent = 'Copied!';
-                button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                button.classList.add('bg-green-600', 'hover:bg-green-700');
-                
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    button.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                }, 2000);
-            } catch (err) {
-                console.error('Failed to copy text: ', err);
-            }
-        }
-    </script>
+
 
 </x-app-layout>

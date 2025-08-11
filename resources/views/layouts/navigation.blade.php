@@ -19,12 +19,6 @@
                         <x-nav-link :href="route('admin.file-manager.index')" :active="request()->routeIs('admin.file-manager.*')">
                             {{ __('File Manager') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
-                                {{ __('messages.nav_client_users') }}
-                            </x-nav-link>
-                            <x-nav-link :href="route('admin.cloud-storage.index')" :active="request()->routeIs('admin.cloud-storage.index')">
-                                {{ __('messages.nav_cloud_storage') }}
-                            </x-nav-link>
                     @elseif(auth()->user()->isClient())
                         <x-nav-link :href="route('client.upload-files')" :active="request()->routeIs('client.upload-files') || request()->routeIs('upload.employee')">
                             {{ __('Upload Files') }}
@@ -38,12 +32,6 @@
                         </x-nav-link>
                         <x-nav-link :href="route('employee.file-manager.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.file-manager.*')">
                             {{ __('File Manager') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('employee.clients.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.clients.*')">
-                            {{ __('messages.nav_client_management') }}
-                        </x-nav-link>
-                        <x-nav-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.cloud-storage.*')">
-                            {{ __('Cloud Storage') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -88,6 +76,13 @@
 
                     <x-slot name="content">
                         @if(auth()->user()->isAdmin())
+                            <x-dropdown-link :href="route('admin.users.index')">
+                                {{ __('messages.nav_client_users') }}
+                            </x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.cloud-storage.index')">
+                                {{ __('messages.nav_cloud_storage') }}
+                            </x-dropdown-link>
+                            <div class="border-t border-gray-100"></div>
                             <x-dropdown-link :href="route('admin.profile.edit')">
                                 {{ __('Profile') }}
                             </x-dropdown-link>
@@ -105,12 +100,20 @@
                                 {{ __('Profile') }}
                             </x-dropdown-link>
                         @elseif(auth()->user()->isEmployee())
+                            <x-dropdown-link :href="route('employee.clients.index', ['username' => auth()->user()->username])">
+                                {{ __('messages.nav_client_management') }}
+                            </x-dropdown-link>
+                            <x-dropdown-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])">
+                                {{ __('Cloud Storage') }}
+                            </x-dropdown-link>
+                            <div class="border-t border-gray-100"></div>
                             <x-dropdown-link :href="route('employee.profile.edit', ['username' => auth()->user()->username])">
                                 {{ __('Profile') }}
                             </x-dropdown-link>
                         @endif
 
                         <!-- Authentication -->
+                        <div class="border-t border-gray-100"></div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <x-dropdown-link :href="route('logout')"
@@ -146,12 +149,6 @@
                     <x-responsive-nav-link :href="route('admin.file-manager.index')" :active="request()->routeIs('admin.file-manager.*')">
                         {{ __('File Manager') }}
                     </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.index')">
-                        {{ __('messages.nav_client_users') }}
-                    </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('admin.cloud-storage.index')" :active="request()->routeIs('admin.cloud-storage.index')">
-                        {{ __('messages.nav_cloud_storage') }}
-                    </x-responsive-nav-link>
                 @elseif (Auth::user()->isClient())
                     <x-responsive-nav-link :href="route('client.dashboard')" :active="request()->routeIs('client.dashboard')">
                         {{ __('messages.nav_dashboard') }}
@@ -169,12 +166,6 @@
                     <x-responsive-nav-link :href="route('employee.file-manager.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.file-manager.*')">
                         {{ __('File Manager') }}
                     </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('employee.clients.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.clients.*')">
-                        {{ __('messages.nav_client_management') }}
-                    </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.cloud-storage.*')">
-                        {{ __('Cloud Storage') }}
-                    </x-responsive-nav-link>
                 @endif
             </div>
 
@@ -187,6 +178,13 @@
 
                 <div class="mt-3 space-y-1">
                     @if(auth()->user()->isAdmin())
+                        <x-responsive-nav-link :href="route('admin.users.index')">
+                            {{ __('messages.nav_client_users') }}
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('admin.cloud-storage.index')">
+                            {{ __('messages.nav_cloud_storage') }}
+                        </x-responsive-nav-link>
+                        <div class="border-t border-gray-200 my-2"></div>
                         <x-responsive-nav-link :href="route('admin.profile.edit')">
                             {{ __('Profile') }}
                         </x-responsive-nav-link>
@@ -195,12 +193,20 @@
                             {{ __('Profile') }}
                         </x-responsive-nav-link>
                     @elseif(auth()->user()->isEmployee())
+                        <x-responsive-nav-link :href="route('employee.clients.index', ['username' => auth()->user()->username])">
+                            {{ __('messages.nav_client_management') }}
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])">
+                            {{ __('Cloud Storage') }}
+                        </x-responsive-nav-link>
+                        <div class="border-t border-gray-200 my-2"></div>
                         <x-responsive-nav-link :href="route('employee.profile.edit', ['username' => auth()->user()->username])">
                             {{ __('Profile') }}
                         </x-responsive-nav-link>
                     @endif
 
                     <!-- Authentication -->
+                    <div class="border-t border-gray-200 my-2"></div>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <x-responsive-nav-link :href="route('logout')"
