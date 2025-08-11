@@ -190,7 +190,9 @@ class FileUpload extends Model
             return null;
         }
 
-        return route('files.preview', $this);
+        // Add cache-busting parameter to prevent preview mix-ups
+        $timestamp = $this->updated_at ? $this->updated_at->timestamp : time();
+        return route('files.preview', $this) . '?v=' . $timestamp;
     }
 
     /**
@@ -214,7 +216,9 @@ class FileUpload extends Model
             return null;
         }
 
-        return route('files.thumbnail', $this);
+        // Add cache-busting parameter to prevent thumbnail mix-ups
+        $timestamp = $this->updated_at ? $this->updated_at->timestamp : time();
+        return route('files.thumbnail', $this) . '?v=' . $timestamp;
     }
 
     /**

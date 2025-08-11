@@ -286,6 +286,9 @@ class FilePreviewService
     private function createPreviewResponse(FileUpload $file, string $content): Response
     {
         $mimeType = $file->mime_type;
+        
+        // Generate a unique ETag based on file ID and size to prevent cache mix-ups
+        $etag = md5($file->id . '_' . $file->file_size . '_' . $file->updated_at->timestamp);
 
         // For images, return the image directly
         if (str_starts_with($mimeType, 'image/')) {
@@ -293,6 +296,8 @@ class FilePreviewService
                 'Content-Type' => $mimeType,
                 'Content-Disposition' => 'inline; filename="' . $file->original_filename . '"',
                 'Cache-Control' => 'public, max-age=3600',
+                'ETag' => '"' . $etag . '"',
+                'Vary' => 'Accept-Encoding',
             ]);
         }
 
@@ -302,6 +307,8 @@ class FilePreviewService
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'inline; filename="' . $file->original_filename . '"',
                 'Cache-Control' => 'public, max-age=3600',
+                'ETag' => '"' . $etag . '"',
+                'Vary' => 'Accept-Encoding',
             ]);
         }
 
@@ -311,6 +318,8 @@ class FilePreviewService
                 'Content-Type' => 'text/plain; charset=utf-8',
                 'Content-Disposition' => 'inline; filename="' . $file->original_filename . '"',
                 'Cache-Control' => 'public, max-age=3600',
+                'ETag' => '"' . $etag . '"',
+                'Vary' => 'Accept-Encoding',
             ]);
         }
 
@@ -319,6 +328,8 @@ class FilePreviewService
             'Content-Type' => $mimeType,
             'Content-Disposition' => 'inline; filename="' . $file->original_filename . '"',
             'Cache-Control' => 'public, max-age=3600',
+            'ETag' => '"' . $etag . '"',
+            'Vary' => 'Accept-Encoding',
         ]);
     }
 
@@ -369,12 +380,17 @@ class FilePreviewService
     private function createThumbnailResponse(FileUpload $file, string $content, int $width, int $height): Response
     {
         try {
+            // Generate a unique ETag based on file ID, size, and dimensions to prevent cache mix-ups
+            $etag = md5($file->id . '_' . $file->file_size . '_' . $width . 'x' . $height . '_' . $file->updated_at->timestamp);
+            
             // For SVG files, return them directly without processing
             if ($file->mime_type === 'image/svg+xml') {
                 return response($content, 200, [
                     'Content-Type' => 'image/svg+xml',
                     'Content-Disposition' => 'inline; filename="' . $file->original_filename . '"',
                     'Cache-Control' => 'public, max-age=86400', // Cache for 24 hours
+                    'ETag' => '"' . $etag . '"',
+                    'Vary' => 'Accept-Encoding',
                 ]);
             }
 
@@ -394,6 +410,8 @@ class FilePreviewService
                 'Content-Type' => 'image/jpeg',
                 'Content-Disposition' => 'inline; filename="thumb_' . $file->original_filename . '"',
                 'Cache-Control' => 'public, max-age=86400', // Cache for 24 hours
+                'ETag' => '"' . $etag . '"',
+                'Vary' => 'Accept-Encoding',
             ]);
         } catch (Exception $e) {
             Log::error('Failed to create thumbnail', [

@@ -365,7 +365,9 @@ document.addEventListener('alpine:init', () => {
         },
 
         getThumbnailUrl(file) {
-            return `/files/${file.id}/thumbnail`;
+            // Add cache-busting parameter based on file's updated timestamp to prevent thumbnail mix-ups
+            const timestamp = file.updated_at ? new Date(file.updated_at).getTime() : Date.now();
+            return `/files/${file.id}/thumbnail?v=${timestamp}`;
         },
 
         getShowUrl(file) {

@@ -702,6 +702,14 @@ class FileManagerController extends AdminController
                 ]);
             }
 
+            // Generate ETag for conditional requests to prevent cache mix-ups
+            $etag = md5($file->id . '_' . $file->file_size . '_' . $file->updated_at->timestamp);
+            
+            // Check if client has cached version
+            if (request()->header('If-None-Match') === '"' . $etag . '"') {
+                return response('', 304);
+            }
+
             // Audit log file preview
             $this->auditLogService->logFileAccess('preview', $file, auth()->user(), request());
 
@@ -737,6 +745,14 @@ class FileManagerController extends AdminController
                 return response('Thumbnail not available for non-image files.', 403, [
                     'Content-Type' => 'text/plain'
                 ]);
+            }
+
+            // Generate ETag for conditional requests to prevent cache mix-ups
+            $etag = md5($file->id . '_' . $file->file_size . '_150x150_' . $file->updated_at->timestamp);
+            
+            // Check if client has cached version
+            if (request()->header('If-None-Match') === '"' . $etag . '"') {
+                return response('', 304);
             }
 
             // Audit log thumbnail access (less verbose than full file access)

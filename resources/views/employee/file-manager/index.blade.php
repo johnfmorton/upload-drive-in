@@ -191,7 +191,20 @@
                                                     <template x-if="column.key === 'original_filename'">
                                                         <div class="flex items-center">
                                                             <div class="flex-shrink-0 h-10 w-10">
-                                                                <img class="h-10 w-10 rounded" :src="getThumbnailUrl(file)" alt="File thumbnail">
+                                                                <!-- Show thumbnail only for image files -->
+                                                                <template x-if="file.mime_type && file.mime_type.startsWith('image/')">
+                                                                    <img class="h-10 w-10 rounded object-cover" :src="getThumbnailUrl(file)" :alt="file.original_filename">
+                                                                </template>
+                                                                <!-- Show file icon for non-image files -->
+                                                                <template x-if="!file.mime_type || !file.mime_type.startsWith('image/')">
+                                                                    <div class="h-10 w-10 rounded bg-gray-100 flex items-center justify-center">
+                                                                        <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                                                            </path>
+                                                                        </svg>
+                                                                    </div>
+                                                                </template>
                                                             </div>
                                                             <div class="ml-4">
                                                                 <div class="text-sm font-medium text-gray-900">
