@@ -1,24 +1,52 @@
 {{-- Google Drive Root Folder Selection Form --}}
 <div x-data="googleDriveFolderPicker()" x-init="init()">
+    @if($googleDriveEnvSettings['root_folder_id'])
+        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">Environment Configuration</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <p>The root folder ID is configured via environment variables and cannot be changed here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <form action="{{ route('admin.cloud-storage.google-drive.folder.update') }}" method="POST" class="space-y-4">
         @csrf
         @method('PUT')
         <x-label for="google_drive_root_folder_id" :value="__('messages.root_folder')" />
         <p class="-mt-3 text-sm text-gray-500">{{ __('messages.root_folder_description') }}</p>
-        <div class="flex items-center space-x-2 border-gray-300 rounded-md border p-4">
-            <input type="hidden" id="google_drive_root_folder_id" name="google_drive_root_folder_id" x-model="currentFolderId" />
-            <span class="text-gray-700 relative top-[1px]" x-text="currentFolderName ? '📁' : ''"></span>
-            <span
-                x-text="currentFolderName ? currentFolderName : '{{ __('messages.select_folder_prompt') }}'"
-                class="inline-block w-full text-gray-700">
-            </span>
-            <x-secondary-button
-                type="button"
-                @click="openModal"
-                class="whitespace-nowrap bg-gray-200 hover:bg-gray-700 hover:text-white px-2 py-1 rounded"
-                x-text="currentFolderId ? '{{ __('messages.change_folder') }}' : '{{ __('messages.select_folder') }}'"
-            />
-        </div>
+        
+        @if($googleDriveEnvSettings['root_folder_id'])
+            <div class="flex items-center space-x-2 border-gray-300 rounded-md border p-4 bg-gray-100">
+                <span class="text-gray-700 relative top-[1px]">📁</span>
+                <span class="inline-block w-full text-gray-700">{{ $currentFolderName ?: 'Root Folder' }}</span>
+                <span class="text-sm text-gray-500 whitespace-nowrap">Environment configured</span>
+            </div>
+            <p class="text-sm text-gray-500">This folder is configured via environment variables.</p>
+        @else
+            <div class="flex items-center space-x-2 border-gray-300 rounded-md border p-4">
+                <input type="hidden" id="google_drive_root_folder_id" name="google_drive_root_folder_id" x-model="currentFolderId" />
+                <span class="text-gray-700 relative top-[1px]" x-text="currentFolderName ? '📁' : ''"></span>
+                <span
+                    x-text="currentFolderName ? currentFolderName : '{{ __('messages.select_folder_prompt') }}'"
+                    class="inline-block w-full text-gray-700">
+                </span>
+                <x-secondary-button
+                    type="button"
+                    @click="openModal"
+                    class="whitespace-nowrap bg-gray-200 hover:bg-gray-700 hover:text-white px-2 py-1 rounded"
+                    x-text="currentFolderId ? '{{ __('messages.change_folder') }}' : '{{ __('messages.select_folder') }}'"
+                />
+            </div>
+        @endif
         <x-input-error for="google_drive_root_folder_id" class="mt-2" />
 
         <!-- Folder Selection Modal -->
@@ -53,8 +81,10 @@
             </div>
         </div>
 
-        <div class="flex justify-end">
-            <x-button type="submit" x-bind:class="folderChanged ? 'animate-wiggle' : ''">{{ __('messages.save_root_folder') }}</x-button>
-        </div>
+        @unless($googleDriveEnvSettings['root_folder_id'])
+            <div class="flex justify-end">
+                <x-button type="submit" x-bind:class="folderChanged ? 'animate-wiggle' : ''">{{ __('messages.save_root_folder') }}</x-button>
+            </div>
+        @endunless
     </form>
 </div>

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\GoogleDriveToken;
+use App\Models\CloudStorageSetting;
 use Google\Client;
 use Google\Service\Drive;
 use Google\Service\Drive\DriveFile;
@@ -28,8 +29,8 @@ class GoogleDriveService
     public function __construct()
     {
         $this->client = new Client();
-        $this->client->setClientId(config('cloud-storage.providers.google-drive.client_id'));
-        $this->client->setClientSecret(config('cloud-storage.providers.google-drive.client_secret'));
+        $this->client->setClientId(CloudStorageSetting::getEffectiveValue('google-drive', 'client_id'));
+        $this->client->setClientSecret(CloudStorageSetting::getEffectiveValue('google-drive', 'client_secret'));
         $this->client->addScope(Drive::DRIVE_FILE);
         $this->client->addScope(Drive::DRIVE);
         $this->client->setAccessType('offline');
@@ -46,7 +47,7 @@ class GoogleDriveService
      */
     public function getRootFolderId(): string
     {
-        $rootFolderId = config('cloud-storage.providers.google-drive.root_folder_id');
+        $rootFolderId = CloudStorageSetting::getEffectiveValue('google-drive', 'root_folder_id');
         if (empty($rootFolderId)) {
             Log::error('Google Drive root folder ID is not configured.', ['config_key' => 'cloud-storage.providers.google-drive.root_folder_id']);
             throw new Exception('Google Drive root folder ID is not configured.');
@@ -612,7 +613,7 @@ class GoogleDriveService
         if ($targetUser->isEmployee() && $targetUser->hasGoogleDriveConnected()) {
             try {
                 $driveService = $this->getDriveService($targetUser);
-                $rootFolderId = $targetUser->google_drive_root_folder_id ?? config('cloud-storage.providers.google-drive.root_folder_id');
+                $rootFolderId = $targetUser->google_drive_root_folder_id ?? CloudStorageSetting::getEffectiveValue('google-drive', 'root_folder_id');
                 Log::info('Using employee Google Drive for upload', [
                     'employee_id' => $targetUser->id,
                     'employee_email' => $targetUser->email
@@ -636,7 +637,7 @@ class GoogleDriveService
             if ($adminUser && $adminUser->hasGoogleDriveConnected()) {
                 try {
                     $driveService = $this->getDriveService($adminUser);
-                    $rootFolderId = config('cloud-storage.providers.google-drive.root_folder_id');
+                    $rootFolderId = CloudStorageSetting::getEffectiveValue('google-drive', 'root_folder_id');
                     Log::info('Using admin Google Drive for upload as fallback', [
                         'admin_id' => $adminUser->id,
                         'target_employee_id' => $targetUser->id

@@ -35,7 +35,30 @@ class UploadController extends Controller
     {
         $user = Auth::user();
         
-        return view('employee.upload-page', compact('user'));
+        // Get current folder name if set
+        $currentFolderName = null;
+        $currentFolderId = $user->google_drive_root_folder_id;
+        
+        if ($currentFolderId && $user->hasGoogleDriveConnected()) {
+            try {
+                if ($currentFolderId === 'root') {
+                    $currentFolderName = 'Root Folder';
+                } else {
+                    $service = $this->driveService->getDriveService($user);
+                    $folder = $service->files->get($currentFolderId, ['fields' => 'name']);
+                    $currentFolderName = $folder->getName();
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to get folder name for employee upload page', [
+                    'user_id' => $user->id,
+                    'folder_id' => $currentFolderId,
+                    'error' => $e->getMessage()
+                ]);
+                $currentFolderName = 'Unknown Folder';
+            }
+        }
+        
+        return view('employee.upload-page', compact('user', 'currentFolderName', 'currentFolderId'));
     }
 
     /**

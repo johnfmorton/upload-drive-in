@@ -71,7 +71,7 @@
             currentFolderId: @json($user->google_drive_root_folder_id ?? ''),
             initialFolderId: @json($user->google_drive_root_folder_id ?? ''),
             folderChanged: false,
-            currentFolderName: @json($user->google_drive_root_folder_id ? 'Loading...' : ''),
+            currentFolderName: @json($currentFolderName ?? ''),
             rootFolderName: 'Root Folder',
             baseFolderShowUrl: '{{ route('employee.google-drive.folders', ['username' => $user->username]) }}',
             folderStack: [],
@@ -79,25 +79,7 @@
             newFolderName: '',
 
             init() {
-                if (this.currentFolderId) {
-                    this.loadCurrentFolderName();
-                }
-            },
-
-            async loadCurrentFolderName() {
-                if (!this.currentFolderId || this.currentFolderId === 'root') {
-                    this.currentFolderName = this.rootFolderName;
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`{{ route('employee.google-drive.folders.show', ['username' => $user->username, 'folderId' => '__FOLDER_ID__']) }}`.replace('__FOLDER_ID__', this.currentFolderId));
-                    const data = await response.json();
-                    this.currentFolderName = data.folder.name;
-                } catch (error) {
-                    console.error('Failed to load folder name:', error);
-                    this.currentFolderName = 'Unknown Folder';
-                }
+                // Folder name is now loaded server-side
             },
 
             openModal() {
