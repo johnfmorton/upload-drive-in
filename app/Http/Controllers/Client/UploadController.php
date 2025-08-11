@@ -37,6 +37,25 @@ class UploadController extends Controller
     public function show()
     {
         $user = Auth::user();
+        
+        // Ensure client has a relationship with a company user
+        if ($user->isClient() && $user->companyUsers()->count() === 0) {
+            $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)
+                ->whereHas('googleDriveToken') // Ensure admin has Google Drive connected
+                ->first();
+            
+            if ($adminUser) {
+                $this->clientUserService->associateWithCompanyUser($user, $adminUser);
+                
+                Log::info('Created fallback relationship with admin user for client visiting upload page', [
+                    'client_user_id' => $user->id,
+                    'client_email' => $user->email,
+                    'admin_user_id' => $adminUser->id,
+                    'admin_email' => $adminUser->email
+                ]);
+            }
+        }
+        
         return view('client.upload-page', compact('user'));
     }
 
@@ -65,10 +84,31 @@ class UploadController extends Controller
             $companyUser = $user->primaryCompanyUser();
         }
 
+        // If still no company user, create a relationship with an admin user as fallback
+        if (!$companyUser) {
+            $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)
+                ->whereHas('googleDriveToken') // Ensure admin has Google Drive connected
+                ->first();
+            
+            if ($adminUser) {
+                // Create the relationship using the service
+                $this->clientUserService->associateWithCompanyUser($user, $adminUser);
+                $companyUser = $adminUser;
+                
+                Log::info('Created fallback relationship with admin user for client upload', [
+                    'client_user_id' => $user->id,
+                    'client_email' => $user->email,
+                    'admin_user_id' => $adminUser->id,
+                    'admin_email' => $adminUser->email
+                ]);
+            }
+        }
+
         if (!$companyUser || !$companyUser->hasGoogleDriveConnected()) {
             Log::error('No valid company user with Google Drive connection found for upload', [
                 'client_user_id' => $user->id,
-                'selected_company_user_id' => $request->input('company_user_id')
+                'selected_company_user_id' => $request->input('company_user_id'),
+                'has_relationships' => $user->companyUsers()->count() > 0
             ]);
             return response()->json([
                 'error' => __('messages.no_valid_upload_destination')

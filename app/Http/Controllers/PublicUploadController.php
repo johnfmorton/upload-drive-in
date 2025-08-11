@@ -12,6 +12,7 @@ use App\Mail\LoginVerificationMail;
 use App\Models\DomainAccessRule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
+use App\Services\ClientUserService;
 
 class PublicUploadController extends Controller
 {
@@ -185,6 +186,32 @@ class PublicUploadController extends Controller
         $intendedUrl = session('intended_url');
         if ($intendedUrl) {
             session()->forget('intended_url');
+            
+            // Check if the intended URL is for a specific employee upload page
+            if (preg_match('/\/upload\/([^\/]+)$/', $intendedUrl, $matches)) {
+                $employeeName = $matches[1];
+                
+                // Find the employee by extracting name from email
+                $escapedName = str_replace(['%', '_'], ['\%', '\_'], $employeeName);
+                $employee = \App\Models\User::where('email', 'LIKE', $escapedName . '@%')
+                    ->whereIn('role', [\App\Enums\UserRole::EMPLOYEE, \App\Enums\UserRole::ADMIN])
+                    ->first();
+                
+                if ($employee && $user->isClient()) {
+                    // Create client-company user relationship using the service
+                    $clientUserService = app(\App\Services\ClientUserService::class);
+                    $clientUserService->associateWithCompanyUser($user, $employee);
+                    
+                    \Illuminate\Support\Facades\Log::info('Created client-company relationship during email verification', [
+                        'client_user_id' => $user->id,
+                        'client_email' => $user->email,
+                        'company_user_id' => $employee->id,
+                        'company_user_email' => $employee->email,
+                        'intended_url' => $intendedUrl
+                    ]);
+                }
+            }
+            
             return redirect($intendedUrl)
                 ->with('success', 'Email verified successfully.');
         }
@@ -198,6 +225,22 @@ class PublicUploadController extends Controller
                 ->with('success', 'Email verified successfully.');
         } else {
             // Default redirect for client users
+            // If this is a new client user with no company relationships, associate with admin
+            if ($user->isClient() && $user->companyUsers()->count() === 0) {
+                $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
+                if ($adminUser) {
+                    $clientUserService = app(\App\Services\ClientUserService::class);
+                    $clientUserService->associateWithCompanyUser($user, $adminUser);
+                    
+                    \Illuminate\Support\Facades\Log::info('Associated new client with admin user as fallback', [
+                        'client_user_id' => $user->id,
+                        'client_email' => $user->email,
+                        'admin_user_id' => $adminUser->id,
+                        'admin_email' => $adminUser->email
+                    ]);
+                }
+            }
+            
             return redirect()->route('client.upload-files')
                 ->with('success', 'Email verified successfully. You can now upload files.');
         }

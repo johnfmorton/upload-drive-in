@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Jobs\UploadToGoogleDrive;
 use App\Models\FileUpload;
+use App\Services\ClientUserService;
 
 class PublicEmployeeUploadController extends Controller
 {
@@ -135,6 +136,27 @@ class PublicEmployeeUploadController extends Controller
             return view('public-employee.email-validation', compact('name', 'employee'));
         }
 
+        // If user is authenticated and is a client, ensure they have a relationship with this employee
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        if ($currentUser && $currentUser->isClient()) {
+            // Check if relationship already exists
+            $existingRelationship = $currentUser->companyUsers()->where('users.id', $employee->id)->exists();
+            
+            if (!$existingRelationship) {
+                // Create the relationship
+                $clientUserService = app(\App\Services\ClientUserService::class);
+                $clientUserService->associateWithCompanyUser($currentUser, $employee);
+                
+                \Illuminate\Support\Facades\Log::info('Created client-company relationship for authenticated user accessing employee upload page', [
+                    'client_user_id' => $currentUser->id,
+                    'client_email' => $currentUser->email,
+                    'company_user_id' => $employee->id,
+                    'company_user_email' => $employee->email,
+                    'url' => request()->url()
+                ]);
+            }
+        }
+
         // Check if employee has Google Drive connected
         $hasGoogleDriveConnected = $employee->hasGoogleDriveConnected();
 
@@ -213,6 +235,25 @@ class PublicEmployeeUploadController extends Controller
 
         if (!$employee) {
             return response()->json(['error' => 'User not found'], 404);
+        }
+
+        // Ensure client-company relationship exists for authenticated users
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        if ($currentUser && $currentUser->isClient()) {
+            $existingRelationship = $currentUser->companyUsers()->where('users.id', $employee->id)->exists();
+            
+            if (!$existingRelationship) {
+                $clientUserService = app(\App\Services\ClientUserService::class);
+                $clientUserService->associateWithCompanyUser($currentUser, $employee);
+                
+                \Illuminate\Support\Facades\Log::info('Created client-company relationship during chunk upload', [
+                    'client_user_id' => $currentUser->id,
+                    'client_email' => $currentUser->email,
+                    'company_user_id' => $employee->id,
+                    'company_user_email' => $employee->email,
+                    'upload_name' => $name
+                ]);
+            }
         }
 
         // Create the file receiver
@@ -370,6 +411,25 @@ class PublicEmployeeUploadController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
 
+        // Ensure client-company relationship exists
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        if ($currentUser && $currentUser->isClient()) {
+            $existingRelationship = $currentUser->companyUsers()->where('users.id', $employee->id)->exists();
+            
+            if (!$existingRelationship) {
+                $clientUserService = app(\App\Services\ClientUserService::class);
+                $clientUserService->associateWithCompanyUser($currentUser, $employee);
+                
+                \Illuminate\Support\Facades\Log::info('Created client-company relationship during message association', [
+                    'client_user_id' => $currentUser->id,
+                    'client_email' => $currentUser->email,
+                    'company_user_id' => $employee->id,
+                    'company_user_email' => $employee->email,
+                    'upload_name' => $name
+                ]);
+            }
+        }
+
         // Update the message for uploads belonging to this employee and client
         \App\Models\FileUpload::whereIn('id', $validated['file_upload_ids'])
             ->where('uploaded_by_user_id', $employee->id)
@@ -401,6 +461,25 @@ class PublicEmployeeUploadController extends Controller
 
         if (!$employee) {
             return response()->json(['error' => 'User not found'], 404);
+        }
+
+        // Ensure client-company relationship exists
+        $currentUser = \Illuminate\Support\Facades\Auth::user();
+        if ($currentUser && $currentUser->isClient()) {
+            $existingRelationship = $currentUser->companyUsers()->where('users.id', $employee->id)->exists();
+            
+            if (!$existingRelationship) {
+                $clientUserService = app(\App\Services\ClientUserService::class);
+                $clientUserService->associateWithCompanyUser($currentUser, $employee);
+                
+                \Illuminate\Support\Facades\Log::info('Created client-company relationship during batch complete', [
+                    'client_user_id' => $currentUser->id,
+                    'client_email' => $currentUser->email,
+                    'company_user_id' => $employee->id,
+                    'company_user_email' => $employee->email,
+                    'upload_name' => $name
+                ]);
+            }
         }
 
         // Get the uploads for this employee and client
