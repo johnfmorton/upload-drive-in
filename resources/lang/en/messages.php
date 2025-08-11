@@ -11,7 +11,7 @@
     'your_files' => 'Your Files',
     'upload_files' => 'Upload Files',
     'nav_dashboard' => 'Dashboard',
-    'nav_client_users' => 'Client Users',
+    'nav_client_users' => 'Client Management',
     'nav_cloud_storage' => 'Cloud Storage',
     'nav_employee_users' => 'Employee Users',
     'nav_user_management' => 'User Management',
@@ -19,7 +19,7 @@
     'nav_upload_files' => 'Upload Files',
 
     // Admin Settings Page
-    'app_settings' => 'Application Settings',
+    'app_settings' => 'Branding Settings',
     'branding_settings_title' => 'Branding Settings',
     'branding_settings_description' => 'Update your application\'s branding details like name, color, and icon.',
     'company_name_label' => 'Company Name',
@@ -233,7 +233,7 @@
 
     // Navigation
     'nav_dashboard' => 'Dashboard',
-    'nav_client_users' => 'Client Users',
+    'nav_client_users' => 'Client Management',
     'nav_upload_files' => 'Upload Files',
     'nav_your_files' => 'Your Files',
     'nav_cloud_storage' => 'Cloud Storage',
