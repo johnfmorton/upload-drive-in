@@ -1,11 +1,46 @@
 @props(['user', 'isAdmin' => false])
 
+@php
+    // Check if Google Drive app is configured (Client ID and Client Secret are available)
+    $clientId = \App\Models\CloudStorageSetting::getEffectiveValue('google-drive', 'client_id');
+    $clientSecret = \App\Models\CloudStorageSetting::getEffectiveValue('google-drive', 'client_secret');
+    $isGoogleDriveAppConfigured = !empty($clientId) && !empty($clientSecret);
+@endphp
+
 <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
     <h2 class="text-lg font-medium text-gray-900 mb-4">
         {{ __('messages.google_drive_connection') }}
     </h2>
     
-    @if($user->googleDriveToken)
+    @if(!$isGoogleDriveAppConfigured)
+        {{-- Google Drive app not configured --}}
+        <div class="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                </svg>
+                <div>
+                    @if($isAdmin)
+                        <p class="text-sm font-medium text-red-800">{{ __('messages.google_drive_app_not_configured') }}</p>
+                        <p class="text-sm text-red-600">{{ __('messages.configure_google_drive_app_first') }}</p>
+                    @else
+                        <p class="text-sm font-medium text-red-800">{{ __('messages.google_drive_not_configured') }}</p>
+                        <p class="text-sm text-red-600">{{ __('messages.contact_admin_to_configure_google_drive') }}</p>
+                    @endif
+                </div>
+            </div>
+            @if($isAdmin)
+                <a href="{{ route('admin.cloud-storage.index') }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[var(--brand-color)] hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)]">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    {{ __('messages.configure_cloud_storage') }}
+                </a>
+            @endif
+        </div>
+    @elseif($user->googleDriveToken)
+        {{-- User is connected to Google Drive --}}
         <div class="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
             <div class="flex items-center">
                 <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -34,6 +69,7 @@
             @endif
         </div>
     @else
+        {{-- Google Drive app is configured but user is not connected --}}
         <div class="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div class="flex items-center">
                 <svg class="w-5 h-5 text-yellow-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -65,7 +101,7 @@
         </div>
     @endif
 
-    @if($user->googleDriveToken && $user->upload_url)
+    @if($isGoogleDriveAppConfigured && $user->googleDriveToken && $user->upload_url)
         <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h3 class="text-sm font-medium text-blue-800 mb-2">{{ __('messages.your_upload_page') }}</h3>
             <div class="flex items-center justify-between">
