@@ -42,7 +42,7 @@
 
                     <!-- Toolbar -->
                     <div class="px-4 py-4 sm:px-6 border-b border-gray-200 bg-gray-50">
-                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
                             <!-- Bulk Actions -->
                             <div class="flex items-center space-x-4">
                                 <label class="flex items-center space-x-2">
@@ -80,12 +80,12 @@
                             </div>
 
                             <!-- Search and Filters -->
-                            <div class="flex flex-col lg:flex-row gap-3">
+                            <div class="flex flex-col xl:flex-row gap-3">
                                 <!-- Enhanced Search Input -->
                                 <div class="relative">
                                     <input type="text" x-model.debounce.500ms="searchQuery"
                                         placeholder="{{ __('messages.search_files_placeholder') }}"
-                                        class="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm pl-10 pr-10">
+                                        class="block w-full sm:w-80 lg:w-96 xl:w-80 min-w-0 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm pl-10 pr-10">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
@@ -165,7 +165,7 @@
                                             x-transition:leave="transition ease-in duration-75"
                                             x-transition:leave-start="transform opacity-100 scale-100"
                                             x-transition:leave-end="transform opacity-0 scale-95"
-                                            class="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                                            class="absolute left-0 xl:right-0 xl:left-auto mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
                                             <div class="py-1">
                                                 <div
                                                     class="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-100">
