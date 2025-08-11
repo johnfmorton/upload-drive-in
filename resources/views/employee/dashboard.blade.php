@@ -10,11 +10,8 @@
             <!-- Client Relationships -->
             <x-dashboard.client-relationships :user="$user" :is-admin="false" />
 
-            <!-- Google Drive Connection Status -->
-            <x-dashboard.google-drive-status :user="$user" :is-admin="false" />
-
-            <!-- Personal Upload Page -->
-            <x-dashboard.personal-upload-page :user="$user" />
+            <!-- Google Drive Connection -->
+            <x-dashboard.google-drive-connection :user="$user" :is-admin="false" />
 
             <!-- File Management Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
