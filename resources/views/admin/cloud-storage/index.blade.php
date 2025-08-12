@@ -219,8 +219,8 @@
             currentFolderId: @json(old('google_drive_root_folder_id', $currentFolderId ?? '')),
             initialFolderId: @json(old('google_drive_root_folder_id', $currentFolderId ?? '')),
             folderChanged: false,
-            currentFolderName: @json($currentFolderName ?: __('messages.select_folder_prompt')),
-            rootFolderName: '{{ __('messages.root_folder') }}',
+            currentFolderName: @json($currentFolderName ?: ''),
+            rootFolderName: 'Google Drive Root',
             baseFolderShowUrl: '{{ url('/admin/cloud-storage/google-drive/folders') }}',
             folderStack: [],
             folders: [],
@@ -230,7 +230,9 @@
                 // Remember initial folder to detect changes
                 this.initialFolderId = this.currentFolderId;
                 this.folderChanged = false;
-                if (this.currentFolderId) {
+                
+                // If user has a specific folder configured, fetch its name
+                if (this.currentFolderId && this.currentFolderId !== 'root') {
                     fetch(`${this.baseFolderShowUrl}/${this.currentFolderId}`)
                         .then(res => res.json())
                         .then(data => {
@@ -238,7 +240,10 @@
                                 this.currentFolderName = data.folder.name;
                             }
                         })
-                        .catch(() => {});
+                        .catch(() => {
+                            // If folder fetch fails, reset to default
+                            this.currentFolderName = '';
+                        });
                 }
             },
             openModal() {
@@ -286,8 +291,20 @@
             },
             confirmSelection() {
                 const selected = this.folderStack[this.folderStack.length - 1];
-                this.currentFolderId = selected.id;
-                this.currentFolderName = selected.name;
+                // Don't set root as the folder ID - leave it empty for default behavior
+                if (selected.id === 'root') {
+                    this.currentFolderId = '';
+                    this.currentFolderName = '';
+                } else {
+                    this.currentFolderId = selected.id;
+                    this.currentFolderName = selected.name;
+                }
+                this.folderChanged = (this.currentFolderId !== this.initialFolderId);
+                this.showModal = false;
+            },
+            useGoogleDriveRoot() {
+                this.currentFolderId = '';
+                this.currentFolderName = '';
                 this.folderChanged = (this.currentFolderId !== this.initialFolderId);
                 this.showModal = false;
             },

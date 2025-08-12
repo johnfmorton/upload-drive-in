@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Models\FileUpload;
@@ -39,10 +40,10 @@ class UploadController extends Controller
         $currentFolderName = null;
         $currentFolderId = $user->google_drive_root_folder_id;
         
-        if ($currentFolderId && $user->hasGoogleDriveConnected()) {
+        if ($user->hasGoogleDriveConnected()) {
             try {
-                if ($currentFolderId === 'root') {
-                    $currentFolderName = 'Root Folder';
+                if (empty($currentFolderId) || $currentFolderId === 'root') {
+                    $currentFolderName = 'Google Drive Root';
                 } else {
                     $service = $this->driveService->getDriveService($user);
                     $folder = $service->files->get($currentFolderId, ['fields' => 'name']);
@@ -56,6 +57,9 @@ class UploadController extends Controller
                 ]);
                 $currentFolderName = 'Unknown Folder';
             }
+        } else {
+            // Default messaging when not connected
+            $currentFolderName = empty($currentFolderId) ? 'Google Drive Root (default)' : 'Selected Folder';
         }
         
         return view('employee.upload-page', compact('user', 'currentFolderName', 'currentFolderId'));
@@ -86,17 +90,17 @@ class UploadController extends Controller
         $code = $request->input('code');
         
         if (!$code) {
-            return redirect()->route('employee.clients.index', ['username' => $user->username])
+            return redirect()->route('employee.cloud-storage.index', ['username' => $user->username])
                 ->with('error', __('messages.google_drive_connection_failed'));
         }
 
         try {
             $this->driveService->handleCallback($user, $code);
             
-            return redirect()->route('employee.clients.index', ['username' => $user->username])
+            return redirect()->route('employee.cloud-storage.index', ['username' => $user->username])
                 ->with('success', __('messages.google_drive_connected'));
         } catch (\Exception $e) {
-            return redirect()->route('employee.clients.index', ['username' => $user->username])
+            return redirect()->route('employee.cloud-storage.index', ['username' => $user->username])
                 ->with('error', __('messages.google_drive_connection_failed'));
         }
     }
@@ -114,10 +118,10 @@ class UploadController extends Controller
         try {
             $this->driveService->disconnect($user);
             
-            return redirect()->route('employee.clients.index', ['username' => $user->username])
+            return redirect()->route('employee.cloud-storage.index', ['username' => $user->username])
                 ->with('success', __('messages.google_drive_disconnected'));
         } catch (\Exception $e) {
-            return redirect()->route('employee.clients.index', ['username' => $user->username])
+            return redirect()->route('employee.cloud-storage.index', ['username' => $user->username])
                 ->with('error', __('messages.google_drive_disconnect_failed'));
         }
     }
@@ -131,17 +135,38 @@ class UploadController extends Controller
     public function updateFolder(Request $request)
     {
         $validated = $request->validate([
-            'google_drive_root_folder_id' => ['required', 'string'],
+            'google_drive_root_folder_id' => ['nullable', 'string'],
         ]);
 
-        $user = Auth::user();
-        $user->update(['google_drive_root_folder_id' => $validated['google_drive_root_folder_id']]);
+        try {
+            $user = Auth::user();
+            
+            // Save to user's database record
+            $user->google_drive_root_folder_id = $validated['google_drive_root_folder_id'] ?? null;
+            $user->save();
+            
+            Log::info('Google Drive root folder updated successfully for employee', [
+                'user_id' => $user->id,
+                'folder_id' => $validated['google_drive_root_folder_id']
+            ]);
 
-        return redirect()->route(
-            'employee.upload.show',
-            ['username' => $user->username]
-        )
-        ->with('success', __('messages.save_root_folder'));
+            return redirect()->route(
+                'employee.upload.show',
+                ['username' => $user->username]
+            )
+            ->with('success', __('messages.save_root_folder'));
+        } catch (\Exception $e) {
+            Log::error('Failed to update Google Drive root folder for employee', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->route(
+                'employee.upload.show',
+                ['username' => $user->username]
+            )
+            ->with('error', __('messages.settings_update_failed'));
+        }
     }
 
     /**

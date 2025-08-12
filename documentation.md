@@ -227,7 +227,6 @@ REDIS_PORT=6379
 GOOGLE_DRIVE_CLIENT_ID=your_client_id
 GOOGLE_DRIVE_CLIENT_SECRET=your_client_secret
 GOOGLE_DRIVE_REDIRECT_URI=https://yourdomain.com/admin/cloud-storage/google-drive/callback
-GOOGLE_DRIVE_ROOT_FOLDER_ID=your_folder_id
 ```
 
 7. **Run migrations and optimize**:
@@ -373,7 +372,8 @@ UPLOAD_EMERGENCY_CLEANUP=true
 GOOGLE_DRIVE_CLIENT_ID=your_client_id
 GOOGLE_DRIVE_CLIENT_SECRET=your_client_secret
 GOOGLE_DRIVE_REDIRECT_URI=https://yourdomain.com/admin/cloud-storage/google-drive/callback
-GOOGLE_DRIVE_ROOT_FOLDER_ID=your_folder_id
+
+# Note: Google Drive root folder is now configured per-user through the dashboard
 ```
 
 3. **Build and start containers**:
@@ -709,7 +709,6 @@ DB_PASSWORD=db
 GOOGLE_DRIVE_CLIENT_ID=
 GOOGLE_DRIVE_CLIENT_SECRET=
 GOOGLE_DRIVE_REDIRECT_URI=https://upload-drive-in.ddev.site/admin/cloud-storage/google-drive/callback
-GOOGLE_DRIVE_ROOT_FOLDER_ID=
 CLOUD_STORAGE_DEFAULT=google-drive
 
 QUEUE_CONNECTION=database
@@ -736,8 +735,9 @@ DB_PASSWORD=secure_password
 GOOGLE_DRIVE_CLIENT_ID=your_client_id
 GOOGLE_DRIVE_CLIENT_SECRET=your_client_secret
 GOOGLE_DRIVE_REDIRECT_URI=https://yourdomain.com/admin/cloud-storage/google-drive/callback
-GOOGLE_DRIVE_ROOT_FOLDER_ID=your_folder_id
 CLOUD_STORAGE_DEFAULT=google-drive
+
+# Note: Google Drive root folder is now configured per-user through the dashboard
 
 QUEUE_CONNECTION=redis
 CACHE_DRIVER=redis
@@ -761,6 +761,26 @@ MAIL_ENCRYPTION=tls
 3. Configure OAuth 2.0 credentials
 4. Set up the redirect URI
 5. Generate and store refresh tokens
+
+#### User-Based Root Folder Configuration
+
+**Important Change**: As of the latest version, Google Drive root folder configuration is now managed on a per-user basis through the application interface, rather than through environment variables.
+
+**How it works:**
+- Each admin and employee user can configure their own Google Drive root folder through their respective dashboards
+- When no folder is configured, the system defaults to the Google Drive root ('root')
+- This allows multiple users to organize uploads into different folders within their connected Google Drive accounts
+
+**Configuration Steps:**
+1. **Admin Users**: Navigate to Admin Dashboard → Cloud Storage → Google Drive Root Folder
+2. **Employee Users**: Navigate to Employee Dashboard → Cloud Storage Settings → Google Drive Root Folder
+3. Select a folder from your Google Drive or leave empty to use the default root
+4. Save your configuration
+
+**Migration Notes:**
+- Existing users with configured folders will continue to work without changes
+- The `GOOGLE_DRIVE_ROOT_FOLDER_ID` environment variable is no longer used and can be removed from your `.env` file
+- No data migration is required - the system gracefully handles the transition
 
 ### Disk Space Management
 

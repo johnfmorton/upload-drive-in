@@ -32,14 +32,14 @@ class CloudStorageController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $currentFolderId = CloudStorageSetting::getEffectiveValue('google-drive', 'root_folder_id');
+        $currentFolderId = $user->google_drive_root_folder_id;
         $currentFolderName = '';
 
-        // Check which settings are defined in environment
+        // Check which settings are defined in environment (root folder is now user-specific only)
         $googleDriveEnvSettings = [
             'client_id' => CloudStorageSetting::isDefinedInEnvironment('google-drive', 'client_id'),
             'client_secret' => CloudStorageSetting::isDefinedInEnvironment('google-drive', 'client_secret'),
-            'root_folder_id' => CloudStorageSetting::isDefinedInEnvironment('google-drive', 'root_folder_id'),
+            'root_folder_id' => false, // Always false - root folder is user-specific only
         ];
 
         try {
@@ -146,7 +146,6 @@ class CloudStorageController extends Controller
         $validated = $request->validate([
             'google_drive_client_id' => ['required', 'string'],
             'google_drive_client_secret' => ['nullable', 'string'],
-            'google_drive_root_folder_id' => ['required', 'string'],
         ]);
 
         try {
@@ -155,7 +154,6 @@ class CloudStorageController extends Controller
             if (!empty($validated['google_drive_client_secret'])) {
                 $this->updateEnvironmentValue('GOOGLE_DRIVE_CLIENT_SECRET', $validated['google_drive_client_secret']);
             }
-            $this->updateEnvironmentValue('GOOGLE_DRIVE_ROOT_FOLDER_ID', $validated['google_drive_root_folder_id']);
 
             // Clear config cache to apply new environment values
             Artisan::call('config:clear');
@@ -280,22 +278,20 @@ class CloudStorageController extends Controller
     public function updateGoogleDriveRootFolder(Request $request)
     {
         $validated = $request->validate([
-            'google_drive_root_folder_id' => ['required', 'string'],
+            'google_drive_root_folder_id' => ['nullable', 'string'],
         ]);
 
         try {
-            // Check if value is defined in environment
-            if (CloudStorageSetting::isDefinedInEnvironment('google-drive', 'root_folder_id')) {
-                return redirect()->back()->with('error', 'Root Folder ID is configured via environment variables and cannot be changed here.');
-            }
-
-            // Save to database
-            CloudStorageSetting::setValue('google-drive', 'root_folder_id', $validated['google_drive_root_folder_id']);
+            $user = Auth::user();
             
-            // Clear config cache
-            Artisan::call('config:clear');
+            // Save to user's database record
+            $user->google_drive_root_folder_id = $validated['google_drive_root_folder_id'] ?? null;
+            $user->save();
             
-            Log::info('Google Drive root folder updated successfully', ['folder_id' => $validated['google_drive_root_folder_id']]);
+            Log::info('Google Drive root folder updated successfully', [
+                'user_id' => $user->id,
+                'folder_id' => $validated['google_drive_root_folder_id']
+            ]);
             return redirect()->back()->with('success', __('messages.settings_updated_successfully'));
         } catch (\Exception $e) {
             Log::error('Failed to update Google Drive root folder', ['error' => $e->getMessage()]);

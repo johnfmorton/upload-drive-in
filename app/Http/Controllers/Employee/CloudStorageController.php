@@ -28,10 +28,10 @@ class CloudStorageController extends Controller
         $currentFolderName = null;
         $currentFolderId = $user->google_drive_root_folder_id;
         
-        if ($currentFolderId && $user->hasGoogleDriveConnected()) {
+        if ($user->hasGoogleDriveConnected()) {
             try {
-                if ($currentFolderId === 'root') {
-                    $currentFolderName = 'Root Folder';
+                if (empty($currentFolderId) || $currentFolderId === 'root') {
+                    $currentFolderName = 'Google Drive Root';
                 } else {
                     $service = $this->driveService->getDriveService($user);
                     $folder = $service->files->get($currentFolderId, ['fields' => 'name']);
@@ -45,6 +45,9 @@ class CloudStorageController extends Controller
                 ]);
                 $currentFolderName = 'Unknown Folder';
             }
+        } else {
+            // Default messaging when not connected
+            $currentFolderName = empty($currentFolderId) ? 'Google Drive Root (default)' : 'Selected Folder';
         }
 
         return view('employee.cloud-storage.index', compact('user', 'currentFolderName', 'currentFolderId'));
@@ -84,20 +87,5 @@ class CloudStorageController extends Controller
         }
     }
 
-    /**
-     * Update the Google Drive root folder.
-     */
-    public function updateFolder(Request $request)
-    {
-        $validated = $request->validate([
-            'google_drive_root_folder_id' => ['required', 'string'],
-        ]);
 
-        $user = Auth::user();
-        $user->google_drive_root_folder_id = $validated['google_drive_root_folder_id'];
-        $user->save();
-
-        return redirect()->route('employee.cloud-storage.index', ['username' => $user->username])
-            ->with('success', 'Root folder updated successfully');
-    }
 }

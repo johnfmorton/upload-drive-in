@@ -87,7 +87,7 @@ class GoogleDriveUnifiedCallbackController extends Controller
 
         if ($user->isEmployee()) {
             return redirect()
-                ->route('employee.upload.show', ['username' => $user->username])
+                ->route('employee.cloud-storage.index', ['username' => $user->username])
                 ->with('success', 'Successfully connected to Google Drive!');
         }
 
@@ -116,7 +116,7 @@ class GoogleDriveUnifiedCallbackController extends Controller
 
         if ($user->isEmployee()) {
             return redirect()
-                ->route('employee.upload.show', ['username' => $user->username])
+                ->route('employee.cloud-storage.index', ['username' => $user->username])
                 ->with('error', $message);
         }
 

@@ -61,6 +61,9 @@
                             <!-- Google Drive Folder Selection -->
                             <div class="border-t pt-4">
                                 <h4 class="text-md font-medium mb-3">Upload Destination</h4>
+                                <p class="text-sm text-gray-600 mb-3">
+                                    Choose where files will be stored in your Google Drive. If no folder is selected, uploads will go to your Google Drive root directory by default.
+                                </p>
                                 @include('employee.google-drive.google-drive-root-folder')
                             </div>
                         @else

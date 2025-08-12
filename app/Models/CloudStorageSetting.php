@@ -119,7 +119,7 @@ class CloudStorageSetting extends Model
         
         // Define the keys we need for each provider
         $providerKeys = [
-            'google-drive' => ['client_id', 'client_secret', 'root_folder_id'],
+            'google-drive' => ['client_id', 'client_secret'],
             'microsoft-teams' => ['client_id', 'client_secret', 'root_folder_id'],
             'dropbox' => ['client_id', 'client_secret', 'root_folder'],
         ];

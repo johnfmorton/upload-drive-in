@@ -141,11 +141,7 @@ This application uses Google Drive to store uploaded files. To enable this funct
     GOOGLE_DRIVE_REDIRECT_URI=THE_EXACT_REDIRECT_URI_YOU_ENTERED_IN_GOOGLE_CONSOLE
     ```
 
-*   You also need to specify the ID of the Google Drive folder where user files should be uploaded. Create a folder in Google Drive (e.g., "App Uploads") and copy its ID from the URL (the string of characters after `/folders/`). Add this to your `.env`:
-
-    ```dotenv
-    GOOGLE_DRIVE_ROOT_FOLDER_ID=YOUR_ROOT_FOLDER_ID_HERE
-    ```
+*   **Note**: Google Drive root folder configuration is now managed per-user through the admin and employee dashboards. You no longer need to set a global root folder ID in your environment variables.
 
 **5. Connect Google Drive in the Application:**
 

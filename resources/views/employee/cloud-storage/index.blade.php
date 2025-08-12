@@ -56,7 +56,7 @@
                                 <div class="border-t border-green-200 pt-6">
                                     <h4 class="text-md font-medium mb-4 text-green-800">Upload Destination</h4>
                                     <p class="text-sm text-green-700 mb-4">
-                                        Choose where files uploaded to you will be stored in your Google Drive.
+                                        Choose where files uploaded to you will be stored in your Google Drive. If no folder is selected, uploads will go to your Google Drive root directory by default.
                                     </p>
 
                                     @include('employee.google-drive.google-drive-root-folder')
@@ -116,8 +116,7 @@
                                         d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                                         clip-rule="evenodd"></path>
                                 </svg>
-                                You can choose a specific folder as your upload destination using the folder picker
-                                above
+                                You can choose a specific folder as your upload destination, or leave it unset to use Google Drive root by default
                             </li>
                             <li class="flex items-start">
                                 <svg class="w-4 h-4 mr-2 mt-0.5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">

@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\GoogleDriveToken;
-use App\Models\CloudStorageSetting;
 use Google\Client;
 use Google\Service\Drive;
 use Google\Service\Drive\DriveFile;
@@ -29,8 +28,8 @@ class GoogleDriveService
     public function __construct()
     {
         $this->client = new Client();
-        $this->client->setClientId(CloudStorageSetting::getEffectiveValue('google-drive', 'client_id'));
-        $this->client->setClientSecret(CloudStorageSetting::getEffectiveValue('google-drive', 'client_secret'));
+        $this->client->setClientId(config('services.google.client_id'));
+        $this->client->setClientSecret(config('services.google.client_secret'));
         $this->client->addScope(Drive::DRIVE_FILE);
         $this->client->addScope(Drive::DRIVE);
         $this->client->setAccessType('offline');
@@ -40,19 +39,28 @@ class GoogleDriveService
 
 
     /**
-     * Returns the configured Google Drive Root Folder ID.
+     * Returns the default Google Drive Root Folder ID.
+     * Always returns 'root' (Google Drive root) as the default.
      *
      * @return string The Root Folder ID.
-     * @throws Exception If the root folder ID is not configured.
      */
     public function getRootFolderId(): string
     {
-        $rootFolderId = CloudStorageSetting::getEffectiveValue('google-drive', 'root_folder_id');
-        if (empty($rootFolderId)) {
-            Log::error('Google Drive root folder ID is not configured.', ['config_key' => 'cloud-storage.providers.google-drive.root_folder_id']);
-            throw new Exception('Google Drive root folder ID is not configured.');
-        }
-        return $rootFolderId;
+        Log::debug('Using Google Drive root as default folder.', ['default_folder_id' => 'root']);
+        return 'root';
+    }
+
+    /**
+     * Returns the effective root folder ID for a specific user.
+     * Uses user-specific folder if configured, otherwise defaults to Google Drive root.
+     *
+     * @param User $user The user to get the root folder for.
+     * @return string The effective root folder ID.
+     */
+    public function getEffectiveRootFolderId(User $user): string
+    {
+        // Return user's setting or default to 'root'
+        return !empty($user->google_drive_root_folder_id) ? $user->google_drive_root_folder_id : 'root';
     }
 
     /**
@@ -89,7 +97,7 @@ class GoogleDriveService
             $service = $this->getDriveService($user);
             $sanitizedEmail = $this->sanitizeEmailForFolderName($email);
             $folderName = "User: {$sanitizedEmail}"; // Consistent naming convention
-            $rootFolderId = $this->getRootFolderId();
+            $rootFolderId = $this->getEffectiveRootFolderId($user);
 
             Log::debug('Searching for user folder in Google Drive.', [
                 'email' => $email,
@@ -158,7 +166,7 @@ class GoogleDriveService
             $service = $this->getDriveService($user);
             $sanitizedEmail = $this->sanitizeEmailForFolderName($email);
             $folderName = "User: {$sanitizedEmail}";
-            $rootFolderId = $this->getRootFolderId();
+            $rootFolderId = $this->getEffectiveRootFolderId($user);
 
             Log::info('User folder not found, creating new folder in Google Drive.', [
                 'email' => $email,
@@ -613,7 +621,7 @@ class GoogleDriveService
         if ($targetUser->isEmployee() && $targetUser->hasGoogleDriveConnected()) {
             try {
                 $driveService = $this->getDriveService($targetUser);
-                $rootFolderId = $targetUser->google_drive_root_folder_id ?? CloudStorageSetting::getEffectiveValue('google-drive', 'root_folder_id');
+                $rootFolderId = $this->getEffectiveRootFolderId($targetUser);
                 Log::info('Using employee Google Drive for upload', [
                     'employee_id' => $targetUser->id,
                     'employee_email' => $targetUser->email
@@ -637,7 +645,7 @@ class GoogleDriveService
             if ($adminUser && $adminUser->hasGoogleDriveConnected()) {
                 try {
                     $driveService = $this->getDriveService($adminUser);
-                    $rootFolderId = CloudStorageSetting::getEffectiveValue('google-drive', 'root_folder_id');
+                    $rootFolderId = $this->getEffectiveRootFolderId($adminUser);
                     Log::info('Using admin Google Drive for upload as fallback', [
                         'admin_id' => $adminUser->id,
                         'target_employee_id' => $targetUser->id

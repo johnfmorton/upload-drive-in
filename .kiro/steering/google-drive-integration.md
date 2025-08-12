@@ -30,7 +30,7 @@ This Laravel application is a client file intake system that integrates with Goo
 - Redirect URI: `/admin/cloud-storage/google-drive/callback`
 
 ### File Organization
-- Root folder ID configured via `GOOGLE_DRIVE_ROOT_FOLDER_ID`
+- Root folder ID configured per-user through database settings (defaults to 'root')
 - Subfolders created per client email address
 - Metadata stored locally with Google Drive file IDs
 
@@ -41,9 +41,10 @@ This Laravel application is a client file intake system that integrates with Goo
 GOOGLE_DRIVE_CLIENT_ID=
 GOOGLE_DRIVE_CLIENT_SECRET=
 GOOGLE_DRIVE_REDIRECT_URI=
-GOOGLE_DRIVE_ROOT_FOLDER_ID=
 CLOUD_STORAGE_DEFAULT=google-drive
 ```
+
+**Note**: `GOOGLE_DRIVE_ROOT_FOLDER_ID` is no longer used. Root folder configuration is now managed per-user through the admin and employee dashboards, with automatic fallback to Google Drive root ('root') when no folder is configured.
 
 ### Multi-Provider Support
 - Google Drive (primary)

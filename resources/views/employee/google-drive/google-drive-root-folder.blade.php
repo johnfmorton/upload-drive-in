@@ -5,11 +5,27 @@
         @method('PUT')
         <x-label for="google_drive_root_folder_id" :value="__('Root Folder')" />
         <p class="-mt-3 text-sm text-gray-500">Select the folder where uploaded files will be stored in your Google Drive.</p>
+        
+        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">User-Specific Configuration</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <p>Your root folder setting is stored in your user profile. If no folder is selected, uploads will go to your Google Drive root directory by default.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="flex items-center space-x-2 border-gray-300 rounded-md border p-4">
             <input type="hidden" id="google_drive_root_folder_id" name="google_drive_root_folder_id" x-model="currentFolderId" />
-            <span class="text-gray-700 relative top-[1px]" x-text="currentFolderName ? '📁' : ''"></span>
+            <span class="text-gray-700 relative top-[1px]">📁</span>
             <span
-                x-text="currentFolderName ? currentFolderName : 'Select a folder'"
+                x-text="currentFolderName || 'Google Drive Root (default)'"
                 class="inline-block w-full text-gray-700">
             </span>
             <x-secondary-button
@@ -48,17 +64,20 @@
                         Create Folder
                     </button>
                 </div>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" @click="confirmSelection" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Confirm</button>
-                    <button type="button" @click="closeModal" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded">Cancel</button>
+                <div class="flex justify-between">
+                    <x-secondary-button type="button" @click="useGoogleDriveRoot" class="bg-gray-600 hover:bg-gray-700 text-white">
+                        Use Google Drive Root (default)
+                    </x-secondary-button>
+                    <div class="flex space-x-2">
+                        <x-button type="button" @click="confirmSelection">Confirm</x-button>
+                        <x-secondary-button type="button" @click="closeModal">Cancel</x-secondary-button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="flex justify-end">
-            <button type="submit" x-bind:class="folderChanged ? 'animate-pulse' : ''" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-                Save Root Folder
-            </button>
+            <x-button type="submit" x-bind:class="folderChanged ? 'animate-wiggle' : ''">Save Root Folder</x-button>
         </div>
     </form>
 </div>
@@ -71,21 +90,38 @@
             currentFolderId: @json($user->google_drive_root_folder_id ?? ''),
             initialFolderId: @json($user->google_drive_root_folder_id ?? ''),
             folderChanged: false,
-            currentFolderName: @json($currentFolderName ?? ''),
-            rootFolderName: 'Root Folder',
+            currentFolderName: @json($currentFolderName ?? 'Google Drive Root'),
+            rootFolderName: 'Google Drive Root',
             baseFolderShowUrl: '{{ route('employee.google-drive.folders', ['username' => $user->username]) }}',
             folderStack: [],
             folders: [],
             newFolderName: '',
 
             init() {
-                // Folder name is now loaded server-side
+                // Remember initial folder to detect changes
+                this.initialFolderId = this.currentFolderId;
+                this.folderChanged = false;
+                
+                // If user has a specific folder configured, fetch its name
+                if (this.currentFolderId && this.currentFolderId !== 'root') {
+                    fetch(`{{ route('employee.google-drive.folders', ['username' => $user->username]) }}/${this.currentFolderId}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.folder && data.folder.name) {
+                                this.currentFolderName = data.folder.name;
+                            }
+                        })
+                        .catch(() => {
+                            // If folder fetch fails, reset to default
+                            this.currentFolderName = '';
+                        });
+                }
             },
 
             openModal() {
                 this.showModal = true;
+                this.folderStack = [{ id: this.rootFolderId, name: this.rootFolderName }];
                 this.loadFolders(this.rootFolderId);
-                this.folderStack = [];
             },
 
             closeModal() {
@@ -97,10 +133,7 @@
                 fetch(`{{ route('employee.google-drive.folders', ['username' => $user->username]) }}?parent_id=${parentId}`)
                     .then(response => response.json())
                     .then(data => { this.folders = data.folders; })
-                    .catch(error => {
-                        console.error('Failed to load folders:', error);
-                        this.folders = [];
-                    });
+                    .catch(() => { this.folders = []; });
             },
 
             enterFolder(folder) {
@@ -109,31 +142,22 @@
             },
 
             goUp() {
-                if (this.folderStack.length > 0) {
+                if (this.folderStack.length > 1) {
                     this.folderStack.pop();
-                    const parentId = this.folderStack.length > 0 
-                        ? this.folderStack[this.folderStack.length - 1].id 
-                        : this.rootFolderId;
-                    this.loadFolders(parentId);
+                    const prev = this.folderStack[this.folderStack.length - 1];
+                    this.loadFolders(prev.id);
                 }
             },
 
             createFolder() {
                 if (!this.newFolderName) return;
-                const parentId = this.folderStack.length > 0 
-                    ? this.folderStack[this.folderStack.length - 1].id 
-                    : this.rootFolderId;
-
                 fetch(`{{ route('employee.google-drive.folders.store', ['username' => $user->username]) }}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     },
-                    body: JSON.stringify({
-                        parent_id: parentId,
-                        name: this.newFolderName
-                    })
+                    body: JSON.stringify({ parent_id: this.folderStack[this.folderStack.length - 1].id, name: this.newFolderName })
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -141,24 +165,28 @@
                         this.folders.push(data.folder);
                         this.newFolderName = '';
                     }
-                })
-                .catch(error => {
-                    console.error('Failed to create folder:', error);
                 });
             },
 
             confirmSelection() {
-                const selectedId = this.folderStack.length > 0 
-                    ? this.folderStack[this.folderStack.length - 1].id 
-                    : this.rootFolderId;
-                const selectedName = this.folderStack.length > 0 
-                    ? this.folderStack[this.folderStack.length - 1].name 
-                    : this.rootFolderName;
+                const selected = this.folderStack[this.folderStack.length - 1];
+                // Don't set root as the folder ID - leave it empty for default behavior
+                if (selected.id === 'root') {
+                    this.currentFolderId = '';
+                    this.currentFolderName = '';
+                } else {
+                    this.currentFolderId = selected.id;
+                    this.currentFolderName = selected.name;
+                }
+                this.folderChanged = (this.currentFolderId !== this.initialFolderId);
+                this.showModal = false;
+            },
 
-                this.currentFolderId = selectedId;
-                this.currentFolderName = selectedName;
-                this.folderChanged = this.currentFolderId !== this.initialFolderId;
-                this.closeModal();
+            useGoogleDriveRoot() {
+                this.currentFolderId = '';
+                this.currentFolderName = '';
+                this.folderChanged = (this.currentFolderId !== this.initialFolderId);
+                this.showModal = false;
             }
         };
     }
