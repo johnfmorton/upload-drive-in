@@ -25,7 +25,10 @@ class ThumbnailService
 
     public function __construct()
     {
-        $this->imageManager = new ImageManager(new Driver());
+        // Only initialize if Intervention Image is available
+        if (class_exists(ImageManager::class)) {
+            $this->imageManager = new ImageManager(new Driver());
+        }
     }
 
     /**
@@ -33,6 +36,11 @@ class ThumbnailService
      */
     public function getThumbnail(FileUpload $file, User $user): ?Response
     {
+        // Check if Intervention Image is available
+        if (!isset($this->imageManager)) {
+            return null;
+        }
+
         // Check if user can access this file
         if (!$file->canBeAccessedBy($user)) {
             return null;
