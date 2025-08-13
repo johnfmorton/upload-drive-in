@@ -37,7 +37,15 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        // Setup rate limiting - more restrictive for setup operations
+        RateLimiter::for('setup', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
         $this->routes(function () {
+            // Setup Routes (highest priority - must be first)
+            Route::group([], base_path('routes/setup.php'));
+
             // API Routes
             Route::middleware('api')
                 ->prefix('api')

@@ -1,5 +1,7 @@
 <?php
 
+use App\Helpers\SetupHelper;
+
 if (! function_exists('format_bytes')) {
     /**
      * Format bytes to kb, mb, gb, tb
@@ -22,5 +24,45 @@ if (! function_exists('format_bytes')) {
         $suffixIndex = min($floorBase, count($suffixes) - 1);
 
         return round(pow(1024, $base - $floorBase), $precision) .' ' . $suffixes[$suffixIndex];
+    }
+}
+
+if (! function_exists('is_setup_required')) {
+    /**
+     * Check if application setup is required
+     */
+    function is_setup_required(): bool
+    {
+        return SetupHelper::isSetupRequired();
+    }
+}
+
+if (! function_exists('is_setup_complete')) {
+    /**
+     * Check if application setup is complete
+     */
+    function is_setup_complete(): bool
+    {
+        return SetupHelper::isSetupComplete();
+    }
+}
+
+if (! function_exists('get_setup_step')) {
+    /**
+     * Get current setup step
+     */
+    function get_setup_step(): string
+    {
+        return SetupHelper::getCurrentSetupStep();
+    }
+}
+
+if (! function_exists('should_bypass_setup')) {
+    /**
+     * Check if current request should bypass setup requirements
+     */
+    function should_bypass_setup(string $routeName = null, string $path = null): bool
+    {
+        return SetupHelper::shouldBypassSetup($routeName, $path);
     }
 }

@@ -4,6 +4,9 @@ import "./bootstrap";
 import "./file-manager-coordination";
 import "./file-manager-debug";
 
+// Import Setup Wizard functionality
+import "./setup-wizard";
+
 // Import Dropzone CSS
 import "dropzone/dist/dropzone.css";
 
