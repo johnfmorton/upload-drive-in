@@ -834,7 +834,7 @@
                     // Column management
                     availableColumns: [{
                             key: 'original_filename',
-                            label: 'Filename',
+                            label: '{{ __('messages.filename') }}',
                             sortable: true,
                             resizable: true,
                             defaultWidth: 300,
@@ -842,7 +842,7 @@
                         },
                         {
                             key: 'email',
-                            label: 'Uploaded By',
+                            label: '{{ __('messages.uploaded_by') }}',
                             sortable: true,
                             resizable: true,
                             defaultWidth: 200,
@@ -850,7 +850,7 @@
                         },
                         {
                             key: 'file_size',
-                            label: 'Size',
+                            label: '{{ __('messages.size') }}',
                             sortable: true,
                             resizable: true,
                             defaultWidth: 120,
@@ -858,7 +858,7 @@
                         },
                         {
                             key: 'status',
-                            label: 'Status',
+                            label: '{{ __('messages.status_uploaded') }}',
                             sortable: false,
                             resizable: true,
                             defaultWidth: 120,
@@ -866,11 +866,19 @@
                         },
                         {
                             key: 'created_at',
-                            label: 'Uploaded At',
+                            label: '{{ __('messages.uploaded_at') }}',
                             sortable: true,
                             resizable: true,
                             defaultWidth: 180,
                             minWidth: 150
+                        },
+                        {
+                            key: 'message',
+                            label: '{{ __('messages.message_section_title') }}',
+                            sortable: false,
+                            resizable: true,
+                            defaultWidth: 300,
+                            minWidth: 200
                         }
                     ],
                     visibleColumns: {},
@@ -1128,14 +1136,16 @@
                                 email: true,
                                 file_size: true,
                                 status: true,
-                                created_at: true
+                                created_at: true,
+                                message: true
                             };
                             this.columnWidths = {
                                 original_filename: 300,
                                 email: 200,
                                 file_size: 120,
                                 status: 120,
-                                created_at: 180
+                                created_at: 180,
+                                message: 300
                             };
                         }
                     },
@@ -1190,7 +1200,8 @@
                             email: 200,
                             file_size: 120,
                             status: 120,
-                            created_at: 180
+                            created_at: 180,
+                            message: 300
                         };
                         return stored ? {
                             ...defaults,
@@ -1209,14 +1220,16 @@
                             email: true,
                             file_size: true,
                             status: true,
-                            created_at: true
+                            created_at: true,
+                            message: false
                         };
                         this.columnWidths = {
                             original_filename: 300,
                             email: 200,
                             file_size: 120,
                             status: 120,
-                            created_at: 180
+                            created_at: 180,
+                            message: 300
                         };
                         this.saveColumnPreferences();
                     },
@@ -1279,6 +1292,11 @@
                                 return this.getStatusCell(file);
                             case 'created_at':
                                 return this.formatDate(file.created_at);
+                            case 'message':
+                                const msg = (file.message || '');
+                                const safe = msg.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                const truncated = safe.length > 120 ? safe.slice(0, 120) + '…' : safe;
+                                return `<div class="text-gray-500">${truncated}</div>`;
                             default:
                                 return '';
                         }
