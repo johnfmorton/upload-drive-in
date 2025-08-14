@@ -74,7 +74,7 @@
                                 </div>
 
                                 <!-- File Preview -->
-                                <div class="aspect-w-16 aspect-h-9 checkerboard-bg">
+                                <div class="aspect-w-16 aspect-h-9">
                                     <div class="flex items-center justify-center p-4">
                                         <template x-if="file.mime_type && file.mime_type.startsWith('image/')">
                                             <img :src="getThumbnailUrl(file) + (getThumbnailUrl(file).includes('?') ? '&' : '?') + 'v=' + (file.updated_at ? new Date(file.updated_at).getTime() : Date.now())" :alt="file.original_filename"

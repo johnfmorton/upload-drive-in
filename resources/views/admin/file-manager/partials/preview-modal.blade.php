@@ -120,7 +120,7 @@
                 </div>
 
                 <!-- Image Preview -->
-                <div x-show="!loading && previewType === 'image'" class="flex items-center justify-center overflow-hidden relative checkerboard-bg" style="height: 60vh;">
+                <div x-show="!loading && previewType === 'image'" class="flex items-center justify-center overflow-hidden relative bg-gray-100" style="height: 60vh;">
                     <div
                         class="w-full h-full overflow-auto cursor-move flex items-center justify-center"
                         x-on:mousedown="startImageDrag($event)"
@@ -133,7 +133,7 @@
                             <img
                                 :src="previewContent"
                                 :alt="file?.original_filename"
-                                class="max-w-full max-h-full object-contain transition-transform duration-200"
+                                class="max-w-full max-h-full object-contain transition-transform duration-200 checkerboard-bg"
                                 :style="`transform: scale(${imageZoom}) translate(${imagePanX}px, ${imagePanY}px); transform-origin: center center;`"
                                 x-on:load="imageLoaded()"
                                 x-on:error="imageError()"

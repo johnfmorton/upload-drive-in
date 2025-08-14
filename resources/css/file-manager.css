@@ -17,13 +17,14 @@
 
 /* Checkerboard background for transparent images */
 .checkerboard-bg {
-    background-color: #f8fafc; /* fallback */
-    background-image: linear-gradient(45deg, rgba(0,0,0,0.06) 25%, transparent 25%),
-        linear-gradient(-45deg, rgba(0,0,0,0.06) 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.06) 75%),
-        linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.06) 75%);
-    background-size: 16px 16px;
-    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  background-color: #eee; /* Base color for one square */
+  background-image:
+    linear-gradient(45deg, #ccc 25%, transparent 25%),
+    linear-gradient(135deg, #ccc 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ccc 75%),
+    linear-gradient(135deg, transparent 75%, #ccc 75%);
+  background-size: 20px 20px; /* Size of each square in the pattern */
+  background-position: 0 0, 10px 0, 10px 10px, 0 10px; /* Positioning of each gradient layer */
 }
 
 .file-card:hover {

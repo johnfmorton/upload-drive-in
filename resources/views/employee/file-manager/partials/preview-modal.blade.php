@@ -1,5 +1,5 @@
 <!-- Enhanced Preview Modal -->
-<div 
+<div
     x-data="filePreviewModal"
     x-on:open-preview-modal.window="openModal($event.detail)"
     x-show="open"
@@ -9,7 +9,7 @@
 >
     <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <!-- Background overlay -->
-        <div 
+        <div
             x-show="open"
             x-transition:enter="ease-out duration-300"
             x-transition:enter-start="opacity-0"
@@ -22,7 +22,7 @@
         ></div>
 
         <!-- Modal panel -->
-        <div 
+        <div
             x-show="open"
             x-transition:enter="ease-out duration-300"
             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
@@ -49,13 +49,13 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Preview Controls -->
                     <div class="flex items-center space-x-2 ml-4">
                         <!-- Image Controls -->
                         <template x-if="previewType === 'image'">
                             <div class="flex items-center space-x-2">
-                                <button 
+                                <button
                                     x-on:click="zoomOut()"
                                     class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                                     title="Zoom Out"
@@ -65,7 +65,7 @@
                                     </svg>
                                 </button>
                                 <span class="text-xs text-gray-500" x-text="Math.round(imageZoom * 100) + '%'"></span>
-                                <button 
+                                <button
                                     x-on:click="zoomIn()"
                                     class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                                     title="Zoom In"
@@ -74,7 +74,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
                                     </svg>
                                 </button>
-                                <button 
+                                <button
                                     x-on:click="resetImageView()"
                                     class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                                     title="Reset View"
@@ -85,7 +85,7 @@
                                 </button>
                             </div>
                         </template>
-                        
+
                         <!-- PDF Preview Info -->
                         <template x-if="previewType === 'pdf'">
                             <div class="flex items-center space-x-2">
@@ -95,9 +95,9 @@
                                 </div>
                             </div>
                         </template>
-                        
+
                         <!-- Close Button -->
-                        <button 
+                        <button
                             x-on:click="closeModal()"
                             class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                             title="Close"
@@ -121,7 +121,7 @@
 
                 <!-- Image Preview -->
                 <div x-show="!loading && previewType === 'image'" class="flex items-center justify-center overflow-hidden relative bg-gray-100" style="height: 60vh;">
-                    <div 
+                    <div
                         class="w-full h-full overflow-auto cursor-move flex items-center justify-center"
                         x-on:mousedown="startImageDrag($event)"
                         x-on:mousemove="dragImage($event)"
@@ -130,10 +130,10 @@
                         x-on:wheel.prevent="wheelZoom($event)"
                     >
                         <template x-if="previewContent && previewType === 'image'">
-                            <img 
+                            <img
                                 :src="previewContent"
                                 :alt="file?.original_filename"
-                                class="max-w-full max-h-full object-contain transition-transform duration-200"
+                                class="max-w-full max-h-full object-contain transition-transform duration-200 checkerboard-bg"
                                 :style="`transform: scale(${imageZoom}) translate(${imagePanX}px, ${imagePanY}px); transform-origin: center center;`"
                                 x-on:load="imageLoaded()"
                                 x-on:error="imageError()"
@@ -147,9 +147,9 @@
                 <div x-show="!loading && previewType === 'pdf'" class="h-full">
                     <div class="h-full bg-gray-100">
                         <template x-if="previewContent && previewType === 'pdf'">
-                            <embed 
-                                :src="previewContent" 
-                                type="application/pdf" 
+                            <embed
+                                :src="previewContent"
+                                type="application/pdf"
                                 class="w-full h-full border-0"
                                 style="min-height: 600px;"
                             >
@@ -216,9 +216,9 @@
 
             <!-- Footer -->
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
-                <button 
+                <button
                     x-on:click="downloadFile()"
-                    type="button" 
+                    type="button"
                     class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,9 +226,9 @@
                     </svg>
                     Download
                 </button>
-                <button 
+                <button
                     x-on:click="closeModal()"
-                    type="button" 
+                    type="button"
                     class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                     Close
@@ -247,7 +247,7 @@ document.addEventListener('alpine:init', () => {
         previewType: '',
         loading: false,
         error: null,
-        
+
         // Image viewer state
         imageZoom: 1,
         imagePanX: 0,
@@ -255,49 +255,49 @@ document.addEventListener('alpine:init', () => {
         isDragging: false,
         dragStartX: 0,
         dragStartY: 0,
-        
+
         openModal(file) {
             this.file = file;
             this.open = true;
             this.resetState();
             this.loadPreview();
         },
-        
+
         closeModal() {
             this.open = false;
             this.resetState();
         },
-        
+
         resetState() {
             // Clean up blob URLs to prevent memory leaks
             if (this.previewContent && this.previewContent.startsWith('blob:')) {
                 URL.revokeObjectURL(this.previewContent);
             }
-            
+
             this.previewContent = '';
             this.previewType = '';
             this.loading = false;
             this.error = null;
             this.resetImageView();
         },
-        
+
         async loadPreview() {
             if (!this.file) return;
-            
+
             this.loading = true;
             this.error = null;
-            
+
             try {
                 // Use the global preview route that works for all authenticated users
                 const response = await fetch(`/files/${this.file.id}/preview`);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
                 const contentType = response.headers.get('content-type') || '';
                 this.previewType = this.determinePreviewType(this.file.original_filename, contentType);
-                
+
                 if (this.previewType === 'image') {
                     const blob = await response.blob();
                     this.previewContent = URL.createObjectURL(blob);
@@ -313,7 +313,7 @@ document.addEventListener('alpine:init', () => {
                 } else {
                     this.previewType = 'unsupported';
                 }
-                
+
             } catch (error) {
                 console.error('Preview error:', error);
                 this.error = error.message;
@@ -322,65 +322,65 @@ document.addEventListener('alpine:init', () => {
                 this.loading = false;
             }
         },
-        
+
         determinePreviewType(filename, contentType) {
             const ext = filename.toLowerCase().split('.').pop();
-            
+
             // Image types
             if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext) || contentType.startsWith('image/')) {
                 return 'image';
             }
-            
+
             // PDF
             if (ext === 'pdf' || contentType === 'application/pdf') {
                 return 'pdf';
             }
-            
+
             // Code files
             if (['js', 'ts', 'jsx', 'tsx', 'php', 'py', 'rb', 'java', 'cpp', 'c', 'h', 'css', 'scss', 'sass', 'less', 'html', 'xml', 'json', 'yaml', 'yml', 'sql', 'sh', 'bash'].includes(ext)) {
                 return 'code';
             }
-            
+
             // Text files
             if (['txt', 'md', 'csv', 'log', 'ini', 'conf', 'config'].includes(ext) || contentType.startsWith('text/')) {
                 return 'text';
             }
-            
+
             return 'unsupported';
         },
-        
+
         // Image viewer methods
         zoomIn() {
             this.imageZoom = Math.min(this.imageZoom * 1.2, 5);
         },
-        
+
         zoomOut() {
             this.imageZoom = Math.max(this.imageZoom / 1.2, 0.1);
         },
-        
+
         resetImageView() {
             this.imageZoom = 1;
             this.imagePanX = 0;
             this.imagePanY = 0;
         },
-        
+
         wheelZoom(event) {
             event.preventDefault();
             const delta = event.deltaY > 0 ? 0.9 : 1.1;
             const newZoom = Math.max(0.1, Math.min(5, this.imageZoom * delta));
-            
+
             // Calculate zoom center point relative to the image
             const rect = event.currentTarget.getBoundingClientRect();
             const centerX = (event.clientX - rect.left - rect.width / 2) / this.imageZoom;
             const centerY = (event.clientY - rect.top - rect.height / 2) / this.imageZoom;
-            
+
             // Adjust pan to keep the zoom centered on cursor
             this.imagePanX -= centerX * (newZoom - this.imageZoom);
             this.imagePanY -= centerY * (newZoom - this.imageZoom);
-            
+
             this.imageZoom = newZoom;
         },
-        
+
         startImageDrag(event) {
             if (this.imageZoom <= 1) return;
             event.preventDefault();
@@ -389,14 +389,14 @@ document.addEventListener('alpine:init', () => {
             this.dragStartY = event.clientY - this.imagePanY;
             event.currentTarget.style.cursor = 'grabbing';
         },
-        
+
         dragImage(event) {
             if (!this.isDragging) return;
             event.preventDefault();
             this.imagePanX = event.clientX - this.dragStartX;
             this.imagePanY = event.clientY - this.dragStartY;
         },
-        
+
         endImageDrag() {
             if (this.isDragging) {
                 this.isDragging = false;
@@ -407,18 +407,18 @@ document.addEventListener('alpine:init', () => {
                 }
             }
         },
-        
+
         imageLoaded() {
             // Image loaded successfully
         },
-        
+
         imageError() {
             // Only set error for image previews, not PDFs
             if (this.previewType === 'image') {
                 this.error = 'Failed to load image';
             }
         },
-        
+
         // Download file
         downloadFile() {
             if (this.file) {
@@ -427,7 +427,7 @@ document.addEventListener('alpine:init', () => {
                 window.location.href = url;
             }
         },
-        
+
         // Utility methods
         formatBytes(bytes) {
             if (bytes === 0) return '0 Bytes';
@@ -436,11 +436,11 @@ document.addEventListener('alpine:init', () => {
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         },
-        
+
         formatDate(dateString) {
             return new Date(dateString).toLocaleDateString();
         },
-        
+
 
     }));
 });
