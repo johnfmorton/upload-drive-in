@@ -28,20 +28,24 @@ Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.
 Route::prefix('file-manager')
     ->name('file-manager.')
     ->group(function () {
+        // Static endpoints should be defined before dynamic /{file} routes to avoid collisions
         Route::get('/', [\App\Http\Controllers\Admin\FileManagerController::class, 'index'])->name('index');
+        Route::post('/bulk-delete', [\App\Http\Controllers\Admin\FileManagerController::class, 'bulkDestroy'])->name('bulk-delete');
+        Route::delete('/', [\App\Http\Controllers\Admin\FileManagerController::class, 'bulkDestroy'])->name('bulk-destroy');
+        Route::post('/process-pending', [\App\Http\Controllers\Admin\FileManagerController::class, 'processPending'])->name('process-pending');
+
+        // Dynamic file-specific routes
         Route::get('/{file}', [\App\Http\Controllers\Admin\FileManagerController::class, 'show'])->name('show');
         Route::patch('/{file}', [\App\Http\Controllers\Admin\FileManagerController::class, 'update'])->name('update');
         Route::delete('/{file}', [\App\Http\Controllers\Admin\FileManagerController::class, 'destroy'])->name('destroy');
-        Route::delete('/', [\App\Http\Controllers\Admin\FileManagerController::class, 'bulkDestroy'])->name('bulk-destroy');
-        Route::post('/process-pending', [\App\Http\Controllers\Admin\FileManagerController::class, 'processPending'])->name('process-pending');
-        
+
         // Rate-limited download endpoints
         Route::middleware([\App\Http\Middleware\FileDownloadRateLimitMiddleware::class . ':30,1'])
             ->group(function () {
                 Route::get('/{file}/download', [\App\Http\Controllers\Admin\FileManagerController::class, 'download'])->name('download');
                 Route::post('/bulk-download', [\App\Http\Controllers\Admin\FileManagerController::class, 'bulkDownload'])->name('bulk-download');
             });
-        
+
         // Preview endpoints with lighter rate limiting
         Route::middleware([\App\Http\Middleware\FileDownloadRateLimitMiddleware::class . ':120,1'])
             ->group(function () {

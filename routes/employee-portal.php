@@ -24,19 +24,23 @@ Route::post('/upload', [UploadController::class, 'upload'])->name('upload');
 Route::prefix('file-manager')
     ->name('file-manager.')
     ->group(function () {
+        // Static endpoints first
         Route::get('/', [\App\Http\Controllers\Employee\FileManagerController::class, 'index'])->name('index');
+        Route::post('/bulk-delete', [\App\Http\Controllers\Employee\FileManagerController::class, 'bulkDestroy'])->name('bulk-delete');
+        Route::delete('/', [\App\Http\Controllers\Employee\FileManagerController::class, 'bulkDestroy'])->name('bulk-destroy');
+
+        // Dynamic routes next
         Route::get('/{file}', [\App\Http\Controllers\Employee\FileManagerController::class, 'show'])->name('show');
         Route::patch('/{file}', [\App\Http\Controllers\Employee\FileManagerController::class, 'update'])->name('update');
         Route::delete('/{file}', [\App\Http\Controllers\Employee\FileManagerController::class, 'destroy'])->name('destroy');
-        Route::delete('/', [\App\Http\Controllers\Employee\FileManagerController::class, 'bulkDestroy'])->name('bulk-destroy');
-        
+
         // Rate-limited download endpoints
         Route::middleware([\App\Http\Middleware\FileDownloadRateLimitMiddleware::class . ':30,1'])
             ->group(function () {
                 Route::get('/{file}/download', [\App\Http\Controllers\Employee\FileManagerController::class, 'download'])->name('download');
                 Route::post('/bulk-download', [\App\Http\Controllers\Employee\FileManagerController::class, 'bulkDownload'])->name('bulk-download');
             });
-        
+
         // Note: Preview and thumbnail routes are handled by global routes in web.php
         // This allows consistent access control across admin and employee interfaces
     });
