@@ -21,6 +21,12 @@ class ClientBatchUploadConfirmation extends Mailable
      * @param Collection<int, FileUpload> $fileUploads Collection of uploaded file models.
      * @param string $unsubscribeUrl The URL for the user to disable notifications.
      */
+    /**
+     * Names of intended recipient users (admins/employees) for this upload.
+     * @var array<int, string>
+     */
+    public array $recipientNames = [];
+
     public function __construct(
         public Collection $fileUploads,
         public string $unsubscribeUrl
@@ -43,11 +49,12 @@ class ClientBatchUploadConfirmation extends Mailable
      */
     public function content(): Content
     {
-        return new Content(
+            return new Content(
             markdown: 'emails.client.batch-upload-confirmation', // New view file needed
             with: [
                 'fileCount' => $this->fileUploads->count(),
                 'fileNames' => $this->fileUploads->pluck('original_filename')->all(), // Pass just the names
+                'recipientNames' => $this->recipientNames,
                 'unsubscribeUrl' => $this->unsubscribeUrl,
             ],
         );

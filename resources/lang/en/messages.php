@@ -117,6 +117,7 @@
     'client_batch_upload_subject' => 'File Upload Batch Confirmation - :app_name',
     'client_batch_upload_heading' => 'File Upload Batch Successful',
     'client_batch_upload_body' => '{1} Your file has been successfully uploaded.|[2,*] Your :count files have been successfully uploaded.',
+    'upload_recipient_line' => 'Recipient: :names*',
     'uploaded_files_list' => 'Uploaded Files',
     'upload_thank_you' => 'Thank you for using our service.',
     'unsubscribe_link_text' => "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:*",
@@ -232,11 +233,7 @@
     'delete_account_email_ignore' => 'If you did not request to delete your account, you can safely ignore this email. Your account will remain active.',
 
     // Navigation
-    'nav_dashboard' => 'Dashboard',
-    'nav_client_users' => 'Client Management',
-    'nav_upload_files' => 'Upload Files',
-    'nav_your_files' => 'Your Files',
-    'nav_cloud_storage' => 'Cloud Storage',
+    // (Keys above already defined earlier) Removed duplicates: nav_dashboard, nav_client_users, nav_upload_files, nav_your_files, nav_cloud_storage
     'nav_email_label' => 'Email Address',
     'nav_email_placeholder' => 'Enter your email address',
     'nav_validate_email_button' => 'Validate Email',
@@ -351,7 +348,6 @@
 
     // Client Dashboard
     'client_dashboard_title' => 'My Dashboard*',
-    'upload_files' => 'Upload Files*',
 
     // Employee Dashboard
     'employee_dashboard_title' => 'Employee Dashboard*',
@@ -379,11 +375,10 @@
     'nav_client_management' => 'Client Management',
     'client_management_title' => 'Client Management',
     'my_clients_title' => 'My Clients',
-    'create_client_user' => 'Create Client User',
-    'create_client_description' => 'Create a new client user and send them an invitation email.',
+    // Removed duplicates: create_client_user, create_client_description
     'create_client_error_intro' => 'Please correct the following errors:',
     'client_created_success' => 'Client user created and invitation sent successfully.',
-    'create_and_invite_button' => 'Create & Invite Client',
+    // Removed duplicate: create_and_invite_button
     'toggle_client_columns_title' => 'Show/Hide Columns:',
     'filter_clients_label' => 'Filter clients',
     'filter_clients_placeholder' => 'Filter by name or email...',
@@ -393,17 +388,17 @@
 
     // Google Drive Connection for Employees
     'google_drive_connection' => 'Google Drive Connection',
-    'google_drive_connected' => 'Google Drive Connected',
-    'google_drive_not_connected' => 'Google Drive Not Connected',
+    // Using earlier definition: google_drive_connected
+    // Removed duplicate: google_drive_not_connected
     'google_drive_app_not_configured' => 'Google Drive App Not Configured',
     'configure_google_drive_app_first' => 'Configure your Google Drive app credentials in Cloud Storage settings first.',
-    'google_drive_not_configured' => 'Google Drive Not Configured',
+    // Keeping single definition above; removed duplicate: google_drive_not_configured
     'contact_admin_to_configure_google_drive' => 'Contact your administrator to configure Google Drive integration.',
     'configure_cloud_storage' => 'Configure Cloud Storage',
     'client_uploads_will_go_to_your_drive' => 'Client uploads will be saved to your Google Drive.',
     'connect_drive_to_receive_uploads' => 'Connect your Google Drive to receive client uploads directly.',
     'connect_google_drive' => 'Connect Google Drive',
-    'disconnect' => 'Disconnect',
+    // Using earlier definition: disconnect
     'google_drive_disconnected' => 'Google Drive disconnected successfully.',
     'google_drive_disconnect_failed' => 'Failed to disconnect Google Drive. Please try again.',
     'google_drive_connection_failed' => 'Failed to connect Google Drive. Please try again.',
@@ -450,7 +445,7 @@
     'preview' => 'Preview',
     'download' => 'Download',
     'delete' => 'Delete',
-    'no_files_found' => 'No files found',
+    // Using earlier definition: no_files_found
     'no_files_description' => 'No files match your current search or filter criteria.',
     'file_preview' => 'File Preview',
     'close' => 'Close',
@@ -460,7 +455,7 @@
     'delete_file' => 'Delete File',
     'delete_file_confirmation' => 'Are you sure you want to delete this file?',
     'delete_file_warning' => 'This action cannot be undone. The file will be removed from both local storage and Google Drive.',
-    'cancel' => 'Cancel',
+    // Using earlier definition: cancel
     'deleting' => 'Deleting...',
     'delete_error' => 'An error occurred while deleting the file.',
     'delete_selected_files' => 'Delete Selected Files',

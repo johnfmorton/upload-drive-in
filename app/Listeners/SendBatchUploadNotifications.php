@@ -49,18 +49,52 @@ class SendBatchUploadNotifications implements ShouldQueue
             return;
         }
 
-        // --- Send Admin Notification ---
-        $admin_email = config('mail.admin_address');
-        if ($admin_email) {
-            try {
-                Log::info('Attempting to send admin batch notification.', ['admin_email' => $admin_email, 'user_id' => $user->id, 'file_count' => $fileUploads->count()]);
-                Mail::to($admin_email)->send(new AdminBatchUploadNotification($fileUploads, $user)); // Mailable to be created
-                Log::info('Admin batch notification queued successfully.');
-            } catch (\Exception $e) {
-                Log::error('Failed to queue admin batch upload notification: ' . $e->getMessage());
+        // Determine intended recipient users (employee/admin) from the batch (unique IDs)
+        $recipientUserIds = [];
+        foreach ($fileUploads as $upload) {
+            $candidateId = $upload->company_user_id ?? $upload->uploaded_by_user_id;
+            if (!$candidateId) {
+                $fallbackAdmin = User::where('role', \App\Enums\UserRole::ADMIN)->value('id');
+                $candidateId = $fallbackAdmin ?: null;
             }
-        } else {
-            Log::warning('Admin email address not configured for batch upload notifications.');
+            if ($candidateId) {
+                $recipientUserIds[$candidateId] = true; // use map to ensure uniqueness
+            }
+        }
+        $recipientUserIds = array_keys($recipientUserIds);
+
+        // Send per-recipient notification using Eloquent collections
+        foreach ($recipientUserIds as $recipient_user_id) {
+            $recipient = User::find($recipient_user_id);
+            if (!$recipient || !$recipient->email) {
+                Log::warning('Skipping recipient without valid user/email for upload notification.', [
+                    'recipient_user_id' => $recipient_user_id,
+                ]);
+                continue;
+            }
+            // Fetch uploads for this recipient as an Eloquent collection
+            $uploadsForRecipient = FileUpload::whereIn('id', $event->fileUploadIds)
+                ->where(function ($q) use ($recipient_user_id) {
+                    $q->where('company_user_id', $recipient_user_id)
+                      ->orWhere('uploaded_by_user_id', $recipient_user_id);
+                })
+                ->get();
+            if ($uploadsForRecipient->isEmpty()) {
+                continue;
+            }
+            try {
+                Log::info('Sending batch upload notification to recipient.', [
+                    'recipient_email' => $recipient->email,
+                    'recipient_user_id' => $recipient->id,
+                    'file_count' => $uploadsForRecipient->count(),
+                    'uploader_user_id' => $user->id,
+                ]);
+                Mail::to($recipient->email)->send(new AdminBatchUploadNotification($uploadsForRecipient, $user));
+            } catch (\Exception $e) {
+                Log::error('Failed to send recipient batch upload notification: ' . $e->getMessage(), [
+                    'recipient_user_id' => $recipient->id ?? null,
+                ]);
+            }
         }
 
         // --- Send Client Confirmation ---
@@ -72,7 +106,24 @@ class SendBatchUploadNotifications implements ShouldQueue
                     now()->addDays(30),
                     ['user' => $user->id]
                 );
-                Mail::to($user->email)->send(new ClientBatchUploadConfirmation($fileUploads, $unsubscribe_url)); // Mailable to be created
+                // Build recipient names for client visibility
+                $recipient_names = collect($recipientUserIds)
+                    ->map(fn ($id) => optional(User::find($id))->name)
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $recipient_names = collect($recipientUserIds)
+                    ->map(fn ($id) => optional(User::find($id))->name)
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $mailable = new ClientBatchUploadConfirmation($fileUploads, $unsubscribe_url);
+                $mailable->recipientNames = $recipient_names;
+                Mail::to($user->email)->send($mailable);
                 Log::info('Client batch confirmation queued successfully.');
             } catch (\Exception $e) {
                 Log::error("Failed to queue client batch upload confirmation to {$user->email}: " . $e->getMessage());

@@ -71,7 +71,7 @@ class PublicEmployeeUploadController extends Controller
         ]);
 
         $employee = User::where('username', $username)->firstOrFail();
-        
+
         if (!$employee->isEmployee()) {
             abort(404, 'Employee not found');
         }
@@ -131,7 +131,7 @@ class PublicEmployeeUploadController extends Controller
         if (!\Illuminate\Support\Facades\Auth::check()) {
             // Store the intended URL in session for redirect after authentication
             session(['intended_url' => request()->url()]);
-            
+
             // Show email validation form for guests
             return view('public-employee.email-validation', compact('name', 'employee'));
         }
@@ -141,12 +141,12 @@ class PublicEmployeeUploadController extends Controller
         if ($currentUser && $currentUser->isClient()) {
             // Check if relationship already exists
             $existingRelationship = $currentUser->companyUsers()->where('users.id', $employee->id)->exists();
-            
+
             if (!$existingRelationship) {
                 // Create the relationship
                 $clientUserService = app(\App\Services\ClientUserService::class);
                 $clientUserService->associateWithCompanyUser($currentUser, $employee);
-                
+
                 \Illuminate\Support\Facades\Log::info('Created client-company relationship for authenticated user accessing employee upload page', [
                     'client_user_id' => $currentUser->id,
                     'client_email' => $currentUser->email,
@@ -241,11 +241,11 @@ class PublicEmployeeUploadController extends Controller
         $currentUser = \Illuminate\Support\Facades\Auth::user();
         if ($currentUser && $currentUser->isClient()) {
             $existingRelationship = $currentUser->companyUsers()->where('users.id', $employee->id)->exists();
-            
+
             if (!$existingRelationship) {
                 $clientUserService = app(\App\Services\ClientUserService::class);
                 $clientUserService->associateWithCompanyUser($currentUser, $employee);
-                
+
                 \Illuminate\Support\Facades\Log::info('Created client-company relationship during chunk upload', [
                     'client_user_id' => $currentUser->id,
                     'client_email' => $currentUser->email,
@@ -258,8 +258,8 @@ class PublicEmployeeUploadController extends Controller
 
         // Create the file receiver
         $receiver = new \Pion\Laravel\ChunkUpload\Receiver\FileReceiver(
-            'file', 
-            $request, 
+            'file',
+            $request,
             \Pion\Laravel\ChunkUpload\Handler\HandlerFactory::classFromRequest($request)
         );
 
@@ -415,11 +415,11 @@ class PublicEmployeeUploadController extends Controller
         $currentUser = \Illuminate\Support\Facades\Auth::user();
         if ($currentUser && $currentUser->isClient()) {
             $existingRelationship = $currentUser->companyUsers()->where('users.id', $employee->id)->exists();
-            
+
             if (!$existingRelationship) {
                 $clientUserService = app(\App\Services\ClientUserService::class);
                 $clientUserService->associateWithCompanyUser($currentUser, $employee);
-                
+
                 \Illuminate\Support\Facades\Log::info('Created client-company relationship during message association', [
                     'client_user_id' => $currentUser->id,
                     'client_email' => $currentUser->email,
@@ -467,11 +467,11 @@ class PublicEmployeeUploadController extends Controller
         $currentUser = \Illuminate\Support\Facades\Auth::user();
         if ($currentUser && $currentUser->isClient()) {
             $existingRelationship = $currentUser->companyUsers()->where('users.id', $employee->id)->exists();
-            
+
             if (!$existingRelationship) {
                 $clientUserService = app(\App\Services\ClientUserService::class);
                 $clientUserService->associateWithCompanyUser($currentUser, $employee);
-                
+
                 \Illuminate\Support\Facades\Log::info('Created client-company relationship during batch complete', [
                     'client_user_id' => $currentUser->id,
                     'client_email' => $currentUser->email,
@@ -489,14 +489,23 @@ class PublicEmployeeUploadController extends Controller
             ->get();
 
         if ($uploads->count() > 0) {
-            // Trigger batch upload complete event if needed
-            // For now, just return success as the upload jobs are already dispatched
-            \Illuminate\Support\Facades\Log::info('User batch upload completed', [
-                'user_id' => $employee->id,
-                'user_role' => $employee->role->value,
-                'client_email' => \Illuminate\Support\Facades\Auth::user()->email,
-                'upload_count' => $uploads->count()
-            ]);
+            // Dispatch batch completion event to trigger emails
+            try {
+                $currentUser = \Illuminate\Support\Facades\Auth::user();
+                \App\Events\BatchUploadComplete::dispatch($validated['file_upload_ids'], $currentUser->id);
+                \Illuminate\Support\Facades\Log::info('Dispatched BatchUploadComplete event for public employee upload.', [
+                    'employee_id' => $employee->id,
+                    'client_user_id' => $currentUser->id,
+                    'upload_count' => $uploads->count(),
+                    'file_upload_ids' => $validated['file_upload_ids'],
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to dispatch BatchUploadComplete event for public employee upload.', [
+                    'employee_id' => $employee->id,
+                    'client_user_id' => $currentUser->id ?? null,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return response()->json(['success' => true]);

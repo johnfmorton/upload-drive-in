@@ -37,16 +37,16 @@ class UploadController extends Controller
     public function show()
     {
         $user = Auth::user();
-        
+
         // Ensure client has a relationship with a company user
         if ($user->isClient() && $user->companyUsers()->count() === 0) {
             $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)
                 ->whereHas('googleDriveToken') // Ensure admin has Google Drive connected
                 ->first();
-            
+
             if ($adminUser) {
                 $this->clientUserService->associateWithCompanyUser($user, $adminUser);
-                
+
                 Log::info('Created fallback relationship with admin user for client visiting upload page', [
                     'client_user_id' => $user->id,
                     'client_email' => $user->email,
@@ -55,7 +55,7 @@ class UploadController extends Controller
                 ]);
             }
         }
-        
+
         return view('client.upload-page', compact('user'));
     }
 
@@ -89,12 +89,12 @@ class UploadController extends Controller
             $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)
                 ->whereHas('googleDriveToken') // Ensure admin has Google Drive connected
                 ->first();
-            
+
             if ($adminUser) {
                 // Create the relationship using the service
                 $this->clientUserService->associateWithCompanyUser($user, $adminUser);
                 $companyUser = $adminUser;
-                
+
                 Log::info('Created fallback relationship with admin user for client upload', [
                     'client_user_id' => $user->id,
                     'client_email' => $user->email,
@@ -260,6 +260,21 @@ class UploadController extends Controller
             ->where('client_user_id', Auth::id())
             ->update(['message' => $validated['message']]);
 
+        // Dispatch batch completion event to trigger emails when message was associated
+        try {
+            \Log::info('Dispatching BatchUploadComplete event after message association (client).', [
+                'user_id' => Auth::id(),
+                'file_upload_ids' => $validated['file_upload_ids'],
+            ]);
+            \App\Events\BatchUploadComplete::dispatch($validated['file_upload_ids'], Auth::id());
+        } catch (\Exception $e) {
+            \Log::error('Failed to dispatch BatchUploadComplete event after message association (client).', [
+                'user_id' => Auth::id(),
+                'file_upload_ids' => $validated['file_upload_ids'],
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return response()->json(['success' => true]);
     }
 
@@ -277,23 +292,20 @@ class UploadController extends Controller
             'file_upload_ids.*' => 'required|exists:file_uploads,id',
         ]);
 
-        $uploads = FileUpload::whereIn('id', $validated['file_upload_ids'])
+        // Optionally verify ownership; uploads are already queued on creation
+        FileUpload::whereIn('id', $validated['file_upload_ids'])
             ->where('client_user_id', Auth::id())
-            ->get();
+            ->count();
 
-        foreach ($uploads as $upload) {
-            // Get the company user associated with this upload
-            $companyUser = User::find($upload->company_user_id);
-
-            if ($companyUser && $companyUser->hasGoogleDriveConnected()) {
-                // Use the company user's Google Drive token
-                $this->driveService->uploadFile($upload, $companyUser);
-            } else {
-                Log::error('Failed to find valid company user for upload', [
-                    'upload_id' => $upload->id,
-                    'company_user_id' => $upload->company_user_id
-                ]);
-            }
+        // Dispatch batch completion event to trigger emails (client confirmation + recipient notification)
+        try {
+            \App\Events\BatchUploadComplete::dispatch($validated['file_upload_ids'], Auth::id());
+        } catch (\Exception $e) {
+            Log::error('Failed to dispatch BatchUploadComplete event from client batchComplete.', [
+                'user_id' => Auth::id(),
+                'file_upload_ids' => $validated['file_upload_ids'],
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return response()->json(['success' => true]);

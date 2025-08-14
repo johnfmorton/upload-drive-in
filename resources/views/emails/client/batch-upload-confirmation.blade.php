@@ -6,6 +6,10 @@
 
 {{ trans_choice('messages.client_batch_upload_body', $fileCount, ['count' => $fileCount]) }}
 
+@if(!empty($recipientNames))
+{{ __('messages.upload_recipient_line', ['names' => implode(', ', $recipientNames)]) }}
+@endif
+
 **{{ __('messages.uploaded_files_list') }}:**
 <ul>
 @foreach($fileNames as $fileName)
