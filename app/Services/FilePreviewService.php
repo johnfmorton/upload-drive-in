@@ -28,7 +28,7 @@ class FilePreviewService
     private array $previewableMimeTypes = [
         // Images
         'image/jpeg',
-        'image/jpg', 
+        'image/jpg',
         'image/png',
         'image/gif',
         'image/webp',
@@ -128,7 +128,7 @@ class FilePreviewService
 
         try {
             $fileContent = $this->getFileContent($file, $user);
-            
+
             if ($fileContent === null) {
                 throw new Exception('File content could not be retrieved.');
             }
@@ -166,7 +166,7 @@ class FilePreviewService
 
         try {
             $fileContent = $this->getFileContent($file, $user);
-            
+
             if ($fileContent === null) {
                 return $this->getErrorPreviewHtml('File content could not be retrieved.');
             }
@@ -205,7 +205,7 @@ class FilePreviewService
 
         try {
             $fileContent = $this->getFileContent($file, $user);
-            
+
             if ($fileContent === null) {
                 return null;
             }
@@ -257,14 +257,14 @@ class FilePreviewService
         try {
             // Find a user with Google Drive access
             $driveUser = $this->findUserWithGoogleDriveAccess($user);
-            
+
             if (!$driveUser) {
                 throw new Exception('No Google Drive access available.');
             }
 
             $service = $this->googleDriveService->getDriveService($driveUser);
             $response = $service->files->get($file->google_drive_file_id, ['alt' => 'media']);
-            
+
             return $response->getBody();
         } catch (Exception $e) {
             Log::error('Failed to retrieve file from Google Drive', [
@@ -286,7 +286,7 @@ class FilePreviewService
     private function createPreviewResponse(FileUpload $file, string $content): Response
     {
         $mimeType = $file->mime_type;
-        
+
         // Generate a unique ETag based on file ID and size to prevent cache mix-ups
         $etag = md5($file->id . '_' . $file->file_size . '_' . $file->updated_at->timestamp);
 
@@ -360,7 +360,7 @@ class FilePreviewService
         if (str_starts_with($mimeType, 'text/') || in_array($mimeType, ['application/json', 'application/xml'])) {
             $escapedContent = htmlspecialchars($content);
             $language = $this->detectLanguageFromMimeType($mimeType);
-            
+
             return "<pre><code class=\"language-{$language}\">{$escapedContent}</code></pre>";
         }
 
@@ -382,7 +382,7 @@ class FilePreviewService
         try {
             // Generate a unique ETag based on file ID, size, and dimensions to prevent cache mix-ups
             $etag = md5($file->id . '_' . $file->file_size . '_' . $width . 'x' . $height . '_' . $file->updated_at->timestamp);
-            
+
             // For SVG files, return them directly without processing
             if ($file->mime_type === 'image/svg+xml') {
                 return response($content, 200, [
@@ -396,18 +396,28 @@ class FilePreviewService
 
             // Create image manager with GD driver
             $manager = new ImageManager(new Driver());
-            
+
             // Create image from content
             $image = $manager->read($content);
-            
+
             // Resize to thumbnail size while maintaining aspect ratio
             $image->scale(width: $width, height: $height);
-            
-            // Encode as JPEG for consistent output
-            $thumbnailContent = $image->toJpeg(quality: 85)->toString();
-            
-            return response($thumbnailContent, 200, [
-                'Content-Type' => 'image/jpeg',
+
+            // Preserve transparency for alpha-capable formats
+            $supportsAlpha = in_array(strtolower($file->mime_type), [
+                'image/png', 'image/webp', 'image/gif'
+            ]);
+
+            if ($supportsAlpha) {
+                $thumbnailBinary = $image->toPng()->toString();
+                $contentType = 'image/png';
+            } else {
+                $thumbnailBinary = $image->toJpeg(quality: 85)->toString();
+                $contentType = 'image/jpeg';
+            }
+
+            return response($thumbnailBinary, 200, [
+                'Content-Type' => $contentType,
                 'Content-Disposition' => 'inline; filename="thumb_' . $file->original_filename . '"',
                 'Cache-Control' => 'public, max-age=86400', // Cache for 24 hours
                 'ETag' => '"' . $etag . '"',

@@ -74,7 +74,7 @@
                                 </div>
 
                                 <!-- File Preview -->
-                                <div class="aspect-w-16 aspect-h-9 bg-gray-50">
+                                <div class="aspect-w-16 aspect-h-9 checkerboard-bg">
                                     <div class="flex items-center justify-center p-4">
                                         <template x-if="file.mime_type && file.mime_type.startsWith('image/')">
                                             <img :src="getThumbnailUrl(file)" :alt="file.original_filename"
@@ -214,22 +214,22 @@
                                                             </div>
                                                         </div>
                                                     </template>
-                                                    
+
                                                     <!-- Email Column -->
                                                     <template x-if="column.key === 'email'">
                                                         <span x-text="file.email"></span>
                                                     </template>
-                                                    
+
                                                     <!-- File Size Column -->
                                                     <template x-if="column.key === 'file_size'">
                                                         <span class="text-gray-500" x-text="formatBytes(file.file_size)"></span>
                                                     </template>
-                                                    
+
                                                     <!-- Date Column -->
                                                     <template x-if="column.key === 'created_at'">
                                                         <span class="text-gray-500" x-text="formatDate(file.created_at)"></span>
                                                     </template>
-                                                    
+
                                                     <!-- Status Column -->
                                                     <template x-if="column.key === 'status'">
                                                         <div>
@@ -243,7 +243,7 @@
                                                             </span>
                                                         </div>
                                                     </template>
-                                                    
+
                                                     <!-- Message Column -->
                                                     <template x-if="column.key === 'message'">
                                                         <span class="text-gray-500" x-text="truncateText(file.message || '', 100)"></span>

@@ -52,22 +52,22 @@ class ThumbnailService
         }
 
         $cacheKey = self::CACHE_PREFIX . $file->id;
-        
+
         try {
             // Try to get cached thumbnail
             $thumbnailData = Cache::get($cacheKey);
-            
+
             if ($thumbnailData) {
                 return $this->createThumbnailResponse($thumbnailData['content'], $thumbnailData['mime_type']);
             }
 
             // Generate new thumbnail
             $thumbnailData = $this->generateThumbnail($file);
-            
+
             if ($thumbnailData) {
                 // Cache the thumbnail
                 Cache::put($cacheKey, $thumbnailData, self::CACHE_TTL);
-                
+
                 return $this->createThumbnailResponse($thumbnailData['content'], $thumbnailData['mime_type']);
             }
 
@@ -77,7 +77,7 @@ class ThumbnailService
                 'file_id' => $file->id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return null;
         }
     }
@@ -89,20 +89,34 @@ class ThumbnailService
     {
         try {
             $imageContent = $this->getImageContent($file);
-            
+
             if (!$imageContent) {
                 return null;
             }
 
             // Create image from content
             $image = $this->imageManager->read($imageContent);
-            
+
             // Resize to thumbnail size while maintaining aspect ratio
             $image->scale(width: self::THUMBNAIL_SIZE, height: self::THUMBNAIL_SIZE);
-            
-            // Convert to JPEG for consistent output
-            $thumbnailContent = $image->toJpeg(self::THUMBNAIL_QUALITY);
-            
+
+            // Preserve transparency for formats that support alpha channels
+            $supportsAlpha = in_array(strtolower($file->mime_type), [
+                'image/png',
+                'image/webp',
+                'image/gif',
+            ]);
+
+            if ($supportsAlpha) {
+                // Encode as PNG to retain transparency
+                $thumbnailContent = $image->toPng();
+                $outputMime = 'image/png';
+            } else {
+                // Encode as JPEG (smaller; no alpha)
+                $thumbnailContent = $image->toJpeg(self::THUMBNAIL_QUALITY);
+                $outputMime = 'image/jpeg';
+            }
+
             Log::info('Thumbnail generated successfully', [
                 'file_id' => $file->id,
                 'original_size' => strlen($imageContent),
@@ -111,14 +125,14 @@ class ThumbnailService
 
             return [
                 'content' => $thumbnailContent,
-                'mime_type' => 'image/jpeg'
+                'mime_type' => $outputMime,
             ];
         } catch (\Exception $e) {
             Log::error('Failed to generate thumbnail', [
                 'file_id' => $file->id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return null;
         }
     }
@@ -162,13 +176,13 @@ class ThumbnailService
     {
         // Find a user with Google Drive access
         $driveUser = $this->findGoogleDriveUser();
-        
+
         if (!$driveUser) {
             return null;
         }
 
         $googleDriveService = app(GoogleDriveService::class);
-        
+
         try {
             return $googleDriveService->downloadFile($driveUser, $file->google_drive_file_id);
         } catch (\Exception $e) {
@@ -177,7 +191,7 @@ class ThumbnailService
                 'google_drive_file_id' => $file->google_drive_file_id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return null;
         }
     }
@@ -239,7 +253,7 @@ class ThumbnailService
     {
         $cacheKey = self::CACHE_PREFIX . $file->id;
         Cache::forget($cacheKey);
-        
+
         Log::debug('Thumbnail cache invalidated', ['file_id' => $file->id]);
     }
 
@@ -255,7 +269,7 @@ class ThumbnailService
 
         $warmedCount = 0;
         $adminUser = User::where('role', \App\Enums\UserRole::ADMIN)->first();
-        
+
         if (!$adminUser) {
             Log::warning('No admin user found for thumbnail cache warm-up');
             return 0;
@@ -274,7 +288,7 @@ class ThumbnailService
         }
 
         Log::info('Thumbnail cache warmed up', ['thumbnails_cached' => $warmedCount]);
-        
+
         return $warmedCount;
     }
 
@@ -284,10 +298,10 @@ class ThumbnailService
     public function clearAllThumbnailCaches(): int
     {
         $cleared = 0;
-        
+
         // Get all file IDs to clear their thumbnail caches
         $fileIds = FileUpload::where('mime_type', 'like', 'image/%')->pluck('id');
-        
+
         foreach ($fileIds as $fileId) {
             $cacheKey = self::CACHE_PREFIX . $fileId;
             if (Cache::forget($cacheKey)) {
@@ -296,7 +310,7 @@ class ThumbnailService
         }
 
         Log::info('All thumbnail caches cleared', ['cleared_count' => $cleared]);
-        
+
         return $cleared;
     }
 }

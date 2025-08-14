@@ -15,6 +15,17 @@
     @apply transition-all duration-200 ease-in-out;
 }
 
+/* Checkerboard background for transparent images */
+.checkerboard-bg {
+    background-color: #f8fafc; /* fallback */
+    background-image: linear-gradient(45deg, rgba(0,0,0,0.06) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(0,0,0,0.06) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.06) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.06) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
 .file-card:hover {
     @apply shadow-lg transform scale-105;
 }
@@ -29,7 +40,7 @@
     .file-grid {
         @apply grid-cols-1 gap-3 p-3;
     }
-    
+
     .file-card {
         @apply max-w-full;
     }
@@ -68,24 +79,24 @@
     .file-table-container {
         @apply overflow-x-auto;
     }
-    
+
     .file-table {
         @apply min-w-full;
     }
-    
+
     .file-table th,
     .file-table td {
         @apply px-3 py-2 text-xs;
     }
-    
+
     .file-table .filename-col {
         @apply min-w-48;
     }
-    
+
     .file-table .email-col {
         @apply min-w-32;
     }
-    
+
     .file-table .actions-col {
         @apply min-w-32;
     }
@@ -118,7 +129,7 @@
     .bulk-actions {
         @apply flex-col items-start gap-3;
     }
-    
+
     .bulk-actions > * {
         @apply w-full;
     }
@@ -272,31 +283,31 @@
         @apply mx-4 my-8 max-w-none w-auto;
         max-height: calc(100vh - 4rem);
     }
-    
+
     .preview-controls {
         @apply flex-wrap gap-2;
     }
-    
+
     .preview-control-btn {
         @apply p-1.5;
     }
-    
+
     .preview-control-btn svg {
         @apply w-4 h-4;
     }
-    
+
     .image-viewer-container {
         touch-action: pan-x pan-y pinch-zoom;
     }
-    
+
     .text-viewer {
         @apply p-4;
     }
-    
+
     .text-viewer pre {
         @apply text-xs p-3;
     }
-    
+
     .code-viewer .code-block {
         @apply text-xs p-3;
     }
@@ -319,11 +330,11 @@
     .preview-modal-overlay {
         @apply bg-black;
     }
-    
+
     .image-viewer {
         @apply bg-white border-2 border-gray-900;
     }
-    
+
     .preview-control-btn {
         @apply border border-current;
     }
@@ -334,11 +345,11 @@
     .preview-modal-panel {
         @apply transition-none;
     }
-    
+
     .image-viewer img {
         @apply transition-none;
     }
-    
+
     .preview-control-btn {
         @apply transition-none;
     }
@@ -371,7 +382,7 @@
     .action-buttons {
         @apply flex-col space-x-0 space-y-2;
     }
-    
+
     .action-buttons button {
         @apply w-full text-center;
     }
@@ -440,7 +451,7 @@
     .file-card {
         @apply border-2 border-gray-900;
     }
-    
+
     .status-badge {
         @apply border border-current;
     }
@@ -451,11 +462,11 @@
     .file-card {
         @apply transition-none transform-none;
     }
-    
+
     .file-card:hover {
         @apply transform-none;
     }
-    
+
     .loading-spinner {
         @apply animate-none;
     }
@@ -466,13 +477,13 @@
     .file-manager {
         @apply text-black bg-white;
     }
-    
+
     .toolbar,
     .action-buttons,
     .bulk-actions {
         @apply hidden;
     }
-    
+
     .file-card {
         @apply shadow-none border border-gray-300;
     }
@@ -483,11 +494,11 @@
     .file-manager {
         @apply bg-gray-900 text-white;
     }
-    
+
     .file-card {
         @apply bg-gray-800 border-gray-700;
     }
-    
+
     .status-badge {
         @apply bg-gray-700/80;
     }
@@ -632,15 +643,15 @@ hanced Table Controls */
     .enhanced-table td {
         @apply px-3 py-2 text-xs;
     }
-    
+
     .column-controls-btn {
         @apply px-2 py-1 text-xs;
     }
-    
+
     .column-dropdown {
         @apply w-48;
     }
-    
+
     .column-resize-handle {
         @apply w-2 h-3;
     }
@@ -693,16 +704,16 @@ hanced Table Controls */
     .enhanced-table {
         @apply border-2 border-gray-900;
     }
-    
+
     .enhanced-table th,
     .enhanced-table td {
         @apply border border-gray-900;
     }
-    
+
     .column-resize-handle {
         @apply bg-gray-900;
     }
-    
+
     .column-controls-btn {
         @apply border-2 border-gray-900;
     }
@@ -713,7 +724,7 @@ hanced Table Controls */
     .column-width-transition {
         @apply transition-none;
     }
-    
+
     .column-dropdown {
         @apply transition-none;
     }
@@ -726,11 +737,11 @@ hanced Table Controls */
     .column-resize-handle {
         @apply hidden;
     }
-    
+
     .enhanced-table {
         @apply table-auto;
     }
-    
+
     .sticky-column {
         @apply static;
     }

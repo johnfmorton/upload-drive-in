@@ -611,7 +611,7 @@
                                 </div>
 
                                 <!-- File Preview -->
-                                <div class="aspect-w-16 aspect-h-9 bg-gray-50">
+                                    <div class="aspect-w-16 aspect-h-9 checkerboard-bg">
                                     <div class="flex items-center justify-center p-4">
                                         <template x-if="file.can_preview && file.thumbnail_url">
                                             <img :src="file.thumbnail_url" :alt="file.original_filename"
