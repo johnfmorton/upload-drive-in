@@ -1,15 +1,11 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicUploadController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\FileUploadController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\StaticPageController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
 
 // Public routes
 Route::get('/', [PublicUploadController::class, 'index'])->name('home');
