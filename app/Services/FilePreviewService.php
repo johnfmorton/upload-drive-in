@@ -380,11 +380,10 @@ class FilePreviewService
     private function createThumbnailResponse(FileUpload $file, string $content, int $width, int $height): Response
     {
         try {
-            // Generate a unique ETag based on file ID, size, and dimensions to prevent cache mix-ups
-            $etag = md5($file->id . '_' . $file->file_size . '_' . $width . 'x' . $height . '_' . $file->updated_at->timestamp);
-
             // For SVG files, return them directly without processing
             if ($file->mime_type === 'image/svg+xml') {
+                // Include mime type in ETag to bust caches when encoding strategy changes
+                $etag = md5($file->id . '_' . $file->file_size . '_' . $width . 'x' . $height . '_' . $file->updated_at->timestamp . '_image/svg+xml');
                 return response($content, 200, [
                     'Content-Type' => 'image/svg+xml',
                     'Content-Disposition' => 'inline; filename="' . $file->original_filename . '"',
@@ -415,6 +414,9 @@ class FilePreviewService
                 $thumbnailBinary = $image->toJpeg(quality: 85)->toString();
                 $contentType = 'image/jpeg';
             }
+
+            // Generate a unique ETag (include mime to invalidate old JPEG caches)
+            $etag = md5($file->id . '_' . $file->file_size . '_' . $width . 'x' . $height . '_' . $file->updated_at->timestamp . '_' . $contentType);
 
             return response($thumbnailBinary, 200, [
                 'Content-Type' => $contentType,

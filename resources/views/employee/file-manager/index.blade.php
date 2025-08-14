@@ -77,7 +77,7 @@
                                 <div class="aspect-w-16 aspect-h-9 checkerboard-bg">
                                     <div class="flex items-center justify-center p-4">
                                         <template x-if="file.mime_type && file.mime_type.startsWith('image/')">
-                                            <img :src="getThumbnailUrl(file)" :alt="file.original_filename"
+                                            <img :src="getThumbnailUrl(file) + (getThumbnailUrl(file).includes('?') ? '&' : '?') + 'v=' + (file.updated_at ? new Date(file.updated_at).getTime() : Date.now())" :alt="file.original_filename"
                                                 class="max-w-full max-h-full object-contain rounded"
                                                 x-on:click="previewFile(file)" style="cursor: pointer;">
                                         </template>
