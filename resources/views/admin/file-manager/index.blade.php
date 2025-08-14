@@ -600,7 +600,7 @@
                         class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 sm:p-6">
                         <template x-for="(file, index) in filteredFiles" :key="file.id">
                             <div
-                                class="bg-white rounded-lg shadow overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                                class="bg-white rounded-lg shadow overflow-hidden border border-gray-200 hover:shadow-md transition-shadow duration-200 flex flex-col h-full">
                                 <!-- File Selection Checkbox -->
                                 <div class="p-3 border-b border-gray-100">
                                     <label class="flex items-center space-x-2">
@@ -652,6 +652,10 @@
                                             <span>{{ __('messages.date') }}:</span>
                                             <span x-text="formatDate(file.created_at)"></span>
                                         </div>
+                                        <div class="flex justify-between">
+                                            <span>{{ __('messages.message_label') }}:</span>
+                                            <span class="truncate ml-1" x-text="file.message || '{{ __('messages.no_message_provided') }}'"></span>
+                                        </div>
                                     </div>
 
                                     <!-- Status Badge -->
@@ -667,8 +671,8 @@
                                     </div>
                                 </div>
 
-                                <!-- File Actions -->
-                                <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 rounded-b-lg">
+                                <!-- File Actions (footer sticks to bottom) -->
+                                <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 rounded-b-lg mt-auto">
                                     <div class="flex justify-between items-center">
                                         <div class="flex space-x-2">
                                             <button x-show="file.can_preview" x-on:click="previewFile(file)"

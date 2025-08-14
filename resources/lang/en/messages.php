@@ -60,6 +60,7 @@
     'mobile_label_uploaded_at' => 'Uploaded at', // Was "Uploaded"
     'mobile_label_message' => 'Message',
     'no_message_provided' => 'No message provided',
+    'message_label' => 'Message',
     'message_section_title' => 'Client Message',
     'message_section_empty' => 'No additional message was provided with this upload',
     'no_files_found' => 'No files match your filter criteria.',
