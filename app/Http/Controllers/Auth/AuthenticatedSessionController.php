@@ -36,6 +36,11 @@ class AuthenticatedSessionController extends Controller
 
         // Check if the user is an admin and has 2FA enabled
         $user = Auth::user();
+        
+        // Update last login timestamp
+        if ($user) {
+            $user->update(['last_login_at' => now()]);
+        }
         if ($user && $user->isAdmin()) {
             if ($user->two_factor_enabled) {
             // Store the intended URL before redirecting to 2FA verification
@@ -84,6 +89,9 @@ class AuthenticatedSessionController extends Controller
 
         // Log the user in
         Auth::login($user);
+
+        // Update last login timestamp
+        $user->update(['last_login_at' => now()]);
 
         // Regenerate session to prevent fixation
         $request->session()->regenerate();

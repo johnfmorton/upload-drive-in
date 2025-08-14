@@ -165,4 +165,68 @@ class AuditLogService
             'ip' => $request->ip()
         ]);
     }
+
+    /**
+     * Log setup completion event.
+     */
+    public function logSetupCompletion(
+        User $adminUser,
+        Request $request,
+        array $setupData = []
+    ): void {
+        $logData = [
+            'event' => 'setup_completed',
+            'admin_user_id' => $adminUser->id,
+            'admin_email' => $adminUser->email,
+            'setup_data' => $setupData,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString(),
+            'session_id' => $request->session()->getId(),
+            'request_id' => $request->header('X-Request-ID') ?? uniqid(),
+        ];
+
+        // Log to audit channel with high priority
+        Log::channel('audit')->info('Application setup completed', $logData);
+
+        // Also log to main log for immediate visibility
+        Log::info('Setup completed', [
+            'admin_user' => $adminUser->email,
+            'ip' => $request->ip(),
+            'setup_steps' => array_keys($setupData),
+        ]);
+    }
+
+    /**
+     * Log setup step completion.
+     */
+    public function logSetupStepCompletion(
+        string $step,
+        User $adminUser,
+        Request $request,
+        array $stepData = []
+    ): void {
+        $logData = [
+            'event' => 'setup_step_completed',
+            'setup_step' => $step,
+            'admin_user_id' => $adminUser->id,
+            'admin_email' => $adminUser->email,
+            'step_data' => $stepData,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString(),
+            'session_id' => $request->session()->getId(),
+            'request_id' => $request->header('X-Request-ID') ?? uniqid(),
+        ];
+
+        // Log to audit channel
+        Log::channel('audit')->info("Setup step completed: {$step}", $logData);
+
+        // Also log to main log
+        Log::info("Setup step completed: {$step}", [
+            'admin_user' => $adminUser->email,
+            'step' => $step,
+            'ip' => $request->ip(),
+        ]);
+    }
 }

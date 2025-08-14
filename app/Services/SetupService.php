@@ -8,48 +8,92 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Cache;
 
 class SetupService
 {
-    private const SETUP_STATE_FILE = 'setup/setup-state.json';
-    private const SETUP_STEPS = [
-        'welcome',
-        'database',
-        'admin',
-        'storage',
-        'complete'
-    ];
+    private const CACHE_KEY = 'setup_state';
+    
+    private string $stateFile;
+    private array $steps;
+    private array $checks;
+    private bool $cacheEnabled;
+    private int $cacheTtl;
+
+    public function __construct()
+    {
+        $this->stateFile = Config::get('setup.state_file', 'setup/setup-state.json');
+        
+        $steps = Config::get('setup.steps', ['welcome', 'database', 'admin', 'storage', 'complete']);
+        $this->steps = is_array($steps) ? $steps : ['welcome', 'database', 'admin', 'storage', 'complete'];
+        
+        $checks = Config::get('setup.checks', []);
+        $this->checks = is_array($checks) ? $checks : [];
+        
+        $this->cacheEnabled = (bool) Config::get('setup.cache_state', true);
+        $this->cacheTtl = (int) Config::get('setup.cache_ttl', 300);
+    }
 
     /**
      * Check if the application requires initial setup
      */
     public function isSetupRequired(): bool
     {
+        // Use cached result if available and caching is enabled
+        if ($this->cacheEnabled) {
+            $cached = Cache::get(self::CACHE_KEY . '_required');
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
+        $required = $this->performSetupChecks();
+
+        // Cache the result if caching is enabled
+        if ($this->cacheEnabled) {
+            Cache::put(self::CACHE_KEY . '_required', $required, $this->cacheTtl);
+        }
+
+        return $required;
+    }
+
+    /**
+     * Perform the actual setup requirement checks
+     */
+    private function performSetupChecks(): bool
+    {
         // Check if setup is already marked as complete
         if ($this->isSetupComplete()) {
             return false;
         }
 
-        // Check database connectivity and admin user existence
+        // Perform individual checks based on configuration
         try {
-            // Test database connection
-            DB::connection()->getPdo();
-            
-            // Check if migrations have been run
-            if (!Schema::hasTable('users')) {
-                return true;
+            // Database connectivity check
+            if ($this->checks['database_connectivity'] ?? true) {
+                DB::connection()->getPdo();
             }
             
-            // Check if admin user exists
-            $adminExists = User::where('role', UserRole::ADMIN)->exists();
-            
-            if (!$adminExists) {
-                return true;
+            // Migrations check
+            if ($this->checks['migrations_run'] ?? true) {
+                if (!Schema::hasTable('users')) {
+                    return true;
+                }
             }
             
-            // Check if cloud storage is configured
-            if (!$this->isCloudStorageConfigured()) {
-                return true;
+            // Admin user check
+            if ($this->checks['admin_user_exists'] ?? true) {
+                $adminExists = User::where('role', UserRole::ADMIN)->exists();
+                if (!$adminExists) {
+                    return true;
+                }
+            }
+            
+            // Cloud storage check
+            if ($this->checks['cloud_storage_configured'] ?? true) {
+                if (!$this->isCloudStorageConfigured()) {
+                    return true;
+                }
             }
             
             // If all checks pass, mark setup as complete
@@ -67,7 +111,7 @@ class SetupService
      */
     public function getSetupStep(): string
     {
-        $state = $this->getSetupState();
+        $state = $this->getSetupStateInternal();
         
         // If no state exists, start with welcome
         if (empty($state['current_step'])) {
@@ -105,12 +149,15 @@ class SetupService
      */
     public function markSetupComplete(): void
     {
-        $state = $this->getSetupState();
+        $state = $this->getSetupStateInternal();
         $state['setup_complete'] = true;
         $state['completed_at'] = now()->toISOString();
         $state['current_step'] = 'complete';
         
         $this->saveSetupState($state);
+        
+        // Clear cache when setup state changes
+        $this->clearSetupCache();
     }
 
     /**
@@ -140,7 +187,7 @@ class SetupService
      */
     public function isSetupComplete(): bool
     {
-        $state = $this->getSetupState();
+        $state = $this->getSetupStateInternal();
         return $state['setup_complete'] ?? false;
     }
 
@@ -149,11 +196,11 @@ class SetupService
      */
     public function updateSetupStep(string $step, bool $completed = true): void
     {
-        if (!in_array($step, self::SETUP_STEPS)) {
+        if (!in_array($step, $this->steps)) {
             throw new \InvalidArgumentException("Invalid setup step: {$step}");
         }
         
-        $state = $this->getSetupState();
+        $state = $this->getSetupStateInternal();
         $state['steps'][$step] = [
             'completed' => $completed,
             'completed_at' => $completed ? now()->toISOString() : null,
@@ -164,14 +211,25 @@ class SetupService
         }
         
         $this->saveSetupState($state);
+        
+        // Clear cache when setup state changes
+        $this->clearSetupCache();
     }
 
     /**
-     * Get the setup state from file
+     * Get the setup state from file (public method)
      */
-    private function getSetupState(): array
+    public function getSetupState(): array
     {
-        $filePath = storage_path('app/' . self::SETUP_STATE_FILE);
+        return $this->getSetupStateInternal();
+    }
+
+    /**
+     * Get the setup state from file (internal method)
+     */
+    private function getSetupStateInternal(): array
+    {
+        $filePath = storage_path('app/' . $this->stateFile);
         
         if (!File::exists($filePath)) {
             return $this->createInitialSetupState();
@@ -186,7 +244,7 @@ class SetupService
      */
     private function saveSetupState(array $state): void
     {
-        $filePath = storage_path('app/' . self::SETUP_STATE_FILE);
+        $filePath = storage_path('app/' . $this->stateFile);
         $directory = dirname($filePath);
         
         if (!File::exists($directory)) {
@@ -208,7 +266,7 @@ class SetupService
             'steps' => [],
         ];
         
-        foreach (self::SETUP_STEPS as $step) {
+        foreach ($this->steps as $step) {
             $state['steps'][$step] = [
                 'completed' => false,
                 'completed_at' => null,
@@ -224,13 +282,13 @@ class SetupService
      */
     private function getNextStep(string $currentStep): string
     {
-        $currentIndex = array_search($currentStep, self::SETUP_STEPS);
+        $currentIndex = array_search($currentStep, $this->steps);
         
-        if ($currentIndex === false || $currentIndex >= count(self::SETUP_STEPS) - 1) {
+        if ($currentIndex === false || $currentIndex >= count($this->steps) - 1) {
             return 'complete';
         }
         
-        return self::SETUP_STEPS[$currentIndex + 1];
+        return $this->steps[$currentIndex + 1];
     }
 
     /**
@@ -277,7 +335,7 @@ class SetupService
      */
     public function getSetupSteps(): array
     {
-        $state = $this->getSetupState();
+        $state = $this->getSetupStateInternal();
         return $state['steps'] ?? [];
     }
 
@@ -294,5 +352,73 @@ class SetupService
         }
         
         return (int) round((count($completedSteps) / count($steps)) * 100);
+    }
+
+    /**
+     * Clear setup-related cache
+     */
+    public function clearSetupCache(): void
+    {
+        if ($this->cacheEnabled) {
+            Cache::forget(self::CACHE_KEY . '_required');
+            Cache::forget(self::CACHE_KEY . '_step');
+            Cache::forget(self::CACHE_KEY . '_progress');
+        }
+    }
+
+    /**
+     * Get setup configuration
+     */
+    public function getSetupConfig(): array
+    {
+        return [
+            'steps' => $this->steps,
+            'checks' => $this->checks,
+            'cache_enabled' => $this->cacheEnabled,
+            'cache_ttl' => $this->cacheTtl,
+        ];
+    }
+
+    /**
+     * Validate setup environment
+     */
+    public function validateSetupEnvironment(): array
+    {
+        $issues = [];
+
+        try {
+            // Check if storage directory is writable
+            $storageDir = storage_path('app/setup');
+            if (!File::exists($storageDir)) {
+                File::makeDirectory($storageDir, 0755, true);
+            }
+            if (!is_writable($storageDir)) {
+                $issues[] = 'Setup storage directory is not writable: ' . $storageDir;
+            }
+
+            // Check if cache is available if caching is enabled
+            if ($this->cacheEnabled) {
+                try {
+                    Cache::put('setup_test', 'test', 1);
+                    Cache::forget('setup_test');
+                } catch (\Exception $e) {
+                    $issues[] = 'Cache is not available but setup caching is enabled: ' . $e->getMessage();
+                }
+            }
+
+            // Check database connectivity if database checks are enabled
+            if ($this->checks['database_connectivity'] ?? true) {
+                try {
+                    DB::connection()->getPdo();
+                } catch (\Exception $e) {
+                    $issues[] = 'Database connection failed: ' . $e->getMessage();
+                }
+            }
+
+        } catch (\Exception $e) {
+            $issues[] = 'Setup environment validation failed: ' . $e->getMessage();
+        }
+
+        return $issues;
     }
 }

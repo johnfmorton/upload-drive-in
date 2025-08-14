@@ -18,6 +18,7 @@ class Kernel extends ConsoleKernel
         Commands\ExportSqliteData::class,
         Commands\ImportToMariaDB::class,
         Commands\ListUsers::class,
+        Commands\ListUsersAlias::class,
         Commands\RefreshGoogleDriveTokens::class,
         Commands\WarmUpCaches::class,
         Commands\OptimizePerformance::class,

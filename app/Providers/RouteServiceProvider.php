@@ -33,6 +33,18 @@ class RouteServiceProvider extends ServiceProvider
             return \App\Models\User::findOrFail($value);
         });
 
+        // Configure rate limiting
+        $this->configureRateLimiting();
+
+        // Register routes with proper setup integration
+        $this->registerRoutes();
+    }
+
+    /**
+     * Configure rate limiting for different route groups
+     */
+    protected function configureRateLimiting(): void
+    {
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
@@ -42,9 +54,21 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->ip());
         });
 
+        // Auth rate limiting - prevent brute force attacks
+        RateLimiter::for('auth', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+    }
+
+    /**
+     * Register all application routes with proper setup integration
+     */
+    protected function registerRoutes(): void
+    {
         $this->routes(function () {
             // Setup Routes (highest priority - must be first)
-            Route::group([], base_path('routes/setup.php'));
+            // These routes are always registered but protected by middleware
+            $this->registerSetupRoutes();
 
             // API Routes
             Route::middleware('api')
@@ -55,33 +79,51 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
 
-            // Auth Routes
-            Route::middleware('web')
+            // Auth Routes - with rate limiting
+            Route::middleware(['web', 'throttle:auth'])
                 ->group(base_path('routes/auth.php'));
 
-            // Admin Routes
-            Route::middleware(['web', 'auth', AdminMiddleware::class, TwoFactorMiddleware::class])
-                ->prefix('admin')
-                ->name('admin.')
-                ->group(base_path('routes/admin.php'));
-
-            // Client Routes
-            Route::middleware(['web', 'auth', ClientMiddleware::class])
-                ->prefix('client')
-                ->name('client.')
-                ->group(base_path('routes/client.php'));
-
-            // Public Employee Upload Routes (no auth)
-            Route::middleware('web')
-                ->prefix('u/{username}')
-                ->name('public.employee.')
-                ->group(base_path('routes/public-employee.php'));
-
-            // Employee Portal Routes (protected)
-            Route::middleware(['web', 'auth', EmployeeMiddleware::class])
-                ->prefix('employee/{username}')
-                ->name('employee.')
-                ->group(base_path('routes/employee-portal.php'));
+            // Protected application routes (only if setup is complete)
+            $this->registerProtectedRoutes();
         });
+    }
+
+    /**
+     * Register setup routes with appropriate middleware
+     */
+    protected function registerSetupRoutes(): void
+    {
+        // Setup routes are always registered but controlled by middleware
+        Route::group([], base_path('routes/setup.php'));
+    }
+
+    /**
+     * Register protected application routes
+     */
+    protected function registerProtectedRoutes(): void
+    {
+        // Admin Routes
+        Route::middleware(['web', 'auth', AdminMiddleware::class, TwoFactorMiddleware::class])
+            ->prefix('admin')
+            ->name('admin.')
+            ->group(base_path('routes/admin.php'));
+
+        // Client Routes
+        Route::middleware(['web', 'auth', ClientMiddleware::class])
+            ->prefix('client')
+            ->name('client.')
+            ->group(base_path('routes/client.php'));
+
+        // Public Employee Upload Routes (no auth required)
+        Route::middleware('web')
+            ->prefix('u/{username}')
+            ->name('public.employee.')
+            ->group(base_path('routes/public-employee.php'));
+
+        // Employee Portal Routes (protected)
+        Route::middleware(['web', 'auth', EmployeeMiddleware::class])
+            ->prefix('employee/{username}')
+            ->name('employee.')
+            ->group(base_path('routes/employee-portal.php'));
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Middleware\ClientMiddleware;
 use App\Http\Middleware\EmployeeMiddleware;
 use App\Http\Middleware\PreventClientPasswordLogin;
 use App\Http\Middleware\RequireSetupMiddleware;
+use App\Http\Middleware\SetupCompleteMiddleware;
 use UploadDriveIn\LaravelAdmin2FA\Http\Middleware\RequireTwoFactorAuth;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
@@ -78,7 +79,7 @@ class Kernel extends HttpKernel
         '2fa' => RequireTwoFactorAuth::class,
         'file.download.throttle' => \App\Http\Middleware\FileDownloadRateLimitMiddleware::class,
         'require.setup' => \App\Http\Middleware\RequireSetupMiddleware::class,
-        'setup.complete' => \App\Http\Middleware\SetupCompleteMiddleware::class,
+        'setup.complete' => SetupCompleteMiddleware::class,
     ];
 
     public function handle($request)

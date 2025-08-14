@@ -219,15 +219,15 @@
   - Add connection testing feedback and status updates
   - _Requirements: 3.4, 4.3, 6.2_
 
-- [ ] 13. Integrate setup wizard with existing application
-- [ ] 13.1 Update application bootstrap to check setup state
+- [x] 13. Integrate setup wizard with existing application
+- [x] 13.1 Update application bootstrap to check setup state
   - Modify application service providers to detect setup requirements
   - Update route service provider to handle setup routing
   - Create setup state checking in application middleware
   - Test integration with existing authentication system
   - _Requirements: 1.1, 1.3, 1.4_
 
-- [ ] 13.2 Create setup completion integration
+- [x] 13.2 Create setup completion integration
   - Update admin dashboard to handle first-time login
   - Create welcome messaging for newly created admin users
   - Implement setup completion audit logging

@@ -3,15 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Services\DiskSpaceMonitorService;
+use App\Services\SetupService;
 use Illuminate\Http\JsonResponse;
 
 class HealthController extends Controller
 {
     protected DiskSpaceMonitorService $diskSpaceMonitor;
+    protected SetupService $setupService;
 
-    public function __construct(DiskSpaceMonitorService $diskSpaceMonitor)
+    public function __construct(DiskSpaceMonitorService $diskSpaceMonitor, SetupService $setupService)
     {
         $this->diskSpaceMonitor = $diskSpaceMonitor;
+        $this->setupService = $setupService;
     }
 
     /**
@@ -19,8 +22,12 @@ class HealthController extends Controller
      */
     public function check(): JsonResponse
     {
+        $setupRequired = $this->setupService->isSetupRequired();
+        $status = $setupRequired ? 'setup_required' : 'healthy';
+        
         return response()->json([
-            'status' => 'healthy',
+            'status' => $status,
+            'setup_required' => $setupRequired,
             'timestamp' => now()->toISOString(),
         ]);
     }
@@ -32,9 +39,16 @@ class HealthController extends Controller
     {
         $diskStats = $this->diskSpaceMonitor->getDiskUsageStats();
         $uploadDirSize = $this->diskSpaceMonitor->getUploadDirectorySize();
+        
+        // Check setup status
+        $setupRequired = $this->setupService->isSetupRequired();
+        $setupProgress = $this->setupService->getSetupProgress();
+        $setupStep = $setupRequired ? $this->setupService->getSetupStep() : null;
 
         $status = 'healthy';
-        if ($this->diskSpaceMonitor->isCriticallyLow()) {
+        if ($setupRequired) {
+            $status = 'setup_required';
+        } elseif ($this->diskSpaceMonitor->isCriticallyLow()) {
             $status = 'critical';
         } elseif ($this->diskSpaceMonitor->isInWarningZone()) {
             $status = 'warning';
@@ -43,6 +57,12 @@ class HealthController extends Controller
         return response()->json([
             'status' => $status,
             'timestamp' => now()->toISOString(),
+            'setup' => [
+                'required' => $setupRequired,
+                'progress' => $setupProgress,
+                'current_step' => $setupStep,
+                'completed' => $this->setupService->isSetupComplete(),
+            ],
             'disk_space' => [
                 'total' => $diskStats['total_space_formatted'],
                 'free' => $diskStats['free_space_formatted'],

@@ -158,11 +158,15 @@ ddev artisan user:create "User Name" user@example.com --role=admin --password=my
 
 ---
 
-### `user:list`
+### `user:list` / `users:list`
 
 **Purpose**: List users with filtering options.
 
-**Signature**: `user:list {--role=} {--owner=}`
+**Signatures**: 
+- `user:list {--role=} {--owner=}`
+- `users:list {--role=} {--owner=}`
+
+**Aliases**: Both `user:list` and `users:list` work identically.
 
 **Options**:
 
@@ -172,14 +176,17 @@ ddev artisan user:create "User Name" user@example.com --role=admin --password=my
 **Usage Examples**:
 
 ```bash
-# List all users
+# List all users (both commands work the same)
 ddev artisan user:list
+ddev artisan users:list
 
 # List only admin users
 ddev artisan user:list --role=admin
+ddev artisan users:list --role=admin
 
 # List employees of specific owner
 ddev artisan user:list --role=employee --owner=admin@example.com
+ddev artisan users:list --role=employee --owner=admin@example.com
 ```
 
 **Displayed Information**:

@@ -9,7 +9,7 @@ This document provides a quick reference for all user management commands availa
 | Command | Purpose | Key Options |
 |---------|---------|-------------|
 | `user:create` | Create new users (default: client) | `--role`, `--password`, `--owner` |
-| `user:list` | List users with filtering | `--role`, `--owner` |
+| `user:list` / `users:list` | List users with filtering | `--role`, `--owner` |
 | `user:show` | Show detailed user info | None |
 | `user:delete` | Delete users | `--force` |
 | `user:set-role` | Change user roles | `--role` |
@@ -42,8 +42,9 @@ ddev artisan user:create "Employee Name" employee@example.com --role=employee --
 ### Managing Users
 
 ```bash
-# List all users
+# List all users (both commands work the same)
 ddev artisan user:list
+ddev artisan users:list
 
 # Show user details
 ddev artisan user:show user@example.com

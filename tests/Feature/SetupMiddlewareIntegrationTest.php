@@ -8,6 +8,7 @@ use App\Services\SetupService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class SetupMiddlewareIntegrationTest extends TestCase
@@ -392,6 +393,13 @@ class SetupMiddlewareIntegrationTest extends TestCase
         if (File::exists($this->setupStateFile)) {
             File::delete($this->setupStateFile);
         }
+        
+        // Clear setup cache
+        Cache::flush();
+        
+        // Force setup service to re-evaluate
+        $setupService = app(SetupService::class);
+        $setupService->clearSetupCache();
     }
 
     /**

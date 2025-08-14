@@ -8,6 +8,7 @@ use App\Exceptions\SetupException;
 use App\Http\Requests\AdminUserRequest;
 use App\Http\Requests\DatabaseConfigRequest;
 use App\Http\Requests\StorageConfigRequest;
+use App\Services\AuditLogService;
 use App\Services\CloudStorageSetupService;
 use App\Services\DatabaseSetupService;
 use App\Services\SetupErrorHandlingService;
@@ -34,7 +35,8 @@ class SetupController extends Controller
         private SetupService $setupService,
         private DatabaseSetupService $databaseSetupService,
         private CloudStorageSetupService $cloudStorageSetupService,
-        private SetupErrorHandlingService $errorHandlingService
+        private SetupErrorHandlingService $errorHandlingService,
+        private AuditLogService $auditLogService
     ) {}
 
     /**
@@ -135,6 +137,14 @@ class SetupController extends Controller
             // Mark database step as complete
             $this->setupService->updateSetupStep('database', true);
 
+            // Log database setup completion for audit purposes (if admin user exists)
+            $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
+            if ($adminUser) {
+                $this->auditLogService->logSetupStepCompletion('database', $adminUser, $request, [
+                    'database_type' => $databaseConfig['type']
+                ]);
+            }
+
             Log::info('Database configuration completed successfully', [
                 'type' => $databaseConfig['type']
             ]);
@@ -210,6 +220,13 @@ class SetupController extends Controller
 
             // Create the initial admin user
             $adminUser = $this->setupService->createInitialAdmin($userData);
+
+            // Log admin user creation for audit purposes
+            $this->auditLogService->logSetupStepCompletion('admin', $adminUser, $request, [
+                'admin_user_id' => $adminUser->id,
+                'admin_email' => $adminUser->email,
+                'admin_name' => $adminUser->name
+            ]);
 
             Log::info('Admin user created successfully', [
                 'user_id' => $adminUser->id,
@@ -300,6 +317,14 @@ class SetupController extends Controller
 
             // Mark storage step as complete
             $this->setupService->updateSetupStep('storage', true);
+
+            // Log storage setup completion for audit purposes
+            $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
+            if ($adminUser) {
+                $this->auditLogService->logSetupStepCompletion('storage', $adminUser, $request, [
+                    'provider' => $storageConfig['provider']
+                ]);
+            }
 
             Log::info('Cloud storage configuration completed successfully', [
                 'provider' => $storageConfig['provider']
@@ -495,8 +520,17 @@ class SetupController extends Controller
                     ->withErrors(['setup_incomplete' => 'Setup is not complete. Please finish all required steps.']);
             }
 
+            // Get the admin user for audit logging
+            $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
+            
             // Mark setup as complete
             $this->setupService->markSetupComplete();
+
+            // Log setup completion for audit purposes
+            if ($adminUser) {
+                $setupSummary = $this->getSetupSummary();
+                $this->auditLogService->logSetupCompletion($adminUser, request(), $setupSummary);
+            }
 
             // Clear any cached configuration
             \Illuminate\Support\Facades\Artisan::call('config:clear');
@@ -504,7 +538,8 @@ class SetupController extends Controller
 
             Log::info('Setup wizard completed successfully', [
                 'completed_at' => now()->toISOString(),
-                'setup_progress' => $this->setupService->getSetupProgress()
+                'setup_progress' => $this->setupService->getSetupProgress(),
+                'admin_user_id' => $adminUser?->id
             ]);
 
             // Redirect to admin dashboard with success message

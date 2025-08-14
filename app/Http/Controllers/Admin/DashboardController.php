@@ -13,7 +13,40 @@ class DashboardController extends AdminController
         // Get all files, ordered by most recent
         $files = FileUpload::orderBy('created_at', 'desc')->paginate(10);
 
-        return view('admin.dashboard', compact('files'));
+        // Check if this is a first-time login after setup completion
+        $isFirstTimeLogin = $this->checkFirstTimeLogin();
+
+        return view('admin.dashboard', compact('files', 'isFirstTimeLogin'));
+    }
+
+    /**
+     * Check if this is the admin's first login after setup completion
+     */
+    private function checkFirstTimeLogin(): bool
+    {
+        $user = auth()->user();
+        
+        // Only check for admin users
+        if (!$user || !$user->isAdmin()) {
+            return false;
+        }
+
+        // Check if setup was recently completed (within last 5 minutes)
+        $setupService = app(\App\Services\SetupService::class);
+        $setupState = $setupService->getSetupState();
+        
+        if (!isset($setupState['completed_at'])) {
+            return false;
+        }
+
+        $completedAt = \Carbon\Carbon::parse($setupState['completed_at']);
+        $isRecentlyCompleted = $completedAt->diffInMinutes(now()) <= 5;
+
+        // Check if user has logged in before (excluding the current session)
+        $hasLoggedInBefore = $user->last_login_at && 
+                           $user->last_login_at->lt($completedAt);
+
+        return $isRecentlyCompleted && !$hasLoggedInBefore;
     }
 
     public function destroy(FileUpload $file)

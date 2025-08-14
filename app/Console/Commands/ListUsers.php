@@ -6,7 +6,10 @@ use App\Models\User;
 use Illuminate\Console\Command;
 
 /**
- * php artisan user:list {--role=} {--owner=}
+ * List all users or filter by role and owner.
+ * 
+ * This command lists users with optional filtering by role and owner.
+ * An alias command 'users:list' is also available that works identically.
  *
  * Examples:
  * php artisan user:list
