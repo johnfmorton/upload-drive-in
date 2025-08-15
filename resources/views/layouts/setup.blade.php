@@ -22,7 +22,28 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     <!-- Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @php
+        $assetService = app(\App\Services\AssetValidationService::class);
+        $assetsAvailable = $assetService->areAssetRequirementsMet();
+    @endphp
+    
+    @if($assetsAvailable)
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @else
+        <!-- Fallback CSS for when Vite assets are not available -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            /* Basic setup styles when Vite is not available */
+            .min-h-dvh { min-height: 100vh; }
+            .bg-gradient-to-b { background: linear-gradient(to bottom, var(--tw-gradient-stops)); }
+            .from-gray-100 { --tw-gradient-from: #f3f4f6; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(243, 244, 246, 0)); }
+            .to-gray-300 { --tw-gradient-to: #d1d5db; }
+            .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+            .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+            .animate-spin { animation: spin 1s linear infinite; }
+            @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        </style>
+    @endif
 </head>
 
 <body class="font-sans text-gray-900 antialiased">
@@ -61,7 +82,7 @@
                                 @endphp
                                 <li class="flex items-center {{ $loop->last ? '' : 'flex-1' }}">
                                     <div class="flex items-center">
-                                        <div class="flex items-center justify-center w-8 h-8 rounded-full border-2 
+                                        <div class="flex items-center justify-center w-8 h-8 rounded-full border-2
                                             {{ $isCompleted ? 'bg-green-600 border-green-600 text-white' : '' }}
                                             {{ $isCurrent ? 'border-blue-600 text-blue-600 bg-white' : '' }}
                                             {{ $isUpcoming ? 'border-gray-300 text-gray-400 bg-white' : '' }}">
@@ -73,7 +94,7 @@
                                                 <span class="text-sm font-medium">{{ $stepNumber }}</span>
                                             @endif
                                         </div>
-                                        <span class="ml-2 text-sm font-medium 
+                                        <span class="ml-2 text-sm font-medium
                                             {{ $isCompleted ? 'text-green-600' : '' }}
                                             {{ $isCurrent ? 'text-blue-600' : '' }}
                                             {{ $isUpcoming ? 'text-gray-400' : '' }}">
@@ -81,7 +102,7 @@
                                         </span>
                                     </div>
                                     @if(!$loop->last)
-                                        <div class="flex-1 mx-4 h-0.5 
+                                        <div class="flex-1 mx-4 h-0.5
                                             {{ $isCompleted ? 'bg-green-600' : 'bg-gray-300' }}">
                                         </div>
                                     @endif

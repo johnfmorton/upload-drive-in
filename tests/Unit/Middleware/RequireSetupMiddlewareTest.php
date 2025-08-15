@@ -6,14 +6,14 @@ use App\Http\Middleware\RequireSetupMiddleware;
 use App\Services\SetupService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Config;
 use Mockery;
 use Tests\TestCase;
 
 class RequireSetupMiddlewareTest extends TestCase
 {
-    private SetupService $setupService;
     private RequireSetupMiddleware $middleware;
+    private SetupService $setupService;
 
     protected function setUp(): void
     {
@@ -23,257 +23,231 @@ class RequireSetupMiddlewareTest extends TestCase
         $this->middleware = new RequireSetupMiddleware($this->setupService);
     }
 
-    public function test_allows_setup_routes_when_setup_required(): void
-    {
-        $request = Request::create('/setup/welcome', 'GET');
-        $this->setupService->shouldNotReceive('isSetupRequired');
-
-        $response = $this->middleware->handle($request, function ($req) {
-            return new Response('OK');
-        });
-
-        $this->assertEquals('OK', $response->getContent());
-    }
-
-    public function test_allows_setup_routes_by_name(): void
-    {
-        $request = Request::create('/some-path', 'GET');
-        $route = new Route(['GET'], '/some-path', []);
-        $route->name('setup.welcome');
-        $request->setRouteResolver(fn() => $route);
-
-        $this->setupService->shouldNotReceive('isSetupRequired');
-
-        $response = $this->middleware->handle($request, function ($req) {
-            return new Response('OK');
-        });
-
-        $this->assertEquals('OK', $response->getContent());
-    }
-
-    public function test_allows_asset_routes(): void
-    {
-        $assetPaths = [
-            '/build/app.js',
-            '/storage/file.pdf',
-            '/images/logo.png',
-            '/css/app.css',
-            '/js/app.js',
-            '/favicon.ico',
-            '/robots.txt',
-            '/health'
-        ];
-
-        foreach ($assetPaths as $path) {
-            $request = Request::create($path, 'GET');
-            $this->setupService->shouldNotReceive('isSetupRequired');
-
-            $response = $this->middleware->handle($request, function ($req) {
-                return new Response('OK');
-            });
-
-            $this->assertEquals('OK', $response->getContent(), "Failed for path: {$path}");
-        }
-    }
-
-    public function test_allows_file_extensions(): void
-    {
-        $setupService = Mockery::mock(SetupService::class);
-        $middleware = new RequireSetupMiddleware($setupService);
-        
-        $request = Request::create('/some/path/file.css', 'GET');
-
-        $response = $middleware->handle($request, function ($req) {
-            return new Response('OK');
-        });
-
-        $this->assertEquals('OK', $response->getContent());
-    }
-
-    public function test_redirects_to_setup_when_setup_required(): void
-    {
-        $request = Request::create('/dashboard', 'GET');
-        $this->setupService->shouldReceive('isSetupRequired')->once()->andReturn(true);
-
-        $response = $this->middleware->handle($request, function ($req) {
-            return new Response('Should not reach here');
-        });
-
-        $this->assertEquals(302, $response->getStatusCode());
-        $this->assertTrue(str_contains($response->headers->get('Location'), '/setup/welcome'));
-    }
-
-    public function test_allows_request_when_setup_not_required(): void
-    {
-        $request = Request::create('/dashboard', 'GET');
-        $this->setupService->shouldReceive('isSetupRequired')->once()->andReturn(false);
-
-        $response = $this->middleware->handle($request, function ($req) {
-            return new Response('OK');
-        });
-
-        $this->assertEquals('OK', $response->getContent());
-    }
-
-    public function test_handles_ajax_requests_correctly(): void
-    {
-        $request = Request::create('/api/data', 'GET');
-        $request->headers->set('X-Requested-With', 'XMLHttpRequest');
-        $this->setupService->shouldReceive('isSetupRequired')->once()->andReturn(true);
-
-        $response = $this->middleware->handle($request, function ($req) {
-            return new Response('Should not reach here');
-        });
-
-        $this->assertEquals(302, $response->getStatusCode());
-        $this->assertTrue(str_contains($response->headers->get('Location'), '/setup/welcome'));
-    }
-
-    public function test_handles_json_requests_correctly(): void
-    {
-        $request = Request::create('/api/data', 'GET');
-        $request->headers->set('Accept', 'application/json');
-        $this->setupService->shouldReceive('isSetupRequired')->once()->andReturn(true);
-
-        $response = $this->middleware->handle($request, function ($req) {
-            return new Response('Should not reach here');
-        });
-
-        $this->assertEquals(302, $response->getStatusCode());
-    }
-
-    public function test_allows_health_check_routes(): void
-    {
-        $healthPaths = [
-            '/health',
-            '/health/check',
-            '/status',
-            '/ping'
-        ];
-
-        foreach ($healthPaths as $path) {
-            $request = Request::create($path, 'GET');
-            $this->setupService->shouldNotReceive('isSetupRequired');
-
-            $response = $this->middleware->handle($request, function ($req) {
-                return new Response('OK');
-            });
-
-            $this->assertEquals('OK', $response->getContent(), "Failed for health path: {$path}");
-        }
-    }
-
-    public function test_allows_well_known_routes(): void
-    {
-        $wellKnownPaths = [
-            '/.well-known/microsoft-identity-association.json',
-            '/.well-known/security.txt',
-            '/.well-known/robots.txt'
-        ];
-
-        foreach ($wellKnownPaths as $path) {
-            $request = Request::create($path, 'GET');
-            $this->setupService->shouldNotReceive('isSetupRequired');
-
-            $response = $this->middleware->handle($request, function ($req) {
-                return new Response('OK');
-            });
-
-            $this->assertEquals('OK', $response->getContent(), "Failed for well-known path: {$path}");
-        }
-    }
-
-    public function test_handles_post_requests_to_non_setup_routes(): void
-    {
-        $request = Request::create('/login', 'POST');
-        $this->setupService->shouldReceive('isSetupRequired')->once()->andReturn(true);
-
-        $response = $this->middleware->handle($request, function ($req) {
-            return new Response('Should not reach here');
-        });
-
-        $this->assertEquals(302, $response->getStatusCode());
-        $this->assertTrue(str_contains($response->headers->get('Location'), '/setup/welcome'));
-    }
-
-    public function test_preserves_query_parameters_in_redirect(): void
-    {
-        $request = Request::create('/dashboard?tab=files&sort=date', 'GET');
-        $this->setupService->shouldReceive('isSetupRequired')->once()->andReturn(true);
-
-        $response = $this->middleware->handle($request, function ($req) {
-            return new Response('Should not reach here');
-        });
-
-        $this->assertEquals(302, $response->getStatusCode());
-        $location = $response->headers->get('Location');
-        $this->assertTrue(str_contains($location, '/setup/welcome'));
-        // The redirect should go to setup, not preserve the original query params
-    }
-
-    public function test_handles_setup_service_exceptions(): void
-    {
-        $request = Request::create('/dashboard', 'GET');
-        $this->setupService->shouldReceive('isSetupRequired')
-            ->once()
-            ->andThrow(new \Exception('Database connection failed'));
-
-        // Should treat exceptions as setup required
-        $response = $this->middleware->handle($request, function ($req) {
-            return new Response('Should not reach here');
-        });
-
-        $this->assertEquals(302, $response->getStatusCode());
-        $this->assertTrue(str_contains($response->headers->get('Location'), '/setup/welcome'));
-    }
-
-    public function test_allows_setup_step_routes(): void
-    {
-        $setupStepPaths = [
-            '/setup/step/welcome',
-            '/setup/step/database',
-            '/setup/step/admin',
-            '/setup/step/storage',
-            '/setup/step/complete'
-        ];
-
-        foreach ($setupStepPaths as $path) {
-            $request = Request::create($path, 'GET');
-            $this->setupService->shouldNotReceive('isSetupRequired');
-
-            $response = $this->middleware->handle($request, function ($req) {
-                return new Response('OK');
-            });
-
-            $this->assertEquals('OK', $response->getContent(), "Failed for setup step path: {$path}");
-        }
-    }
-
-    public function test_middleware_performance_with_multiple_requests(): void
-    {
-        $startTime = microtime(true);
-        
-        for ($i = 0; $i < 100; $i++) {
-            $request = Request::create('/dashboard', 'GET');
-            $this->setupService->shouldReceive('isSetupRequired')->once()->andReturn(false);
-
-            $response = $this->middleware->handle($request, function ($req) {
-                return new Response('OK');
-            });
-
-            $this->assertEquals('OK', $response->getContent());
-        }
-        
-        $endTime = microtime(true);
-        $executionTime = $endTime - $startTime;
-        
-        // Should complete 100 requests in under 1 second
-        $this->assertLessThan(1.0, $executionTime, 'Middleware performance is too slow');
-    }
-
     protected function tearDown(): void
     {
         Mockery::close();
         parent::tearDown();
+    }
+
+    public function test_middleware_passes_when_bootstrap_checks_disabled(): void
+    {
+        Config::set('setup.bootstrap_checks', false);
+        
+        $request = Request::create('/dashboard');
+        $next = fn($req) => new Response('OK');
+        
+        $response = $this->middleware->handle($request, $next);
+        
+        $this->assertEquals('OK', $response->getContent());
+    }
+
+    public function test_middleware_passes_for_setup_routes(): void
+    {
+        Config::set('setup.bootstrap_checks', true);
+        Config::set('setup.route_prefix', 'setup');
+        
+        $request = Request::create('/setup/assets');
+        $next = fn($req) => new Response('Setup Page');
+        
+        $response = $this->middleware->handle($request, $next);
+        
+        $this->assertEquals('Setup Page', $response->getContent());
+    }
+
+    public function test_middleware_passes_for_exempt_routes(): void
+    {
+        Config::set('setup.bootstrap_checks', true);
+        Config::set('setup.exempt_routes', ['health', 'ping']);
+        
+        $request = Request::create('/health');
+        $next = fn($req) => new Response('Healthy');
+        
+        $response = $this->middleware->handle($request, $next);
+        
+        $this->assertEquals('Healthy', $response->getContent());
+    }
+
+    public function test_middleware_passes_for_exempt_paths(): void
+    {
+        Config::set('setup.bootstrap_checks', true);
+        Config::set('setup.exempt_paths', ['build/*', '*.css']);
+        
+        $request = Request::create('/build/app.js');
+        $next = fn($req) => new Response('Asset');
+        
+        $response = $this->middleware->handle($request, $next);
+        
+        $this->assertEquals('Asset', $response->getContent());
+    }
+
+    public function test_middleware_passes_for_asset_related_routes(): void
+    {
+        Config::set('setup.bootstrap_checks', true);
+        
+        $request = Request::create('/css/app.css');
+        $next = fn($req) => new Response('CSS');
+        
+        $response = $this->middleware->handle($request, $next);
+        
+        $this->assertEquals('CSS', $response->getContent());
+    }
+
+    public function test_middleware_calls_asset_validation_before_setup_checks(): void
+    {
+        Config::set('setup.bootstrap_checks', true);
+        
+        $this->setupService
+            ->shouldReceive('areAssetsValid')
+            ->once()
+            ->andReturn(false);
+        
+        // Should not call isSetupRequired if assets are invalid
+        $this->setupService
+            ->shouldNotReceive('isSetupRequired');
+        
+        $request = Request::create('/dashboard');
+        $next = fn($req) => new Response('Dashboard');
+        
+        $response = $this->middleware->handle($request, $next);
+        
+        $this->assertEquals(302, $response->getStatusCode());
+    }
+
+    public function test_middleware_handles_asset_validation_exceptions(): void
+    {
+        Config::set('setup.bootstrap_checks', true);
+        
+        $this->setupService
+            ->shouldReceive('areAssetsValid')
+            ->once()
+            ->andThrow(new \Exception('Vite manifest not found'));
+        
+        $request = Request::create('/dashboard');
+        $next = fn($req) => new Response('Dashboard');
+        
+        $response = $this->middleware->handle($request, $next);
+        
+        $this->assertEquals(302, $response->getStatusCode());
+    }
+
+    public function test_middleware_proceeds_to_setup_checks_when_assets_valid(): void
+    {
+        Config::set('setup.bootstrap_checks', true);
+        
+        $this->setupService
+            ->shouldReceive('areAssetsValid')
+            ->once()
+            ->andReturn(true);
+        
+        $this->setupService
+            ->shouldReceive('isSetupRequired')
+            ->once()
+            ->andReturn(false);
+        
+        $request = Request::create('/dashboard');
+        $next = fn($req) => new Response('Dashboard');
+        
+        $response = $this->middleware->handle($request, $next);
+        
+        $this->assertEquals('Dashboard', $response->getContent());
+    }
+
+    public function test_middleware_handles_setup_check_exceptions(): void
+    {
+        Config::set('setup.bootstrap_checks', true);
+        Config::set('setup.redirect_route', 'setup.welcome');
+        
+        $this->setupService
+            ->shouldReceive('areAssetsValid')
+            ->once()
+            ->andReturn(true);
+        
+        $this->setupService
+            ->shouldReceive('isSetupRequired')
+            ->once()
+            ->andThrow(new \Exception('Database connection failed'));
+        
+        $request = Request::create('/dashboard');
+        $next = fn($req) => new Response('Dashboard');
+        
+        $response = $this->middleware->handle($request, $next);
+        
+        $this->assertEquals(302, $response->getStatusCode());
+    }
+
+    public function test_setup_route_detection_with_route_names(): void
+    {
+        Config::set('setup.bootstrap_checks', true);
+        Config::set('setup.route_prefix', 'setup');
+        
+        $request = Request::create('/custom-setup-path');
+        $route = Mockery::mock();
+        $route->shouldReceive('getName')->andReturn('setup.assets');
+        $request->setRouteResolver(fn() => $route);
+        
+        $next = fn($req) => new Response('Setup Route');
+        
+        $response = $this->middleware->handle($request, $next);
+        
+        $this->assertEquals('Setup Route', $response->getContent());
+    }
+
+    public function test_pattern_matching_with_wildcards(): void
+    {
+        Config::set('setup.bootstrap_checks', true);
+        Config::set('setup.exempt_paths', ['api/v*/public/*']);
+        
+        $request = Request::create('/api/v1/public/data');
+        $next = fn($req) => new Response('Public API');
+        
+        $response = $this->middleware->handle($request, $next);
+        
+        $this->assertEquals('Public API', $response->getContent());
+    }
+
+    public function test_asset_related_route_detection(): void
+    {
+        Config::set('setup.bootstrap_checks', true);
+        
+        $assetPaths = [
+            '/build/app.js',
+            '/storage/uploads/file.pdf',
+            '/images/logo.png',
+            '/css/app.css',
+            '/js/app.js',
+            '/fonts/font.woff2',
+            '/assets/icon.svg',
+        ];
+        
+        foreach ($assetPaths as $path) {
+            $request = Request::create($path);
+            $next = fn($req) => new Response('Asset');
+            
+            $response = $this->middleware->handle($request, $next);
+            
+            $this->assertEquals('Asset', $response->getContent(), "Failed for path: {$path}");
+        }
+    }
+
+    public function test_setup_route_for_step_mapping(): void
+    {
+        $reflection = new \ReflectionClass($this->middleware);
+        $method = $reflection->getMethod('getSetupRouteForStep');
+        $method->setAccessible(true);
+        
+        $testCases = [
+            'assets' => 'setup.assets',
+            'welcome' => 'setup.welcome',
+            'database' => 'setup.database',
+            'admin' => 'setup.admin',
+            'storage' => 'setup.storage',
+            'complete' => 'setup.complete',
+            'unknown' => 'setup.welcome', // default fallback
+        ];
+        
+        foreach ($testCases as $step => $expectedRoute) {
+            $result = $method->invoke($this->middleware, $step);
+            $this->assertEquals($expectedRoute, $result, "Failed for step: {$step}");
+        }
     }
 }

@@ -10,10 +10,24 @@
             :current-step="$currentStep ?? 'complete'" 
             :progress="100" />
 
+        <!-- Celebration Component -->
+        <x-setup-completion-celebration 
+            title="🎉 Setup Complete!"
+            message="Congratulations! Your Upload Drive-in installation is now ready to use."
+            :next-steps="[
+                'Access the admin dashboard to complete your profile',
+                'Connect your Google Drive account for file storage',
+                'Create employee accounts to help manage uploads',
+                'Test the upload process with a sample file'
+            ]"
+            :auto-redirect="true"
+            :redirect-url="route('login')"
+            :redirect-delay="15000" />
+
         <!-- Success Display -->
         <x-setup-success-display 
             :message="'Setup completed successfully! Your Upload Drive-in installation is now ready to use.'"
-            title="🎉 Setup Complete!"
+            title="Setup Complete!"
             :show-progress="true"
             :progress="100"
             :details="[

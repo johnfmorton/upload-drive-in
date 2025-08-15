@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Services\SetupService;
+use App\Services\AssetValidationService;
+use App\Services\SetupSecurityService;
+use App\Services\EnvironmentFileService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Config;
@@ -14,8 +17,19 @@ class SetupServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(AssetValidationService::class);
+        $this->app->singleton(SetupSecurityService::class);
+        
+        $this->app->singleton(EnvironmentFileService::class, function ($app) {
+            return new EnvironmentFileService($app->make(SetupSecurityService::class));
+        });
+        
         $this->app->singleton(SetupService::class, function ($app) {
-            return new SetupService();
+            return new SetupService(
+                $app->make(AssetValidationService::class),
+                $app->make(SetupSecurityService::class),
+                $app->make(EnvironmentFileService::class)
+            );
         });
     }
 

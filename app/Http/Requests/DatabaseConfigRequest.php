@@ -61,25 +61,61 @@ class DatabaseConfigRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'database_type.required' => 'Database type is required.',
+            'database_type.required' => 'Please select a database type (MySQL or SQLite).',
             'database_type.in' => 'Database type must be either MySQL or SQLite.',
             
-            // MySQL validation messages
-            'mysql_host.required' => 'MySQL host is required.',
+            // MySQL validation messages with helpful hints
+            'mysql_host.required' => 'MySQL host is required. Use "localhost" for local servers or your server\'s IP address.',
             'mysql_host.max' => 'MySQL host must not exceed 255 characters.',
-            'mysql_port.required' => 'MySQL port is required.',
-            'mysql_port.integer' => 'MySQL port must be a valid integer.',
+            'mysql_port.required' => 'MySQL port is required. The default MySQL port is 3306.',
+            'mysql_port.integer' => 'MySQL port must be a valid number (e.g., 3306).',
             'mysql_port.min' => 'MySQL port must be at least 1.',
             'mysql_port.max' => 'MySQL port must not exceed 65535.',
-            'mysql_database.required' => 'MySQL database name is required.',
+            'mysql_database.required' => 'MySQL database name is required. This should be the name of your database.',
             'mysql_database.max' => 'MySQL database name must not exceed 64 characters.',
-            'mysql_database.regex' => 'MySQL database name can only contain letters, numbers, and underscores.',
-            'mysql_username.required' => 'MySQL username is required.',
+            'mysql_database.regex' => 'MySQL database name can only contain letters, numbers, and underscores (no spaces or special characters).',
+            'mysql_username.required' => 'MySQL username is required. This is the user that has access to your database.',
             'mysql_username.max' => 'MySQL username must not exceed 32 characters.',
             'mysql_password.max' => 'MySQL password must not exceed 255 characters.',
             
-            // SQLite validation messages
+            // SQLite validation messages with helpful hints
             'sqlite_path.max' => 'SQLite database path must not exceed 255 characters.',
+        ];
+    }
+
+    /**
+     * Get validation messages with contextual help.
+     *
+     * @return array<string, array>
+     */
+    public function getEnhancedMessages(): array
+    {
+        return [
+            'mysql_host' => [
+                'message' => 'MySQL host is required',
+                'hint' => 'Use "localhost" for local development, or your server\'s IP/hostname for remote connections',
+                'examples' => ['localhost', '127.0.0.1', 'mysql.example.com']
+            ],
+            'mysql_port' => [
+                'message' => 'MySQL port must be a valid number between 1 and 65535',
+                'hint' => 'The default MySQL port is 3306. Check with your hosting provider if unsure',
+                'examples' => ['3306', '3307', '33060']
+            ],
+            'mysql_database' => [
+                'message' => 'Database name is required and must contain only letters, numbers, and underscores',
+                'hint' => 'This is the name of the database you created in your MySQL server',
+                'examples' => ['upload_drive_in', 'myapp_production', 'website_db']
+            ],
+            'mysql_username' => [
+                'message' => 'MySQL username is required',
+                'hint' => 'This is the MySQL user that has access to your database',
+                'examples' => ['root', 'app_user', 'website_admin']
+            ],
+            'mysql_password' => [
+                'message' => 'Password is optional but recommended for security',
+                'hint' => 'Leave empty only if your MySQL user has no password (not recommended for production)',
+                'security_note' => 'Use a strong password for production environments'
+            ]
         ];
     }
 
@@ -155,9 +191,33 @@ class DatabaseConfigRequest extends FormRequest
             'password' => $this->input('mysql_password', ''),
         ];
 
-        if (!$databaseSetupService->testMySQLConnection($config)) {
+        try {
+            $result = $databaseSetupService->testMySQLConnection($config);
+            
+            if (!$result['success']) {
+                $validator->errors()->add('mysql_connectivity', $result['message']);
+                
+                // Add specific troubleshooting hints
+                if (!empty($result['troubleshooting'])) {
+                    $validator->errors()->add('mysql_troubleshooting', 
+                        'Troubleshooting steps: ' . implode(' • ', array_slice($result['troubleshooting'], 0, 3))
+                    );
+                }
+            }
+            
+        } catch (\App\Exceptions\DatabaseSetupException $e) {
+            $validator->errors()->add('mysql_connectivity', $e->getUserMessage());
+            
+            $troubleshootingSteps = $e->getTroubleshootingSteps();
+            if (!empty($troubleshootingSteps)) {
+                $validator->errors()->add('mysql_troubleshooting', 
+                    'Try these steps: ' . implode(' • ', array_slice($troubleshootingSteps, 0, 3))
+                );
+            }
+            
+        } catch (\Exception $e) {
             $validator->errors()->add('mysql_connectivity', 
-                'Unable to connect to MySQL database. Please check your connection parameters.'
+                'Database connection test failed. Please verify your connection settings and try again.'
             );
         }
     }

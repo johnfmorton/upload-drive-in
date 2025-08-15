@@ -8,10 +8,12 @@ use App\Exceptions\SetupException;
 use App\Http\Requests\AdminUserRequest;
 use App\Http\Requests\DatabaseConfigRequest;
 use App\Http\Requests\StorageConfigRequest;
+use App\Services\AssetValidationService;
 use App\Services\AuditLogService;
 use App\Services\CloudStorageSetupService;
 use App\Services\DatabaseSetupService;
 use App\Services\SetupErrorHandlingService;
+use App\Services\SetupSecurityService;
 use App\Services\SetupService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -33,9 +35,11 @@ class SetupController extends Controller
 {
     public function __construct(
         private SetupService $setupService,
+        private AssetValidationService $assetValidationService,
         private DatabaseSetupService $databaseSetupService,
         private CloudStorageSetupService $cloudStorageSetupService,
         private SetupErrorHandlingService $errorHandlingService,
+        private SetupSecurityService $securityService,
         private AuditLogService $auditLogService
     ) {}
 
@@ -45,27 +49,150 @@ class SetupController extends Controller
      * Shows initial welcome message and performs basic system requirement checks
      * to ensure the application can be properly configured.
      */
-    public function welcome(): View
+    public function welcome(): View|RedirectResponse
     {
+        // Detect and handle any setup interruptions or recovery needs
+        $recoveryInfo = $this->setupService->detectAndResumeSetup();
+        
+        if ($recoveryInfo['interrupted']) {
+            Log::info('Setup interruption detected and recovery attempted', $recoveryInfo);
+        }
+
+        // Check asset requirements first
+        if (!$this->assetValidationService->areAssetRequirementsMet()) {
+            Log::info('Asset requirements not met, redirecting to asset instructions');
+            return redirect()->route('setup.assets');
+        }
+
         // Perform system checks
         $systemChecks = $this->performSystemChecks();
         
-        // Get setup progress
-        $progress = $this->setupService->getSetupProgress();
-        $currentStep = $this->setupService->getSetupStep();
+        // Get detailed setup progress
+        $progressDetails = $this->setupService->getDetailedProgress();
+        $progress = $progressDetails['progress_percentage'];
+        $currentStep = $progressDetails['current_step'];
+        
+        // Create or validate secure setup session
+        $sessionValidation = $this->setupService->validateSetupSession();
+        if (!$sessionValidation['valid']) {
+            $this->setupService->createSecureSetupSession();
+        }
+
+        // Mark step as started for timing
+        $this->setupService->markStepStarted('welcome');
         
         Log::info('Setup wizard welcome screen accessed', [
             'current_step' => $currentStep,
             'progress' => $progress,
-            'system_checks' => $systemChecks
+            'system_checks' => $systemChecks,
+            'recovery_info' => $recoveryInfo
         ]);
 
         return view('setup.welcome', [
             'systemChecks' => $systemChecks,
             'progress' => $progress,
             'currentStep' => $currentStep,
-            'canProceed' => $systemChecks['overall_status']
+            'progressDetails' => $progressDetails,
+            'canProceed' => $systemChecks['overall_status'],
+            'recoveryInfo' => $recoveryInfo
         ]);
+    }
+
+    /**
+     * Display the asset build instructions screen.
+     * 
+     * Shows instructions for building frontend assets when the Vite manifest
+     * is missing or build directory is empty.
+     */
+    public function showAssetBuildInstructions(): View
+    {
+        try {
+            // Get asset validation results
+            $assetStatus = $this->assetValidationService->getAssetBuildStatus();
+            $buildInstructions = $this->assetValidationService->getBuildInstructions();
+            $missingRequirements = $this->assetValidationService->getMissingAssetRequirements();
+            
+            // Get setup progress
+            $progress = $this->setupService->getSetupProgress();
+            $currentStep = 'assets';
+            
+            Log::info('Asset build instructions screen accessed', [
+                'current_step' => $currentStep,
+                'asset_ready' => $assetStatus['ready'],
+                'missing_count' => count($missingRequirements)
+            ]);
+
+            return view('setup.assets', [
+                'assetStatus' => $assetStatus,
+                'buildInstructions' => $buildInstructions,
+                'missingRequirements' => $missingRequirements,
+                'progress' => $progress,
+                'currentStep' => $currentStep,
+                'canProceed' => $assetStatus['ready']
+            ]);
+
+        } catch (\Exception $e) {
+            $errorInfo = $this->errorHandlingService->handleSetupException($e, 'asset_validation');
+            
+            Log::error('Failed to display asset build instructions', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return view('setup.assets', [
+                'assetStatus' => ['ready' => false, 'checks' => [], 'missing' => []],
+                'buildInstructions' => $this->assetValidationService->getBuildInstructions(),
+                'missingRequirements' => [],
+                'progress' => $this->setupService->getSetupProgress(),
+                'currentStep' => 'assets',
+                'canProceed' => false,
+                'error' => $errorInfo['user_message']
+            ]);
+        }
+    }
+
+    /**
+     * Check asset build status via AJAX.
+     * 
+     * Provides real-time status checking for asset build completion
+     * to allow users to verify their build process without page refresh.
+     */
+    public function checkAssetBuildStatus(): \Illuminate\Http\JsonResponse
+    {
+        try {
+            // Get current asset status
+            $assetStatus = $this->assetValidationService->getAssetBuildStatus();
+            $missingRequirements = $this->assetValidationService->getMissingAssetRequirements();
+            
+            Log::info('Asset build status checked via AJAX', [
+                'ready' => $assetStatus['ready'],
+                'missing_count' => count($missingRequirements)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'ready' => $assetStatus['ready'],
+                'status' => $assetStatus,
+                'missing' => $missingRequirements,
+                'message' => $assetStatus['ready'] 
+                    ? 'Assets are ready! You can proceed to the next step.' 
+                    : 'Assets are not ready. Please complete the build process.',
+                'next_step_url' => $assetStatus['ready'] ? route('setup.welcome') : null
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Asset build status check failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'ready' => false,
+                'message' => 'Unable to check asset status: ' . $e->getMessage(),
+                'error' => 'Asset validation failed'
+            ], 500);
+        }
     }
 
     /**
@@ -114,21 +241,48 @@ class SetupController extends Controller
     public function configureDatabase(DatabaseConfigRequest $request): RedirectResponse
     {
         try {
+            // Validate setup session
+            $sessionValidation = $this->setupService->validateSetupSession();
+            if (!$sessionValidation['valid']) {
+                $this->securityService->logSecurityEvent('setup_session_invalid', [
+                    'violations' => $sessionValidation['violations'],
+                    'step' => 'database'
+                ]);
+                
+                return redirect()->route('setup.welcome')
+                    ->withErrors(['session' => 'Setup session is invalid. Please start over.']);
+            }
+
             // Get validated database configuration
             $databaseConfig = $request->getValidatedDatabaseConfig();
+            
+            // Additional security validation
+            $securityValidation = $this->setupService->validateSetupInput('database', $databaseConfig['config']);
+            if (!empty($securityValidation['violations'])) {
+                return back()
+                    ->withErrors(['security' => 'Security validation failed'])
+                    ->with('security_violations', $securityValidation['violations'])
+                    ->withInput();
+            }
             
             Log::info('Processing database configuration', [
                 'type' => $databaseConfig['type']
             ]);
 
-            // Update environment configuration if needed
-            $this->updateDatabaseEnvironment($databaseConfig);
+            // Update environment configuration securely
+            $envUpdateResult = $this->setupService->updateDatabaseEnvironment($databaseConfig['config']);
+            if (!$envUpdateResult['success']) {
+                throw new \Exception('Failed to update environment: ' . $envUpdateResult['message']);
+            }
 
             // Initialize database based on type
             if ($databaseConfig['type'] === 'sqlite') {
                 $this->databaseSetupService->initializeSQLiteDatabase();
             } elseif ($databaseConfig['type'] === 'mysql') {
-                $this->databaseSetupService->testMySQLConnection($databaseConfig['config']);
+                $result = $this->databaseSetupService->testMySQLConnection($databaseConfig['config']);
+                if (!$result['success']) {
+                    throw new \Exception('MySQL connection test failed: ' . $result['message']);
+                }
             }
 
             // Run database migrations
@@ -149,10 +303,19 @@ class SetupController extends Controller
                 'type' => $databaseConfig['type']
             ]);
 
+            // Get step completion details for visual feedback
+            $completionDetails = $this->setupService->getStepCompletionDetails('database');
+            
             // Redirect to next step
             $nextStep = $this->setupService->getSetupStep();
             return redirect()->route('setup.step', ['step' => $nextStep])
-                ->with('success', 'Database configured successfully!');
+                ->with('success', 'Database configured successfully!')
+                ->with('step_completed', [
+                    'step' => 'database',
+                    'details' => $completionDetails,
+                    'next_step' => $nextStep,
+                    'progress' => $this->setupService->getSetupProgress()
+                ]);
 
         } catch (DatabaseSetupException $e) {
             $errorInfo = $this->errorHandlingService->handleSetupException($e, 'database_setup');
@@ -197,7 +360,7 @@ class SetupController extends Controller
         return view('setup.admin', [
             'progress' => $progress,
             'currentStep' => $currentStep,
-            'passwordRequirements' => $this->getPasswordRequirements()
+            'passwordRequirements' => AdminUserRequest::getPasswordRequirements()
         ]);
     }
 
@@ -210,8 +373,29 @@ class SetupController extends Controller
     public function createAdmin(AdminUserRequest $request): RedirectResponse
     {
         try {
+            // Validate setup session
+            $sessionValidation = $this->setupService->validateSetupSession();
+            if (!$sessionValidation['valid']) {
+                $this->securityService->logSecurityEvent('setup_session_invalid', [
+                    'violations' => $sessionValidation['violations'],
+                    'step' => 'admin'
+                ]);
+                
+                return redirect()->route('setup.welcome')
+                    ->withErrors(['session' => 'Setup session is invalid. Please start over.']);
+            }
+
             // Get validated user data
             $userData = $request->getValidatedUserData();
+            
+            // Additional security validation
+            $securityValidation = $this->setupService->validateSetupInput('admin_user', $userData);
+            if (!empty($securityValidation['violations'])) {
+                return back()
+                    ->withErrors(['security' => 'Security validation failed'])
+                    ->with('security_violations', $securityValidation['violations'])
+                    ->withInput($request->except('password', 'password_confirmation'));
+            }
             
             Log::info('Processing admin user creation', [
                 'email' => $userData['email'],
@@ -234,10 +418,19 @@ class SetupController extends Controller
                 'name' => $adminUser->name
             ]);
 
+            // Get step completion details for visual feedback
+            $completionDetails = $this->setupService->getStepCompletionDetails('admin');
+            
             // Redirect to next step
             $nextStep = $this->setupService->getSetupStep();
             return redirect()->route('setup.step', ['step' => $nextStep])
-                ->with('success', 'Administrator account created successfully!');
+                ->with('success', 'Administrator account created successfully!')
+                ->with('step_completed', [
+                    'step' => 'admin',
+                    'details' => $completionDetails,
+                    'next_step' => $nextStep,
+                    'progress' => $this->setupService->getSetupProgress()
+                ]);
 
         } catch (\Exception $e) {
             $errorInfo = $this->errorHandlingService->handleSetupException($e, 'admin_creation');
@@ -296,8 +489,29 @@ class SetupController extends Controller
     public function configureStorage(StorageConfigRequest $request): RedirectResponse
     {
         try {
+            // Validate setup session
+            $sessionValidation = $this->setupService->validateSetupSession();
+            if (!$sessionValidation['valid']) {
+                $this->securityService->logSecurityEvent('setup_session_invalid', [
+                    'violations' => $sessionValidation['violations'],
+                    'step' => 'storage'
+                ]);
+                
+                return redirect()->route('setup.welcome')
+                    ->withErrors(['session' => 'Setup session is invalid. Please start over.']);
+            }
+
             // Get validated storage configuration
             $storageConfig = $request->getValidatedStorageConfig();
+            
+            // Additional security validation
+            $securityValidation = $this->setupService->validateSetupInput('storage', $storageConfig['config']);
+            if (!empty($securityValidation['violations'])) {
+                return back()
+                    ->withErrors(['security' => 'Security validation failed'])
+                    ->with('security_violations', $securityValidation['violations'])
+                    ->withInput();
+            }
             
             Log::info('Processing cloud storage configuration', [
                 'provider' => $storageConfig['provider']
@@ -311,8 +525,11 @@ class SetupController extends Controller
                     $storageConfig['config']['client_secret']
                 );
                 
-                // Store configuration if test passes
-                $this->cloudStorageSetupService->storeGoogleDriveConfig($storageConfig['config']);
+                // Store configuration securely
+                $envUpdateResult = $this->setupService->updateStorageEnvironment($storageConfig['config']);
+                if (!$envUpdateResult['success']) {
+                    throw new \Exception('Failed to update storage environment: ' . $envUpdateResult['message']);
+                }
             }
 
             // Mark storage step as complete
@@ -330,10 +547,19 @@ class SetupController extends Controller
                 'provider' => $storageConfig['provider']
             ]);
 
+            // Get step completion details for visual feedback
+            $completionDetails = $this->setupService->getStepCompletionDetails('storage');
+            
             // Redirect to next step
             $nextStep = $this->setupService->getSetupStep();
             return redirect()->route('setup.step', ['step' => $nextStep])
-                ->with('success', 'Cloud storage configured successfully!');
+                ->with('success', 'Cloud storage configured successfully!')
+                ->with('step_completed', [
+                    'step' => 'storage',
+                    'details' => $completionDetails,
+                    'next_step' => $nextStep,
+                    'progress' => $this->setupService->getSetupProgress()
+                ]);
 
         } catch (CloudStorageSetupException $e) {
             $errorInfo = $this->errorHandlingService->handleSetupException($e, 'storage_setup');
@@ -395,39 +621,107 @@ class SetupController extends Controller
     {
         try {
             $request->validate([
-                'host' => 'required|string',
-                'port' => 'required|integer|min:1|max:65535',
+                'database_type' => 'required|string|in:mysql,sqlite',
+                'host' => 'required_if:database_type,mysql|string',
+                'port' => 'required_if:database_type,mysql|integer|min:1|max:65535',
                 'database' => 'required|string',
-                'username' => 'required|string',
-                'password' => 'nullable|string'
+                'username' => 'required_if:database_type,mysql|string',
+                'password' => 'nullable|string',
+                'sqlite_path' => 'nullable|string'
             ]);
 
-            $config = [
-                'host' => $request->input('host'),
-                'port' => $request->input('port'),
-                'database' => $request->input('database'),
-                'username' => $request->input('username'),
-                'password' => $request->input('password', '')
-            ];
+            $databaseType = $request->input('database_type');
+            
+            if ($databaseType === 'mysql') {
+                $config = [
+                    'host' => $request->input('host'),
+                    'port' => $request->input('port'),
+                    'database' => $request->input('database'),
+                    'username' => $request->input('username'),
+                    'password' => $request->input('password', '')
+                ];
 
-            $success = $this->databaseSetupService->testMySQLConnection($config);
+                $result = $this->databaseSetupService->testMySQLConnection($config);
+                
+                return response()->json([
+                    'success' => $result['success'],
+                    'message' => $result['message'],
+                    'details' => $result['details'] ?? [],
+                    'troubleshooting' => $result['troubleshooting'] ?? [],
+                    'hosting_instructions' => $result['hosting_instructions'] ?? []
+                ]);
+                
+            } elseif ($databaseType === 'sqlite') {
+                $sqlitePath = $request->input('sqlite_path') ?: database_path('database.sqlite');
+                
+                // Temporarily update config for testing
+                $originalPath = config('database.connections.sqlite.database');
+                config(['database.connections.sqlite.database' => $sqlitePath]);
+                
+                try {
+                    $this->databaseSetupService->initializeSQLiteDatabase();
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'SQLite database initialized successfully!',
+                        'details' => [
+                            'database_path' => $sqlitePath,
+                            'file_exists' => file_exists($sqlitePath),
+                            'file_writable' => is_writable($sqlitePath),
+                            'directory_writable' => is_writable(dirname($sqlitePath))
+                        ]
+                    ]);
+                    
+                } finally {
+                    // Restore original config
+                    config(['database.connections.sqlite.database' => $originalPath]);
+                }
+            }
 
-            return response()->json([
-                'success' => $success,
-                'message' => $success ? 'Database connection successful!' : 'Unable to connect to database'
-            ]);
-
-        } catch (\Exception $e) {
+        } catch (DatabaseSetupException $e) {
             Log::error('Database connection test failed', [
                 'error' => $e->getMessage(),
+                'database_type' => $request->input('database_type'),
+                'host' => $request->input('host'),
+                'database' => $request->input('database'),
+                'context' => $e->getContext()
+            ]);
+
+            $response = [
+                'success' => false,
+                'message' => $e->getUserMessage(),
+                'technical_error' => $e->getMessage(),
+                'troubleshooting' => $e->getTroubleshootingSteps()
+            ];
+
+            // Add detailed information if available
+            if (property_exists($e, 'details') && !empty($e->details)) {
+                $response['details'] = $e->details['details'] ?? [];
+                $response['hosting_instructions'] = $e->details['hosting_instructions'] ?? [];
+            }
+
+            return response()->json($response, 400);
+
+        } catch (\Exception $e) {
+            Log::error('Database connection test failed with unexpected error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'database_type' => $request->input('database_type'),
                 'host' => $request->input('host'),
                 'database' => $request->input('database')
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Connection failed: ' . $e->getMessage()
-            ]);
+                'message' => 'An unexpected error occurred while testing the database connection.',
+                'technical_error' => $e->getMessage(),
+                'troubleshooting' => [
+                    'Check the application logs for detailed error information',
+                    'Verify all required PHP extensions are installed',
+                    'Ensure proper file permissions are set',
+                    'Contact your system administrator if the problem persists'
+                ]
+            ], 500);
         }
     }
 
@@ -469,6 +763,30 @@ class SetupController extends Controller
     }
 
     /**
+     * Get fresh CSRF token via AJAX.
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function refreshCsrfToken(): \Illuminate\Http\JsonResponse
+    {
+        try {
+            return response()->json([
+                'success' => true,
+                'token' => csrf_token()
+            ]);
+        } catch (\Exception $e) {
+            Log::error('CSRF token refresh failed', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to refresh security token'
+            ], 500);
+        }
+    }
+
+    /**
      * Validate email availability via AJAX.
      * 
      * @param Request $request
@@ -483,23 +801,124 @@ class SetupController extends Controller
 
             $email = $request->input('email');
             
+            // Basic email format validation
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                return response()->json([
+                    'available' => false,
+                    'message' => 'Please enter a valid email address format'
+                ]);
+            }
+
             // Check if email already exists
             $exists = \App\Models\User::where('email', $email)->exists();
 
+            if ($exists) {
+                return response()->json([
+                    'available' => false,
+                    'message' => 'This email address is already registered'
+                ]);
+            }
+
+            // Additional email validation checks
+            $domain = substr(strrchr($email, "@"), 1);
+            if (empty($domain)) {
+                return response()->json([
+                    'available' => false,
+                    'message' => 'Email address must include a valid domain'
+                ]);
+            }
+
             return response()->json([
-                'available' => !$exists,
-                'message' => $exists ? 'This email address is already in use' : 'Email address is available'
+                'available' => true,
+                'message' => 'Email address is available'
             ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'available' => false,
+                'message' => 'Please enter a valid email address'
+            ], 422);
 
         } catch (\Exception $e) {
             Log::error('Email validation failed', [
                 'error' => $e->getMessage(),
-                'email' => $request->input('email')
+                'email' => $request->input('email'),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
                 'available' => false,
-                'message' => 'Unable to validate email address'
+                'message' => 'Unable to validate email address. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Validate database field via AJAX.
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function validateDatabaseField(Request $request): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $request->validate([
+                'field' => 'required|string|in:mysql_host,mysql_port,mysql_database,mysql_username,mysql_password',
+                'value' => 'nullable|string'
+            ]);
+
+            $field = $request->input('field');
+            $value = $request->input('value', '');
+
+            $validation = $this->databaseSetupService->validateField($field, $value);
+
+            return response()->json([
+                'valid' => $validation['valid'],
+                'message' => $validation['message'],
+                'suggestion' => $validation['suggestion'] ?? ''
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Database field validation failed', [
+                'error' => $e->getMessage(),
+                'field' => $request->input('field'),
+                'value' => $request->input('value')
+            ]);
+
+            return response()->json([
+                'valid' => false,
+                'message' => 'Unable to validate field',
+                'suggestion' => ''
+            ]);
+        }
+    }
+
+    /**
+     * Get database configuration hints and examples via AJAX.
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getDatabaseConfigHints(Request $request): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $hints = $this->databaseSetupService->getFieldHints();
+            $templates = $this->databaseSetupService->getConfigurationTemplates();
+
+            return response()->json([
+                'success' => true,
+                'hints' => $hints,
+                'templates' => $templates
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get database configuration hints', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to load configuration hints'
             ]);
         }
     }
@@ -525,6 +944,9 @@ class SetupController extends Controller
             
             // Mark setup as complete
             $this->setupService->markSetupComplete();
+
+            // Perform cleanup after successful completion
+            $this->setupService->cleanupAfterCompletion();
 
             // Log setup completion for audit purposes
             if ($adminUser) {
@@ -637,67 +1059,9 @@ class SetupController extends Controller
         ];
     }
 
-    /**
-     * Update environment configuration with database settings.
-     * 
-     * @param array $databaseConfig Database configuration array
-     */
-    private function updateDatabaseEnvironment(array $databaseConfig): void
-    {
-        $envPath = base_path('.env');
-        
-        if (!file_exists($envPath)) {
-            Log::warning('Environment file does not exist, skipping database environment update');
-            return;
-        }
 
-        $envContent = file_get_contents($envPath);
-        
-        if ($databaseConfig['type'] === 'mysql') {
-            $config = $databaseConfig['config'];
-            
-            // Update MySQL configuration
-            $envContent = $this->updateEnvValue($envContent, 'DB_CONNECTION', 'mysql');
-            $envContent = $this->updateEnvValue($envContent, 'DB_HOST', $config['host']);
-            $envContent = $this->updateEnvValue($envContent, 'DB_PORT', $config['port']);
-            $envContent = $this->updateEnvValue($envContent, 'DB_DATABASE', $config['database']);
-            $envContent = $this->updateEnvValue($envContent, 'DB_USERNAME', $config['username']);
-            $envContent = $this->updateEnvValue($envContent, 'DB_PASSWORD', $config['password']);
-            
-        } elseif ($databaseConfig['type'] === 'sqlite') {
-            $config = $databaseConfig['config'];
-            
-            // Update SQLite configuration
-            $envContent = $this->updateEnvValue($envContent, 'DB_CONNECTION', 'sqlite');
-            $envContent = $this->updateEnvValue($envContent, 'DB_DATABASE', $config['database']);
-        }
 
-        file_put_contents($envPath, $envContent);
-        
-        Log::info('Environment file updated with database configuration', [
-            'type' => $databaseConfig['type']
-        ]);
-    }
 
-    /**
-     * Get password requirements for display in the admin form.
-     * 
-     * @return array Password requirements array
-     */
-    private function getPasswordRequirements(): array
-    {
-        return [
-            'min_length' => 8,
-            'requirements' => [
-                'At least 8 characters long',
-                'Contains uppercase letters (A-Z)',
-                'Contains lowercase letters (a-z)',
-                'Contains numbers (0-9)',
-                'Contains special characters (!@#$%^&*)',
-                'Not found in common password breaches'
-            ]
-        ];
-    }
 
     /**
      * Get supported storage providers.
@@ -946,6 +1310,124 @@ class SetupController extends Controller
             return preg_replace($pattern, $replacement, $envContent);
         } else {
             return $envContent . "\n{$replacement}";
+        }
+    }
+
+    /**
+     * Get setup recovery information.
+     * 
+     * Returns detailed information about setup state, backups, and recovery options.
+     * Used for debugging and recovery operations.
+     */
+    public function getRecoveryInfo(): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $recoveryInfo = $this->setupService->getRecoveryInfo();
+            $backups = $this->setupService->getAvailableBackups();
+            
+            return response()->json([
+                'success' => true,
+                'recovery_info' => $recoveryInfo,
+                'available_backups' => $backups,
+                'auto_detect_step' => $this->setupService->autoDetectCurrentStep(),
+                'current_step' => $this->setupService->getSetupStep(),
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get setup recovery info', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve recovery information: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Restore setup state from backup.
+     * 
+     * Restores the setup state from a specified backup file.
+     * Used for recovery from corrupted or interrupted setup.
+     */
+    public function restoreFromBackup(Request $request): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $backupFile = $request->input('backup_file');
+            
+            if (empty($backupFile)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Backup file path is required'
+                ], 400);
+            }
+
+            $success = $this->setupService->restoreStateFromBackup($backupFile);
+            
+            if ($success) {
+                Log::info('Setup state restored from backup', [
+                    'backup_file' => $backupFile,
+                    'restored_at' => now()->toISOString()
+                ]);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Setup state restored successfully from backup',
+                    'current_step' => $this->setupService->getSetupStep()
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to restore from backup. The backup file may be corrupted or invalid.'
+                ], 400);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to restore setup state from backup', [
+                'error' => $e->getMessage(),
+                'backup_file' => $request->input('backup_file'),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to restore from backup: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Force setup recovery and resumption.
+     * 
+     * Manually triggers setup recovery process to detect and fix
+     * any interruptions or state corruption.
+     */
+    public function forceRecovery(): \Illuminate\Http\JsonResponse
+    {
+        try {
+            $recoveryInfo = $this->setupService->detectAndResumeSetup();
+            
+            Log::info('Manual setup recovery triggered', $recoveryInfo);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Setup recovery completed',
+                'recovery_info' => $recoveryInfo,
+                'current_step' => $this->setupService->getSetupStep()
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to perform setup recovery', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to perform recovery: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

@@ -229,4 +229,132 @@ class AuditLogService
             'ip' => $request->ip(),
         ]);
     }
+
+    /**
+     * Log setup security event.
+     */
+    public function logSetupSecurityEvent(
+        string $event,
+        Request $request,
+        array $context = []
+    ): void {
+        $logData = [
+            'event' => 'setup_security_event',
+            'security_event' => $event,
+            'context' => $context,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString(),
+            'session_id' => $request->session()->getId(),
+            'request_id' => $request->header('X-Request-ID') ?? uniqid(),
+        ];
+
+        // Log to security channel with high priority
+        Log::channel('security')->warning("Setup security event: {$event}", $logData);
+
+        // Also log to main log for immediate visibility
+        Log::warning("Setup Security: {$event}", [
+            'event' => $event,
+            'ip' => $request->ip(),
+            'context_keys' => array_keys($context)
+        ]);
+    }
+
+    /**
+     * Log setup configuration change.
+     */
+    public function logSetupConfigurationChange(
+        string $configurationType,
+        array $changes,
+        Request $request,
+        User $user = null
+    ): void {
+        $logData = [
+            'event' => 'setup_configuration_changed',
+            'configuration_type' => $configurationType,
+            'changes' => $changes,
+            'user_id' => $user?->id,
+            'user_email' => $user?->email,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString(),
+            'session_id' => $request->session()->getId(),
+            'request_id' => $request->header('X-Request-ID') ?? uniqid(),
+        ];
+
+        // Log to audit channel
+        Log::channel('audit')->info("Setup configuration changed: {$configurationType}", $logData);
+
+        // Also log to main log
+        Log::info("Setup config changed: {$configurationType}", [
+            'type' => $configurationType,
+            'user' => $user?->email ?? 'system',
+            'ip' => $request->ip(),
+            'change_count' => count($changes)
+        ]);
+    }
+
+    /**
+     * Log setup state change.
+     */
+    public function logSetupStateChange(
+        string $previousStep,
+        string $newStep,
+        Request $request,
+        array $stateData = []
+    ): void {
+        $logData = [
+            'event' => 'setup_state_changed',
+            'previous_step' => $previousStep,
+            'new_step' => $newStep,
+            'state_data' => $stateData,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString(),
+            'session_id' => $request->session()->getId(),
+            'request_id' => $request->header('X-Request-ID') ?? uniqid(),
+        ];
+
+        // Log to audit channel
+        Log::channel('audit')->info("Setup state changed: {$previousStep} -> {$newStep}", $logData);
+
+        // Also log to main log
+        Log::info("Setup state: {$previousStep} -> {$newStep}", [
+            'previous' => $previousStep,
+            'new' => $newStep,
+            'ip' => $request->ip()
+        ]);
+    }
+
+    /**
+     * Log setup error with context.
+     */
+    public function logSetupError(
+        string $errorType,
+        string $errorMessage,
+        Request $request,
+        array $errorContext = []
+    ): void {
+        $logData = [
+            'event' => 'setup_error',
+            'error_type' => $errorType,
+            'error_message' => $errorMessage,
+            'error_context' => $errorContext,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString(),
+            'session_id' => $request->session()->getId(),
+            'request_id' => $request->header('X-Request-ID') ?? uniqid(),
+        ];
+
+        // Log to audit channel with error level
+        Log::channel('audit')->error("Setup error: {$errorType}", $logData);
+
+        // Also log to main log
+        Log::error("Setup error: {$errorType}", [
+            'type' => $errorType,
+            'message' => $errorMessage,
+            'ip' => $request->ip()
+        ]);
+    }
 }

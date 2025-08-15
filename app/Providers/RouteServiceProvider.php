@@ -76,7 +76,7 @@ class RouteServiceProvider extends ServiceProvider
                 ->group(base_path('routes/api.php'));
 
             // Web Routes (including auth, public routes, etc)
-            Route::middleware('web')
+            Route::middleware(['web', \App\Http\Middleware\RequireSetupMiddleware::class])
                 ->group(base_path('routes/web.php'));
 
             // Auth Routes - with rate limiting

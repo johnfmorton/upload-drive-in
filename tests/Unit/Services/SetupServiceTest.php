@@ -3,12 +3,14 @@
 namespace Tests\Unit\Services;
 
 use App\Services\SetupService;
+use App\Services\AssetValidationService;
 use App\Models\User;
 use App\Enums\UserRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
+use Mockery;
 
 class SetupServiceTest extends TestCase
 {
@@ -16,12 +18,40 @@ class SetupServiceTest extends TestCase
 
     private SetupService $setupService;
     private string $setupStateFile;
+    private AssetValidationService $mockAssetValidationService;
 
     protected function setUp(): void
     {
         parent::setUp();
         
-        $this->setupService = new SetupService();
+        // Override setup configuration to include assets step
+        Config::set('setup.steps', ['assets', 'welcome', 'database', 'admin', 'storage', 'complete']);
+        Config::set('setup.checks.asset_validation', true);
+        
+        // Create mock AssetValidationService
+        $this->mockAssetValidationService = Mockery::mock(AssetValidationService::class);
+        
+        // Default mock behavior - assets are valid unless specifically testing asset scenarios
+        $this->mockAssetValidationService->shouldReceive('areAssetRequirementsMet')
+            ->andReturn(true)
+            ->byDefault();
+            
+        $this->mockAssetValidationService->shouldReceive('getAssetValidationResults')
+            ->andReturn([
+                'vite_manifest_exists' => true,
+                'build_directory_exists' => true,
+                'node_environment' => [
+                    'package_json_exists' => true,
+                    'node_modules_exists' => true,
+                    'package_lock_exists' => true,
+                    'vite_config_exists' => true,
+                ],
+                'manifest_path' => base_path('public/build/manifest.json'),
+                'build_directory_path' => base_path('public/build'),
+            ])
+            ->byDefault();
+        
+        $this->setupService = new SetupService($this->mockAssetValidationService);
         $this->setupStateFile = storage_path('app/setup/setup-state.json');
         
         // Clean up any existing setup state file
@@ -37,6 +67,7 @@ class SetupServiceTest extends TestCase
             File::delete($this->setupStateFile);
         }
         
+        Mockery::close();
         parent::tearDown();
     }
 
@@ -60,18 +91,21 @@ class SetupServiceTest extends TestCase
         $this->assertFalse($this->setupService->isSetupRequired());
     }
 
-    public function test_get_setup_step_returns_welcome_initially(): void
+    public function test_get_setup_step_returns_admin_when_assets_and_database_configured(): void
     {
-        // In test environment, database is already configured, so it should return 'admin'
+        // Assets are mocked as valid, database is already configured in test environment
         $step = $this->setupService->getSetupStep();
         $this->assertEquals('admin', $step);
     }
 
-    public function test_get_setup_step_returns_admin_when_database_configured(): void
+    public function test_get_setup_step_returns_assets_when_assets_invalid(): void
     {
-        // Database is already configured in test environment
+        // Mock assets as invalid
+        $this->mockAssetValidationService->shouldReceive('areAssetRequirementsMet')
+            ->andReturn(false);
+            
         $step = $this->setupService->getSetupStep();
-        $this->assertEquals('admin', $step);
+        $this->assertEquals('assets', $step);
     }
 
     public function test_get_setup_step_returns_storage_when_admin_exists(): void
@@ -151,13 +185,13 @@ class SetupServiceTest extends TestCase
         // Initially 0%
         $this->assertEquals(0, $this->setupService->getSetupProgress());
 
-        // Complete one step (20% of 5 steps)
-        $this->setupService->updateSetupStep('welcome', true);
-        $this->assertEquals(20, $this->setupService->getSetupProgress());
+        // Complete one step (17% of 6 steps, rounded)
+        $this->setupService->updateSetupStep('assets', true);
+        $this->assertEquals(17, $this->setupService->getSetupProgress());
 
-        // Complete another step (40%)
-        $this->setupService->updateSetupStep('database', true);
-        $this->assertEquals(40, $this->setupService->getSetupProgress());
+        // Complete another step (33%)
+        $this->setupService->updateSetupStep('welcome', true);
+        $this->assertEquals(33, $this->setupService->getSetupProgress());
     }
 
     public function test_setup_state_file_is_created_automatically(): void
@@ -216,6 +250,7 @@ class SetupServiceTest extends TestCase
         $steps = $this->setupService->getSetupSteps();
         
         $this->assertIsArray($steps);
+        $this->assertArrayHasKey('assets', $steps);
         $this->assertArrayHasKey('welcome', $steps);
         $this->assertArrayHasKey('database', $steps);
         $this->assertArrayHasKey('admin', $steps);
@@ -290,17 +325,17 @@ class SetupServiceTest extends TestCase
     public function test_get_setup_progress_calculates_correctly_with_multiple_steps(): void
     {
         // Complete multiple steps
+        $this->setupService->updateSetupStep('assets', true);
         $this->setupService->updateSetupStep('welcome', true);
         $this->setupService->updateSetupStep('database', true);
-        $this->setupService->updateSetupStep('admin', true);
         
         $progress = $this->setupService->getSetupProgress();
-        $this->assertEquals(60, $progress); // 3 out of 5 steps = 60%
+        $this->assertEquals(50, $progress); // 3 out of 6 steps = 50%
     }
 
     public function test_get_setup_progress_returns_100_when_all_complete(): void
     {
-        $steps = ['welcome', 'database', 'admin', 'storage', 'complete'];
+        $steps = ['assets', 'welcome', 'database', 'admin', 'storage', 'complete'];
         
         foreach ($steps as $step) {
             $this->setupService->updateSetupStep($step, true);
@@ -321,12 +356,12 @@ class SetupServiceTest extends TestCase
 
     public function test_get_setup_step_handles_exceptions_gracefully(): void
     {
-        // Test that the method returns 'database' when there are database issues
+        // Test that the method returns 'assets' when there are issues
         // This is hard to test without actually breaking the database connection
         
         $step = $this->setupService->getSetupStep();
         $this->assertIsString($step);
-        $this->assertContains($step, ['welcome', 'database', 'admin', 'storage', 'complete']);
+        $this->assertContains($step, ['assets', 'welcome', 'database', 'admin', 'storage', 'complete']);
     }
 
     public function test_setup_state_file_structure_is_correct(): void
@@ -354,11 +389,176 @@ class SetupServiceTest extends TestCase
         // Update a step with first instance
         $this->setupService->updateSetupStep('welcome', true);
         
-        // Create new service instance
-        $newService = new SetupService();
+        // Create new service instance with same mock
+        $newService = new SetupService($this->mockAssetValidationService);
         
         // Check that the state persists
         $steps = $newService->getSetupSteps();
         $this->assertTrue($steps['welcome']['completed']);
+    }
+
+    // New tests for asset validation functionality
+
+    public function test_are_assets_valid_delegates_to_asset_validation_service(): void
+    {
+        $this->mockAssetValidationService->shouldReceive('areAssetRequirementsMet')
+            ->once()
+            ->andReturn(true);
+
+        $result = $this->setupService->areAssetsValid();
+        $this->assertTrue($result);
+    }
+
+    public function test_get_asset_validation_results_delegates_to_asset_validation_service(): void
+    {
+        $expectedResults = [
+            'vite_manifest_exists' => true,
+            'build_directory_exists' => true,
+            'node_environment' => ['package_json_exists' => true],
+        ];
+
+        $this->mockAssetValidationService->shouldReceive('getAssetValidationResults')
+            ->once()
+            ->andReturn($expectedResults);
+
+        $result = $this->setupService->getAssetValidationResults();
+        $this->assertEquals($expectedResults, $result);
+    }
+
+    public function test_get_asset_build_instructions_delegates_to_asset_validation_service(): void
+    {
+        $expectedInstructions = [
+            'title' => 'Build Frontend Assets',
+            'steps' => [
+                ['command' => 'npm ci', 'description' => 'Install dependencies'],
+                ['command' => 'npm run build', 'description' => 'Build assets'],
+            ],
+        ];
+
+        $this->mockAssetValidationService->shouldReceive('getBuildInstructions')
+            ->once()
+            ->andReturn($expectedInstructions);
+
+        $result = $this->setupService->getAssetBuildInstructions();
+        $this->assertEquals($expectedInstructions, $result);
+    }
+
+    public function test_get_missing_asset_requirements_delegates_to_asset_validation_service(): void
+    {
+        $expectedMissing = [
+            [
+                'type' => 'vite_manifest',
+                'message' => 'Vite manifest file is missing',
+                'solution' => 'Run "npm run build"',
+            ],
+        ];
+
+        $this->mockAssetValidationService->shouldReceive('getMissingAssetRequirements')
+            ->once()
+            ->andReturn($expectedMissing);
+
+        $result = $this->setupService->getMissingAssetRequirements();
+        $this->assertEquals($expectedMissing, $result);
+    }
+
+    public function test_get_asset_build_status_delegates_to_asset_validation_service(): void
+    {
+        $expectedStatus = [
+            'ready' => true,
+            'checks' => ['vite_manifest_exists' => true],
+            'missing' => [],
+            'next_step' => 'database',
+        ];
+
+        $this->mockAssetValidationService->shouldReceive('getAssetBuildStatus')
+            ->once()
+            ->andReturn($expectedStatus);
+
+        $result = $this->setupService->getAssetBuildStatus();
+        $this->assertEquals($expectedStatus, $result);
+    }
+
+    public function test_update_asset_checks_updates_state_correctly(): void
+    {
+        $this->mockAssetValidationService->shouldReceive('getAssetValidationResults')
+            ->andReturn([
+                'vite_manifest_exists' => true,
+                'build_directory_exists' => false,
+                'node_environment' => [
+                    'package_json_exists' => true,
+                    'node_modules_exists' => false,
+                ],
+            ]);
+
+        $this->setupService->updateAssetChecks();
+
+        $state = $this->setupService->getSetupState();
+        $this->assertArrayHasKey('asset_checks', $state);
+        $this->assertTrue($state['asset_checks']['vite_manifest_exists']);
+        $this->assertFalse($state['asset_checks']['build_directory_exists']);
+        $this->assertFalse($state['asset_checks']['node_environment_ready']);
+    }
+
+    public function test_mark_asset_instructions_shown_updates_state(): void
+    {
+        $this->setupService->markAssetInstructionsShown();
+
+        $state = $this->setupService->getSetupState();
+        $this->assertTrue($state['asset_checks']['build_instructions_shown']);
+    }
+
+    public function test_update_setup_step_updates_asset_checks_for_assets_step(): void
+    {
+        $this->mockAssetValidationService->shouldReceive('getAssetValidationResults')
+            ->andReturn([
+                'vite_manifest_exists' => true,
+                'build_directory_exists' => true,
+                'node_environment' => [
+                    'package_json_exists' => true,
+                    'node_modules_exists' => true,
+                ],
+            ]);
+
+        $this->setupService->updateSetupStep('assets', true);
+
+        $state = $this->setupService->getSetupState();
+        $this->assertTrue($state['steps']['assets']['completed']);
+        $this->assertTrue($state['asset_checks']['vite_manifest_exists']);
+        $this->assertTrue($state['asset_checks']['build_directory_exists']);
+        $this->assertTrue($state['asset_checks']['node_environment_ready']);
+    }
+
+    public function test_setup_state_includes_asset_checks_initially(): void
+    {
+        $state = $this->setupService->getSetupState();
+
+        $this->assertArrayHasKey('asset_checks', $state);
+        $this->assertArrayHasKey('vite_manifest_exists', $state['asset_checks']);
+        $this->assertArrayHasKey('build_directory_exists', $state['asset_checks']);
+        $this->assertArrayHasKey('node_environment_ready', $state['asset_checks']);
+        $this->assertArrayHasKey('build_instructions_shown', $state['asset_checks']);
+    }
+
+    public function test_initial_setup_state_starts_with_assets_step(): void
+    {
+        $state = $this->setupService->getSetupState();
+        $this->assertEquals('assets', $state['current_step']);
+    }
+
+    public function test_is_setup_required_returns_true_when_assets_invalid(): void
+    {
+        $this->mockAssetValidationService->shouldReceive('areAssetRequirementsMet')
+            ->andReturn(false);
+
+        $this->assertTrue($this->setupService->isSetupRequired());
+    }
+
+    public function test_perform_setup_checks_includes_asset_validation(): void
+    {
+        // Mock assets as invalid to trigger setup requirement
+        $this->mockAssetValidationService->shouldReceive('areAssetRequirementsMet')
+            ->andReturn(false);
+
+        $this->assertTrue($this->setupService->isSetupRequired());
     }
 }

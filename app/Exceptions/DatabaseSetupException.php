@@ -159,7 +159,7 @@ class DatabaseSetupException extends SetupException
                 'Verify database permissions and configuration',
                 'Review application logs for detailed error information'
             ]
-        };
+        ];
 
         return new self(
             "Database initialization failed: {$technicalError}",
@@ -169,5 +169,57 @@ class DatabaseSetupException extends SetupException
             $troubleshootingSteps,
             ['database_type' => $databaseType]
         );
+    }
+
+    /**
+     * Create exception for database connection failure with detailed information.
+     */
+    public static function connectionFailedWithDetails(string $databaseType, string $technicalError, array $context = [], array $details = []): self
+    {
+        $userMessage = match ($databaseType) {
+            'mysql' => 'Unable to connect to MySQL database. Please verify your connection settings.',
+            'sqlite' => 'Unable to access SQLite database file. Please check file permissions.',
+            default => 'Database connection failed. Please check your configuration.',
+        };
+
+        // Use detailed troubleshooting if provided, otherwise fall back to basic steps
+        $troubleshootingSteps = $details['troubleshooting'] ?? match ($databaseType) {
+            'mysql' => [
+                'Verify that MySQL server is running and accessible',
+                'Check that the database name, username, and password are correct',
+                'Ensure the MySQL user has proper permissions for the database',
+                'Verify that the host and port are correct',
+                'Check firewall settings if connecting to a remote database',
+                'Test the connection using a MySQL client tool'
+            ],
+            'sqlite' => [
+                'Ensure the database directory exists and is writable',
+                'Check that the web server has read/write permissions to the database file',
+                'Verify that the SQLite PHP extension is installed and enabled',
+                'Check that there is sufficient disk space available',
+                'Ensure the database path is correct in your configuration'
+            ],
+            default => [
+                'Check your database configuration settings',
+                'Verify that the database server is running',
+                'Ensure proper permissions are set'
+            ]
+        };
+
+        $exception = new self(
+            "Database connection failed: {$technicalError}",
+            500,
+            null,
+            $userMessage,
+            $troubleshootingSteps,
+            array_merge(['database_type' => $databaseType], $context)
+        );
+
+        // Add detailed information if provided
+        if (!empty($details)) {
+            $exception->details = $details;
+        }
+
+        return $exception;
     }
 }

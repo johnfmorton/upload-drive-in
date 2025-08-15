@@ -47,6 +47,36 @@
             @csrf
 
             <div class="space-y-6">
+                <!-- Administrator Name -->
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">
+                        Administrator Name
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="mt-1 relative">
+                        <input type="text" 
+                               id="name" 
+                               name="name" 
+                               value="{{ old('name') }}"
+                               class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('name') border-red-300 @enderror"
+                               placeholder="John Administrator"
+                               required
+                               autocomplete="name"
+                               maxlength="255">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    @error('name')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                    <p class="mt-2 text-sm text-gray-500">
+                        Enter the full name for the administrator account. This will be displayed in the admin dashboard.
+                    </p>
+                </div>
+
                 <!-- Email Address -->
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700">
@@ -145,6 +175,12 @@
                                 </svg>
                                 One number
                             </li>
+                            <li id="req-special" class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                One special character
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -205,5 +241,9 @@
             </div>
         </form>
     </div>
+
+    @push('scripts')
+        @vite('resources/js/admin-user-creation.js')
+    @endpush
 
 </x-setup-layout>

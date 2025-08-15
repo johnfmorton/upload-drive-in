@@ -14,7 +14,10 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', 'setup.complete', 'throttle:setup'])->prefix('setup')->name('setup.')->group(function () {
+Route::middleware(['web', \App\Http\Middleware\RequireSetupMiddleware::class, \App\Http\Middleware\ExtendSetupSession::class, 'throttle:60,1'])->prefix('setup')->name('setup.')->group(function () {
+    
+    // Asset build instructions - first step for new installations
+    Route::get('/assets', [SetupController::class, 'showAssetBuildInstructions'])->name('assets');
     
     // Welcome screen - entry point for setup wizard
     Route::get('/', [SetupController::class, 'welcome'])->name('welcome');
@@ -37,19 +40,29 @@ Route::middleware(['web', 'setup.complete', 'throttle:setup'])->prefix('setup')-
     Route::post('/complete', [SetupController::class, 'complete'])->name('finish');
     
     // AJAX endpoints for real-time validation and testing
+    Route::post('/ajax/check-assets', [SetupController::class, 'checkAssetBuildStatus'])->name('ajax.check-assets');
     Route::post('/ajax/test-database', [SetupController::class, 'testDatabaseConnection'])->name('ajax.test-database');
     Route::post('/ajax/test-storage', [SetupController::class, 'testStorageConnection'])->name('ajax.test-storage');
     Route::post('/ajax/validate-email', [SetupController::class, 'validateEmail'])->name('ajax.validate-email');
+    Route::post('/ajax/validate-database-field', [SetupController::class, 'validateDatabaseField'])->name('ajax.validate-database-field');
+    Route::get('/ajax/database-config-hints', [SetupController::class, 'getDatabaseConfigHints'])->name('ajax.database-config-hints');
+    Route::post('/ajax/refresh-csrf-token', [SetupController::class, 'refreshCsrfToken'])->name('ajax.refresh-csrf-token');
+    
+    // Setup recovery and state management endpoints
+    Route::get('/ajax/recovery-info', [SetupController::class, 'getRecoveryInfo'])->name('ajax.recovery-info');
+    Route::post('/ajax/restore-backup', [SetupController::class, 'restoreFromBackup'])->name('ajax.restore-backup');
+    Route::post('/ajax/force-recovery', [SetupController::class, 'forceRecovery'])->name('ajax.force-recovery');
     
     // Dynamic step routing for better UX
     Route::get('/step/{step}', function (string $step) {
         return match ($step) {
+            'assets' => redirect()->route('setup.assets'),
             'welcome' => redirect()->route('setup.welcome'),
             'database' => redirect()->route('setup.database'),
             'admin' => redirect()->route('setup.admin'),
             'storage' => redirect()->route('setup.storage'),
             'complete' => redirect()->route('setup.complete'),
-            default => redirect()->route('setup.welcome')
+            default => redirect()->route('setup.assets')
         };
-    })->name('step')->where('step', 'welcome|database|admin|storage|complete');
+    })->name('step')->where('step', 'assets|welcome|database|admin|storage|complete');
 });

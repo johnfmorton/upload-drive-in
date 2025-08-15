@@ -6,6 +6,21 @@
 
 @php
 $helpContent = match($step) {
+    'assets' => [
+        'title' => 'Frontend Asset Building',
+        'description' => 'Build the frontend assets (CSS and JavaScript) required for the application to function properly.',
+        'tips' => [
+            'Ensure Node.js version 16 or higher is installed on your system',
+            'Run commands from the project root directory where package.json is located',
+            'Use npm ci instead of npm install for faster, reliable builds',
+            'The build process creates optimized files in the public/build directory'
+        ],
+        'links' => [
+            ['title' => 'Node.js Installation', 'url' => 'https://nodejs.org/', 'external' => true],
+            ['title' => 'NPM Documentation', 'url' => 'https://docs.npmjs.com/', 'external' => true],
+            ['title' => 'Vite Build Guide', 'url' => 'https://vitejs.dev/guide/build.html', 'external' => true]
+        ]
+    ],
     'welcome' => [
         'title' => 'Getting Started',
         'description' => 'This setup wizard will guide you through configuring Upload Drive-in for first use.',
@@ -95,7 +110,7 @@ $helpContent = match($step) {
     ]
 };
 
-$content = $helpContent[$step] ?? $helpContent['default'];
+$content = $helpContent;
 @endphp
 
 <div class="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">

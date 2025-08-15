@@ -25,6 +25,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Setup State Backup Directory
+    |--------------------------------------------------------------------------
+    |
+    | The directory where setup state backups are stored. These backups
+    | are used for recovery in case of state corruption or interruption.
+    |
+    */
+    'backup_directory' => 'setup/backups',
+
+    /*
+    |--------------------------------------------------------------------------
     | Setup Steps
     |--------------------------------------------------------------------------
     |
@@ -33,6 +44,7 @@ return [
     |
     */
     'steps' => [
+        'assets',
         'welcome',
         'database',
         'admin',
@@ -50,6 +62,7 @@ return [
     |
     */
     'checks' => [
+        'asset_validation' => true,
         'database_connectivity' => true,
         'admin_user_exists' => true,
         'cloud_storage_configured' => true,
@@ -87,9 +100,13 @@ return [
         'images/*',
         'css/*',
         'js/*',
+        'assets/*',
+        'fonts/*',
         'favicon.ico',
         'robots.txt',
         'sitemap.xml',
+        'manifest.json',
+        'site.webmanifest',
         '*.css',
         '*.js',
         '*.png',
@@ -102,6 +119,8 @@ return [
         '*.woff2',
         '*.ttf',
         '*.eot',
+        '*.map',
+        '*.json',
     ],
 
     /*
@@ -158,4 +177,25 @@ return [
     |
     */
     'cache_ttl' => env('SETUP_CACHE_TTL', 300), // 5 minutes
+
+    /*
+    |--------------------------------------------------------------------------
+    | Asset Validation Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for asset validation during setup process.
+    | These settings control how the setup wizard validates frontend assets.
+    |
+    */
+    'asset_paths' => [
+        'vite_manifest' => 'public/build/manifest.json',
+        'build_directory' => 'public/build',
+        'package_json' => 'package.json',
+    ],
+
+    'asset_checks' => [
+        'vite_manifest_required' => env('SETUP_ASSET_MANIFEST_REQUIRED', true),
+        'node_environment_check' => env('SETUP_NODE_ENVIRONMENT_CHECK', true),
+        'build_instructions_enabled' => env('SETUP_BUILD_INSTRUCTIONS_ENABLED', true),
+    ],
 ];

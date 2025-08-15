@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
@@ -41,7 +40,7 @@ class AdminUserRequest extends FormRequest
             'email' => [
                 'required',
                 'string',
-                'email:rfc,dns',
+                'email:rfc',
                 'max:255',
                 'unique:users,email'
             ],
@@ -59,6 +58,31 @@ class AdminUserRequest extends FormRequest
             'password_confirmation' => [
                 'required',
                 'string'
+            ]
+        ];
+    }
+
+    /**
+     * Get password requirements for display.
+     *
+     * @return array
+     */
+    public static function getPasswordRequirements(): array
+    {
+        return [
+            'min_length' => 8,
+            'requires_uppercase' => true,
+            'requires_lowercase' => true,
+            'requires_numbers' => true,
+            'requires_symbols' => true,
+            'check_compromised' => true,
+            'requirements_text' => [
+                'At least 8 characters',
+                'One uppercase letter (A-Z)',
+                'One lowercase letter (a-z)',
+                'One number (0-9)',
+                'One special character (!@#$%^&*)',
+                'Must not be a commonly used password'
             ]
         ];
     }

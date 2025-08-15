@@ -41,22 +41,34 @@ class RequireSetupMiddleware
             return $next($request);
         }
 
-        // Check if setup is required
+        // Check for asset requirements first (before database checks)
+        try {
+            if (!$this->setupService->areAssetsValid()) {
+                return $this->handleAssetMissing($request);
+            }
+        } catch (\Exception $e) {
+            // Catch Vite manifest exceptions and other asset-related errors
+            return $this->handleAssetMissing($request);
+        }
+
+        // Check if setup is required (database and other checks)
         try {
             if ($this->setupService->isSetupRequired()) {
-                // Get redirect route from configuration
-                $redirectRoute = Config::get('setup.redirect_route', 'setup.welcome');
+                // Determine the appropriate setup step
+                $setupStep = $this->setupService->getSetupStep();
+                $redirectRoute = $this->getSetupRouteForStep($setupStep);
                 
                 // Handle AJAX requests differently
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
                         'error' => 'Setup required',
                         'message' => 'Application setup is required before accessing this resource.',
-                        'redirect' => route($redirectRoute)
+                        'redirect' => route($redirectRoute),
+                        'step' => $setupStep
                     ], 503);
                 }
                 
-                // Redirect to setup wizard
+                // Redirect to appropriate setup step
                 return redirect()->route($redirectRoute);
             }
         } catch (\Exception $e) {
@@ -76,6 +88,27 @@ class RequireSetupMiddleware
         }
 
         return $next($request);
+    }
+
+    /**
+     * Handle requests when assets are missing
+     */
+    private function handleAssetMissing(Request $request): Response
+    {
+        $assetRoute = 'setup.assets';
+        
+        // Handle AJAX requests
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'error' => 'Assets missing',
+                'message' => 'Frontend assets need to be built before the application can run.',
+                'redirect' => route($assetRoute),
+                'step' => 'assets'
+            ], 503);
+        }
+        
+        // Redirect to asset build instructions
+        return redirect()->route($assetRoute);
     }
 
     /**
@@ -121,7 +154,65 @@ class RequireSetupMiddleware
             }
         }
 
+        // Additional asset-related exemptions
+        if ($this->isAssetRelatedRoute($request)) {
+            return true;
+        }
+
         return false;
+    }
+
+    /**
+     * Check if the current route is asset-related and should be exempt
+     */
+    private function isAssetRelatedRoute(Request $request): bool
+    {
+        $path = $request->path();
+        $routeName = $request->route()?->getName();
+        
+        // Asset-related paths that should always be accessible
+        $assetPaths = [
+            'build',
+            'storage',
+            'images',
+            'css',
+            'js',
+            'fonts',
+            'assets',
+        ];
+        
+        foreach ($assetPaths as $assetPath) {
+            if (str_starts_with($path, $assetPath . '/') || $path === $assetPath) {
+                return true;
+            }
+        }
+        
+        // Asset-related route names
+        $assetRoutes = [
+            'setup.ajax.check-assets',
+        ];
+        
+        if ($routeName && in_array($routeName, $assetRoutes)) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Get the appropriate setup route for a given step
+     */
+    private function getSetupRouteForStep(string $step): string
+    {
+        return match ($step) {
+            'assets' => 'setup.assets',
+            'welcome' => 'setup.welcome',
+            'database' => 'setup.database',
+            'admin' => 'setup.admin',
+            'storage' => 'setup.storage',
+            'complete' => 'setup.complete',
+            default => Config::get('setup.redirect_route', 'setup.welcome')
+        };
     }
 
     /**
@@ -129,8 +220,11 @@ class RequireSetupMiddleware
      */
     private function matchesPattern(string $path, string $pattern): bool
     {
-        // Convert wildcard pattern to regex
-        $regex = str_replace(['*', '?'], ['.*', '.'], $pattern);
+        // Escape special regex characters except * and ?
+        $escaped = preg_quote($pattern, '/');
+        
+        // Convert escaped wildcards back to regex patterns
+        $regex = str_replace(['\*', '\?'], ['.*', '.'], $escaped);
         $regex = '/^' . $regex . '$/i';
         
         return preg_match($regex, $path) === 1;

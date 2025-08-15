@@ -22,7 +22,26 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     <!-- Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @php
+        $assetService = app(\App\Services\AssetValidationService::class);
+        $assetsAvailable = $assetService->areAssetRequirementsMet();
+    @endphp
+    
+    @if($assetsAvailable)
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @else
+        <!-- Fallback CSS for when Vite assets are not available -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            /* Basic styles when Vite is not available */
+            .min-h-dvh { min-height: 100vh; }
+            .bg-gradient-to-b { background: linear-gradient(to bottom, var(--tw-gradient-stops)); }
+            .from-gray-100 { --tw-gradient-from: #f3f4f6; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(243, 244, 246, 0)); }
+            .to-gray-300 { --tw-gradient-to: #d1d5db; }
+            .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        </style>
+    @endif
+
 </head>
 
 <body class="font-sans text-gray-900 antialiased">

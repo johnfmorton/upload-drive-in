@@ -10,6 +10,20 @@
             :current-step="$currentStep ?? 'welcome'" 
             :progress="$progress ?? 20" />
 
+        <!-- Step Completion Feedback -->
+        @if(session('step_completed'))
+            @php $stepData = session('step_completed'); @endphp
+            <x-setup-step-completion 
+                :step="$stepData['step']"
+                :title="$stepData['details']['title']"
+                :message="$stepData['details']['message']"
+                :details="$stepData['details']['details']"
+                :next-step="$stepData['next_step']"
+                :progress="$stepData['progress']"
+                :auto-advance="true"
+                :auto-advance-delay="3000" />
+        @endif
+
         <!-- Success Message -->
         @if(session('success'))
             <x-setup-success-display 

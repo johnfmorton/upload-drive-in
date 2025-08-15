@@ -72,6 +72,7 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'extend.setup.session' => \App\Http\Middleware\ExtendSetupSession::class,
         'admin' => AdminMiddleware::class,
         'client' => ClientMiddleware::class,
         'employee' => EmployeeMiddleware::class,
@@ -79,7 +80,7 @@ class Kernel extends HttpKernel
         '2fa' => RequireTwoFactorAuth::class,
         'file.download.throttle' => \App\Http\Middleware\FileDownloadRateLimitMiddleware::class,
         'require.setup' => \App\Http\Middleware\RequireSetupMiddleware::class,
-        'setup.complete' => SetupCompleteMiddleware::class,
+        'setup.complete' => \App\Http\Middleware\SetupCompleteMiddleware::class,
     ];
 
     public function handle($request)
