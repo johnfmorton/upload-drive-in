@@ -255,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (password === confirmation) {
             showPasswordMatchSuccess();
-            showFieldSuccess(passwordConfirmInput, 'Passwords match');
             isPasswordMatching = true;
         } else {
             showPasswordMatchError();
@@ -419,43 +418,50 @@ document.addEventListener('DOMContentLoaded', function() {
      * Show field error state
      */
     function showFieldError(input, message) {
-        input.classList.remove('border-gray-300', 'border-green-300', 'border-yellow-300');
-        input.classList.add('border-red-300');
+        // Remove all border state classes first
+        input.classList.remove('border-gray-300', 'border-green-300', 'border-yellow-300', 'focus:border-red-500');
+        input.classList.add('border-red-300', 'focus:border-red-500');
         
         const feedback = getOrCreateFeedback(input);
         feedback.textContent = message;
-        feedback.className = 'mt-2 text-sm text-red-600';
+        feedback.className = 'field-feedback mt-2 text-sm text-red-600';
+        feedback.setAttribute('data-validation-message', 'true');
     }
 
     /**
      * Show field success state
      */
     function showFieldSuccess(input, message) {
-        input.classList.remove('border-gray-300', 'border-red-300', 'border-yellow-300');
+        // Remove all border state classes first
+        input.classList.remove('border-gray-300', 'border-red-300', 'border-yellow-300', 'focus:border-red-500');
         input.classList.add('border-green-300');
         
         const feedback = getOrCreateFeedback(input);
         feedback.textContent = message;
-        feedback.className = 'mt-2 text-sm text-green-600';
+        feedback.className = 'field-feedback mt-2 text-sm text-green-600';
+        feedback.setAttribute('data-validation-message', 'true');
     }
 
     /**
      * Show field warning state
      */
     function showFieldWarning(input, message) {
-        input.classList.remove('border-gray-300', 'border-red-300', 'border-green-300');
+        // Remove all border state classes first
+        input.classList.remove('border-gray-300', 'border-red-300', 'border-green-300', 'focus:border-red-500');
         input.classList.add('border-yellow-300');
         
         const feedback = getOrCreateFeedback(input);
         feedback.textContent = message;
-        feedback.className = 'mt-2 text-sm text-yellow-600';
+        feedback.className = 'field-feedback mt-2 text-sm text-yellow-600';
+        feedback.setAttribute('data-validation-message', 'true');
     }
 
     /**
      * Show field loading state
      */
     function showFieldLoading(input, message) {
-        input.classList.remove('border-red-300', 'border-green-300', 'border-yellow-300');
+        // Remove all border state classes first
+        input.classList.remove('border-red-300', 'border-green-300', 'border-yellow-300', 'focus:border-red-500');
         input.classList.add('border-gray-300');
         
         const feedback = getOrCreateFeedback(input);
@@ -468,15 +474,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 ${message}
             </div>
         `;
-        feedback.className = 'mt-2 text-sm text-gray-500';
+        feedback.className = 'field-feedback mt-2 text-sm text-gray-500';
+        feedback.setAttribute('data-validation-message', 'true');
     }
 
     /**
      * Clear field validation state
      */
     function clearFieldValidation(input) {
-        input.classList.remove('border-red-300', 'border-green-300', 'border-yellow-300');
-        input.classList.add('border-gray-300');
+        // Reset border classes - remove all validation states first
+        input.classList.remove('border-red-300', 'border-green-300', 'border-yellow-300', 'focus:border-red-500');
+        
+        // Add default border class if not already present
+        if (!input.classList.contains('border-gray-300')) {
+            input.classList.add('border-gray-300');
+        }
         
         // Remove all existing feedback elements
         removeFeedback(input);
@@ -486,21 +498,58 @@ document.addEventListener('DOMContentLoaded', function() {
      * Remove all feedback elements for an input
      */
     function removeFeedback(input) {
-        const existingFeedbacks = input.parentNode.querySelectorAll('.field-feedback');
-        existingFeedbacks.forEach(feedback => feedback.remove());
+        // Get the parent container (the div that contains the input)
+        const parentContainer = input.parentNode;
+        
+        // Remove all validation messages using our data attribute (most reliable)
+        const validationMessages = parentContainer.querySelectorAll('[data-validation-message="true"]');
+        validationMessages.forEach(message => message.remove());
+        
+        // Also remove any elements with field-feedback class as backup
+        const fieldFeedbacks = parentContainer.querySelectorAll('.field-feedback');
+        fieldFeedbacks.forEach(feedback => feedback.remove());
+        
+        // Remove any remaining validation-style messages but preserve static help text
+        const allParagraphs = parentContainer.querySelectorAll('p.text-red-600, p.text-green-600, p.text-yellow-600');
+        allParagraphs.forEach(p => {
+            // Don't remove static help text
+            const isStaticHelpText = 
+                p.textContent.includes('Enter the full name for the administrator') ||
+                p.textContent.includes('This email will be used to log into') ||
+                p.textContent.includes('Re-enter your password to confirm') ||
+                p.textContent.includes('Password must contain:') ||
+                p.textContent.includes('At least 8 characters') ||
+                p.textContent.includes('One uppercase letter') ||
+                p.textContent.includes('One lowercase letter') ||
+                p.textContent.includes('One number') ||
+                p.textContent.includes('One special character');
+            
+            if (!isStaticHelpText) {
+                p.remove();
+            }
+        });
     }
 
     /**
      * Get or create feedback element for input
      */
     function getOrCreateFeedback(input) {
-        // First, remove any existing field-feedback elements to prevent duplication
+        // First, remove any existing validation messages to prevent duplication
         removeFeedback(input);
         
         // Create a new feedback element
         const feedback = document.createElement('p');
-        feedback.className = 'field-feedback mt-2 text-sm text-gray-500';
-        input.parentNode.appendChild(feedback);
+        feedback.className = 'field-feedback mt-2 text-sm';
+        
+        // Insert the feedback element after the input's parent div but before any existing help text
+        const parentContainer = input.parentNode;
+        const existingHelpText = parentContainer.querySelector('p:not(.field-feedback)');
+        
+        if (existingHelpText) {
+            parentContainer.insertBefore(feedback, existingHelpText);
+        } else {
+            parentContainer.appendChild(feedback);
+        }
         
         return feedback;
     }
