@@ -274,24 +274,35 @@
                                 'X-CSRF-TOKEN': csrfToken,
                                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
                             },
-                            body: formData
+                            body: formData,
+                            redirect: 'follow' // Follow redirects automatically
                         }).then(response => {
                             console.log('Response status:', response.status);
+                            console.log('Response URL:', response.url);
+                            
                             if (response.ok) {
-                                // If successful, redirect to the response URL
-                                window.location.href = response.url;
+                                // Check if we were redirected to a different URL
+                                if (response.url !== form.action) {
+                                    console.log('Redirected to:', response.url);
+                                    window.location.href = response.url;
+                                } else {
+                                    // If no redirect, reload the page to show any success messages
+                                    window.location.reload();
+                                }
                             } else {
                                 console.error('Form submission failed:', response.status);
-                                // For debugging, let's see the response
                                 response.text().then(text => {
                                     console.log('Response text:', text);
                                     if (response.status === 419) {
                                         alert('CSRF token error. Please refresh the page and try again.');
+                                    } else {
+                                        alert('Form submission failed. Please try again.');
                                     }
                                 });
                             }
                         }).catch(error => {
                             console.error('Form submission error:', error);
+                            alert('Network error. Please check your connection and try again.');
                         });
                         
                         return false;

@@ -372,13 +372,6 @@ class SetupController extends Controller
      */
     public function createAdmin(AdminUserRequest $request): RedirectResponse
     {
-        \Log::info('SetupController::createAdmin called', [
-            'method' => $request->method(),
-            'path' => $request->path(),
-            'has_token' => $request->has('_token'),
-            'input_keys' => array_keys($request->all())
-        ]);
-        
         try {
             // Validate setup session
             $sessionValidation = $this->setupService->validateSetupSession();
