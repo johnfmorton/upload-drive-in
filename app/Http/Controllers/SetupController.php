@@ -372,6 +372,13 @@ class SetupController extends Controller
      */
     public function createAdmin(AdminUserRequest $request): RedirectResponse
     {
+        \Log::info('SetupController::createAdmin called', [
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'has_token' => $request->has('_token'),
+            'input_keys' => array_keys($request->all())
+        ]);
+        
         try {
             // Validate setup session
             $sessionValidation = $this->setupService->validateSetupSession();
@@ -770,10 +777,13 @@ class SetupController extends Controller
     public function refreshCsrfToken(): \Illuminate\Http\JsonResponse
     {
         try {
+            // Generate a fresh CSRF token
+            $token = csrf_token();
+            
             return response()->json([
                 'success' => true,
-                'token' => csrf_token()
-            ]);
+                'token' => $token
+            ])->header('X-CSRF-TOKEN', $token);
         } catch (\Exception $e) {
             Log::error('CSRF token refresh failed', [
                 'error' => $e->getMessage()

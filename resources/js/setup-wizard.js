@@ -720,9 +720,18 @@ class SetupWizard {
     isStepCompleted(step) {
         // This would typically check against server state
         // For now, we'll use a simple check based on current step
+        if (!this.currentStep || !step) {
+            return false;
+        }
+        
         const stepOrder = ['welcome', 'database', 'admin', 'storage', 'complete'];
         const currentIndex = stepOrder.indexOf(this.currentStep);
         const stepIndex = stepOrder.indexOf(step);
+        
+        // Return false if either step is not found in the order
+        if (currentIndex === -1 || stepIndex === -1) {
+            return false;
+        }
         
         return stepIndex < currentIndex;
     }
@@ -792,5 +801,13 @@ class SetupWizard {
 
 // Initialize setup wizard when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    new SetupWizard();
+    // Only initialize if we're on a setup page and have the required elements
+    const setupElement = document.querySelector('[data-setup-step]');
+    if (setupElement && window.location.pathname.startsWith('/setup')) {
+        try {
+            new SetupWizard();
+        } catch (error) {
+            console.warn('Setup wizard initialization failed:', error);
+        }
+    }
 });

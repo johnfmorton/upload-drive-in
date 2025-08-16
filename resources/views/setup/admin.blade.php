@@ -243,7 +243,62 @@
     </div>
 
     @push('scripts')
-        @vite('resources/js/admin-user-creation.js')
+        <script>
+            console.log('Form debugging enabled');
+            document.addEventListener('DOMContentLoaded', function() {
+                const form = document.getElementById('admin-form');
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault(); // Prevent default form submission
+                        
+                        console.log('Form submit event triggered');
+                        console.log('Form action:', form.action);
+                        console.log('Form method:', form.method);
+                        
+                        const formData = new FormData(form);
+                        console.log('Form data:');
+                        for (let [key, value] of formData.entries()) {
+                            if (key.includes('password')) {
+                                console.log(key + ':', '[REDACTED]');
+                            } else {
+                                console.log(key + ':', value);
+                            }
+                        }
+                        
+                        // Submit via fetch with proper CSRF header like the AJAX request
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                        
+                        fetch(form.action, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                            },
+                            body: formData
+                        }).then(response => {
+                            console.log('Response status:', response.status);
+                            if (response.ok) {
+                                // If successful, redirect to the response URL
+                                window.location.href = response.url;
+                            } else {
+                                console.error('Form submission failed:', response.status);
+                                // For debugging, let's see the response
+                                response.text().then(text => {
+                                    console.log('Response text:', text);
+                                    if (response.status === 419) {
+                                        alert('CSRF token error. Please refresh the page and try again.');
+                                    }
+                                });
+                            }
+                        }).catch(error => {
+                            console.error('Form submission error:', error);
+                        });
+                        
+                        return false;
+                    });
+                }
+            });
+        </script>
     @endpush
 
 </x-setup-layout>

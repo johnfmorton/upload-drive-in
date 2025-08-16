@@ -67,3 +67,4 @@ public/images/*
 # Markdown override files
 /resources/views/privacy-policy/privacy-policy.override.md
 /resources/views/terms/terms.override.md
+storage/app/*

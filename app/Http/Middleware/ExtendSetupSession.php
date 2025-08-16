@@ -22,10 +22,8 @@ class ExtendSetupSession
         // Extend session lifetime to 2 hours for setup pages
         config(['session.lifetime' => 120]);
         
-        // Regenerate CSRF token on GET requests to ensure it's fresh
-        if ($request->isMethod('GET')) {
-            $request->session()->regenerateToken();
-        }
+        // Don't regenerate CSRF token on GET requests as it can cause form submission issues
+        // The token will be refreshed via AJAX when needed
         
         return $next($request);
     }

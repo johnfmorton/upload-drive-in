@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', \App\Http\Middleware\RequireSetupMiddleware::class, \App\Http\Middleware\ExtendSetupSession::class, 'throttle:60,1'])->prefix('setup')->name('setup.')->group(function () {
+Route::middleware(['web'])->prefix('setup')->name('setup.')->group(function () {
     
     // Asset build instructions - first step for new installations
     Route::get('/assets', [SetupController::class, 'showAssetBuildInstructions'])->name('assets');

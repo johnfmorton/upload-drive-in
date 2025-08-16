@@ -71,11 +71,14 @@ document.addEventListener('DOMContentLoaded', function() {
             togglePassword.addEventListener('click', togglePasswordVisibility);
         }
 
-        // Form submission validation
-        form.addEventListener('submit', handleFormSubmit);
+        // Form submission validation - temporarily disabled for debugging
+        // form.addEventListener('submit', handleFormSubmit);
 
         // Initial validation state
         updateSubmitButton();
+
+        // Refresh CSRF token periodically to prevent expiration during long form sessions
+        setInterval(refreshCsrfToken, 300000); // Refresh every 5 minutes
     }
 
     /**
@@ -136,6 +139,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 signal: controller.signal
             });
 
+            // Check if response indicates CSRF token issue
+            if (response.status === 419) {
+                console.warn('CSRF token expired during email validation, refreshing...');
+                await refreshCsrfToken();
+                showFieldWarning(emailInput, 'Session refreshed. Please try again.');
+                isEmailAvailable = false;
+                updateSubmitButton();
+                return;
+            }
+
             const data = await response.json();
 
             // Clear the request reference
@@ -147,6 +160,14 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 showFieldError(emailInput, data.message || 'This email address is already in use');
                 isEmailAvailable = false;
+            }
+
+            // Refresh CSRF token after AJAX call to prevent form submission issues
+            try {
+                await refreshCsrfToken();
+            } catch (error) {
+                console.warn('Failed to refresh CSRF token after email validation:', error);
+                // Continue without showing error to user
             }
         } catch (error) {
             // Clear the request reference
@@ -582,9 +603,30 @@ document.addEventListener('DOMContentLoaded', function() {
                          document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         
         if (!csrfToken) {
-            console.error('CSRF token not found');
+            console.error('CSRF token not found, attempting to refresh...');
             event.preventDefault();
             
+            // Try to refresh the CSRF token and retry submission
+            refreshCsrfToken().then(() => {
+                // Check if token is now available
+                const newToken = document.querySelector('input[name="_token"]')?.value || 
+                               document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                
+                if (newToken) {
+                    console.log('CSRF token refreshed, retrying form submission');
+                    // Remove the event listener temporarily to avoid infinite loop
+                    form.removeEventListener('submit', handleFormSubmit);
+                    form.submit();
+                } else {
+                    showCsrfError();
+                }
+            }).catch(() => {
+                showCsrfError();
+            });
+            return;
+        }
+
+        function showCsrfError() {
             // Show user-friendly error message
             const errorDiv = document.createElement('div');
             errorDiv.className = 'mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md';
@@ -619,7 +661,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Scroll to top of form
             form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            return;
         }
         
         console.log('Form submission - CSRF token present:', csrfToken ? 'Yes' : 'No');
@@ -666,6 +707,43 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Scroll to top of form
             form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    /**
+     * Refresh CSRF token to prevent form submission issues
+     */
+    async function refreshCsrfToken() {
+        try {
+            const response = await fetch('/setup/ajax/refresh-csrf-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.token) {
+                    // Update the meta tag
+                    const metaTag = document.querySelector('meta[name="csrf-token"]');
+                    if (metaTag) {
+                        metaTag.setAttribute('content', data.token);
+                    }
+
+                    // Update the form token
+                    const formToken = document.querySelector('input[name="_token"]');
+                    if (formToken) {
+                        formToken.value = data.token;
+                    }
+
+                    console.log('CSRF token refreshed successfully');
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to refresh CSRF token:', error);
+            // Don't show error to user as this is a background operation
         }
     }
 
