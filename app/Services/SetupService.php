@@ -108,6 +108,7 @@ class SetupService
             if ($this->checks['admin_user_exists'] ?? true) {
                 $adminExists = User::where('role', UserRole::ADMIN)->exists();
                 if (!$adminExists) {
+                    \Log::info('Setup required: No admin users found');
                     return true;
                 }
             }
@@ -115,6 +116,7 @@ class SetupService
             // Cloud storage check
             if ($this->checks['cloud_storage_configured'] ?? true) {
                 if (!$this->isCloudStorageConfigured()) {
+                    \Log::info('Setup required: Cloud storage not configured');
                     return true;
                 }
             }

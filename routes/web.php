@@ -169,6 +169,10 @@ Route::get('/force-reset-setup', function () {
         \Illuminate\Support\Facades\Artisan::call('config:clear');
         \Illuminate\Support\Facades\Artisan::call('cache:clear');
         
+        // Clear setup cache specifically
+        \Illuminate\Support\Facades\Cache::forget('setup_state_required');
+        \Illuminate\Support\Facades\Cache::forget('setup_state_complete');
+        
         return response()->json([
             'success' => true,
             'message' => 'Setup state reset successfully',
@@ -184,3 +188,52 @@ Route::get('/force-reset-setup', function () {
         ], 500);
     }
 })->name('debug.reset.setup');
+
+// Force fresh setup check - remove after debugging
+Route::get('/force-fresh-setup-check', function () {
+    try {
+        // Clear all caches first
+        \Illuminate\Support\Facades\Cache::flush();
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        
+        // Get a fresh instance of setup service
+        $setupService = app(\App\Services\SetupService::class);
+        
+        // Manually perform the setup checks to see what happens
+        $reflection = new ReflectionClass($setupService);
+        $method = $reflection->getMethod('performSetupChecks');
+        $method->setAccessible(true);
+        
+        $setupRequired = $method->invoke($setupService);
+        
+        // Check individual conditions manually
+        $adminExists = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->exists();
+        $usersTableExists = \Illuminate\Support\Facades\Schema::hasTable('users');
+        
+        // Check cloud storage
+        $googleClientId = config('services.google.client_id');
+        $googleClientSecret = config('services.google.client_secret');
+        $cloudStorageConfigured = !empty($googleClientId) && !empty($googleClientSecret);
+        
+        return response()->json([
+            'fresh_setup_required' => $setupRequired,
+            'manual_checks' => [
+                'admin_exists' => $adminExists,
+                'users_table_exists' => $usersTableExists,
+                'cloud_storage_configured' => $cloudStorageConfigured,
+            ],
+            'after_fresh_check' => [
+                'setup_required' => $setupService->isSetupRequired(),
+                'setup_complete' => $setupService->isSetupComplete(),
+                'current_step' => $setupService->getSetupStep(),
+            ]
+        ]);
+        
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+})->name('debug.fresh.setup.check');
