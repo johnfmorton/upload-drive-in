@@ -116,3 +116,49 @@ Route::get('/debug-setup-status', function () {
         ]
     ]);
 })->name('debug.setup.status');
+
+// Force reset setup state - remove after debugging
+Route::get('/force-reset-setup', function () {
+    try {
+        // Remove setup state file
+        $stateFile = storage_path('app/setup/setup-state.json');
+        if (file_exists($stateFile)) {
+            unlink($stateFile);
+            $stateFileRemoved = true;
+        } else {
+            $stateFileRemoved = false;
+        }
+        
+        // Remove backup files
+        $backupDir = storage_path('app/setup/backups');
+        if (is_dir($backupDir)) {
+            $files = glob($backupDir . '/*');
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+            $backupsRemoved = count($files);
+        } else {
+            $backupsRemoved = 0;
+        }
+        
+        // Clear caches
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Setup state reset successfully',
+            'state_file_removed' => $stateFileRemoved,
+            'backups_removed' => $backupsRemoved,
+            'next_step' => 'Visit home page - should redirect to setup'
+        ]);
+        
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->name('debug.reset.setup');
