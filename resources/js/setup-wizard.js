@@ -370,10 +370,11 @@ class SetupWizard {
     calculatePasswordScore(password) {
         let score = 0;
         
-        if (password.length >= 8) score += 25;
-        if (/[A-Z]/.test(password)) score += 25;
-        if (/[a-z]/.test(password)) score += 25;
-        if (/[0-9]/.test(password)) score += 25;
+        if (password.length >= 8) score += 20;
+        if (/[A-Z]/.test(password)) score += 20;
+        if (/[a-z]/.test(password)) score += 20;
+        if (/[0-9]/.test(password)) score += 20;
+        if (/[^A-Za-z0-9]/.test(password)) score += 20;
         
         return score;
     }
@@ -386,7 +387,8 @@ class SetupWizard {
             { id: 'req-length', test: password.length >= 8 },
             { id: 'req-uppercase', test: /[A-Z]/.test(password) },
             { id: 'req-lowercase', test: /[a-z]/.test(password) },
-            { id: 'req-number', test: /[0-9]/.test(password) }
+            { id: 'req-number', test: /[0-9]/.test(password) },
+            { id: 'req-special', test: /[^A-Za-z0-9]/.test(password) }
         ];
 
         requirements.forEach(req => {
