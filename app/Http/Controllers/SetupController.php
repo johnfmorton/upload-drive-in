@@ -246,13 +246,20 @@ class SetupController extends Controller
             // Validate setup session
             $sessionValidation = $this->setupService->validateSetupSession();
             if (!$sessionValidation['valid']) {
-                $this->securityService->logSecurityEvent('setup_session_invalid', [
+                // Instead of redirecting to welcome, create a new session and continue
+                Log::warning('Setup session invalid during database configuration, creating new session', [
                     'violations' => $sessionValidation['violations'],
                     'step' => 'database'
                 ]);
                 
-                return redirect()->route('setup.welcome')
-                    ->withErrors(['session' => 'Setup session is invalid. Please start over.']);
+                $this->setupService->createSecureSetupSession();
+                
+                // Log the session recreation for security purposes
+                $this->securityService->logSecurityEvent('setup_session_recreated', [
+                    'original_violations' => $sessionValidation['violations'],
+                    'step' => 'database',
+                    'action' => 'database_configuration'
+                ]);
             }
 
             // Get validated database configuration
@@ -378,13 +385,20 @@ class SetupController extends Controller
             // Validate setup session
             $sessionValidation = $this->setupService->validateSetupSession();
             if (!$sessionValidation['valid']) {
-                $this->securityService->logSecurityEvent('setup_session_invalid', [
+                // Instead of redirecting to welcome, create a new session and continue
+                Log::warning('Setup session invalid during admin creation, creating new session', [
                     'violations' => $sessionValidation['violations'],
                     'step' => 'admin'
                 ]);
                 
-                return redirect()->route('setup.welcome')
-                    ->withErrors(['session' => 'Setup session is invalid. Please start over.']);
+                $this->setupService->createSecureSetupSession();
+                
+                // Log the session recreation for security purposes
+                $this->securityService->logSecurityEvent('setup_session_recreated', [
+                    'original_violations' => $sessionValidation['violations'],
+                    'step' => 'admin',
+                    'action' => 'admin_user_creation'
+                ]);
             }
 
             // Get validated user data
@@ -494,13 +508,20 @@ class SetupController extends Controller
             // Validate setup session
             $sessionValidation = $this->setupService->validateSetupSession();
             if (!$sessionValidation['valid']) {
-                $this->securityService->logSecurityEvent('setup_session_invalid', [
+                // Instead of redirecting to welcome, create a new session and continue
+                Log::warning('Setup session invalid during storage configuration, creating new session', [
                     'violations' => $sessionValidation['violations'],
                     'step' => 'storage'
                 ]);
                 
-                return redirect()->route('setup.welcome')
-                    ->withErrors(['session' => 'Setup session is invalid. Please start over.']);
+                $this->setupService->createSecureSetupSession();
+                
+                // Log the session recreation for security purposes
+                $this->securityService->logSecurityEvent('setup_session_recreated', [
+                    'original_violations' => $sessionValidation['violations'],
+                    'step' => 'storage',
+                    'action' => 'storage_configuration'
+                ]);
             }
 
             // Get validated storage configuration

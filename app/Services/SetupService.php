@@ -55,13 +55,19 @@ class SetupService
      */
     public function isSetupRequired(): bool
     {
-        // Always perform fresh checks - don't rely on cache for critical setup logic
+        // Use cached result if available and caching is enabled
+        if ($this->cacheEnabled) {
+            $cached = Cache::get(self::CACHE_KEY . '_required');
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
         $required = $this->performSetupChecks();
 
-        // If setup is required but marked as complete, reset the state
-        if ($required && $this->isSetupComplete()) {
-            \Log::warning('Setup state inconsistency detected - resetting setup state');
-            $this->resetSetupState();
+        // Cache the result if caching is enabled
+        if ($this->cacheEnabled) {
+            Cache::put(self::CACHE_KEY . '_required', $required, $this->cacheTtl);
         }
 
         return $required;
@@ -1238,13 +1244,23 @@ class SetupService
         $sessionData = session('setup_session', []);
         
         if (empty($sessionData)) {
+            Log::debug('Setup session validation failed: No session data found');
             return [
                 'valid' => false,
                 'violations' => ['No setup session found']
             ];
         }
 
-        return $this->securityService->validateSetupSession($sessionData);
+        $result = $this->securityService->validateSetupSession($sessionData);
+        
+        if (!$result['valid']) {
+            Log::debug('Setup session validation failed', [
+                'violations' => $result['violations'],
+                'session_data_keys' => array_keys($sessionData)
+            ]);
+        }
+
+        return $result;
     }
 
     /**

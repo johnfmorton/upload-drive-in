@@ -302,3 +302,38 @@ Route::get('/debug-setup-logic', function () {
         ], 500);
     }
 })->name('debug.setup.logic');
+
+// Debug session validation - remove after debugging
+Route::get('/debug-session-validation', function () {
+    try {
+        $setupService = app(\App\Services\SetupService::class);
+        
+        // Get current session data
+        $sessionData = session('setup_session', []);
+        
+        // Test session validation
+        $validation = $setupService->validateSetupSession();
+        
+        // Create a new session if needed
+        if (!$validation['valid']) {
+            $newSession = $setupService->createSecureSetupSession();
+            $newValidation = $setupService->validateSetupSession();
+        }
+        
+        return response()->json([
+            'current_session_data' => $sessionData,
+            'current_session_keys' => array_keys($sessionData),
+            'validation_result' => $validation,
+            'new_session_created' => isset($newSession),
+            'new_session_data' => $newSession ?? null,
+            'new_validation' => $newValidation ?? null,
+        ]);
+        
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+})->name('debug.session.validation');

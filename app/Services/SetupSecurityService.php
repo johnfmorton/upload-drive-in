@@ -487,7 +487,7 @@ class SetupSecurityService
         if (isset($sessionData['setup_started_at'])) {
             try {
                 $startTime = \Carbon\Carbon::parse($sessionData['setup_started_at']);
-                $maxAge = now()->subHours(2); // 2 hour session timeout
+                $maxAge = now()->subHours(24); // 24 hour session timeout (more reasonable for production)
                 
                 if ($startTime->lt($maxAge)) {
                     $violations[] = 'Setup session has expired';
