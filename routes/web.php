@@ -337,3 +337,81 @@ Route::get('/debug-session-validation', function () {
         ], 500);
     }
 })->name('debug.session.validation');
+
+// Debug storage configuration - remove after debugging
+Route::post('/debug-storage-config', function (Illuminate\Http\Request $request) {
+    try {
+        $setupService = app(\App\Services\SetupService::class);
+        $securityService = app(\App\Services\SetupSecurityService::class);
+        
+        // Get the input data
+        $inputData = [
+            'client_id' => $request->input('google_client_id'),
+            'client_secret' => $request->input('google_client_secret'),
+            'redirect_uri' => $request->input('google_redirect_uri', route('google-drive.unified-callback')),
+        ];
+        
+        // Test sanitization
+        $sanitizationResult = $securityService->sanitizeStorageConfig($inputData);
+        
+        // Test environment variable validation
+        $envValidation = [];
+        if (!empty($sanitizationResult['sanitized']['client_id'])) {
+            $envValidation['client_id'] = $securityService->validateEnvironmentVariable('GOOGLE_DRIVE_CLIENT_ID', $sanitizationResult['sanitized']['client_id']);
+        }
+        if (!empty($sanitizationResult['sanitized']['client_secret'])) {
+            $envValidation['client_secret'] = $securityService->validateEnvironmentVariable('GOOGLE_DRIVE_CLIENT_SECRET', $sanitizationResult['sanitized']['client_secret']);
+        }
+        
+        // Test the full update process
+        $updateResult = null;
+        if (empty($sanitizationResult['violations']) && 
+            ($envValidation['client_id']['valid'] ?? true) && 
+            ($envValidation['client_secret']['valid'] ?? true)) {
+            $updateResult = $setupService->updateStorageEnvironment($inputData);
+        }
+        
+        return response()->json([
+            'input_data' => $inputData,
+            'sanitization_result' => $sanitizationResult,
+            'env_validation' => $envValidation,
+            'update_result' => $updateResult,
+            'current_cloud_storage_configured' => $setupService->isCloudStorageConfigured(),
+        ]);
+        
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+})->name('debug.storage.config');
+
+// Debug current config values - remove after debugging
+Route::get('/debug-config-values', function () {
+    try {
+        $setupService = app(\App\Services\SetupService::class);
+        
+        return response()->json([
+            'env_values' => [
+                'GOOGLE_DRIVE_CLIENT_ID' => env('GOOGLE_DRIVE_CLIENT_ID'),
+                'GOOGLE_DRIVE_CLIENT_SECRET' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+            ],
+            'config_values' => [
+                'services.google.client_id' => config('services.google.client_id'),
+                'services.google.client_secret' => config('services.google.client_secret'),
+            ],
+            'is_cloud_storage_configured' => $setupService->isCloudStorageConfigured(),
+            'setup_step' => $setupService->getSetupStep(),
+            'setup_required' => $setupService->isSetupRequired(),
+        ]);
+        
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+})->name('debug.config.values');

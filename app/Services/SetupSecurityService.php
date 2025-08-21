@@ -267,7 +267,8 @@ class SetupSecurityService
             if (strlen($clientSecret) > 255) {
                 $violations[] = 'Client secret exceeds maximum length';
             } else {
-                $sanitized['client_secret'] = preg_replace('/[^a-zA-Z0-9._\-]/', '', $clientSecret);
+                // Allow more characters for Google OAuth secrets (including forward slashes, plus signs, etc.)
+                $sanitized['client_secret'] = preg_replace('/[^a-zA-Z0-9._\-\/\+]/', '', $clientSecret);
             }
         }
 

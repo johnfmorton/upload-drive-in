@@ -50,7 +50,7 @@ class StorageConfigRequest extends FormRequest
                     'string',
                     'max:255',
                     'min:24',
-                    'regex:/^[a-zA-Z0-9_-]+$/'
+                    'regex:/^[a-zA-Z0-9_\-\/\+]+$/'
                 ],
                 'google_redirect_uri' => [
                     'nullable',

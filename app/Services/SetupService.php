@@ -1168,10 +1168,22 @@ class SetupService
      */
     public function updateStorageEnvironment(array $storageConfig): array
     {
+        Log::info('Starting storage environment update', [
+            'config_keys' => array_keys($storageConfig)
+        ]);
+        
         // Sanitize storage configuration
         $sanitizationResult = $this->securityService->sanitizeStorageConfig($storageConfig);
         
+        Log::info('Storage config sanitization result', [
+            'violations' => $sanitizationResult['violations'],
+            'sanitized_keys' => array_keys($sanitizationResult['sanitized'])
+        ]);
+        
         if (!empty($sanitizationResult['violations'])) {
+            Log::warning('Storage configuration validation failed', [
+                'violations' => $sanitizationResult['violations']
+            ]);
             return [
                 'success' => false,
                 'message' => 'Storage configuration validation failed',
@@ -1192,8 +1204,32 @@ class SetupService
             $envUpdates['GOOGLE_DRIVE_CLIENT_SECRET'] = $sanitizedConfig['client_secret'];
         }
 
+        Log::info('Prepared environment updates', [
+            'update_keys' => array_keys($envUpdates)
+        ]);
+
         // Update environment file securely
-        return $this->environmentFileService->updateEnvironmentFile($envUpdates);
+        $result = $this->environmentFileService->updateEnvironmentFile($envUpdates);
+        
+        Log::info('Environment file update result', [
+            'success' => $result['success'],
+            'message' => $result['message'],
+            'violations' => $result['violations'] ?? []
+        ]);
+
+        // Clear configuration cache to ensure new values are loaded
+        if ($result['success']) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('config:clear');
+                Log::info('Configuration cache cleared after environment update');
+            } catch (\Exception $e) {
+                Log::warning('Failed to clear configuration cache', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        return $result;
     }
 
     /**
