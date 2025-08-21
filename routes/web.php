@@ -189,43 +189,79 @@ Route::get('/force-reset-setup', function () {
     }
 })->name('debug.reset.setup');
 
-// Force fresh setup check - remove after debugging
-Route::get('/force-fresh-setup-check', function () {
+// Detailed setup logic debug - remove after debugging
+Route::get('/debug-setup-logic', function () {
     try {
-        // Clear all caches first
-        \Illuminate\Support\Facades\Cache::flush();
-        \Illuminate\Support\Facades\Artisan::call('config:clear');
-        
-        // Get a fresh instance of setup service
+        // Get setup service
         $setupService = app(\App\Services\SetupService::class);
         
-        // Manually perform the setup checks to see what happens
-        $reflection = new ReflectionClass($setupService);
-        $method = $reflection->getMethod('performSetupChecks');
-        $method->setAccessible(true);
+        // Check each condition step by step
+        $checks = config('setup.checks', []);
         
-        $setupRequired = $method->invoke($setupService);
-        
-        // Check individual conditions manually
+        // Admin user check
+        $adminCheckEnabled = $checks['admin_user_exists'] ?? true;
         $adminExists = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->exists();
-        $usersTableExists = \Illuminate\Support\Facades\Schema::hasTable('users');
+        $adminCheckPasses = !$adminCheckEnabled || $adminExists;
         
-        // Check cloud storage
+        // Cloud storage check
+        $cloudCheckEnabled = $checks['cloud_storage_configured'] ?? true;
         $googleClientId = config('services.google.client_id');
         $googleClientSecret = config('services.google.client_secret');
         $cloudStorageConfigured = !empty($googleClientId) && !empty($googleClientSecret);
+        $cloudCheckPasses = !$cloudCheckEnabled || $cloudStorageConfigured;
+        
+        // Assets check
+        $assetCheckEnabled = $checks['asset_validation'] ?? true;
+        $assetService = app(\App\Services\AssetValidationService::class);
+        $assetsValid = $assetService->areAssetRequirementsMet();
+        $assetCheckPasses = !$assetCheckEnabled || $assetsValid;
+        
+        // Database checks
+        $dbConnectivityEnabled = $checks['database_connectivity'] ?? true;
+        $migrationsEnabled = $checks['migrations_run'] ?? true;
+        $usersTableExists = \Illuminate\Support\Facades\Schema::hasTable('users');
+        
+        $dbConnectivityPasses = true; // If we got here, DB is connected
+        $migrationsPass = !$migrationsEnabled || $usersTableExists;
+        
+        // Overall logic
+        $allChecksPassed = $adminCheckPasses && $cloudCheckPasses && $assetCheckPasses && $dbConnectivityPasses && $migrationsPass;
         
         return response()->json([
-            'fresh_setup_required' => $setupRequired,
-            'manual_checks' => [
-                'admin_exists' => $adminExists,
-                'users_table_exists' => $usersTableExists,
-                'cloud_storage_configured' => $cloudStorageConfigured,
+            'setup_checks_config' => $checks,
+            'detailed_checks' => [
+                'admin_check' => [
+                    'enabled' => $adminCheckEnabled,
+                    'admin_exists' => $adminExists,
+                    'passes' => $adminCheckPasses,
+                    'logic' => $adminCheckEnabled ? 'Admin must exist' : 'Check disabled'
+                ],
+                'cloud_check' => [
+                    'enabled' => $cloudCheckEnabled,
+                    'client_id' => $googleClientId ? 'SET' : 'NOT SET',
+                    'client_secret' => $googleClientSecret ? 'SET' : 'NOT SET',
+                    'configured' => $cloudStorageConfigured,
+                    'passes' => $cloudCheckPasses,
+                    'logic' => $cloudCheckEnabled ? 'Cloud storage must be configured' : 'Check disabled'
+                ],
+                'asset_check' => [
+                    'enabled' => $assetCheckEnabled,
+                    'valid' => $assetsValid,
+                    'passes' => $assetCheckPasses
+                ],
+                'database_checks' => [
+                    'connectivity_enabled' => $dbConnectivityEnabled,
+                    'migrations_enabled' => $migrationsEnabled,
+                    'users_table_exists' => $usersTableExists,
+                    'connectivity_passes' => $dbConnectivityPasses,
+                    'migrations_pass' => $migrationsPass
+                ]
             ],
-            'after_fresh_check' => [
-                'setup_required' => $setupService->isSetupRequired(),
-                'setup_complete' => $setupService->isSetupComplete(),
-                'current_step' => $setupService->getSetupStep(),
+            'logic_summary' => [
+                'all_checks_passed' => $allChecksPassed,
+                'should_setup_be_complete' => $allChecksPassed,
+                'actual_setup_complete' => $setupService->isSetupComplete(),
+                'actual_setup_required' => $setupService->isSetupRequired()
             ]
         ]);
         
@@ -236,4 +272,4 @@ Route::get('/force-fresh-setup-check', function () {
             'trace' => $e->getTraceAsString()
         ], 500);
     }
-})->name('debug.fresh.setup.check');
+})->name('debug.setup.logic');
