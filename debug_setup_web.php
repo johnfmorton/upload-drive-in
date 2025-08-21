@@ -10,8 +10,8 @@ echo "Date: " . date('Y-m-d H:i:s') . "\n";
 echo "URL: " . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] . "\n\n";
 
 try {
-    require_once 'vendor/autoload.php';
-    $app = require_once 'bootstrap/app.php';
+    require_once '../vendor/autoload.php';
+    $app = require_once '../bootstrap/app.php';
     
     echo "✓ Laravel bootstrap successful\n";
     
