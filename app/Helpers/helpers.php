@@ -61,7 +61,7 @@ if (! function_exists('should_bypass_setup')) {
     /**
      * Check if current request should bypass setup requirements
      */
-    function should_bypass_setup(string $routeName = null, string $path = null): bool
+    function should_bypass_setup(?string $routeName = null, ?string $path = null): bool
     {
         return SetupHelper::shouldBypassSetup($routeName, $path);
     }

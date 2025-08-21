@@ -89,12 +89,14 @@ class SetupController extends Controller
         ]);
 
         return view('setup.welcome', [
-            'systemChecks' => $systemChecks,
+            'systemChecks' => $systemChecks['checks'],
             'progress' => $progress,
             'currentStep' => $currentStep,
             'progressDetails' => $progressDetails,
             'canProceed' => $systemChecks['overall_status'],
-            'recoveryInfo' => $recoveryInfo
+            'recoveryInfo' => $recoveryInfo,
+            'systemChecksSummary' => $systemChecks,
+            'hasCriticalIssues' => !$systemChecks['overall_status']
         ]);
     }
 
@@ -993,37 +995,37 @@ class SetupController extends Controller
         $checks = [
             'php_version' => [
                 'name' => 'PHP Version',
-                'status' => version_compare(PHP_VERSION, '8.1.0', '>='),
+                'status' => version_compare(PHP_VERSION, '8.1.0', '>=') ? 'pass' : 'fail',
                 'message' => 'PHP 8.1+ required (current: ' . PHP_VERSION . ')',
                 'required' => true
             ],
             'storage_writable' => [
                 'name' => 'Storage Directory',
-                'status' => is_writable(storage_path()),
+                'status' => is_writable(storage_path()) ? 'pass' : 'fail',
                 'message' => 'Storage directory must be writable',
                 'required' => true
             ],
             'env_writable' => [
                 'name' => 'Environment File',
-                'status' => is_writable(base_path('.env')),
+                'status' => is_writable(base_path('.env')) ? 'pass' : 'fail',
                 'message' => '.env file must be writable for configuration updates',
                 'required' => true
             ],
             'curl_extension' => [
                 'name' => 'cURL Extension',
-                'status' => extension_loaded('curl'),
+                'status' => extension_loaded('curl') ? 'pass' : 'fail',
                 'message' => 'cURL extension required for API integrations',
                 'required' => true
             ],
             'openssl_extension' => [
                 'name' => 'OpenSSL Extension',
-                'status' => extension_loaded('openssl'),
+                'status' => extension_loaded('openssl') ? 'pass' : 'fail',
                 'message' => 'OpenSSL extension required for secure connections',
                 'required' => true
             ],
             'pdo_extension' => [
                 'name' => 'PDO Extension',
-                'status' => extension_loaded('pdo'),
+                'status' => extension_loaded('pdo') ? 'pass' : 'fail',
                 'message' => 'PDO extension required for database connections',
                 'required' => true
             ]
@@ -1034,14 +1036,14 @@ class SetupController extends Controller
         if ($databaseType === 'mysql') {
             $checks['pdo_mysql'] = [
                 'name' => 'PDO MySQL Extension',
-                'status' => extension_loaded('pdo_mysql'),
+                'status' => extension_loaded('pdo_mysql') ? 'pass' : 'fail',
                 'message' => 'PDO MySQL extension required for MySQL connections',
                 'required' => true
             ];
         } elseif ($databaseType === 'sqlite') {
             $checks['pdo_sqlite'] = [
                 'name' => 'PDO SQLite Extension',
-                'status' => extension_loaded('pdo_sqlite'),
+                'status' => extension_loaded('pdo_sqlite') ? 'pass' : 'fail',
                 'message' => 'PDO SQLite extension required for SQLite connections',
                 'required' => true
             ];
@@ -1049,13 +1051,13 @@ class SetupController extends Controller
 
         // Determine overall status
         $requiredChecks = array_filter($checks, fn($check) => $check['required']);
-        $passedRequired = array_filter($requiredChecks, fn($check) => $check['status']);
+        $passedRequired = array_filter($requiredChecks, fn($check) => $check['status'] === 'pass');
         $overallStatus = count($passedRequired) === count($requiredChecks);
 
         return [
             'checks' => $checks,
             'overall_status' => $overallStatus,
-            'passed_count' => count(array_filter($checks, fn($check) => $check['status'])),
+            'passed_count' => count(array_filter($checks, fn($check) => $check['status'] === 'pass')),
             'total_count' => count($checks),
             'required_passed' => count($passedRequired),
             'required_total' => count($requiredChecks)

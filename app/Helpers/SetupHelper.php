@@ -100,7 +100,7 @@ class SetupHelper
     /**
      * Check if current request should bypass setup requirements
      */
-    public static function shouldBypassSetup(string $routeName = null, string $path = null): bool
+    public static function shouldBypassSetup(?string $routeName = null, ?string $path = null): bool
     {
         // Allow setup routes
         if ($routeName && str_starts_with($routeName, 'setup.')) {
