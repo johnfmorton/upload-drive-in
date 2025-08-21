@@ -189,6 +189,35 @@ Route::get('/force-reset-setup', function () {
     }
 })->name('debug.reset.setup');
 
+// Test performSetupChecks directly - remove after debugging
+Route::get('/test-setup-checks', function () {
+    try {
+        $setupService = app(\App\Services\SetupService::class);
+        
+        // Call performSetupChecks directly
+        $reflection = new ReflectionClass($setupService);
+        $method = $reflection->getMethod('performSetupChecks');
+        $method->setAccessible(true);
+        
+        $result = $method->invoke($setupService);
+        
+        return response()->json([
+            'performSetupChecks_result' => $result,
+            'result_meaning' => $result ? 'Setup IS required' : 'Setup NOT required',
+            'after_call' => [
+                'isSetupRequired' => $setupService->isSetupRequired(),
+                'isSetupComplete' => $setupService->isSetupComplete(),
+            ]
+        ]);
+        
+    } catch (Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+})->name('test.setup.checks');
+
 // Detailed setup logic debug - remove after debugging
 Route::get('/debug-setup-logic', function () {
     try {

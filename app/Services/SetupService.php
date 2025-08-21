@@ -72,55 +72,68 @@ class SetupService
      */
     private function performSetupChecks(): bool
     {
-        // Check if setup is already marked as complete
-        if ($this->isSetupComplete()) {
-            return false;
-        }
-
+        \Log::info('Starting setup checks');
+        
+        // Don't check if setup is already complete - we want fresh checks
+        
         // Perform individual checks based on configuration
         try {
             // Asset validation check (first priority)
             if ($this->checks['asset_validation'] ?? true) {
+                \Log::info('Checking assets...');
                 if (!$this->areAssetsValid()) {
+                    \Log::info('Setup required: Assets not valid');
                     return true;
                 }
+                \Log::info('Assets check passed');
             }
             
             // Database connectivity check
             if ($this->checks['database_connectivity'] ?? true) {
+                \Log::info('Checking database connectivity...');
                 DB::connection()->getPdo();
+                \Log::info('Database connectivity check passed');
             }
             
             // Migrations check
             if ($this->checks['migrations_run'] ?? true) {
+                \Log::info('Checking migrations...');
                 if (!Schema::hasTable('users')) {
+                    \Log::info('Setup required: Users table does not exist');
                     return true;
                 }
+                \Log::info('Migrations check passed');
             }
             
             // Admin user check
             if ($this->checks['admin_user_exists'] ?? true) {
+                \Log::info('Checking admin users...');
                 $adminExists = User::where('role', UserRole::ADMIN)->exists();
                 if (!$adminExists) {
                     \Log::info('Setup required: No admin users found');
                     return true;
                 }
+                \Log::info('Admin user check passed');
             }
             
             // Cloud storage check
             if ($this->checks['cloud_storage_configured'] ?? true) {
+                \Log::info('Checking cloud storage...');
                 if (!$this->isCloudStorageConfigured()) {
                     \Log::info('Setup required: Cloud storage not configured');
                     return true;
                 }
+                \Log::info('Cloud storage check passed');
             }
             
             // If all checks pass, mark setup as complete
+            \Log::info('All setup checks passed - marking setup as complete');
             $this->markSetupComplete();
             return false;
             
         } catch (\Exception $e) {
             // Database connection failed or other issues
+            \Log::info('Setup required: Exception occurred - ' . $e->getMessage());
             return true;
         }
     }
