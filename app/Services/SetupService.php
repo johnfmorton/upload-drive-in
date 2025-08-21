@@ -55,19 +55,13 @@ class SetupService
      */
     public function isSetupRequired(): bool
     {
-        // Use cached result if available and caching is enabled
-        if ($this->cacheEnabled) {
-            $cached = Cache::get(self::CACHE_KEY . '_required');
-            if ($cached !== null) {
-                return $cached;
-            }
-        }
-
+        // Always perform fresh checks - don't rely on cache for critical setup logic
         $required = $this->performSetupChecks();
 
-        // Cache the result if caching is enabled
-        if ($this->cacheEnabled) {
-            Cache::put(self::CACHE_KEY . '_required', $required, $this->cacheTtl);
+        // If setup is required but marked as complete, reset the state
+        if ($required && $this->isSetupComplete()) {
+            \Log::warning('Setup state inconsistency detected - resetting setup state');
+            $this->resetSetupState();
         }
 
         return $required;
@@ -188,6 +182,27 @@ class SetupService
         
         // Clear cache when setup state changes
         $this->clearSetupCache();
+    }
+
+    /**
+     * Reset setup state when inconsistencies are detected
+     */
+    private function resetSetupState(): void
+    {
+        try {
+            // Remove the setup state file
+            $stateFile = storage_path('app/' . $this->stateFile);
+            if (File::exists($stateFile)) {
+                File::delete($stateFile);
+            }
+            
+            // Clear any cached state
+            $this->clearSetupCache();
+            
+            \Log::info('Setup state reset due to inconsistency');
+        } catch (\Exception $e) {
+            \Log::error('Failed to reset setup state: ' . $e->getMessage());
+        }
     }
 
     /**
