@@ -104,12 +104,34 @@ Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, '
 Route::get('/debug-setup-status', function () {
     $setupService = app(\App\Services\SetupService::class);
     
+    // Get setup checks configuration
+    $checks = config('setup.checks', []);
+    
+    // Manually check each condition
+    $adminExists = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->exists();
+    $usersTableExists = \Illuminate\Support\Facades\Schema::hasTable('users');
+    
+    // Check assets
+    $assetService = app(\App\Services\AssetValidationService::class);
+    $assetsValid = $assetService->areAssetRequirementsMet();
+    
+    // Check cloud storage
+    $googleClientId = config('services.google.client_id');
+    $googleClientSecret = config('services.google.client_secret');
+    $cloudStorageConfigured = !empty($googleClientId) && !empty($googleClientSecret);
+    
     return response()->json([
         'setup_required' => $setupService->isSetupRequired(),
         'setup_complete' => $setupService->isSetupComplete(),
         'current_step' => $setupService->getSetupStep(),
-        'admin_users_count' => \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->count(),
-        'users_table_exists' => \Illuminate\Support\Facades\Schema::hasTable('users'),
+        'individual_checks' => [
+            'admin_users_count' => \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->count(),
+            'admin_exists' => $adminExists,
+            'users_table_exists' => $usersTableExists,
+            'assets_valid' => $assetsValid,
+            'cloud_storage_configured' => $cloudStorageConfigured,
+        ],
+        'setup_checks_config' => $checks,
         'environment' => [
             'SETUP_BOOTSTRAP_CHECKS' => config('setup.bootstrap_checks'),
             'SETUP_CACHE_STATE' => config('setup.cache_state'),
