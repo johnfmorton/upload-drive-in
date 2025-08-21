@@ -99,3 +99,20 @@ Route::middleware(['auth', \App\Http\Middleware\FileDownloadRateLimitMiddleware:
 // Health check routes
 Route::get('/health', [\App\Http\Controllers\HealthController::class, 'check'])->name('health.check');
 Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, 'detailed'])->name('health.detailed');
+
+// Temporary debug route - remove after debugging
+Route::get('/debug-setup-status', function () {
+    $setupService = app(\App\Services\SetupService::class);
+    
+    return response()->json([
+        'setup_required' => $setupService->isSetupRequired(),
+        'setup_complete' => $setupService->isSetupComplete(),
+        'current_step' => $setupService->getSetupStep(),
+        'admin_users_count' => \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->count(),
+        'users_table_exists' => \Illuminate\Support\Facades\Schema::hasTable('users'),
+        'environment' => [
+            'SETUP_BOOTSTRAP_CHECKS' => config('setup.bootstrap_checks'),
+            'SETUP_CACHE_STATE' => config('setup.cache_state'),
+        ]
+    ]);
+})->name('debug.setup.status');

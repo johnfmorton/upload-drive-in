@@ -4,6 +4,45 @@
 echo "=== Setup Debug Information ===\n";
 echo "Date: " . date('Y-m-d H:i:s') . "\n\n";
 
+// Try to bootstrap Laravel to check setup service
+try {
+    require_once 'vendor/autoload.php';
+    $app = require_once 'bootstrap/app.php';
+    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+    
+    echo "✓ Laravel bootstrap successful\n";
+    
+    // Check if we can access the setup service
+    try {
+        $setupService = $app->make(\App\Services\SetupService::class);
+        echo "✓ SetupService instantiated\n";
+        
+        // Check if setup is required
+        $isSetupRequired = $setupService->isSetupRequired();
+        echo "Setup Required: " . ($isSetupRequired ? 'YES' : 'NO') . "\n";
+        
+        // Check if setup is complete
+        $isSetupComplete = $setupService->isSetupComplete();
+        echo "Setup Complete: " . ($isSetupComplete ? 'YES' : 'NO') . "\n";
+        
+        // Get current setup step
+        $currentStep = $setupService->getSetupStep();
+        echo "Current Step: " . $currentStep . "\n";
+        
+        // Check assets
+        $assetService = $app->make(\App\Services\AssetValidationService::class);
+        $assetsValid = $assetService->areAssetRequirementsMet();
+        echo "Assets Valid: " . ($assetsValid ? 'YES' : 'NO') . "\n";
+        
+    } catch (Exception $e) {
+        echo "✗ Error checking setup service: " . $e->getMessage() . "\n";
+        echo "Stack trace: " . $e->getTraceAsString() . "\n";
+    }
+    
+} catch (Exception $e) {
+    echo "✗ Laravel bootstrap failed: " . $e->getMessage() . "\n";
+}
+
 // Check if .env file exists
 if (file_exists('.env')) {
     echo "✓ .env file exists\n";
