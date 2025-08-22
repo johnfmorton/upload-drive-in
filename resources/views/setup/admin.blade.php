@@ -240,73 +240,169 @@
                 </button>
             </div>
         </form>
+        
+
     </div>
 
     @push('scripts')
         <script>
-            console.log('Form debugging enabled');
+            // Form debugging
             document.addEventListener('DOMContentLoaded', function() {
                 const form = document.getElementById('admin-form');
                 if (form) {
                     form.addEventListener('submit', function(e) {
-                        e.preventDefault(); // Prevent default form submission
-                        
-                        console.log('Form submit event triggered');
+                        console.log('Form submission started');
                         console.log('Form action:', form.action);
                         console.log('Form method:', form.method);
                         
-                        const formData = new FormData(form);
-                        console.log('Form data:');
-                        for (let [key, value] of formData.entries()) {
-                            if (key.includes('password')) {
-                                console.log(key + ':', '[REDACTED]');
-                            } else {
-                                console.log(key + ':', value);
-                            }
+                        // Basic CSRF validation
+                        const csrfToken = form.querySelector('input[name="_token"]');
+                        if (!csrfToken) {
+                            console.error('No CSRF token found in form!');
+                            return false;
                         }
                         
-                        // Submit via fetch with proper CSRF header like the AJAX request
-                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                        
-                        fetch(form.action, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': csrfToken,
-                                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-                            },
-                            body: formData,
-                            redirect: 'follow' // Follow redirects automatically
-                        }).then(response => {
-                            console.log('Response status:', response.status);
-                            console.log('Response URL:', response.url);
-                            
-                            if (response.ok) {
-                                // Check if we were redirected to a different URL
-                                if (response.url !== form.action) {
-                                    console.log('Redirected to:', response.url);
-                                    window.location.href = response.url;
-                                } else {
-                                    // If no redirect, reload the page to show any success messages
-                                    window.location.reload();
-                                }
-                            } else {
-                                console.error('Form submission failed:', response.status);
-                                response.text().then(text => {
-                                    console.log('Response text:', text);
-                                    if (response.status === 419) {
-                                        alert('CSRF token error. Please refresh the page and try again.');
-                                    } else {
-                                        alert('Form submission failed. Please try again.');
-                                    }
-                                });
+                        // Check if all required fields are filled
+                        const requiredFields = form.querySelectorAll('[required]');
+                        let allValid = true;
+                        requiredFields.forEach(field => {
+                            if (!field.value.trim()) {
+                                console.log('Missing required field:', field.name);
+                                allValid = false;
                             }
-                        }).catch(error => {
-                            console.error('Form submission error:', error);
-                            alert('Network error. Please check your connection and try again.');
                         });
                         
-                        return false;
+                        if (!allValid) {
+                            console.log('Form validation failed - missing required fields');
+                            return false;
+                        }
+                        
+                        console.log('Form appears valid, submitting...');
+                        // Let the form submit normally
                     });
+                }
+                
+
+            });
+            
+            // Password strength and validation JavaScript
+            document.addEventListener('DOMContentLoaded', function() {
+                const passwordInput = document.getElementById('password');
+                const confirmInput = document.getElementById('password_confirmation');
+                const toggleButton = document.getElementById('toggle-password');
+                const strengthBar = document.getElementById('strength-bar');
+                const strengthText = document.getElementById('strength-text');
+                
+                // Password visibility toggle
+                if (toggleButton) {
+                    toggleButton.addEventListener('click', function() {
+                        const eyeClosed = document.getElementById('eye-closed');
+                        const eyeOpen = document.getElementById('eye-open');
+                        
+                        if (passwordInput.type === 'password') {
+                            passwordInput.type = 'text';
+                            eyeClosed.classList.add('hidden');
+                            eyeOpen.classList.remove('hidden');
+                        } else {
+                            passwordInput.type = 'password';
+                            eyeClosed.classList.remove('hidden');
+                            eyeOpen.classList.add('hidden');
+                        }
+                    });
+                }
+                
+                // Password strength checker
+                if (passwordInput) {
+                    passwordInput.addEventListener('input', function() {
+                        const password = this.value;
+                        const strength = calculatePasswordStrength(password);
+                        updatePasswordStrength(strength);
+                        updatePasswordRequirements(password);
+                    });
+                }
+                
+                // Password confirmation checker
+                if (confirmInput) {
+                    confirmInput.addEventListener('input', function() {
+                        checkPasswordMatch();
+                    });
+                }
+                
+                function calculatePasswordStrength(password) {
+                    let score = 0;
+                    if (password.length >= 8) score += 20;
+                    if (/[a-z]/.test(password)) score += 20;
+                    if (/[A-Z]/.test(password)) score += 20;
+                    if (/[0-9]/.test(password)) score += 20;
+                    if (/[^A-Za-z0-9]/.test(password)) score += 20;
+                    return score;
+                }
+                
+                function updatePasswordStrength(strength) {
+                    const colors = {
+                        0: { bg: 'bg-gray-300', text: 'Enter password', color: 'text-gray-400' },
+                        20: { bg: 'bg-red-500', text: 'Very weak', color: 'text-red-500' },
+                        40: { bg: 'bg-orange-500', text: 'Weak', color: 'text-orange-500' },
+                        60: { bg: 'bg-yellow-500', text: 'Fair', color: 'text-yellow-500' },
+                        80: { bg: 'bg-blue-500', text: 'Good', color: 'text-blue-500' },
+                        100: { bg: 'bg-green-500', text: 'Strong', color: 'text-green-500' }
+                    };
+                    
+                    const config = colors[strength] || colors[0];
+                    strengthBar.className = `h-2 rounded-full transition-all duration-300 ${config.bg}`;
+                    strengthBar.style.width = `${strength}%`;
+                    strengthText.textContent = config.text;
+                    strengthText.className = `font-medium ${config.color}`;
+                }
+                
+                function updatePasswordRequirements(password) {
+                    const requirements = [
+                        { id: 'req-length', test: password.length >= 8 },
+                        { id: 'req-uppercase', test: /[A-Z]/.test(password) },
+                        { id: 'req-lowercase', test: /[a-z]/.test(password) },
+                        { id: 'req-number', test: /[0-9]/.test(password) },
+                        { id: 'req-special', test: /[^A-Za-z0-9]/.test(password) }
+                    ];
+                    
+                    requirements.forEach(req => {
+                        const element = document.getElementById(req.id);
+                        const svg = element.querySelector('svg');
+                        if (req.test) {
+                            svg.classList.remove('text-gray-400');
+                            svg.classList.add('text-green-500');
+                        } else {
+                            svg.classList.remove('text-green-500');
+                            svg.classList.add('text-gray-400');
+                        }
+                    });
+                }
+                
+                function checkPasswordMatch() {
+                    const password = passwordInput.value;
+                    const confirm = confirmInput.value;
+                    const indicator = document.getElementById('password-match-indicator');
+                    const matchSuccess = document.getElementById('match-success');
+                    const matchError = document.getElementById('match-error');
+                    const matchText = document.getElementById('password-match-text');
+                    
+                    if (confirm.length > 0) {
+                        indicator.classList.remove('hidden');
+                        if (password === confirm) {
+                            matchSuccess.classList.remove('hidden');
+                            matchError.classList.add('hidden');
+                            matchText.textContent = 'Passwords match';
+                            matchText.className = 'mt-2 text-sm text-green-600';
+                        } else {
+                            matchSuccess.classList.add('hidden');
+                            matchError.classList.remove('hidden');
+                            matchText.textContent = 'Passwords do not match';
+                            matchText.className = 'mt-2 text-sm text-red-600';
+                        }
+                    } else {
+                        indicator.classList.add('hidden');
+                        matchText.textContent = 'Re-enter your password to confirm';
+                        matchText.className = 'mt-2 text-sm text-gray-500';
+                    }
                 }
             });
         </script>

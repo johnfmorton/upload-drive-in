@@ -22,15 +22,13 @@ $currentIndex = array_search($currentStep, $stepKeys);
 $totalSteps = count($allSteps);
 @endphp
 
-<div class="bg-white border border-gray-200 rounded-lg p-6 mb-6 shadow-sm" 
-     x-data="setupProgress({{ $progress }}, '{{ $currentStep }}', {{ $animated ? 'true' : 'false' }})"
-     x-init="init()">
+<div class="bg-white border border-gray-200 rounded-lg p-6 mb-6 shadow-sm">
     <!-- Progress bar with enhanced animation -->
     <div class="mb-6">
         <div class="flex items-center justify-between text-sm text-gray-600 mb-2">
             <span class="font-medium">Setup Progress</span>
             <div class="flex items-center space-x-2">
-                <span x-text="`${animatedProgress}% Complete`" class="font-medium">{{ $progress }}% Complete</span>
+                <span class="font-medium">{{ $progress }}% Complete</span>
                 @if($showEstimatedTime && isset($allSteps[$currentStep]['estimatedTime']))
                 <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
                     ~{{ $allSteps[$currentStep]['estimatedTime'] }}
@@ -39,15 +37,12 @@ $totalSteps = count($allSteps);
             </div>
         </div>
         <div class="relative w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-            <!-- Animated progress bar -->
+            <!-- Static progress bar -->
             <div class="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-1000 ease-out transform origin-left"
-                 :style="`width: ${animatedProgress}%; transform: scaleX(${animatedProgress / 100})`">
+                 style="width: {{ $progress }}%">
                 <!-- Shimmer effect -->
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
             </div>
-            <!-- Progress glow effect -->
-            <div class="absolute inset-0 bg-blue-400 h-3 rounded-full opacity-20 blur-sm transition-all duration-1000 ease-out"
-                 :style="`width: ${animatedProgress}%`"></div>
         </div>
         
         <!-- Progress milestones -->
@@ -149,9 +144,9 @@ $totalSteps = count($allSteps);
             @if(!$loop->last)
             <div class="absolute top-5 left-1/2 w-full h-0.5 bg-gray-300 transition-all duration-700 ease-out"
                  style="transform: translateX(50%); z-index: 1;">
-                <!-- Animated progress line -->
+                <!-- Static progress line -->
                 <div class="h-full bg-green-500 transition-all duration-1000 ease-out origin-left"
-                     :style="`width: ${stepIndex < currentIndex || (stepIndex === currentIndex && animatedProgress > (stepIndex * 20)) ? '100%' : '0%'}`"></div>
+                     style="width: {{ $stepIndex < $currentIndex ? '100%' : '0%' }}"></div>
             </div>
             @endif
         </div>

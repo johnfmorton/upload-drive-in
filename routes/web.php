@@ -415,3 +415,14 @@ Route::get('/debug-config-values', function () {
         ], 500);
     }
 })->name('debug.config.values');
+
+// Test CSRF route - remove after debugging
+Route::post('/test-csrf', function (\Illuminate\Http\Request $request) {
+    return response()->json([
+        'success' => true,
+        'message' => 'CSRF validation passed!',
+        'data' => $request->all()
+    ]);
+})->name('test.csrf');
+
+

@@ -381,6 +381,14 @@ class SetupController extends Controller
      */
     public function createAdmin(AdminUserRequest $request): RedirectResponse
     {
+        // DEBUG: Log that we reached the controller
+        \Illuminate\Support\Facades\Log::info('CONTROLLER REACHED: createAdmin method called', [
+            'request_method' => $request->method(),
+            'request_url' => $request->url(),
+            'has_csrf_token' => $request->has('_token'),
+            'csrf_token_length' => $request->has('_token') ? strlen($request->input('_token')) : 0,
+        ]);
+        
         try {
             // Validate setup session
             $sessionValidation = $this->setupService->validateSetupSession();

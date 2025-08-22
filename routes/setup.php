@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', \App\Http\Middleware\RequireSetupMiddleware::class, \App\Http\Middleware\ExtendSetupSession::class])->prefix('setup')->name('setup.')->group(function () {
+Route::middleware(['web', \App\Http\Middleware\RequireSetupMiddleware::class])->prefix('setup')->name('setup.')->group(function () {
     
     // Asset build instructions - first step for new installations
     Route::get('/assets', [SetupController::class, 'showAssetBuildInstructions'])->name('assets');
@@ -29,7 +29,31 @@ Route::middleware(['web', \App\Http\Middleware\RequireSetupMiddleware::class, \A
     
     // Admin user creation step
     Route::get('/admin', [SetupController::class, 'showAdminForm'])->name('admin');
-    Route::post('/admin', [SetupController::class, 'createAdmin'])->name('admin.create');
+    Route::post('/admin', function(\Illuminate\Http\Request $request) {
+        // Simple validation
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+        
+        // Create the admin user
+        $user = \App\Models\User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+            'role' => \App\Enums\UserRole::ADMIN,
+            'email_verified_at' => now(),
+        ]);
+        
+        \Illuminate\Support\Facades\Log::info('Admin user created successfully', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+        ]);
+        
+        // Redirect to next setup step
+        return redirect()->route('setup.storage')->with('success', 'Administrator account created successfully!');
+    })->name('admin.create');
     
     // Cloud storage configuration step
     Route::get('/storage', [SetupController::class, 'showStorageForm'])->name('storage');
@@ -47,6 +71,8 @@ Route::middleware(['web', \App\Http\Middleware\RequireSetupMiddleware::class, \A
     Route::post('/ajax/validate-database-field', [SetupController::class, 'validateDatabaseField'])->name('ajax.validate-database-field');
     Route::get('/ajax/database-config-hints', [SetupController::class, 'getDatabaseConfigHints'])->name('ajax.database-config-hints');
     Route::post('/ajax/refresh-csrf-token', [SetupController::class, 'refreshCsrfToken'])->name('ajax.refresh-csrf-token');
+    
+
     
     // Setup recovery and state management endpoints
     Route::get('/ajax/recovery-info', [SetupController::class, 'getRecoveryInfo'])->name('ajax.recovery-info');
