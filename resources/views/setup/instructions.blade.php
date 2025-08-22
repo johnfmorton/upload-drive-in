@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Setup Instructions - {{ config('app.name', 'Laravel') }}</title>
-    
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-    
+
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+
 <body class="font-sans antialiased bg-gray-50">
     <div class="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div class="sm:mx-auto sm:w-full sm:max-w-4xl">
@@ -24,25 +26,25 @@
             <!-- Instructions Card -->
             <div class="bg-white shadow-lg rounded-lg overflow-hidden">
                 <div class="px-6 py-8 sm:px-10">
-                    
+
                     <!-- Step 1: Database Configuration -->
                     <div class="mb-10">
                         <div class="flex items-center mb-4">
-                            <div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
                                 1
                             </div>
                             <h2 class="ml-3 text-xl font-semibold text-gray-900">Database Configuration</h2>
                         </div>
-                        
+
                         <p class="text-gray-600 mb-4">
-                            Add these variables to your <code class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code> file:
+                            Add these variables to your <code class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code>
+                            file:
                         </p>
-                        
+
                         <div class="bg-gray-900 rounded-lg p-4 relative">
-                            <button 
-                                onclick="copyToClipboard('database-config')" 
-                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                            >
+                            <button onclick="copyToClipboard('database-config')"
+                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Copy
                             </button>
                             <pre id="database-config" class="text-green-400 text-sm overflow-x-auto"><code># Database Configuration
@@ -53,17 +55,20 @@ DB_DATABASE=your_database_name
 DB_USERNAME=your_database_username
 DB_PASSWORD=your_database_password</code></pre>
                         </div>
-                        
+
                         <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400">
                             <div class="flex">
                                 <div class="flex-shrink-0">
                                     <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        <path fill-rule="evenodd"
+                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                            clip-rule="evenodd" />
                                     </svg>
                                 </div>
                                 <div class="ml-3">
                                     <p class="text-sm text-blue-700">
-                                        <strong>Note:</strong> Replace the placeholder values with your actual database credentials.
+                                        <strong>Note:</strong> Replace the placeholder values with your actual database
+                                        credentials.
                                     </p>
                                 </div>
                             </div>
@@ -73,21 +78,21 @@ DB_PASSWORD=your_database_password</code></pre>
                     <!-- Step 2: Google Drive Configuration -->
                     <div class="mb-10">
                         <div class="flex items-center mb-4">
-                            <div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
                                 2
                             </div>
                             <h2 class="ml-3 text-xl font-semibold text-gray-900">Google Drive Configuration</h2>
                         </div>
-                        
+
                         <p class="text-gray-600 mb-4">
-                            Add these Google Drive API credentials to your <code class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code> file:
+                            Add these Google Drive API credentials to your <code
+                                class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code> file:
                         </p>
-                        
+
                         <div class="bg-gray-900 rounded-lg p-4 relative">
-                            <button 
-                                onclick="copyToClipboard('google-drive-config')" 
-                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                            >
+                            <button onclick="copyToClipboard('google-drive-config')"
+                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Copy
                             </button>
                             <pre id="google-drive-config" class="text-green-400 text-sm overflow-x-auto"><code># Google Drive Configuration
@@ -95,18 +100,72 @@ GOOGLE_DRIVE_CLIENT_ID=your_google_client_id
 GOOGLE_DRIVE_CLIENT_SECRET=your_google_client_secret
 CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         </div>
-                        
+
+                        <!-- Google Console Redirect URI -->
+                        <div class="mt-6">
+                            <h3 class="text-lg font-medium text-gray-900 mb-3">Google Console Configuration</h3>
+                            <p class="text-gray-600 mb-4">
+                                When setting up your Google Cloud Project OAuth 2.0 client, add this <strong>Authorized
+                                    redirect URI</strong>:
+                            </p>
+
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 relative">
+                                <button onclick="copyToClipboard('redirect-uri')"
+                                    class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    Copy
+                                </button>
+                                <div class="pr-16">
+                                    <label class="block text-sm font-medium text-blue-800 mb-2">Authorized Redirect
+                                        URI:</label>
+                                    <code id="redirect-uri"
+                                        class="block bg-white border border-blue-300 rounded px-3 py-2 text-blue-900 font-mono text-sm break-all">{{ config('app.url') }}/google-drive/callback</code>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Google Cloud Console Setup Guide -->
+                        <div class="mt-6">
+                            <details class="bg-gray-50 border border-gray-200 rounded-lg">
+                                <summary
+                                    class="cursor-pointer p-4 font-medium text-gray-900 hover:bg-gray-100 transition-colors">
+                                    📋 Step-by-step Google Cloud Console Setup Guide
+                                </summary>
+                                <div class="p-4 pt-0 border-t border-gray-200">
+                                    <ol class="list-decimal list-inside space-y-3 text-sm text-gray-700">
+                                        <li>Go to the <a href="https://console.cloud.google.com/" target="_blank"
+                                                class="text-blue-600 hover:text-blue-800 underline">Google Cloud
+                                                Console</a></li>
+                                        <li>Create a new project or select an existing one</li>
+                                        <li>Navigate to <strong>APIs & Services</strong> → <strong>Library</strong></li>
+                                        <li>Search for "Google Drive API" and enable it</li>
+                                        <li>Go to <strong>APIs & Services</strong> → <strong>Credentials</strong></li>
+                                        <li>Click <strong>Create Credentials</strong> → <strong>OAuth 2.0 Client
+                                                IDs</strong></li>
+                                        <li>Choose <strong>Web application</strong> as the application type</li>
+                                        <li>Add the redirect URI shown above to <strong>Authorized redirect
+                                                URIs</strong></li>
+                                        <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong> to
+                                            your .env file</li>
+                                    </ol>
+                                </div>
+                            </details>
+                        </div>
+
                         <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400">
                             <div class="flex">
                                 <div class="flex-shrink-0">
                                     <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        <path fill-rule="evenodd"
+                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                            clip-rule="evenodd" />
                                     </svg>
                                 </div>
                                 <div class="ml-3">
                                     <p class="text-sm text-amber-700">
-                                        <strong>Important:</strong> You need to create a Google Cloud Project and enable the Google Drive API to get these credentials. 
-                                        Replace <code>your-domain.com</code> with your actual domain.
+                                        <strong>Important:</strong> The redirect URI above is automatically generated
+                                        based on your application URL.
+                                        Make sure to use the exact URL shown when configuring your Google Cloud Console
+                                        OAuth client.
                                     </p>
                                 </div>
                             </div>
@@ -116,36 +175,38 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                     <!-- Step 3: Create Admin User -->
                     <div class="mb-10">
                         <div class="flex items-center mb-4">
-                            <div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
                                 3
                             </div>
                             <h2 class="ml-3 text-xl font-semibold text-gray-900">Create Admin User</h2>
                         </div>
-                        
+
                         <p class="text-gray-600 mb-4">
                             Run this command on your server to create the initial admin user:
                         </p>
-                        
+
                         <div class="bg-gray-900 rounded-lg p-4 relative">
-                            <button 
-                                onclick="copyToClipboard('admin-command')" 
-                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                            >
+                            <button onclick="copyToClipboard('admin-command')"
+                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Copy
                             </button>
                             <pre id="admin-command" class="text-green-400 text-sm overflow-x-auto"><code>php artisan user:create --name="Admin User" --email="admin@example.com" --password="secure-password" --role=admin</code></pre>
                         </div>
-                        
+
                         <div class="mt-4 p-4 bg-red-50 border-l-4 border-red-400">
                             <div class="flex">
                                 <div class="flex-shrink-0">
                                     <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        <path fill-rule="evenodd"
+                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                            clip-rule="evenodd" />
                                     </svg>
                                 </div>
                                 <div class="ml-3">
                                     <p class="text-sm text-red-700">
-                                        <strong>Security:</strong> Replace the example email and password with your actual admin credentials. 
+                                        <strong>Security:</strong> Replace the example email and password with your
+                                        actual admin credentials.
                                         Use a strong, unique password.
                                     </p>
                                 </div>
@@ -156,21 +217,20 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                     <!-- Step 4: Run Migrations -->
                     <div class="mb-10">
                         <div class="flex items-center mb-4">
-                            <div class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
                                 4
                             </div>
                             <h2 class="ml-3 text-xl font-semibold text-gray-900">Run Database Migrations</h2>
                         </div>
-                        
+
                         <p class="text-gray-600 mb-4">
                             Run this command to set up the database tables:
                         </p>
-                        
+
                         <div class="bg-gray-900 rounded-lg p-4 relative">
-                            <button 
-                                onclick="copyToClipboard('migration-command')" 
-                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors"
-                            >
+                            <button onclick="copyToClipboard('migration-command')"
+                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Copy
                             </button>
                             <pre id="migration-command" class="text-green-400 text-sm overflow-x-auto"><code>php artisan migrate</code></pre>
@@ -181,8 +241,10 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                     <div class="bg-green-50 border border-green-200 rounded-lg p-6">
                         <div class="flex">
                             <div class="flex-shrink-0">
-                                <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
                             <div class="ml-3">
@@ -191,15 +253,15 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                 </h3>
                                 <div class="mt-2 text-sm text-green-700">
                                     <p>
-                                        Once you've completed all the steps above, refresh this page to access the application. 
-                                        The system will automatically detect your configuration and redirect you to the login page.
+                                        Once you've completed all the steps above, refresh this page to access the
+                                        application.
+                                        The system will automatically detect your configuration and redirect you to the
+                                        login page.
                                     </p>
                                 </div>
                                 <div class="mt-4">
-                                    <button 
-                                        onclick="window.location.reload()" 
-                                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
-                                    >
+                                    <button onclick="window.location.reload()"
+                                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
                                         Refresh Page
                                     </button>
                                 </div>
@@ -215,7 +277,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
         function copyToClipboard(elementId) {
             const element = document.getElementById(elementId);
             const text = element.textContent;
-            
+
             navigator.clipboard.writeText(text).then(function() {
                 // Show success feedback
                 const button = element.parentElement.querySelector('button');
@@ -223,7 +285,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                 button.textContent = 'Copied!';
                 button.classList.add('bg-green-600');
                 button.classList.remove('bg-gray-700');
-                
+
                 setTimeout(function() {
                     button.textContent = originalText;
                     button.classList.remove('bg-green-600');
@@ -235,4 +297,5 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
         }
     </script>
 </body>
+
 </html>
