@@ -105,7 +105,9 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         <div class="mt-6">
                             <h3 class="text-lg font-medium text-gray-900 mb-3">Google Console Configuration</h3>
                             <p class="text-gray-600 mb-4">
-                                When setting up your Google Cloud Project OAuth 2.0 client, add this <strong>Authorized
+                                When <a href="https://console.cloud.google.com/apis/credentials" target="_blank"
+                                    class="underline text-blue-800" rel="noopener noreferrer">setting up your Google
+                                    Cloud Project OAuth 2.0 client</a>, add this <strong>Authorized
                                     redirect URI</strong>:
                             </p>
 
@@ -172,54 +174,12 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         </div>
                     </div>
 
-                    <!-- Step 3: Create Admin User -->
+                    <!-- Step 3: Run Migrations -->
                     <div class="mb-10">
                         <div class="flex items-center mb-4">
                             <div
                                 class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
                                 3
-                            </div>
-                            <h2 class="ml-3 text-xl font-semibold text-gray-900">Create Admin User</h2>
-                        </div>
-
-                        <p class="text-gray-600 mb-4">
-                            Run this command on your server to create the initial admin user:
-                        </p>
-
-                        <div class="bg-gray-900 rounded-lg p-4 relative">
-                            <button onclick="copyToClipboard('admin-command')"
-                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
-                                Copy
-                            </button>
-                            <pre id="admin-command" class="text-green-400 text-sm overflow-x-auto"><code>php artisan user:create --name="Admin User" --email="admin@example.com" --password="secure-password" --role=admin</code></pre>
-                        </div>
-
-                        <div class="mt-4 p-4 bg-red-50 border-l-4 border-red-400">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div class="ml-3">
-                                    <p class="text-sm text-red-700">
-                                        <strong>Security:</strong> Replace the example email and password with your
-                                        actual admin credentials.
-                                        Use a strong, unique password.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 4: Run Migrations -->
-                    <div class="mb-10">
-                        <div class="flex items-center mb-4">
-                            <div
-                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                                4
                             </div>
                             <h2 class="ml-3 text-xl font-semibold text-gray-900">Run Database Migrations</h2>
                         </div>
@@ -234,6 +194,48 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                 Copy
                             </button>
                             <pre id="migration-command" class="text-green-400 text-sm overflow-x-auto"><code>php artisan migrate</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Create Admin User -->
+                    <div class="mb-10">
+                        <div class="flex items-center mb-4">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                                4
+                            </div>
+                            <h2 class="ml-3 text-xl font-semibold text-gray-900">Create Admin User</h2>
+                        </div>
+
+                        <p class="text-gray-600 mb-4">
+                            Run this command on your server to create the initial admin user:
+                        </p>
+
+                        <div class="bg-gray-900 rounded-lg p-4 relative">
+                            <button onclick="copyToClipboard('admin-command')"
+                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                Copy
+                            </button>
+                            <pre id="admin-command" class="text-green-400 text-sm overflow-x-auto"><code>php artisan user:create --name="Admin User" --email="admin@example.com" --role=admin --password="secure-password"</code></pre>
+                        </div>
+
+                        <div class="mt-4 p-4 bg-red-50 border-l-4 border-red-400">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.30 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-red-700">
+                                        <strong>Security:</strong> Replace the example email and password with your
+                                        actual admin credentials.
+                                        Use a strong, unique password.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

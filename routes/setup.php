@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\SetupController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,91 +16,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['web'])->prefix('setup')->name('setup.')->group(function () {
     
     // Setup instructions route - accessible without authentication
+    // This route handles its own redirect logic when setup is complete
     Route::get('/instructions', [\App\Http\Controllers\SetupInstructionsController::class, 'show'])->name('instructions');
     
-    // Simple test route
-    Route::get('/test', function() {
-        return 'Setup routes are working!';
-    })->name('test');
-    
-    // Simple database route without controller
-    Route::get('/database-simple', function() {
-        return view('setup.database');
-    })->name('database.simple');
-    
-    // Asset build instructions - first step for new installations
-    Route::get('/assets', [SetupController::class, 'showAssetBuildInstructions'])->name('assets');
-    
-    // Welcome screen - entry point for setup wizard
-    Route::get('/', [SetupController::class, 'welcome'])->name('welcome');
-    Route::get('/welcome', [SetupController::class, 'welcome'])->name('welcome.alt');
-    
-    // Database configuration step
-    Route::get('/database', [SetupController::class, 'showDatabaseForm'])->name('database');
-    Route::post('/database', [SetupController::class, 'configureDatabase'])->name('database.configure');
-    
-    // Admin user creation step
-    Route::get('/admin', [SetupController::class, 'showAdminForm'])->name('admin');
-    Route::post('/admin', function(\Illuminate\Http\Request $request) {
-        // Simple validation
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-        
-        // Create the admin user
-        $user = \App\Models\User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
-            'role' => \App\Enums\UserRole::ADMIN,
-            'email_verified_at' => now(),
-        ]);
-        
-        \Illuminate\Support\Facades\Log::info('Admin user created successfully', [
-            'user_id' => $user->id,
-            'email' => $user->email,
-        ]);
-        
-        // Redirect to next setup step
-        return redirect()->route('setup.storage')->with('success', 'Administrator account created successfully!');
-    })->name('admin.create');
-    
-    // Cloud storage configuration step
-    Route::get('/storage', [SetupController::class, 'showStorageForm'])->name('storage');
-    Route::post('/storage', [SetupController::class, 'configureStorage'])->name('storage.configure');
-    
-    // Setup completion step
-    Route::get('/complete', [SetupController::class, 'showComplete'])->name('complete');
-    Route::post('/complete', [SetupController::class, 'complete'])->name('finish');
-    
-    // AJAX endpoints for real-time validation and testing
-    Route::post('/ajax/check-assets', [SetupController::class, 'checkAssetBuildStatus'])->name('ajax.check-assets');
-    Route::post('/ajax/test-database', [SetupController::class, 'testDatabaseConnection'])->name('ajax.test-database');
-    Route::post('/ajax/test-storage', [SetupController::class, 'testStorageConnection'])->name('ajax.test-storage');
-    Route::post('/ajax/validate-email', [SetupController::class, 'validateEmail'])->name('ajax.validate-email');
-    Route::post('/ajax/validate-database-field', [SetupController::class, 'validateDatabaseField'])->name('ajax.validate-database-field');
-    Route::get('/ajax/database-config-hints', [SetupController::class, 'getDatabaseConfigHints'])->name('ajax.database-config-hints');
-    Route::post('/ajax/refresh-csrf-token', [SetupController::class, 'refreshCsrfToken'])->name('ajax.refresh-csrf-token');
-    
-
-    
-    // Setup recovery and state management endpoints
-    Route::get('/ajax/recovery-info', [SetupController::class, 'getRecoveryInfo'])->name('ajax.recovery-info');
-    Route::post('/ajax/restore-backup', [SetupController::class, 'restoreFromBackup'])->name('ajax.restore-backup');
-    Route::post('/ajax/force-recovery', [SetupController::class, 'forceRecovery'])->name('ajax.force-recovery');
-    
-    // Dynamic step routing for better UX
-    Route::get('/step/{step}', function (string $step) {
-        return match ($step) {
-            'assets' => redirect()->route('setup.assets'),
-            'welcome' => redirect()->route('setup.welcome'),
-            'database' => redirect()->route('setup.database'),
-            'admin' => redirect()->route('setup.admin'),
-            'storage' => redirect()->route('setup.storage'),
-            'complete' => redirect()->route('setup.complete'),
-            default => redirect()->route('setup.assets')
-        };
-    })->name('step')->where('step', 'assets|welcome|database|admin|storage|complete');
 });

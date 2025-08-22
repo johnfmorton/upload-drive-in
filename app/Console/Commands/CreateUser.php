@@ -10,22 +10,38 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 /**
+ * Create a new user with specified role and details
+ * 
+ * Supports both positional arguments and explicit options:
  * php artisan user:create {name} {email} {--role=client} {--password=} {--owner=}
+ * php artisan user:create --name="Name" --email="email@example.com" {--role=client} {--password=} {--owner=}
  *
  * Examples:
  * php artisan user:create "Client User" client@example.com (default: client role)
  * php artisan user:create "John Doe" john@example.com --role=admin
  * php artisan user:create "Jane Smith" jane@example.com --role=employee --owner=admin@example.com
+ * php artisan user:create --name="Admin User" --email="admin@example.com" --role=admin --password="secure-password"
  */
 class CreateUser extends Command
 {
-    protected $signature = 'user:create {name} {email} {--role=client} {--password=} {--owner=}';
+    protected $signature = 'user:create {name?} {email?} {--name=} {--email=} {--role=client} {--password=} {--owner=}';
     protected $description = 'Create a new user with specified role and details';
 
     public function handle()
     {
-        $name = $this->argument('name');
-        $email = $this->argument('email');
+        // Support both positional arguments and explicit options
+        // Explicit options take precedence over positional arguments
+        $name = $this->option('name') ?: $this->argument('name');
+        $email = $this->option('email') ?: $this->argument('email');
+        
+        // Validate that we have both name and email
+        if (!$name || !$email) {
+            $this->error('Both name and email are required. Use either:');
+            $this->line('  php artisan user:create "Name" "email@example.com" [options]');
+            $this->line('  php artisan user:create --name="Name" --email="email@example.com" [options]');
+            return 1;
+        }
+        
         $role = $this->option('role');
         $password = $this->option('password');
         $ownerEmail = $this->option('owner');
