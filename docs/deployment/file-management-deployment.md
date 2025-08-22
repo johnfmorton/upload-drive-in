@@ -37,7 +37,6 @@ FILE_MANAGER_RATE_LIMIT_PREVIEWS=120
 # Google Drive Integration
 GOOGLE_DRIVE_CLIENT_ID=your_client_id
 GOOGLE_DRIVE_CLIENT_SECRET=your_client_secret
-GOOGLE_DRIVE_REDIRECT_URI=your_redirect_uri
 GOOGLE_DRIVE_ROOT_FOLDER_ID=your_root_folder_id
 
 # Queue Configuration

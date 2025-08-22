@@ -40,11 +40,12 @@ This Laravel application is a client file intake system that integrates with Goo
 ```env
 GOOGLE_DRIVE_CLIENT_ID=
 GOOGLE_DRIVE_CLIENT_SECRET=
-GOOGLE_DRIVE_REDIRECT_URI=
 CLOUD_STORAGE_DEFAULT=google-drive
 ```
 
-**Note**: `GOOGLE_DRIVE_ROOT_FOLDER_ID` is no longer used. Root folder configuration is now managed per-user through the admin and employee dashboards, with automatic fallback to Google Drive root ('root') when no folder is configured.
+**Note**: 
+- `GOOGLE_DRIVE_ROOT_FOLDER_ID` is no longer used. Root folder configuration is now managed per-user through the admin and employee dashboards, with automatic fallback to Google Drive root ('root') when no folder is configured.
+- `GOOGLE_DRIVE_REDIRECT_URI` is no longer needed. The redirect URI is automatically generated from the application URL and configured in `config/cloud-storage.php`.
 
 ### Multi-Provider Support
 - Google Drive (primary)

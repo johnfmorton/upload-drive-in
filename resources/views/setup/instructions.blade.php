@@ -93,7 +93,6 @@ DB_PASSWORD=your_database_password</code></pre>
                             <pre id="google-drive-config" class="text-green-400 text-sm overflow-x-auto"><code># Google Drive Configuration
 GOOGLE_DRIVE_CLIENT_ID=your_google_client_id
 GOOGLE_DRIVE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_DRIVE_REDIRECT_URI=https://your-domain.com/admin/cloud-storage/google-drive/callback
 CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         </div>
                         

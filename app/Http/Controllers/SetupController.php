@@ -1176,7 +1176,6 @@ class SetupController extends Controller
             // Update Google Drive configuration
             $envContent = $this->updateEnvValue($envContent, 'GOOGLE_DRIVE_CLIENT_ID', $config['client_id']);
             $envContent = $this->updateEnvValue($envContent, 'GOOGLE_DRIVE_CLIENT_SECRET', $config['client_secret']);
-            $envContent = $this->updateEnvValue($envContent, 'GOOGLE_DRIVE_REDIRECT_URI', $config['redirect_uri']);
             $envContent = $this->updateEnvValue($envContent, 'CLOUD_STORAGE_DEFAULT', 'google-drive');
         }
 

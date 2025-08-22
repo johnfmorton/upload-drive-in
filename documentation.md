@@ -708,7 +708,6 @@ DB_PASSWORD=db
 
 GOOGLE_DRIVE_CLIENT_ID=
 GOOGLE_DRIVE_CLIENT_SECRET=
-GOOGLE_DRIVE_REDIRECT_URI=https://upload-drive-in.ddev.site/admin/cloud-storage/google-drive/callback
 CLOUD_STORAGE_DEFAULT=google-drive
 
 QUEUE_CONNECTION=database
@@ -734,7 +733,6 @@ DB_PASSWORD=secure_password
 
 GOOGLE_DRIVE_CLIENT_ID=your_client_id
 GOOGLE_DRIVE_CLIENT_SECRET=your_client_secret
-GOOGLE_DRIVE_REDIRECT_URI=https://yourdomain.com/admin/cloud-storage/google-drive/callback
 CLOUD_STORAGE_DEFAULT=google-drive
 
 # Note: Google Drive root folder is now configured per-user through the dashboard

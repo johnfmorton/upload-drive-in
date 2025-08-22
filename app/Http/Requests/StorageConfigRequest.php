@@ -52,12 +52,7 @@ class StorageConfigRequest extends FormRequest
                     'min:24',
                     'regex:/^[a-zA-Z0-9_\-\/\+]+$/'
                 ],
-                'google_redirect_uri' => [
-                    'nullable',
-                    'string',
-                    'url',
-                    'max:255'
-                ]
+
             ]);
         }
 
@@ -85,8 +80,7 @@ class StorageConfigRequest extends FormRequest
             'google_client_secret.min' => 'Google Drive Client Secret must be at least 24 characters.',
             'google_client_secret.regex' => 'Google Drive Client Secret contains invalid characters.',
             
-            'google_redirect_uri.url' => 'Google Drive Redirect URI must be a valid URL.',
-            'google_redirect_uri.max' => 'Google Drive Redirect URI must not exceed 255 characters.',
+
         ];
     }
 
@@ -101,7 +95,7 @@ class StorageConfigRequest extends FormRequest
             'storage_provider' => 'storage provider',
             'google_client_id' => 'Google Drive Client ID',
             'google_client_secret' => 'Google Drive Client Secret',
-            'google_redirect_uri' => 'Google Drive Redirect URI',
+
         ];
     }
 
@@ -149,7 +143,7 @@ class StorageConfigRequest extends FormRequest
     {
         $clientId = $this->input('google_client_id');
         $clientSecret = $this->input('google_client_secret');
-        $redirectUri = $this->input('google_redirect_uri') ?: route('google-drive.unified-callback');
+        $redirectUri = route('google-drive.unified-callback');
 
         try {
             // Test Google API client initialization
@@ -206,7 +200,7 @@ class StorageConfigRequest extends FormRequest
                 'config' => [
                     'client_id' => $validated['google_client_id'],
                     'client_secret' => $validated['google_client_secret'],
-                    'redirect_uri' => $validated['google_redirect_uri'] ?? route('google-drive.unified-callback'),
+                    'redirect_uri' => route('google-drive.unified-callback'),
                 ]
             ];
         }
@@ -224,7 +218,7 @@ class StorageConfigRequest extends FormRequest
         $this->merge([
             'google_client_id' => trim($this->google_client_id ?? ''),
             'google_client_secret' => trim($this->google_client_secret ?? ''),
-            'google_redirect_uri' => trim($this->google_redirect_uri ?? ''),
+
         ]);
     }
 

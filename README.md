@@ -138,7 +138,6 @@ This application uses Google Drive to store uploaded files. To enable this funct
     ```dotenv
     GOOGLE_DRIVE_CLIENT_ID=YOUR_CLIENT_ID_HERE
     GOOGLE_DRIVE_CLIENT_SECRET=YOUR_CLIENT_SECRET_HERE
-    GOOGLE_DRIVE_REDIRECT_URI=THE_EXACT_REDIRECT_URI_YOU_ENTERED_IN_GOOGLE_CONSOLE
     ```
 
 *   **Note**: Google Drive root folder configuration is now managed per-user through the admin and employee dashboards. You no longer need to set a global root folder ID in your environment variables.
