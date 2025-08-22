@@ -14,7 +14,20 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', \App\Http\Middleware\RequireSetupMiddleware::class])->prefix('setup')->name('setup.')->group(function () {
+Route::middleware(['web'])->prefix('setup')->name('setup.')->group(function () {
+    
+    // Setup instructions route - accessible without authentication
+    Route::get('/instructions', [\App\Http\Controllers\SetupInstructionsController::class, 'show'])->name('instructions');
+    
+    // Simple test route
+    Route::get('/test', function() {
+        return 'Setup routes are working!';
+    })->name('test');
+    
+    // Simple database route without controller
+    Route::get('/database-simple', function() {
+        return view('setup.database');
+    })->name('database.simple');
     
     // Asset build instructions - first step for new installations
     Route::get('/assets', [SetupController::class, 'showAssetBuildInstructions'])->name('assets');

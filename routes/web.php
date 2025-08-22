@@ -7,8 +7,13 @@ use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\StaticPageController;
 use Illuminate\Support\Facades\Route;
 
+// Test route for middleware
+Route::get('/test-middleware', function() {
+    return 'Middleware test - you should not see this if setup is incomplete';
+})->middleware(\App\Http\Middleware\SetupDetectionMiddleware::class);
+
 // Public routes
-Route::get('/', [PublicUploadController::class, 'index'])->name('home');
+Route::get('/', [PublicUploadController::class, 'index'])->name('home')->middleware(\App\Http\Middleware\SetupDetectionMiddleware::class);
 
 // Employee upload page (public access)
 Route::get('/upload/{name}', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'showByName'])->name('upload.employee');
@@ -424,5 +429,32 @@ Route::post('/test-csrf', function (\Illuminate\Http\Request $request) {
         'data' => $request->all()
     ]);
 })->name('test.csrf');
+
+// Temporary admin creation route outside setup middleware
+Route::post('/create-admin-user', function(\Illuminate\Http\Request $request) {
+    // Simple validation
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|string|min:8|confirmed',
+    ]);
+    
+    // Create the admin user
+    $user = \App\Models\User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+        'role' => \App\Enums\UserRole::ADMIN,
+        'email_verified_at' => now(),
+    ]);
+    
+    \Illuminate\Support\Facades\Log::info('Admin user created successfully', [
+        'user_id' => $user->id,
+        'email' => $user->email,
+    ]);
+    
+    // Redirect to next setup step
+    return redirect()->route('setup.storage')->with('success', 'Administrator account created successfully!');
+})->name('create.admin.user');
 
 

@@ -32,7 +32,7 @@
         </div>
 
         <!-- Admin User Creation Form -->
-        <form method="POST" action="{{ route('setup.admin.create') }}" id="admin-form">
+        <form method="POST" action="{{ route('create.admin.user') }}" id="admin-form">
             @csrf
 
             <div class="space-y-6">

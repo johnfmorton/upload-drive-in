@@ -26,68 +26,103 @@ class RequireSetupMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Skip setup checks if bootstrap checks are disabled
-        if (!Config::get('setup.bootstrap_checks', true)) {
-            return $next($request);
-        }
-
-        // Allow setup routes to pass through
-        if ($this->isSetupRoute($request)) {
-            return $next($request);
-        }
-
-        // Allow essential assets and health checks
-        if ($this->isExemptRoute($request)) {
-            return $next($request);
-        }
-
-        // Check for asset requirements first (before database checks)
         try {
-            if (!$this->setupService->areAssetsValid()) {
+            \Log::info('RequireSetupMiddleware: Starting middleware execution', [
+                'path' => $request->path(),
+                'method' => $request->method()
+            ]);
+            
+            // Skip setup checks if bootstrap checks are disabled
+            if (!Config::get('setup.bootstrap_checks', true)) {
+                \Log::info('RequireSetupMiddleware: Bootstrap checks disabled, skipping');
+                return $next($request);
+            }
+
+            // Allow setup routes to pass through
+            if ($this->isSetupRoute($request)) {
+                \Log::info('RequireSetupMiddleware: Setup route detected, allowing through');
+                return $next($request);
+            }
+
+            // Allow essential assets and health checks
+            if ($this->isExemptRoute($request)) {
+                \Log::info('RequireSetupMiddleware: Exempt route detected, allowing through');
+                return $next($request);
+            }
+
+            // Check for asset requirements first (before database checks)
+            try {
+                if (!$this->setupService->areAssetsValid()) {
+                    return $this->handleAssetMissing($request);
+                }
+            } catch (\Exception $e) {
+                // Catch Vite manifest exceptions and other asset-related errors
                 return $this->handleAssetMissing($request);
             }
-        } catch (\Exception $e) {
-            // Catch Vite manifest exceptions and other asset-related errors
-            return $this->handleAssetMissing($request);
-        }
 
-        // Check if setup is required (database and other checks)
-        try {
-            if ($this->setupService->isSetupRequired()) {
-                // Determine the appropriate setup step
-                $setupStep = $this->setupService->getSetupStep();
-                $redirectRoute = $this->getSetupRouteForStep($setupStep);
+            // Check if setup is required (database and other checks)
+            try {
+                \Log::info('RequireSetupMiddleware: Checking if setup is required');
+                if ($this->setupService->isSetupRequired()) {
+                    \Log::info('RequireSetupMiddleware: Setup is required, redirecting');
+                    // Determine the appropriate setup step
+                    $setupStep = $this->setupService->getSetupStep();
+                    
+                    \Log::info('RequireSetupMiddleware: Redirecting to setup step', [
+                        'step' => $setupStep
+                    ]);
+                    
+                    // Handle AJAX requests differently
+                    if ($request->expectsJson() || $request->ajax()) {
+                        return response()->json([
+                            'error' => 'Setup required',
+                            'message' => 'Application setup is required before accessing this resource.',
+                            'redirect' => '/setup/' . $setupStep,
+                            'step' => $setupStep
+                        ], 503);
+                    }
+                    
+                    // Redirect to appropriate setup step
+                    return redirect('/setup/database-simple');
+                }
+            } catch (\Exception $e) {
+                \Log::error('RequireSetupMiddleware: Exception during setup check', [
+                    'exception' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
                 
-                // Handle AJAX requests differently
+                // If setup check fails, assume setup is required
+                // This prevents breaking the application during bootstrap issues
+                $redirectUrl = '/setup/database-simple';
+                
+                \Log::info('RequireSetupMiddleware: Redirecting to setup due to exception', [
+                    'url' => $redirectUrl,
+                    'exception' => $e->getMessage()
+                ]);
+                
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
-                        'error' => 'Setup required',
-                        'message' => 'Application setup is required before accessing this resource.',
-                        'redirect' => route($redirectRoute),
-                        'step' => $setupStep
+                        'error' => 'Setup check failed',
+                        'message' => 'Unable to determine setup status. Please complete setup.',
+                        'redirect' => $redirectUrl
                     ], 503);
                 }
                 
-                // Redirect to appropriate setup step
-                return redirect()->route($redirectRoute);
+                return redirect($redirectUrl);
             }
-        } catch (\Exception $e) {
-            // If setup check fails, assume setup is required
-            // This prevents breaking the application during bootstrap issues
-            $redirectRoute = Config::get('setup.redirect_route', 'setup.welcome');
-            
-            if ($request->expectsJson() || $request->ajax()) {
-                return response()->json([
-                    'error' => 'Setup check failed',
-                    'message' => 'Unable to determine setup status. Please complete setup.',
-                    'redirect' => route($redirectRoute)
-                ], 503);
-            }
-            
-            return redirect()->route($redirectRoute);
-        }
 
-        return $next($request);
+            \Log::info('RequireSetupMiddleware: All checks passed, continuing');
+            return $next($request);
+            
+        } catch (\Exception $e) {
+            \Log::error('RequireSetupMiddleware: Critical exception in middleware', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Last resort - redirect to setup
+            return redirect('/setup/database');
+        }
     }
 
     /**

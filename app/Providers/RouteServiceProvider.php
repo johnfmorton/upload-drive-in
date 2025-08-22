@@ -29,9 +29,15 @@ class RouteServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Add explicit route parameter binding for User
-        Route::bind('user', function ($value) {
-            return \App\Models\User::findOrFail($value);
-        });
+        // Only bind if database is available to prevent setup issues
+        try {
+            Route::bind('user', function ($value) {
+                return \App\Models\User::findOrFail($value);
+            });
+        } catch (\Exception $e) {
+            // Database not available during setup - skip binding
+            \Log::info('RouteServiceProvider: Skipping User route binding due to database unavailability');
+        }
 
         // Configure rate limiting
         $this->configureRateLimiting();

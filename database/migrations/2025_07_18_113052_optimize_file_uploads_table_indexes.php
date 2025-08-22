@@ -32,8 +32,10 @@ return new class extends Migration
             $table->index('company_user_id', 'idx_file_uploads_company_user_id');
             $table->index('uploaded_by_user_id', 'idx_file_uploads_uploaded_by_user_id');
             
-            // Full-text search index for filename and message
-            $table->fullText(['original_filename', 'message'], 'idx_file_uploads_fulltext');
+            // Full-text search index for filename and message (MySQL only)
+            if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+                $table->fullText(['original_filename', 'message'], 'idx_file_uploads_fulltext');
+            }
         });
     }
 
@@ -61,8 +63,10 @@ return new class extends Migration
             $table->dropIndex('idx_file_uploads_company_user_id');
             $table->dropIndex('idx_file_uploads_uploaded_by_user_id');
             
-            // Drop full-text index
-            $table->dropFullText('idx_file_uploads_fulltext');
+            // Drop full-text index (MySQL only)
+            if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+                $table->dropFullText('idx_file_uploads_fulltext');
+            }
         });
     }
 };
