@@ -75,12 +75,100 @@ DB_PASSWORD=your_database_password</code></pre>
                         </div>
                     </div>
 
-                    <!-- Step 2: Google Drive Configuration -->
+                    <!-- Step 2: Mail Configuration -->
                     <div class="mb-10">
                         <div class="flex items-center mb-4">
                             <div
                                 class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
                                 2
+                            </div>
+                            <h2 class="ml-3 text-xl font-semibold text-gray-900">Mail Configuration</h2>
+                        </div>
+
+                        <p class="text-gray-600 mb-4">
+                            Add these mail server settings to your <code class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code>
+                            file. The application requires email functionality to work properly:
+                        </p>
+
+                        <div class="bg-gray-900 rounded-lg p-4 relative">
+                            <button onclick="copyToClipboard('mail-config')"
+                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                Copy
+                            </button>
+                            <pre id="mail-config" class="text-green-400 text-sm overflow-x-auto"><code># Mail Configuration
+MAIL_MAILER=smtp
+MAIL_SCHEME=null
+MAIL_HOST=smtp.example.com
+MAIL_PORT=465
+MAIL_USERNAME=username
+MAIL_PASSWORD=smtppassword
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS=name@example.com</code></pre>
+                        </div>
+
+                        <div class="mt-4 p-4 bg-red-50 border-l-4 border-red-400">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-red-700">
+                                        <strong>Required:</strong> Replace all placeholder values with your actual SMTP server credentials.
+                                        The application cannot function without proper mail configuration as it's used for upload notifications and user verification.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Common Mail Provider Examples -->
+                        <div class="mt-6">
+                            <details class="bg-gray-50 border border-gray-200 rounded-lg">
+                                <summary
+                                    class="cursor-pointer p-4 font-medium text-gray-900 hover:bg-gray-100 transition-colors">
+                                    📧 Common Mail Provider Settings
+                                </summary>
+                                <div class="p-4 pt-0 border-t border-gray-200">
+                                    <div class="space-y-4 text-sm">
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900 mb-2">Gmail</h4>
+                                            <div class="bg-gray-100 p-3 rounded font-mono text-xs">
+                                                MAIL_HOST=smtp.gmail.com<br>
+                                                MAIL_PORT=587<br>
+                                                MAIL_ENCRYPTION=tls
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900 mb-2">Outlook/Hotmail</h4>
+                                            <div class="bg-gray-100 p-3 rounded font-mono text-xs">
+                                                MAIL_HOST=smtp-mail.outlook.com<br>
+                                                MAIL_PORT=587<br>
+                                                MAIL_ENCRYPTION=tls
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900 mb-2">Yahoo</h4>
+                                            <div class="bg-gray-100 p-3 rounded font-mono text-xs">
+                                                MAIL_HOST=smtp.mail.yahoo.com<br>
+                                                MAIL_PORT=587<br>
+                                                MAIL_ENCRYPTION=tls
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Google Drive Configuration -->
+                    <div class="mb-10">
+                        <div class="flex items-center mb-4">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                                3
                             </div>
                             <h2 class="ml-3 text-xl font-semibold text-gray-900">Google Drive Configuration</h2>
                         </div>
@@ -174,12 +262,12 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         </div>
                     </div>
 
-                    <!-- Step 3: Run Migrations -->
+                    <!-- Step 4: Run Migrations -->
                     <div class="mb-10">
                         <div class="flex items-center mb-4">
                             <div
                                 class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                                3
+                                4
                             </div>
                             <h2 class="ml-3 text-xl font-semibold text-gray-900">Run Database Migrations</h2>
                         </div>
@@ -197,12 +285,12 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         </div>
                     </div>
 
-                    <!-- Step 4: Create Admin User -->
+                    <!-- Step 5: Create Admin User -->
                     <div class="mb-10">
                         <div class="flex items-center mb-4">
                             <div
                                 class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                                4
+                                5
                             </div>
                             <h2 class="ml-3 text-xl font-semibold text-gray-900">Create Admin User</h2>
                         </div>
