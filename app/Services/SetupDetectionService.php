@@ -25,6 +25,7 @@ class SetupDetectionService
     public function isSetupComplete(): bool
     {
         return $this->getDatabaseStatus() 
+            && $this->getMailStatus()
             && $this->getGoogleDriveStatus() 
             && $this->getAdminUserStatus();
     }
@@ -52,6 +53,40 @@ class SetupDetectionService
         } catch (Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * Check if mail server configuration is properly set up.
+     * 
+     * @return bool True if mail is configured
+     */
+    public function getMailStatus(): bool
+    {
+        $mailer = env('MAIL_MAILER');
+        $host = env('MAIL_HOST');
+        $port = env('MAIL_PORT');
+        $username = env('MAIL_USERNAME');
+        $password = env('MAIL_PASSWORD');
+        $fromAddress = env('MAIL_FROM_ADDRESS');
+
+        // Basic required fields
+        if (empty($mailer) || empty($host) || empty($port) || empty($fromAddress)) {
+            return false;
+        }
+
+        // Validate email format
+        if (!filter_var($fromAddress, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        // Environment-aware validation for username/password
+        if ($this->isLocalDevelopmentMailSetup($host, $port)) {
+            // In local development (Mailpit, etc.), username/password can be null
+            return true;
+        }
+
+        // For production/non-local setups, require username and password
+        return !empty($username) && !empty($password);
     }
 
     /**
@@ -96,6 +131,10 @@ class SetupDetectionService
             $missing[] = 'Database connection not configured or not accessible';
         }
 
+        if (!$this->getMailStatus()) {
+            $missing[] = 'Mail server configuration not properly set up';
+        }
+
         if (!$this->getGoogleDriveStatus()) {
             $missing[] = 'Google Drive credentials not configured';
         }
@@ -120,5 +159,30 @@ class SetupDetectionService
         $username = env('DB_USERNAME');
 
         return !empty($connection) && !empty($host) && !empty($database) && !empty($username);
+    }
+
+    /**
+     * Determine if this is a local development mail setup that doesn't require authentication.
+     * 
+     * @param string|null $host
+     * @param string|null $port
+     * @return bool True if this appears to be a local development setup
+     */
+    private function isLocalDevelopmentMailSetup(?string $host, ?string $port): bool
+    {
+        if (empty($host) || empty($port)) {
+            return false;
+        }
+
+        // Check if we're in local environment
+        $isLocalEnv = app()->environment('local') || env('APP_ENV') === 'local';
+        
+        // Check for common local development mail configurations
+        $isLocalHost = in_array($host, ['127.0.0.1', 'localhost', 'mailpit', 'mailhog']);
+        
+        // Mailpit default port is 1025, MailHog uses 1025, some use 8025
+        $isLocalPort = in_array($port, ['1025', '8025']);
+        
+        return $isLocalEnv && $isLocalHost && $isLocalPort;
     }
 }
