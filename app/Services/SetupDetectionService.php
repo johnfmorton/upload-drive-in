@@ -201,12 +201,23 @@ class SetupDetectionService
             } elseif ($recentJobs > 0 && $recentFailedJobs === 0) {
                 $status = 'working';
                 $message = 'Queue worker is processing jobs successfully';
-            } elseif ($recentJobs === 0 && $totalFailedJobs === 0) {
+            } elseif ($recentJobs === 0 && $recentFailedJobs === 0) {
+                // No recent activity and no recent failures - healthy idle state
                 $status = 'idle';
                 $message = 'Queue worker is idle - no recent activity';
-            } else {
+            } elseif ($recentFailedJobs > 5) {
+                // Significant number of recent failures
                 $status = 'needs_attention';
-                $message = 'Queue worker may need attention';
+                $message = 'Queue worker may need attention - multiple recent failures detected';
+            } elseif ($recentFailedJobs > 0 && $recentFailedJobs <= 5 && $stalledJobs === 0) {
+                // Some recent failures but not excessive and no stalled jobs
+                // This suggests the worker might be functional now, just had some issues
+                $status = 'idle';
+                $message = 'Queue worker is idle - use test button to verify functionality';
+            } else {
+                // Fallback for other scenarios
+                $status = 'idle';
+                $message = 'Queue worker appears idle';
             }
 
             return [
@@ -243,85 +254,170 @@ class SetupDetectionService
         // Database status
         try {
             $dbStatus = $this->getDatabaseStatus();
-            $statuses['database'] = [
-                'status' => $dbStatus ? 'completed' : 'incomplete',
-                'message' => $dbStatus ? 'Database connection is working' : 'Database connection not configured or not accessible',
-                'checked_at' => Carbon::now()->toISOString()
-            ];
+            if ($dbStatus) {
+                $connectionName = config('database.default');
+                $driver = config("database.connections.{$connectionName}.driver");
+                $statuses['database'] = [
+                    'status' => 'completed',
+                    'message' => 'Database connection is working',
+                    'details' => [
+                        'connection_name' => $connectionName,
+                        'driver' => $driver,
+                        'checked_at' => Carbon::now()->toISOString()
+                    ]
+                ];
+            } else {
+                $statuses['database'] = [
+                    'status' => 'cannot_verify',
+                    'message' => 'Database connection not configured or not accessible',
+                    'details' => [
+                        'checked_at' => Carbon::now()->toISOString()
+                    ]
+                ];
+            }
         } catch (Exception $e) {
             $statuses['database'] = [
-                'status' => 'error',
+                'status' => 'cannot_verify',
                 'message' => 'Error checking database status',
-                'details' => ['error' => $e->getMessage()],
-                'checked_at' => Carbon::now()->toISOString()
+                'details' => [
+                    'error' => $e->getMessage(),
+                    'checked_at' => Carbon::now()->toISOString()
+                ]
             ];
         }
 
         // Mail status
         try {
             $mailStatus = $this->getMailStatus();
-            $statuses['mail'] = [
-                'status' => $mailStatus ? 'completed' : 'incomplete',
-                'message' => $mailStatus ? 'Mail configuration is valid' : 'Mail server configuration not properly set up',
-                'checked_at' => Carbon::now()->toISOString()
-            ];
+            $driver = env('MAIL_MAILER', 'not_set');
+            if ($mailStatus) {
+                $statuses['mail'] = [
+                    'status' => 'completed',
+                    'message' => 'Mail configuration is valid',
+                    'details' => [
+                        'driver' => $driver,
+                        'checked_at' => Carbon::now()->toISOString()
+                    ]
+                ];
+            } else {
+                $statuses['mail'] = [
+                    'status' => 'incomplete',
+                    'message' => 'Mail server configuration not properly set up',
+                    'details' => [
+                        'driver' => $driver,
+                        'checked_at' => Carbon::now()->toISOString()
+                    ]
+                ];
+            }
         } catch (Exception $e) {
             $statuses['mail'] = [
-                'status' => 'error',
+                'status' => 'cannot_verify',
                 'message' => 'Error checking mail status',
-                'details' => ['error' => $e->getMessage()],
-                'checked_at' => Carbon::now()->toISOString()
+                'details' => [
+                    'error' => $e->getMessage(),
+                    'checked_at' => Carbon::now()->toISOString()
+                ]
             ];
         }
 
         // Google Drive status
         try {
             $driveStatus = $this->getGoogleDriveStatus();
-            $statuses['google_drive'] = [
-                'status' => $driveStatus ? 'completed' : 'incomplete',
-                'message' => $driveStatus ? 'Google Drive credentials are configured' : 'Google Drive credentials not configured',
-                'checked_at' => Carbon::now()->toISOString()
-            ];
+            $clientId = env('GOOGLE_DRIVE_CLIENT_ID');
+            $hasClientId = !empty($clientId);
+            $hasClientSecret = !empty(env('GOOGLE_DRIVE_CLIENT_SECRET'));
+            
+            if ($driveStatus) {
+                $statuses['google_drive'] = [
+                    'status' => 'completed',
+                    'message' => 'Google Drive credentials are configured',
+                    'details' => [
+                        'client_id' => $hasClientId ? 'Configured' : 'Missing',
+                        'client_secret' => $hasClientSecret ? 'Configured' : 'Missing',
+                        'checked_at' => Carbon::now()->toISOString()
+                    ]
+                ];
+            } else {
+                $statuses['google_drive'] = [
+                    'status' => 'incomplete',
+                    'message' => 'Google Drive credentials not configured',
+                    'details' => [
+                        'client_id' => $hasClientId ? 'Configured' : 'Missing',
+                        'client_secret' => $hasClientSecret ? 'Configured' : 'Missing',
+                        'checked_at' => Carbon::now()->toISOString()
+                    ]
+                ];
+            }
         } catch (Exception $e) {
             $statuses['google_drive'] = [
-                'status' => 'error',
+                'status' => 'cannot_verify',
                 'message' => 'Error checking Google Drive status',
-                'details' => ['error' => $e->getMessage()],
-                'checked_at' => Carbon::now()->toISOString()
+                'details' => [
+                    'error' => $e->getMessage(),
+                    'checked_at' => Carbon::now()->toISOString()
+                ]
             ];
         }
 
         // Migration status
         try {
             $migrationStatus = $this->getMigrationStatus();
-            $statuses['migrations'] = [
-                'status' => $migrationStatus ? 'completed' : 'incomplete',
-                'message' => $migrationStatus ? 'Database migrations have been run' : 'Database migrations need to be run',
-                'checked_at' => Carbon::now()->toISOString()
-            ];
+            if ($migrationStatus) {
+                $statuses['migrations'] = [
+                    'status' => 'completed',
+                    'message' => 'Database migrations have been run',
+                    'details' => [
+                        'checked_at' => Carbon::now()->toISOString()
+                    ]
+                ];
+            } else {
+                $statuses['migrations'] = [
+                    'status' => 'incomplete',
+                    'message' => 'Database migrations need to be run',
+                    'details' => [
+                        'checked_at' => Carbon::now()->toISOString()
+                    ]
+                ];
+            }
         } catch (Exception $e) {
             $statuses['migrations'] = [
-                'status' => 'error',
+                'status' => 'cannot_verify',
                 'message' => 'Error checking migration status',
-                'details' => ['error' => $e->getMessage()],
-                'checked_at' => Carbon::now()->toISOString()
+                'details' => [
+                    'error' => $e->getMessage(),
+                    'checked_at' => Carbon::now()->toISOString()
+                ]
             ];
         }
 
         // Admin user status
         try {
             $adminStatus = $this->getAdminUserStatus();
-            $statuses['admin_user'] = [
-                'status' => $adminStatus ? 'completed' : 'incomplete',
-                'message' => $adminStatus ? 'Admin user exists in the system' : 'No admin user found in the system',
-                'checked_at' => Carbon::now()->toISOString()
-            ];
+            if ($adminStatus) {
+                $statuses['admin_user'] = [
+                    'status' => 'completed',
+                    'message' => 'Admin user exists in the system',
+                    'details' => [
+                        'checked_at' => Carbon::now()->toISOString()
+                    ]
+                ];
+            } else {
+                $statuses['admin_user'] = [
+                    'status' => 'incomplete',
+                    'message' => 'No admin user found in the system',
+                    'details' => [
+                        'checked_at' => Carbon::now()->toISOString()
+                    ]
+                ];
+            }
         } catch (Exception $e) {
             $statuses['admin_user'] = [
-                'status' => 'error',
+                'status' => 'cannot_verify',
                 'message' => 'Error checking admin user status',
-                'details' => ['error' => $e->getMessage()],
-                'checked_at' => Carbon::now()->toISOString()
+                'details' => [
+                    'error' => $e->getMessage(),
+                    'checked_at' => Carbon::now()->toISOString()
+                ]
             ];
         }
 

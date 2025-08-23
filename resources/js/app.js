@@ -7,6 +7,9 @@ import "./file-manager-debug";
 // Import Setup Wizard functionality
 import "./setup-wizard";
 
+// Import Admin Queue Testing functionality
+import "./admin-queue-testing";
+
 // Import Dropzone CSS
 import "dropzone/dist/dropzone.css";
 

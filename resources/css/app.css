@@ -2,6 +2,7 @@
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 @import './file-manager.css';
+@import './admin-queue-testing.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -106,4 +107,34 @@ input[type='file']:focus::file-selector-button {
   height: 12px;
   /* background-color: #0964b0; */
   fill: #0964b0;
+}
+
+/* Setup Status Details */
+.step-status-details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  margin-top: 0;
+}
+
+.step-status-details.show {
+  max-height: 500px;
+  margin-top: 0.75rem;
+  transition: max-height 0.3s ease-in;
+}
+
+.step-status-details code {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.875rem;
+}
+
+.step-status-details ul {
+  list-style-type: disc;
+}
+
+.step-status-details li {
+  margin-bottom: 0.25rem;
 }

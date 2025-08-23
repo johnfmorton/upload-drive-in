@@ -69,6 +69,135 @@
             <!-- Google Drive Connection -->
             <x-dashboard.google-drive-connection :user="Auth::user()" :is-admin="true" />
 
+            <!-- Queue Worker Testing Section -->
+            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-lg font-medium text-gray-900">
+                            Queue Worker Status
+                        </h2>
+                        <p class="mt-1 text-sm text-gray-600">
+                            Test and monitor your background job processing system to ensure files are uploaded properly.
+                        </p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button id="test-queue-btn" 
+                                type="button"
+                                class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            <span id="test-queue-btn-text">Test Queue Worker</span>
+                        </button>
+                        <button id="refresh-queue-health-btn" 
+                                type="button"
+                                class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh Status
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Queue Health Overview -->
+                <div id="queue-health-overview" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-500">Queue Status</div>
+                                <div id="queue-status" class="text-2xl font-bold text-gray-900">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-500">Recent Jobs</div>
+                                <div id="recent-jobs-count" class="text-2xl font-bold text-gray-900">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-500">Failed Jobs</div>
+                                <div id="failed-jobs-count" class="text-2xl font-bold text-gray-900">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Results Section -->
+                <div id="test-results-section" class="hidden">
+                    <div class="border-t border-gray-200 pt-6">
+                        <h3 class="text-md font-medium text-gray-900 mb-4">Test Results</h3>
+                        
+                        <!-- Current Test Progress -->
+                        <div id="current-test-progress" class="hidden mb-4">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <svg class="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3 flex-1">
+                                        <div class="text-sm font-medium text-blue-900">
+                                            Testing queue worker...
+                                        </div>
+                                        <div class="text-sm text-blue-700">
+                                            <span id="test-progress-message">Dispatching test job</span>
+                                            <span id="test-elapsed-time" class="ml-2 font-mono"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Test Results Display -->
+                        <div id="test-results-display" class="space-y-3">
+                            <!-- Test results will be dynamically inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Historical Test Results -->
+                <div id="historical-results-section" class="hidden">
+                    <div class="border-t border-gray-200 pt-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-md font-medium text-gray-900">Recent Test History</h3>
+                            <button id="clear-test-history-btn" 
+                                    type="button"
+                                    class="text-sm text-gray-500 hover:text-gray-700">
+                                Clear History
+                            </button>
+                        </div>
+                        <div id="historical-results-list" class="space-y-2">
+                            <!-- Historical results will be dynamically inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- File Management Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">

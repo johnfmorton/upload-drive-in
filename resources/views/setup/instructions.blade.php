@@ -12,7 +12,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     <!-- Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/setup-status.js'])
 
     <!-- Status Indicator Styles -->
     <style>
@@ -103,6 +103,7 @@
                         <span id="refresh-btn-text">Check Status</span>
                         <div id="refresh-spinner" class="loading-spinner hidden ml-2"></div>
                     </button>
+                  
                     <div id="last-checked" class="text-sm text-gray-500 hidden">
                         Last checked: <span id="last-checked-time">Never</span>
                     </div>
@@ -125,18 +126,12 @@
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-database">
-                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
                                     <span id="status-database-text">Checking...</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
                                     onclick="toggleStatusDetails('database')" title="Show details">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
                         </div>
@@ -169,11 +164,7 @@ DB_PASSWORD=your_database_password</code></pre>
                         <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400">
                             <div class="flex">
                                 <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                    <span class="h-5 w-5 text-lg">ℹ️</span>
                                 </div>
                                 <div class="ml-3">
                                     <p class="text-sm text-blue-700">
@@ -197,18 +188,12 @@ DB_PASSWORD=your_database_password</code></pre>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-mail">
-                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
                                     <span id="status-mail-text">Checking...</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600" onclick="toggleStatusDetails('mail')"
                                     title="Show details">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
                         </div>
@@ -244,11 +229,7 @@ MAIL_FROM_ADDRESS=name@example.com</code></pre>
                         <div class="mt-4 p-4 bg-red-50 border-l-4 border-red-400">
                             <div class="flex">
                                 <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                            clip-rule="evenodd" />
-                                    </svg>
+                                    <span class="h-5 w-5 text-lg">🚨</span>
                                 </div>
                                 <div class="ml-3">
                                     <p class="text-sm text-red-700">
@@ -333,19 +314,12 @@ MAIL_FROM_ADDRESS=name@example.com</code></pre>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-google_drive">
-                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
                                     <span id="status-google_drive-text">Checking...</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
                                     onclick="toggleStatusDetails('google_drive')" title="Show details">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
                         </div>
@@ -457,19 +431,12 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-migrations">
-                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
                                     <span id="status-migrations-text">Checking...</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
                                     onclick="toggleStatusDetails('migrations')" title="Show details">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
                         </div>
@@ -505,19 +472,12 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-admin_user">
-                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
                                     <span id="status-admin_user-text">Checking...</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
                                     onclick="toggleStatusDetails('admin_user')" title="Show details">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
                         </div>
@@ -572,19 +532,12 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-queue_worker">
-                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24"
-                                        stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
                                     <span id="status-queue_worker-text">Checking...</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
                                     onclick="toggleStatusDetails('queue_worker')" title="Show details">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+                                    <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
                         </div>
@@ -599,6 +552,30 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                             The application uses background jobs for file uploads to Google Drive. You need to set up a
                             queue worker to process these jobs.
                         </p>
+
+                        <!-- Queue Worker Test Section -->
+                        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-md font-medium text-blue-900">Test Queue Worker</h3>
+                                <button id="test-queue-worker-btn" 
+                                        class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <span id="test-queue-worker-btn-text">Test Queue Worker</span>
+                </button>
+            </div>
+            <p class="text-sm text-blue-700 mb-3">
+                Click the button above to test if your queue worker is running and processing jobs correctly.
+            </p>
+            
+            <!-- Test Results -->
+            <div id="queue-test-results" class="hidden">
+                <div class="mt-3 p-3 bg-white border border-blue-200 rounded">
+                    <div id="queue-test-status" class="text-sm"></div>
+                </div>
+            </div>
+        </div>
 
                         <div class="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400">
                             <div class="flex">
@@ -854,6 +831,9 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
     </div>
 
     <script>
+        /**
+         * Copy text to clipboard functionality
+         */
         function copyToClipboard(elementId) {
             const element = document.getElementById(elementId);
             const text = element.textContent;
@@ -873,190 +853,32 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                 }, 2000);
             }).catch(function(err) {
                 console.error('Could not copy text: ', err);
+                // Fallback for older browsers
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    const button = element.parentElement.querySelector('button');
+                    const originalText = button.textContent;
+                    button.textContent = 'Copied!';
+                    button.classList.add('bg-green-600');
+                    button.classList.remove('bg-gray-700');
+
+                    setTimeout(function() {
+                        button.textContent = originalText;
+                        button.classList.remove('bg-green-600');
+                        button.classList.add('bg-gray-700');
+                    }, 2000);
+                } catch (fallbackErr) {
+                    console.error('Fallback copy failed: ', fallbackErr);
+                    alert('Copy failed. Please select and copy the text manually.');
+                }
             });
         }
-
-        // Status checking functionality
-        const statusSteps = ['database', 'mail', 'google_drive', 'migrations', 'admin_user', 'queue_worker'];
-
-        function toggleStatusDetails(stepName) {
-            const details = document.getElementById(`details-${stepName}`);
-            if (details) {
-                details.classList.toggle('show');
-            }
-        }
-
-        function updateStatusIndicator(stepName, status, message, details = null) {
-            console.log('Updating status for:', stepName, 'to:', status);
-            const indicatorId = `status-${stepName}`;
-            const textId = `status-${stepName}-text`;
-            console.log('Looking for elements:', indicatorId, textId);
-
-            const indicator = document.getElementById(indicatorId);
-            const text = document.getElementById(textId);
-            const detailsText = document.getElementById(`details-${stepName}-text`);
-
-            console.log('Found elements:', !!indicator, !!text);
-            if (!indicator || !text) {
-                console.error('Could not find elements for step:', stepName);
-                return;
-            }
-
-            // Remove all status classes
-            indicator.classList.remove('status-completed', 'status-incomplete', 'status-error', 'status-checking',
-                'status-cannot-verify', 'status-needs_attention');
-
-            // Add new status class
-            indicator.classList.add(`status-${status}`);
-
-            // Update text
-            text.textContent = message;
-
-            // Update icon based on status
-            const icon = indicator.querySelector('svg');
-            if (icon) {
-                switch (status) {
-                    case 'completed':
-                        icon.innerHTML =
-                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
-                        break;
-                    case 'incomplete':
-                    case 'error':
-                        icon.innerHTML =
-                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />';
-                        break;
-                    case 'cannot-verify':
-                        icon.innerHTML =
-                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
-                        break;
-                    case 'needs_attention':
-                        icon.innerHTML =
-                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />';
-                        break;
-                    default: // checking
-                        icon.innerHTML =
-                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />';
-                }
-            }
-
-            // Update details if provided
-            if (detailsText && details) {
-                detailsText.textContent = details;
-            }
-        }
-
-        function setLoadingState(isLoading) {
-            const button = document.getElementById('refresh-status-btn');
-            const buttonText = document.getElementById('refresh-btn-text');
-            const spinner = document.getElementById('refresh-spinner');
-
-            if (isLoading) {
-                button.disabled = true;
-                buttonText.textContent = 'Checking...';
-                spinner.classList.remove('hidden');
-
-                // Set all steps to checking state
-                statusSteps.forEach(step => {
-                    updateStatusIndicator(step, 'checking', 'Checking...');
-                });
-            } else {
-                button.disabled = false;
-                buttonText.textContent = 'Check Status';
-                spinner.classList.add('hidden');
-            }
-        }
-
-        function updateLastChecked() {
-            const lastChecked = document.getElementById('last-checked');
-            const lastCheckedTime = document.getElementById('last-checked-time');
-
-            if (lastChecked && lastCheckedTime) {
-                const now = new Date();
-                lastCheckedTime.textContent = now.toLocaleTimeString();
-                lastChecked.classList.remove('hidden');
-            }
-        }
-
-        async function refreshAllStatuses() {
-            setLoadingState(true);
-
-            try {
-                const response = await fetch('/setup/status/refresh', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute(
-                            'content') || ''
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('Received data:', data);
-
-                // Update each step status
-                statusSteps.forEach(step => {
-                    console.log('Processing step:', step);
-                    if (data.data && data.data.statuses && data.data.statuses[step]) {
-                        const stepData = data.data.statuses[step];
-                        console.log('Step data for', step, ':', stepData);
-                        updateStatusIndicator(
-                            step,
-                            stepData.status,
-                            stepData.message,
-                            stepData.details || stepData.message
-                        );
-                    } else {
-                        console.error('No data found for step:', step, 'Available steps:', Object.keys(data.data
-                            ?.statuses || {}));
-                    }
-                });
-
-                updateLastChecked();
-
-            } catch (error) {
-                console.error('Error refreshing status:', error);
-                console.error('Error details:', error.message, error.stack);
-
-                // Show error state for all steps
-                statusSteps.forEach(step => {
-                    updateStatusIndicator(
-                        step,
-                        'error',
-                        'Check Failed',
-                        'Unable to check status. Please try again or check manually.'
-                    );
-                });
-
-                // Show error message
-                alert('Failed to check status: ' + error.message);
-            } finally {
-                setLoadingState(false);
-            }
-        }
-
-        // Event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add CSRF token meta tag if not present
-            if (!document.querySelector('meta[name="csrf-token"]')) {
-                const meta = document.createElement('meta');
-                meta.name = 'csrf-token';
-                meta.content = '{{ csrf_token() }}';
-                document.head.appendChild(meta);
-            }
-
-            // Bind refresh button
-            const refreshButton = document.getElementById('refresh-status-btn');
-            if (refreshButton) {
-                refreshButton.addEventListener('click', refreshAllStatuses);
-            }
-
-            // Auto-check status on page load
-            setTimeout(refreshAllStatuses, 1000);
-        });
     </script>
 </body>
 

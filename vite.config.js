@@ -8,7 +8,7 @@ dotenv.config(); // Load .env file
 export default defineConfig({
   plugins: [
     laravel({
-      input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/database-config.js', 'resources/js/admin-user-creation.js', 'resources/js/setup-progress.js'],
+      input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/database-config.js', 'resources/js/admin-user-creation.js', 'resources/js/setup-progress.js', 'resources/js/setup-status.js'],
       refresh: true,
     }),
     tailwindcss(),
