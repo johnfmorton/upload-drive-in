@@ -86,7 +86,8 @@ DB_PASSWORD=your_database_password</code></pre>
                         </div>
 
                         <p class="text-gray-600 mb-4">
-                            Add these mail server settings to your <code class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code>
+                            Add these mail server settings to your <code
+                                class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code>
                             file. The application requires email functionality to work properly:
                         </p>
 
@@ -117,8 +118,10 @@ MAIL_FROM_ADDRESS=name@example.com</code></pre>
                                 </div>
                                 <div class="ml-3">
                                     <p class="text-sm text-red-700">
-                                        <strong>Required:</strong> Replace all placeholder values with your actual SMTP server credentials.
-                                        The application cannot function without proper mail configuration as it's used for upload notifications and user verification.
+                                        <strong>Required:</strong> Replace all placeholder values with your actual SMTP
+                                        server credentials.
+                                        The application cannot function without proper mail configuration as it's used
+                                        for upload notifications and user verification.
                                     </p>
                                 </div>
                             </div>
@@ -135,8 +138,10 @@ MAIL_FROM_ADDRESS=name@example.com</code></pre>
                                 </div>
                                 <div class="ml-3">
                                     <p class="text-sm text-blue-700">
-                                        <strong>Local Development:</strong> For local development environments using tools like Mailpit or MailHog 
-                                        (host: 127.0.0.1 or localhost, port: 1025), username and password can be set to null. 
+                                        <strong>Local Development:</strong> For local development environments using
+                                        tools like Mailpit or MailHog
+                                        (host: 127.0.0.1 or localhost, port: 1025), username and password can be set to
+                                        null.
                                         Production environments require valid SMTP credentials.
                                     </p>
                                 </div>
@@ -357,15 +362,38 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         </div>
 
                         <p class="text-gray-600 mb-4">
-                            The application uses background jobs for file uploads to Google Drive. You need to set up a queue worker to process these jobs.
+                            The application uses background jobs for file uploads to Google Drive. You need to set up a
+                            queue worker to process these jobs.
                         </p>
+
+                        <div class="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-blue-700">
+                                        <strong>Path Configuration:</strong> The examples below use common default
+                                        paths.
+                                        Adjust the paths (<code>/var/www/html</code>, <code>/home/forge/default</code>)
+                                        to match your actual application directory.
+                                        For Laravel Forge, use the specific PHP version (e.g., <code>php8.3</code>,
+                                        <code>php8.4</code>) instead of just <code>php</code>.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="bg-gray-900 rounded-lg p-4 relative">
                             <button onclick="copyToClipboard('worker-command')"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Copy
                             </button>
-                            <pre id="worker-command" class="text-green-400 text-sm overflow-x-auto"><code>php artisan {{ base_path() }}/artisan queue:work</code></pre>
+                            <pre id="worker-command" class="text-green-400 text-sm overflow-x-auto"><code>php artisan queue:work</code></pre>
                         </div>
 
                         <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400">
@@ -379,7 +407,10 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                 </div>
                                 <div class="ml-3">
                                     <p class="text-sm text-amber-700">
-                                        <strong>Production Setup:</strong> For production environments, you should set up the queue worker as a daemon using a process manager like Supervisor, systemd, or your hosting provider's process management tools. The worker should restart automatically if it stops.
+                                        <strong>Production Setup:</strong> For production environments, you should set
+                                        up the queue worker as a daemon using a process manager like Supervisor,
+                                        systemd, or your hosting provider's process management tools. The worker should
+                                        restart automatically if it stops.
                                     </p>
                                 </div>
                             </div>
@@ -397,54 +428,69 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                         <!-- Supervisor Example -->
                                         <div>
                                             <h4 class="font-semibold text-gray-900 mb-2">Supervisor Configuration</h4>
-                                            <p class="text-gray-600 mb-2">Create a file like <code>/etc/supervisor/conf.d/laravel-worker.conf</code>:</p>
+                                            <p class="text-gray-600 mb-2">Create a file like
+                                                <code>/etc/supervisor/conf.d/laravel-worker.conf</code>:</p>
                                             <div class="bg-gray-100 p-3 rounded font-mono text-xs overflow-x-auto">
-[program:laravel-worker]<br>
-process_name=%(program_name)s_%(process_num)02d<br>
-command={{ base_path() }}/artisan queue:work --sleep=3 --tries=3 --max-time=3600<br>
-autostart=true<br>
-autorestart=true<br>
-stopasgroup=true<br>
-killasgroup=true<br>
-user=www-data<br>
-numprocs=1<br>
-redirect_stderr=true<br>
-stdout_logfile={{ base_path() }}/storage/logs/worker.log<br>
-stopwaitsecs=3600
+                                                [program:laravel-worker]<br>
+                                                process_name=%(program_name)s_%(process_num)02d<br>
+                                                command=php /var/www/html/artisan queue:work --sleep=3 --tries=3
+                                                --max-time=3600<br>
+                                                autostart=true<br>
+                                                autorestart=true<br>
+                                                stopasgroup=true<br>
+                                                killasgroup=true<br>
+                                                user=www-data<br>
+                                                numprocs=1<br>
+                                                redirect_stderr=true<br>
+                                                stdout_logfile=/var/www/html/storage/logs/worker.log<br>
+                                                stopwaitsecs=3600
                                             </div>
-                                            <p class="text-gray-600 mt-2 text-xs">Then run: <code>sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl start laravel-worker:*</code></p>
+                                            <p class="text-gray-600 mt-2 text-xs">Then run: <code>sudo supervisorctl
+                                                    reread && sudo supervisorctl update && sudo supervisorctl start
+                                                    laravel-worker:*</code></p>
                                         </div>
 
                                         <!-- Systemd Example -->
                                         <div>
                                             <h4 class="font-semibold text-gray-900 mb-2">Systemd Service</h4>
-                                            <p class="text-gray-600 mb-2">Create a file like <code>/etc/systemd/system/laravel-worker.service</code>:</p>
+                                            <p class="text-gray-600 mb-2">Create a file like
+                                                <code>/etc/systemd/system/laravel-worker.service</code>:</p>
                                             <div class="bg-gray-100 p-3 rounded font-mono text-xs overflow-x-auto">
-[Unit]<br>
-Description=Laravel Queue Worker<br>
-After=network.target<br>
-<br>
-[Service]<br>
-User=www-data<br>
-Group=www-data<br>
-Restart=always<br>
-ExecStart={{ base_path() }}/artisan queue:work --sleep=3 --tries=3 --max-time=3600<br>
-WorkingDirectory={{ base_path() }}<br>
-<br>
-[Install]<br>
-WantedBy=multi-user.target
+                                                [Unit]<br>
+                                                Description=Laravel Queue Worker<br>
+                                                After=network.target<br>
+                                                <br>
+                                                [Service]<br>
+                                                User=www-data<br>
+                                                Group=www-data<br>
+                                                Restart=always<br>
+                                                ExecStart=php /var/www/html/artisan queue:work --sleep=3 --tries=3
+                                                --max-time=3600<br>
+                                                WorkingDirectory=/var/www/html<br>
+                                                <br>
+                                                [Install]<br>
+                                                WantedBy=multi-user.target
                                             </div>
-                                            <p class="text-gray-600 mt-2 text-xs">Then run: <code>sudo systemctl enable laravel-worker && sudo systemctl start laravel-worker</code></p>
+                                            <p class="text-gray-600 mt-2 text-xs">Then run: <code>sudo systemctl enable
+                                                    laravel-worker && sudo systemctl start laravel-worker</code></p>
                                         </div>
 
                                         <!-- Laravel Forge Example -->
                                         <div>
                                             <h4 class="font-semibold text-gray-900 mb-2">Laravel Forge</h4>
-                                            <p class="text-gray-600 mb-2">In your Forge dashboard, go to your site → Daemons and add:</p>
+                                            <p class="text-gray-600 mb-2">In your Forge dashboard, go to your server →
+                                                Daemons and add:</p>
                                             <div class="bg-gray-100 p-3 rounded font-mono text-xs">
-                                                <strong>Command:</strong> {{ base_path() }}/artisan queue:work --sleep=3 --tries=3 --max-time=3600<br>
+                                                <strong>Command:</strong> php8.3 artisan queue:work --sleep=3 --tries=3
+                                                --max-time=3600<br>
                                                 <strong>User:</strong> forge<br>
-                                                <strong>Directory:</strong> {{ base_path() }}
+                                                <strong>Directory:</strong> /home/forge/default
+                                            </div>
+                                            <div class="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
+                                                <strong>Note:</strong> Replace <code>php8.3</code> with your server's
+                                                PHP version (e.g., <code>php8.4</code>, <code>php8.2</code>).
+                                                Laravel Forge requires the specific PHP version in the command rather
+                                                than just <code>php</code>.
                                             </div>
                                         </div>
                                     </div>
@@ -463,7 +509,9 @@ WantedBy=multi-user.target
                                 </div>
                                 <div class="ml-3">
                                     <p class="text-sm text-blue-700">
-                                        <strong>Testing:</strong> For testing purposes, you can run the worker manually with the command above. However, for production use, always set up a proper daemon process that will restart automatically if it fails.
+                                        <strong>Testing:</strong> For testing purposes, you can run the worker manually
+                                        with the command above. However, for production use, always set up a proper
+                                        daemon process that will restart automatically if it fails.
                                     </p>
                                 </div>
                             </div>
