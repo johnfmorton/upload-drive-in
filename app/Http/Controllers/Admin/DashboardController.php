@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\FileUpload;
+use App\Services\QueueTestService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
@@ -115,6 +118,132 @@ class DashboardController extends AdminController
             Log::error('Failed to process pending uploads', ['error' => $e->getMessage()]);
             return redirect()->route('admin.dashboard')
                 ->with('error', 'Failed to process pending uploads: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Dispatch a test job to verify queue worker functionality.
+     * 
+     * @param Request $request
+     * @param QueueTestService $queueTestService
+     * @return JsonResponse
+     */
+    public function testQueue(Request $request, QueueTestService $queueTestService): JsonResponse
+    {
+        // Validate optional delay parameter (let validation exceptions bubble up)
+        $request->validate([
+            'delay' => 'sometimes|integer|min:0|max:60'
+        ]);
+
+        try {
+            $delay = $request->input('delay', 0);
+            
+            // Dispatch test job and get job ID
+            $jobId = $queueTestService->dispatchTestJob($delay);
+            
+            Log::info('Queue test job dispatched via admin dashboard', [
+                'test_job_id' => $jobId,
+                'delay' => $delay,
+                'admin_user_id' => auth()->id(),
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Test job dispatched successfully',
+                'test_job_id' => $jobId,
+                'delay' => $delay,
+                'dispatched_at' => now()->toISOString(),
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to dispatch queue test job via admin dashboard', [
+                'error' => $e->getMessage(),
+                'admin_user_id' => auth()->id(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to dispatch test job',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Check the status of a queue test job for AJAX polling.
+     * 
+     * @param Request $request
+     * @param QueueTestService $queueTestService
+     * @return JsonResponse
+     */
+    public function checkQueueTestStatus(Request $request, QueueTestService $queueTestService): JsonResponse
+    {
+        try {
+            // Validate job ID parameter
+            $request->validate([
+                'test_job_id' => 'required|string|regex:/^test_[a-f0-9\-]{36}$/'
+            ]);
+
+            $jobId = $request->input('test_job_id');
+            
+            // Get job status
+            $status = $queueTestService->checkTestJobStatus($jobId);
+            
+            return response()->json([
+                'success' => true,
+                'status' => $status,
+            ]);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid job ID format',
+                'errors' => $e->errors(),
+            ], 422);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to check queue test job status via admin dashboard', [
+                'error' => $e->getMessage(),
+                'test_job_id' => $request->input('test_job_id'),
+                'admin_user_id' => auth()->id(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check test job status',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get comprehensive queue health metrics for admin monitoring.
+     * 
+     * @param QueueTestService $queueTestService
+     * @return JsonResponse
+     */
+    public function getQueueHealth(QueueTestService $queueTestService): JsonResponse
+    {
+        try {
+            // Get queue health metrics
+            $metrics = $queueTestService->getQueueHealthMetrics();
+            
+            return response()->json([
+                'success' => true,
+                'metrics' => $metrics,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get queue health metrics via admin dashboard', [
+                'error' => $e->getMessage(),
+                'admin_user_id' => auth()->id(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve queue health metrics',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 }

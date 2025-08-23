@@ -19,4 +19,9 @@ Route::middleware(['web'])->prefix('setup')->name('setup.')->group(function () {
     // This route handles its own redirect logic when setup is complete
     Route::get('/instructions', [\App\Http\Controllers\SetupInstructionsController::class, 'show'])->name('instructions');
     
+    // AJAX endpoints for real-time status updates
+    // These routes require CSRF protection (handled by VerifyCsrfToken middleware)
+    Route::post('/status/refresh', [\App\Http\Controllers\SetupInstructionsController::class, 'refreshStatus'])->name('status.refresh');
+    Route::post('/status/refresh-step', [\App\Http\Controllers\SetupInstructionsController::class, 'refreshSingleStep'])->name('status.refresh-step');
+    
 });

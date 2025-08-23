@@ -6,6 +6,8 @@ use App\Services\SetupService;
 use App\Services\AssetValidationService;
 use App\Services\SetupSecurityService;
 use App\Services\EnvironmentFileService;
+use App\Services\SetupDetectionService;
+use App\Services\SetupStatusService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Config;
@@ -19,9 +21,14 @@ class SetupServiceProvider extends ServiceProvider
     {
         $this->app->singleton(AssetValidationService::class);
         $this->app->singleton(SetupSecurityService::class);
+        $this->app->singleton(SetupDetectionService::class);
         
         $this->app->singleton(EnvironmentFileService::class, function ($app) {
             return new EnvironmentFileService($app->make(SetupSecurityService::class));
+        });
+        
+        $this->app->singleton(SetupStatusService::class, function ($app) {
+            return new SetupStatusService($app->make(SetupDetectionService::class));
         });
         
         $this->app->singleton(SetupService::class, function ($app) {

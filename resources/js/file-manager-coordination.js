@@ -57,32 +57,32 @@ window.initializeFileManager = initializeFileManager;
 
  * Debug function to help troubleshoot initialization issues
  */
-function debugFileManagerState() {
-    console.group('File Manager State Debug');
-    console.log('Initialized:', window.fileManagerState.initialized);
-    console.log('Init Source:', window.fileManagerState.initSource);
-    console.log('Instance:', window.fileManagerState.instance ? 'Exists' : 'None');
-    console.log('Alpine.js Loaded:', typeof window.Alpine !== 'undefined');
-    console.log('fileManagerRegistered:', window.fileManagerRegistered);
-    console.log('fileManagerInitialized:', window.fileManagerInitialized);
-    console.log('fileManagerAlreadyInitialized:', window.fileManagerAlreadyInitialized);
+// function debugFileManagerState() {
+//     console.group('File Manager State Debug');
+//     console.log('Initialized:', window.fileManagerState.initialized);
+//     console.log('Init Source:', window.fileManagerState.initSource);
+//     console.log('Instance:', window.fileManagerState.instance ? 'Exists' : 'None');
+//     console.log('Alpine.js Loaded:', typeof window.Alpine !== 'undefined');
+//     console.log('fileManagerRegistered:', window.fileManagerRegistered);
+//     console.log('fileManagerInitialized:', window.fileManagerInitialized);
+//     console.log('fileManagerAlreadyInitialized:', window.fileManagerAlreadyInitialized);
     
-    const container = document.querySelector('[data-lazy-container]');
-    console.log('Container exists:', !!container);
-    if (container) {
-        console.log('Container has x-data:', container.hasAttribute('x-data'));
-    }
-    console.groupEnd();
-}
+//     const container = document.querySelector('[data-lazy-container]');
+//     console.log('Container exists:', !!container);
+//     if (container) {
+//         console.log('Container has x-data:', container.hasAttribute('x-data'));
+//     }
+//     console.groupEnd();
+// }
 
-// Export debug function
-window.debugFileManagerState = debugFileManagerState;
+// // Export debug function
+// window.debugFileManagerState = debugFileManagerState;
 
-// Debug on load
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        if (window.debugFileManagerState) {
-            window.debugFileManagerState();
-        }
-    }, 1000); // Wait 1 second to ensure everything is loaded
-});
+// // Debug on load
+// document.addEventListener('DOMContentLoaded', () => {
+//     setTimeout(() => {
+//         if (window.debugFileManagerState) {
+//             window.debugFileManagerState();
+//         }
+//     }, 1000); // Wait 1 second to ensure everything is loaded
+// });

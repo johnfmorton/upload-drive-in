@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Setup Instructions - {{ config('app.name', 'Laravel') }}</title>
 
     <!-- Fonts -->
@@ -12,6 +13,79 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <!-- Status Indicator Styles -->
+    <style>
+        .status-indicator {
+            @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+        }
+
+        .status-completed {
+            @apply bg-green-100 text-green-800;
+        }
+
+        .status-incomplete {
+            @apply bg-red-100 text-red-800;
+        }
+
+        .status-error {
+            @apply bg-red-100 text-red-800;
+        }
+
+        .status-checking {
+            @apply bg-blue-100 text-blue-800;
+        }
+
+        .status-cannot-verify {
+            @apply bg-gray-100 text-gray-800;
+        }
+
+        .status-needs_attention {
+            @apply bg-yellow-100 text-yellow-800;
+        }
+
+        .status-icon {
+            @apply w-4 h-4 mr-1.5;
+        }
+
+        .refresh-button {
+            @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+        }
+
+        .refresh-button:disabled {
+            @apply bg-gray-400;
+        }
+
+        .loading-spinner {
+            @apply animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full;
+        }
+
+        .step-status-container {
+            @apply flex items-center justify-between mb-4;
+        }
+
+        .step-header {
+            @apply flex items-center;
+        }
+
+        .step-status-details {
+            @apply mt-2 text-sm text-gray-600 hidden;
+        }
+
+        .step-status-details.show {
+            @apply block;
+        }
+
+        @media (max-width: 640px) {
+            .step-status-container {
+                @apply flex-col items-start space-y-2;
+            }
+
+            .status-indicator {
+                @apply text-xs px-2 py-1;
+            }
+        }
+    </style>
 </head>
 
 <body class="font-sans antialiased bg-gray-50">
@@ -21,6 +95,18 @@
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-bold text-gray-900">Setup Instructions</h1>
                 <p class="mt-2 text-lg text-gray-600">Complete these steps to configure your application</p>
+
+                <!-- Status Refresh Section -->
+                <div
+                    class="mt-6 flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+                    <button id="refresh-status-btn" class="refresh-button">
+                        <span id="refresh-btn-text">Check Status</span>
+                        <div id="refresh-spinner" class="loading-spinner hidden ml-2"></div>
+                    </button>
+                    <div id="last-checked" class="text-sm text-gray-500 hidden">
+                        Last checked: <span id="last-checked-time">Never</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Instructions Card -->
@@ -28,13 +114,37 @@
                 <div class="px-6 py-8 sm:px-10">
 
                     <!-- Step 1: Database Configuration -->
-                    <div class="mb-10">
-                        <div class="flex items-center mb-4">
-                            <div
-                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                                1
+                    <div class="mb-10" data-step="database">
+                        <div class="step-status-container">
+                            <div class="step-header">
+                                <div
+                                    class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                                    1
+                                </div>
+                                <h2 class="ml-3 text-xl font-semibold text-gray-900">Database Configuration</h2>
                             </div>
-                            <h2 class="ml-3 text-xl font-semibold text-gray-900">Database Configuration</h2>
+                            <div class="flex items-center space-x-2">
+                                <div class="status-indicator status-checking" id="status-database">
+                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span id="status-database-text">Checking...</span>
+                                </div>
+                                <button class="text-gray-400 hover:text-gray-600"
+                                    onclick="toggleStatusDetails('database')" title="Show details">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="step-status-details" id="details-database">
+                            <div class="p-3 bg-gray-50 rounded-md">
+                                <p class="text-sm text-gray-600" id="details-database-text">Click "Check Status" to
+                                    verify database configuration.</p>
+                            </div>
                         </div>
 
                         <p class="text-gray-600 mb-4">
@@ -76,13 +186,37 @@ DB_PASSWORD=your_database_password</code></pre>
                     </div>
 
                     <!-- Step 2: Mail Configuration -->
-                    <div class="mb-10">
-                        <div class="flex items-center mb-4">
-                            <div
-                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                                2
+                    <div class="mb-10" data-step="mail">
+                        <div class="step-status-container">
+                            <div class="step-header">
+                                <div
+                                    class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                                    2
+                                </div>
+                                <h2 class="ml-3 text-xl font-semibold text-gray-900">Mail Configuration</h2>
                             </div>
-                            <h2 class="ml-3 text-xl font-semibold text-gray-900">Mail Configuration</h2>
+                            <div class="flex items-center space-x-2">
+                                <div class="status-indicator status-checking" id="status-mail">
+                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span id="status-mail-text">Checking...</span>
+                                </div>
+                                <button class="text-gray-400 hover:text-gray-600" onclick="toggleStatusDetails('mail')"
+                                    title="Show details">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="step-status-details" id="details-mail">
+                            <div class="p-3 bg-gray-50 rounded-md">
+                                <p class="text-sm text-gray-600" id="details-mail-text">Click "Check Status" to verify
+                                    mail configuration.</p>
+                            </div>
                         </div>
 
                         <p class="text-gray-600 mb-4">
@@ -188,13 +322,38 @@ MAIL_FROM_ADDRESS=name@example.com</code></pre>
                     </div>
 
                     <!-- Step 3: Google Drive Configuration -->
-                    <div class="mb-10">
-                        <div class="flex items-center mb-4">
-                            <div
-                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                                3
+                    <div class="mb-10" data-step="google_drive">
+                        <div class="step-status-container">
+                            <div class="step-header">
+                                <div
+                                    class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                                    3
+                                </div>
+                                <h2 class="ml-3 text-xl font-semibold text-gray-900">Google Drive Configuration</h2>
                             </div>
-                            <h2 class="ml-3 text-xl font-semibold text-gray-900">Google Drive Configuration</h2>
+                            <div class="flex items-center space-x-2">
+                                <div class="status-indicator status-checking" id="status-google_drive">
+                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span id="status-google_drive-text">Checking...</span>
+                                </div>
+                                <button class="text-gray-400 hover:text-gray-600"
+                                    onclick="toggleStatusDetails('google_drive')" title="Show details">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="step-status-details" id="details-google_drive">
+                            <div class="p-3 bg-gray-50 rounded-md">
+                                <p class="text-sm text-gray-600" id="details-google_drive-text">Click "Check Status"
+                                    to verify Google Drive configuration.</p>
+                            </div>
                         </div>
 
                         <p class="text-gray-600 mb-4">
@@ -287,13 +446,38 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                     </div>
 
                     <!-- Step 4: Run Migrations -->
-                    <div class="mb-10">
-                        <div class="flex items-center mb-4">
-                            <div
-                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                                4
+                    <div class="mb-10" data-step="migrations">
+                        <div class="step-status-container">
+                            <div class="step-header">
+                                <div
+                                    class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                                    4
+                                </div>
+                                <h2 class="ml-3 text-xl font-semibold text-gray-900">Run Database Migrations</h2>
                             </div>
-                            <h2 class="ml-3 text-xl font-semibold text-gray-900">Run Database Migrations</h2>
+                            <div class="flex items-center space-x-2">
+                                <div class="status-indicator status-checking" id="status-migrations">
+                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span id="status-migrations-text">Checking...</span>
+                                </div>
+                                <button class="text-gray-400 hover:text-gray-600"
+                                    onclick="toggleStatusDetails('migrations')" title="Show details">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="step-status-details" id="details-migrations">
+                            <div class="p-3 bg-gray-50 rounded-md">
+                                <p class="text-sm text-gray-600" id="details-migrations-text">Click "Check Status" to
+                                    verify database migrations.</p>
+                            </div>
                         </div>
 
                         <p class="text-gray-600 mb-4">
@@ -310,13 +494,38 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                     </div>
 
                     <!-- Step 5: Create Admin User -->
-                    <div class="mb-10">
-                        <div class="flex items-center mb-4">
-                            <div
-                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                                5
+                    <div class="mb-10" data-step="admin_user">
+                        <div class="step-status-container">
+                            <div class="step-header">
+                                <div
+                                    class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                                    5
+                                </div>
+                                <h2 class="ml-3 text-xl font-semibold text-gray-900">Create Admin User</h2>
                             </div>
-                            <h2 class="ml-3 text-xl font-semibold text-gray-900">Create Admin User</h2>
+                            <div class="flex items-center space-x-2">
+                                <div class="status-indicator status-checking" id="status-admin_user">
+                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span id="status-admin_user-text">Checking...</span>
+                                </div>
+                                <button class="text-gray-400 hover:text-gray-600"
+                                    onclick="toggleStatusDetails('admin_user')" title="Show details">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="step-status-details" id="details-admin_user">
+                            <div class="p-3 bg-gray-50 rounded-md">
+                                <p class="text-sm text-gray-600" id="details-admin_user-text">Click "Check Status" to
+                                    verify admin user exists.</p>
+                            </div>
                         </div>
 
                         <p class="text-gray-600 mb-4">
@@ -352,13 +561,38 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                     </div>
 
                     <!-- Step 6: Setup Queue Worker -->
-                    <div class="mb-10">
-                        <div class="flex items-center mb-4">
-                            <div
-                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                                6
+                    <div class="mb-10" data-step="queue_worker">
+                        <div class="step-status-container">
+                            <div class="step-header">
+                                <div
+                                    class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                                    6
+                                </div>
+                                <h2 class="ml-3 text-xl font-semibold text-gray-900">Setup Queue Worker</h2>
                             </div>
-                            <h2 class="ml-3 text-xl font-semibold text-gray-900">Setup Queue Worker</h2>
+                            <div class="flex items-center space-x-2">
+                                <div class="status-indicator status-checking" id="status-queue_worker">
+                                    <svg class="status-icon" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span id="status-queue_worker-text">Checking...</span>
+                                </div>
+                                <button class="text-gray-400 hover:text-gray-600"
+                                    onclick="toggleStatusDetails('queue_worker')" title="Show details">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="step-status-details" id="details-queue_worker">
+                            <div class="p-3 bg-gray-50 rounded-md">
+                                <p class="text-sm text-gray-600" id="details-queue_worker-text">Click "Check Status"
+                                    to verify queue worker status.</p>
+                            </div>
                         </div>
 
                         <p class="text-gray-600 mb-4">
@@ -641,6 +875,188 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                 console.error('Could not copy text: ', err);
             });
         }
+
+        // Status checking functionality
+        const statusSteps = ['database', 'mail', 'google_drive', 'migrations', 'admin_user', 'queue_worker'];
+
+        function toggleStatusDetails(stepName) {
+            const details = document.getElementById(`details-${stepName}`);
+            if (details) {
+                details.classList.toggle('show');
+            }
+        }
+
+        function updateStatusIndicator(stepName, status, message, details = null) {
+            console.log('Updating status for:', stepName, 'to:', status);
+            const indicatorId = `status-${stepName}`;
+            const textId = `status-${stepName}-text`;
+            console.log('Looking for elements:', indicatorId, textId);
+
+            const indicator = document.getElementById(indicatorId);
+            const text = document.getElementById(textId);
+            const detailsText = document.getElementById(`details-${stepName}-text`);
+
+            console.log('Found elements:', !!indicator, !!text);
+            if (!indicator || !text) {
+                console.error('Could not find elements for step:', stepName);
+                return;
+            }
+
+            // Remove all status classes
+            indicator.classList.remove('status-completed', 'status-incomplete', 'status-error', 'status-checking',
+                'status-cannot-verify', 'status-needs_attention');
+
+            // Add new status class
+            indicator.classList.add(`status-${status}`);
+
+            // Update text
+            text.textContent = message;
+
+            // Update icon based on status
+            const icon = indicator.querySelector('svg');
+            if (icon) {
+                switch (status) {
+                    case 'completed':
+                        icon.innerHTML =
+                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
+                        break;
+                    case 'incomplete':
+                    case 'error':
+                        icon.innerHTML =
+                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />';
+                        break;
+                    case 'cannot-verify':
+                        icon.innerHTML =
+                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
+                        break;
+                    case 'needs_attention':
+                        icon.innerHTML =
+                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />';
+                        break;
+                    default: // checking
+                        icon.innerHTML =
+                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />';
+                }
+            }
+
+            // Update details if provided
+            if (detailsText && details) {
+                detailsText.textContent = details;
+            }
+        }
+
+        function setLoadingState(isLoading) {
+            const button = document.getElementById('refresh-status-btn');
+            const buttonText = document.getElementById('refresh-btn-text');
+            const spinner = document.getElementById('refresh-spinner');
+
+            if (isLoading) {
+                button.disabled = true;
+                buttonText.textContent = 'Checking...';
+                spinner.classList.remove('hidden');
+
+                // Set all steps to checking state
+                statusSteps.forEach(step => {
+                    updateStatusIndicator(step, 'checking', 'Checking...');
+                });
+            } else {
+                button.disabled = false;
+                buttonText.textContent = 'Check Status';
+                spinner.classList.add('hidden');
+            }
+        }
+
+        function updateLastChecked() {
+            const lastChecked = document.getElementById('last-checked');
+            const lastCheckedTime = document.getElementById('last-checked-time');
+
+            if (lastChecked && lastCheckedTime) {
+                const now = new Date();
+                lastCheckedTime.textContent = now.toLocaleTimeString();
+                lastChecked.classList.remove('hidden');
+            }
+        }
+
+        async function refreshAllStatuses() {
+            setLoadingState(true);
+
+            try {
+                const response = await fetch('/setup/status/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute(
+                            'content') || ''
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Received data:', data);
+
+                // Update each step status
+                statusSteps.forEach(step => {
+                    console.log('Processing step:', step);
+                    if (data.data && data.data.statuses && data.data.statuses[step]) {
+                        const stepData = data.data.statuses[step];
+                        console.log('Step data for', step, ':', stepData);
+                        updateStatusIndicator(
+                            step,
+                            stepData.status,
+                            stepData.message,
+                            stepData.details || stepData.message
+                        );
+                    } else {
+                        console.error('No data found for step:', step, 'Available steps:', Object.keys(data.data
+                            ?.statuses || {}));
+                    }
+                });
+
+                updateLastChecked();
+
+            } catch (error) {
+                console.error('Error refreshing status:', error);
+                console.error('Error details:', error.message, error.stack);
+
+                // Show error state for all steps
+                statusSteps.forEach(step => {
+                    updateStatusIndicator(
+                        step,
+                        'error',
+                        'Check Failed',
+                        'Unable to check status. Please try again or check manually.'
+                    );
+                });
+
+                // Show error message
+                alert('Failed to check status: ' + error.message);
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add CSRF token meta tag if not present
+            if (!document.querySelector('meta[name="csrf-token"]')) {
+                const meta = document.createElement('meta');
+                meta.name = 'csrf-token';
+                meta.content = '{{ csrf_token() }}';
+                document.head.appendChild(meta);
+            }
+
+            // Bind refresh button
+            const refreshButton = document.getElementById('refresh-status-btn');
+            if (refreshButton) {
+                refreshButton.addEventListener('click', refreshAllStatuses);
+            }
+
+            // Auto-check status on page load
+            setTimeout(refreshAllStatuses, 1000);
+        });
     </script>
 </body>
 
