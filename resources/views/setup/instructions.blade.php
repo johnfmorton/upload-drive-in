@@ -429,7 +429,8 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                         <div>
                                             <h4 class="font-semibold text-gray-900 mb-2">Supervisor Configuration</h4>
                                             <p class="text-gray-600 mb-2">Create a file like
-                                                <code>/etc/supervisor/conf.d/laravel-worker.conf</code>:</p>
+                                                <code>/etc/supervisor/conf.d/laravel-worker.conf</code>:
+                                            </p>
                                             <div class="bg-gray-100 p-3 rounded font-mono text-xs overflow-x-auto">
                                                 [program:laravel-worker]<br>
                                                 process_name=%(program_name)s_%(process_num)02d<br>
@@ -454,7 +455,8 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                         <div>
                                             <h4 class="font-semibold text-gray-900 mb-2">Systemd Service</h4>
                                             <p class="text-gray-600 mb-2">Create a file like
-                                                <code>/etc/systemd/system/laravel-worker.service</code>:</p>
+                                                <code>/etc/systemd/system/laravel-worker.service</code>:
+                                            </p>
                                             <div class="bg-gray-100 p-3 rounded font-mono text-xs overflow-x-auto">
                                                 [Unit]<br>
                                                 Description=Laravel Queue Worker<br>
@@ -492,6 +494,69 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                                 Laravel Forge requires the specific PHP version in the command rather
                                                 than just <code>php</code>.
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+
+                        <!-- Daemon vs Site Queue Worker Explanation -->
+                        <div class="mt-6">
+                            <details class="bg-amber-50 border border-amber-200 rounded-lg">
+                                <summary
+                                    class="cursor-pointer p-4 font-medium text-gray-900 hover:bg-amber-100 transition-colors">
+                                    ⚡ Why Use Daemons Instead of Site Queue Workers?
+                                </summary>
+                                <div class="p-4 pt-0 border-t border-amber-200">
+                                    <div class="space-y-4 text-sm pt-3">
+                                        <p class="text-amber-800">
+                                            <strong>Laravel Forge offers two ways to run queue workers:</strong>
+                                            Server-level Daemons (recommended above)
+                                            and site-specific Queue Workers. Here's why we recommend Daemons:
+                                        </p>
+
+                                        <div class="grid md:grid-cols-2 gap-4">
+                                            <div class="bg-green-50 border border-green-200 rounded p-3">
+                                                <h5 class="font-semibold text-green-800 mb-2">✅ Daemons (Recommended)
+                                                </h5>
+                                                <ul class="text-green-700 text-xs space-y-1">
+                                                    <li>• <strong>Greater Control:</strong> Full command customization
+                                                    </li>
+                                                    <li>• <strong>Deployment Independence:</strong> Runs during
+                                                        deployments</li>
+                                                    <li>• <strong>Laravel Best Practice:</strong> Uses Supervisor
+                                                        directly</li>
+                                                    <li>• <strong>Server-level Management:</strong> Centralized process
+                                                        control</li>
+                                                    <li>• <strong>Production Ready:</strong> More reliable for critical
+                                                        applications</li>
+                                                </ul>
+                                            </div>
+
+                                            <div class="bg-blue-50 border border-blue-200 rounded p-3">
+                                                <h5 class="font-semibold text-blue-800 mb-2">ℹ️ Site Queue Workers</h5>
+                                                <ul class="text-blue-700 text-xs space-y-1">
+                                                    <li>• <strong>Simplified Setup:</strong> GUI-based configuration
+                                                    </li>
+                                                    <li>• <strong>Laravel-focused:</strong> Pre-configured for Laravel
+                                                    </li>
+                                                    <li>• <strong>Site-specific:</strong> Tied to individual sites</li>
+                                                    <li>• <strong>Limited Options:</strong> Fewer customization options
+                                                    </li>
+                                                    <li>• <strong>Deployment Tied:</strong> May restart during
+                                                        deployments</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        <div class="bg-amber-100 border border-amber-300 rounded p-3">
+                                            <p class="text-amber-800 text-xs">
+                                                <strong>Bottom Line:</strong> For production file upload applications,
+                                                Daemons provide the reliability,
+                                                control, and deployment independence needed for critical background
+                                                processing. Site Queue Workers
+                                                are better suited for simpler applications or development environments.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
