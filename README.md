@@ -148,3 +148,40 @@ This application uses Google Drive to store uploaded files. To enable this funct
 *   Navigate to the admin dashboard.
 *   Click the "Connect Google Drive" button. This will redirect you to Google to authorize the application.
 *   Once authorized, you'll be redirected back, and the connection should be active.
+
+## Environment Configuration
+
+For comprehensive configuration of caching, queues, and background job processing, see the **[Environment Configuration Guide](docs/environment-configuration-guide.md)**.
+
+This guide covers:
+- File, database, and Redis caching setup
+- Queue configuration and background job processing
+- Production recommendations and validation procedures
+- Environment cleanup and optimization
+
+## Redis Configuration (Optional)
+
+Redis can be used for improved caching and queue performance. For DDEV environments, Redis can be easily added as a service.
+
+**For detailed Redis setup instructions, see:** [DDEV Redis Setup Guide](docs/ddev-redis-setup.md)
+
+**Quick Setup:**
+
+1. Ensure Redis configuration files exist (they should be included in the project)
+2. Restart DDEV: `ddev restart`
+3. Update your `.env` file:
+   ```env
+   REDIS_HOST=redis
+   REDIS_PASSWORD=null
+   REDIS_PORT=6379
+   REDIS_CLIENT=predis
+   
+   # Optional: Use Redis for caching
+   CACHE_STORE=redis
+   
+   # Optional: Use Redis for queues
+   QUEUE_CONNECTION=redis
+   ```
+4. Test the connection: `ddev artisan validate:cache-configuration`
+
+Redis provides better performance for caching and queue operations compared to file-based or database alternatives.

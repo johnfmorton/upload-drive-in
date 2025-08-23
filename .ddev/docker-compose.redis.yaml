@@ -1,0 +1,46 @@
+# Redis service configuration for DDEV
+# This file adds Redis support to the DDEV environment
+# 
+# To enable this service:
+# 1. Ensure this file exists in .ddev/docker-compose.redis.yaml
+# 2. Run: ddev restart
+# 3. Redis will be available at redis:6379 from within containers
+# 4. Configure your .env file with Redis settings (see documentation)
+
+version: '3.6'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: ddev-${DDEV_SITENAME}-redis
+    restart: "no"
+    user: "$DDEV_UID:$DDEV_GID"
+    ports:
+      - "6379"
+    environment:
+      - DDEV_SITENAME=${DDEV_SITENAME}
+    volumes:
+      # Persist Redis data between container restarts
+      - redis-data:/data
+      # Custom Redis configuration (optional)
+      - "./.ddev/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    labels:
+      com.ddev.site-name: ${DDEV_SITENAME}
+      com.ddev.approot: $DDEV_APPROOT
+    networks:
+      - ddev_default
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  redis-data:
+    name: ddev-${DDEV_SITENAME}-redis-data
+
+networks:
+  ddev_default:
+    external: true
