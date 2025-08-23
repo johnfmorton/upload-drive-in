@@ -151,7 +151,7 @@ MAIL_FROM_ADDRESS=name@example.com</code></pre>
                                     📧 Common Mail Provider Settings
                                 </summary>
                                 <div class="p-4 pt-0 border-t border-gray-200">
-                                    <div class="space-y-4 text-sm">
+                                    <div class="space-y-4 text-sm pt-3">
                                         <div>
                                             <h4 class="font-semibold text-gray-900 mb-2">Gmail</h4>
                                             <div class="bg-gray-100 p-3 rounded font-mono text-xs">
@@ -240,7 +240,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                     📋 Step-by-step Google Cloud Console Setup Guide
                                 </summary>
                                 <div class="p-4 pt-0 border-t border-gray-200">
-                                    <ol class="list-decimal list-inside space-y-3 text-sm text-gray-700">
+                                    <ol class="list-decimal list-inside space-y-3 text-sm text-gray-700 pt-3">
                                         <li>Go to the <a href="https://console.cloud.google.com/" target="_blank"
                                                 class="text-blue-600 hover:text-blue-800 underline">Google Cloud
                                                 Console</a></li>
@@ -365,7 +365,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Copy
                             </button>
-                            <pre id="worker-command" class="text-green-400 text-sm overflow-x-auto"><code>{{ base_path() }}/artisan queue:work</code></pre>
+                            <pre id="worker-command" class="text-green-400 text-sm overflow-x-auto"><code>php artisan {{ base_path() }}/artisan queue:work</code></pre>
                         </div>
 
                         <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400">
@@ -392,7 +392,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                     class="cursor-pointer p-4 font-medium text-gray-900 hover:bg-gray-100 transition-colors">
                                     🔧 Production Queue Worker Setup Examples
                                 </summary>
-                                <div class="p-4 pt-0 border-t border-gray-200">
+                                <div class="p-4 pt-0 border-t border-gray-200 pt-3">
                                     <div class="space-y-6 text-sm">
                                         <!-- Supervisor Example -->
                                         <div>
