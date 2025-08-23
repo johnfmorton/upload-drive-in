@@ -346,6 +346,130 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         </div>
                     </div>
 
+                    <!-- Step 6: Setup Queue Worker -->
+                    <div class="mb-10">
+                        <div class="flex items-center mb-4">
+                            <div
+                                class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
+                                6
+                            </div>
+                            <h2 class="ml-3 text-xl font-semibold text-gray-900">Setup Queue Worker</h2>
+                        </div>
+
+                        <p class="text-gray-600 mb-4">
+                            The application uses background jobs for file uploads to Google Drive. You need to set up a queue worker to process these jobs.
+                        </p>
+
+                        <div class="bg-gray-900 rounded-lg p-4 relative">
+                            <button onclick="copyToClipboard('worker-command')"
+                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                Copy
+                            </button>
+                            <pre id="worker-command" class="text-green-400 text-sm overflow-x-auto"><code>{{ base_path() }}/artisan queue:work</code></pre>
+                        </div>
+
+                        <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-amber-700">
+                                        <strong>Production Setup:</strong> For production environments, you should set up the queue worker as a daemon using a process manager like Supervisor, systemd, or your hosting provider's process management tools. The worker should restart automatically if it stops.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Production Setup Examples -->
+                        <div class="mt-6">
+                            <details class="bg-gray-50 border border-gray-200 rounded-lg">
+                                <summary
+                                    class="cursor-pointer p-4 font-medium text-gray-900 hover:bg-gray-100 transition-colors">
+                                    🔧 Production Queue Worker Setup Examples
+                                </summary>
+                                <div class="p-4 pt-0 border-t border-gray-200">
+                                    <div class="space-y-6 text-sm">
+                                        <!-- Supervisor Example -->
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900 mb-2">Supervisor Configuration</h4>
+                                            <p class="text-gray-600 mb-2">Create a file like <code>/etc/supervisor/conf.d/laravel-worker.conf</code>:</p>
+                                            <div class="bg-gray-100 p-3 rounded font-mono text-xs overflow-x-auto">
+[program:laravel-worker]<br>
+process_name=%(program_name)s_%(process_num)02d<br>
+command={{ base_path() }}/artisan queue:work --sleep=3 --tries=3 --max-time=3600<br>
+autostart=true<br>
+autorestart=true<br>
+stopasgroup=true<br>
+killasgroup=true<br>
+user=www-data<br>
+numprocs=1<br>
+redirect_stderr=true<br>
+stdout_logfile={{ base_path() }}/storage/logs/worker.log<br>
+stopwaitsecs=3600
+                                            </div>
+                                            <p class="text-gray-600 mt-2 text-xs">Then run: <code>sudo supervisorctl reread && sudo supervisorctl update && sudo supervisorctl start laravel-worker:*</code></p>
+                                        </div>
+
+                                        <!-- Systemd Example -->
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900 mb-2">Systemd Service</h4>
+                                            <p class="text-gray-600 mb-2">Create a file like <code>/etc/systemd/system/laravel-worker.service</code>:</p>
+                                            <div class="bg-gray-100 p-3 rounded font-mono text-xs overflow-x-auto">
+[Unit]<br>
+Description=Laravel Queue Worker<br>
+After=network.target<br>
+<br>
+[Service]<br>
+User=www-data<br>
+Group=www-data<br>
+Restart=always<br>
+ExecStart={{ base_path() }}/artisan queue:work --sleep=3 --tries=3 --max-time=3600<br>
+WorkingDirectory={{ base_path() }}<br>
+<br>
+[Install]<br>
+WantedBy=multi-user.target
+                                            </div>
+                                            <p class="text-gray-600 mt-2 text-xs">Then run: <code>sudo systemctl enable laravel-worker && sudo systemctl start laravel-worker</code></p>
+                                        </div>
+
+                                        <!-- Laravel Forge Example -->
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900 mb-2">Laravel Forge</h4>
+                                            <p class="text-gray-600 mb-2">In your Forge dashboard, go to your site → Daemons and add:</p>
+                                            <div class="bg-gray-100 p-3 rounded font-mono text-xs">
+                                                <strong>Command:</strong> {{ base_path() }}/artisan queue:work --sleep=3 --tries=3 --max-time=3600<br>
+                                                <strong>User:</strong> forge<br>
+                                                <strong>Directory:</strong> {{ base_path() }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+
+                        <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-blue-700">
+                                        <strong>Testing:</strong> For testing purposes, you can run the worker manually with the command above. However, for production use, always set up a proper daemon process that will restart automatically if it fails.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Completion Notice -->
                     <div class="bg-green-50 border border-green-200 rounded-lg p-6">
                         <div class="flex">
