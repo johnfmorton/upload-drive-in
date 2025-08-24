@@ -134,6 +134,9 @@ class SetupStatusService
             // Clear existing cache
             $this->clearStatusCache();
             
+            // Also clear configuration cache if we're in setup context to ensure fresh env() reads
+            $this->clearConfigurationCacheIfNeeded();
+            
             // Get fresh status data (bypassing cache) with retry logic
             $statuses = $this->getDetailedStepStatuses(false);
             
@@ -653,5 +656,37 @@ class SetupStatusService
         }
         
         return $stats;
+    }
+
+    /**
+     * Clear configuration cache if we're in a setup context.
+     * This ensures fresh environment variable reads during setup.
+     * 
+     * @return void
+     */
+    private function clearConfigurationCacheIfNeeded(): void
+    {
+        $request = request();
+        
+        // Check if we're in a setup-related context
+        if ($request) {
+            $path = $request->path();
+            $route = $request->route();
+            
+            $isSetupContext = str_contains($path, 'setup') || 
+                             str_contains($path, 'instructions') ||
+                             ($route && $route->getName() && str_contains($route->getName(), 'setup'));
+            
+            if ($isSetupContext) {
+                try {
+                    \Illuminate\Support\Facades\Artisan::call('config:clear');
+                    Log::debug('Configuration cache cleared during setup status refresh');
+                } catch (Exception $e) {
+                    Log::warning('Failed to clear configuration cache during setup status refresh', [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+        }
     }
 }

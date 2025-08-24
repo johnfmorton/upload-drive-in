@@ -46,6 +46,9 @@ class SetupStatusManager {
         setTimeout(() => {
             this.refreshAllStatuses();
         }, 1000);
+
+        // Start automatic polling for configuration changes during setup
+        this.startSetupPolling();
     }
 
     /**
@@ -72,6 +75,12 @@ class SetupStatusManager {
         const refreshButton = document.getElementById("refresh-status-btn");
         if (refreshButton) {
             refreshButton.addEventListener("click", this.refreshAllStatuses);
+        }
+
+        // Force refresh button
+        const forceRefreshButton = document.getElementById("force-refresh-btn");
+        if (forceRefreshButton) {
+            forceRefreshButton.addEventListener("click", () => this.forceCacheRefresh());
         }
 
         // Individual step refresh buttons (if they exist)
@@ -425,6 +434,7 @@ class SetupStatusManager {
     setLoadingState(isLoading) {
         this.refreshInProgress = isLoading;
 
+        // Handle main refresh button
         const button = document.getElementById("refresh-status-btn");
         const buttonText = document.getElementById("refresh-btn-text");
         const spinner = document.getElementById("refresh-spinner");
@@ -437,6 +447,22 @@ class SetupStatusManager {
                 spinner.classList.remove("hidden");
             } else {
                 spinner.classList.add("hidden");
+            }
+        }
+
+        // Handle force refresh button
+        const forceButton = document.getElementById("force-refresh-btn");
+        const forceButtonText = document.getElementById("force-refresh-btn-text");
+        const forceSpinner = document.getElementById("force-refresh-spinner");
+
+        if (forceButton && forceButtonText && forceSpinner) {
+            forceButton.disabled = isLoading;
+            forceButtonText.textContent = isLoading ? "Refreshing..." : "Force Refresh";
+
+            if (isLoading) {
+                forceSpinner.classList.remove("hidden");
+            } else {
+                forceSpinner.classList.add("hidden");
             }
         }
 
@@ -1108,6 +1134,72 @@ class SetupStatusManager {
     cleanup() {
         if (this.autoRefreshInterval) {
             clearInterval(this.autoRefreshInterval);
+        }
+    }
+
+    /**
+     * Start automatic polling for configuration changes during setup
+     */
+    startSetupPolling() {
+        // Poll more frequently during setup to detect configuration changes
+        const setupPollingInterval = 15000; // 15 seconds
+        
+        setInterval(() => {
+            if (!this.refreshInProgress) {
+                // Only poll if we're still on the setup page
+                if (window.location.pathname.includes('setup') || 
+                    window.location.pathname.includes('instructions')) {
+                    this.refreshAllStatuses();
+                }
+            }
+        }, setupPollingInterval);
+        
+        console.log('Setup polling started - checking for configuration changes every 15 seconds');
+    }
+
+    /**
+     * Force clear configuration cache and refresh
+     * This method can be called when user manually updates configuration
+     */
+    async forceCacheRefresh() {
+        try {
+            this.setLoadingState(true);
+            this.clearErrorMessages();
+            
+            // Make a request that will trigger cache clearing
+            const response = await this.makeAjaxRequest(
+                "/setup/status/refresh",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": this.getCSRFToken(),
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: JSON.stringify({
+                        force_cache_clear: true
+                    })
+                }
+            );
+
+            if (!response.success) {
+                throw new Error(
+                    response.error?.message || "Failed to refresh status"
+                );
+            }
+
+            // Update all step statuses
+            this.updateAllStepStatuses(response.data.statuses);
+            this.updateLastChecked();
+            this.resetRetryAttempts();
+
+            // Show success feedback
+            this.showSuccessMessage("Configuration refreshed successfully");
+        } catch (error) {
+            console.error("Error forcing cache refresh:", error);
+            this.handleRefreshError(error, "force_refresh");
+        } finally {
+            this.setLoadingState(false);
         }
     }
 }

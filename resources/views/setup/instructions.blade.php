@@ -103,6 +103,10 @@
                         <span id="refresh-btn-text">Check Status</span>
                         <div id="refresh-spinner" class="loading-spinner hidden ml-2"></div>
                     </button>
+                    <button id="force-refresh-btn" class="refresh-button bg-orange-600 hover:bg-orange-700" title="Clear cache and refresh status - use this if you just updated configuration">
+                        <span id="force-refresh-btn-text">Force Refresh</span>
+                        <div id="force-refresh-spinner" class="loading-spinner hidden ml-2"></div>
+                    </button>
                   
                     <div id="last-checked" class="text-sm text-gray-500 hidden">
                         Last checked: <span id="last-checked-time">Never</span>

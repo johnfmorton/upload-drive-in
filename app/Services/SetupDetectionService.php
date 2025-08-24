@@ -64,6 +64,9 @@ class SetupDetectionService
         $cacheKey = self::FALLBACK_CACHE_PREFIX . 'database_status';
         
         try {
+            // Clear configuration cache if we're in setup mode to ensure fresh config reads
+            $this->clearConfigCacheIfInSetup();
+            
             // Check if database environment variables are configured
             if (!$this->isDatabaseConfigured()) {
                 Log::debug('Database configuration incomplete', [
@@ -126,6 +129,9 @@ class SetupDetectionService
      */
     public function getMailStatus(): bool
     {
+        // Clear configuration cache if we're in setup mode to ensure fresh config reads
+        $this->clearConfigCacheIfInSetup();
+        
         $mailer = env('MAIL_MAILER');
         $host = env('MAIL_HOST');
         $port = env('MAIL_PORT');
@@ -160,6 +166,9 @@ class SetupDetectionService
      */
     public function getGoogleDriveStatus(): bool
     {
+        // Clear configuration cache if we're in setup mode to ensure fresh config reads
+        $this->clearConfigCacheIfInSetup();
+        
         $clientId = config('services.google.client_id') ?: env('GOOGLE_DRIVE_CLIENT_ID');
         $clientSecret = config('services.google.client_secret') ?: env('GOOGLE_DRIVE_CLIENT_SECRET');
         
@@ -768,5 +777,136 @@ class SetupDetectionService
             ],
             'fallback' => true
         ];
+    }
+
+    /**
+     * Clear configuration cache if we're in setup mode and configuration has changed.
+     * This prevents cached configuration from interfering with setup detection.
+     * 
+     * @return void
+     */
+    private function clearConfigCacheIfInSetup(): void
+    {
+        // Only clear cache if we're likely in setup mode
+        if ($this->isLikelyInSetupMode()) {
+            $cacheKey = 'setup_config_hash';
+            $currentConfigHash = $this->getEnvironmentConfigHash();
+            $cachedConfigHash = Cache::get($cacheKey);
+            
+            // If configuration has changed, clear caches
+            if ($cachedConfigHash !== $currentConfigHash) {
+                try {
+                    // Clear configuration cache to ensure fresh env() reads
+                    \Illuminate\Support\Facades\Artisan::call('config:clear');
+                    
+                    // Clear setup-related application cache
+                    $this->clearSetupRelatedCache();
+                    
+                    // Update the cached config hash
+                    Cache::put($cacheKey, $currentConfigHash, 300); // Cache for 5 minutes
+                    
+                    Log::debug('Configuration cache cleared due to environment changes during setup', [
+                        'previous_hash' => $cachedConfigHash,
+                        'current_hash' => $currentConfigHash
+                    ]);
+                } catch (Exception $e) {
+                    Log::warning('Failed to clear configuration cache during setup', [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Generate a hash of key environment configuration values.
+     * 
+     * @return string Hash of current configuration
+     */
+    private function getEnvironmentConfigHash(): string
+    {
+        $configValues = [
+            'MAIL_MAILER' => env('MAIL_MAILER'),
+            'MAIL_HOST' => env('MAIL_HOST'),
+            'MAIL_PORT' => env('MAIL_PORT'),
+            'MAIL_USERNAME' => env('MAIL_USERNAME'),
+            'MAIL_PASSWORD' => env('MAIL_PASSWORD'),
+            'MAIL_FROM_ADDRESS' => env('MAIL_FROM_ADDRESS'),
+            'GOOGLE_DRIVE_CLIENT_ID' => env('GOOGLE_DRIVE_CLIENT_ID'),
+            'GOOGLE_DRIVE_CLIENT_SECRET' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+            'DB_CONNECTION' => env('DB_CONNECTION'),
+            'DB_HOST' => env('DB_HOST'),
+            'DB_DATABASE' => env('DB_DATABASE'),
+            'DB_USERNAME' => env('DB_USERNAME'),
+        ];
+        
+        return md5(serialize($configValues));
+    }
+
+    /**
+     * Clear setup-related cache entries without flushing all cache.
+     * 
+     * @return void
+     */
+    private function clearSetupRelatedCache(): void
+    {
+        $setupCacheKeys = [
+            'setup_state_required',
+            'setup_state_complete',
+            'setup_status_detailed_statuses',
+            'setup_status_detailed_statuses_fallback',
+            'setup_status_summary',
+            'setup_status_summary_fallback',
+            self::FALLBACK_CACHE_PREFIX . 'database_status',
+            self::FALLBACK_CACHE_PREFIX . 'admin_user_status',
+            self::FALLBACK_CACHE_PREFIX . 'migration_status',
+            self::FALLBACK_CACHE_PREFIX . 'queue_health_status',
+        ];
+        
+        foreach ($setupCacheKeys as $key) {
+            Cache::forget($key);
+        }
+    }
+
+    /**
+     * Determine if we're likely in setup mode based on request context.
+     * 
+     * @return bool True if we appear to be in setup mode
+     */
+    private function isLikelyInSetupMode(): bool
+    {
+        // Check if we're being called from setup-related routes or contexts
+        $request = request();
+        
+        if ($request) {
+            $path = $request->path();
+            $route = $request->route();
+            
+            // Check for setup-related paths
+            if (str_contains($path, 'setup') || str_contains($path, 'instructions')) {
+                return true;
+            }
+            
+            // Check for setup-related route names
+            if ($route && $route->getName()) {
+                $routeName = $route->getName();
+                if (str_contains($routeName, 'setup') || str_contains($routeName, 'instructions')) {
+                    return true;
+                }
+            }
+        }
+        
+        // Check if we're being called from setup-related controllers or services
+        $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
+        foreach ($backtrace as $trace) {
+            if (isset($trace['class'])) {
+                $className = $trace['class'];
+                if (str_contains($className, 'Setup') || str_contains($className, 'Instruction')) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 }
