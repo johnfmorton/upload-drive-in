@@ -76,14 +76,14 @@ class AdminQueueTesting {
             // Dispatch test job
             const response = await this.dispatchTestJob();
             
-            if (response.success) {
-                this.currentTestJobId = response.test_job_id;
+            if (response.success && response.data) {
+                this.currentTestJobId = response.data.test_job_id;
                 this.updateProgressMessage('Test job dispatched, waiting for processing...');
                 
                 // Start polling for results
                 this.startPolling();
             } else {
-                throw new Error(response.message || 'Failed to dispatch test job');
+                throw new Error(response.message || response.error?.message || 'Failed to dispatch test job');
             }
             
         } catch (error) {
@@ -149,8 +149,8 @@ class AdminQueueTesting {
 
         const data = await response.json();
         
-        if (data.success && data.status) {
-            const status = data.status;
+        if (data.success && data.data && data.data.status) {
+            const status = data.data.status;
             
             switch (status.status) {
                 case 'completed':
@@ -424,16 +424,18 @@ class AdminQueueTesting {
 
             const data = await response.json();
             
-            if (data.success && data.metrics) {
-                this.updateQueueHealthDisplay(data.metrics);
+            if (data.success && data.data && data.data.metrics) {
+                this.updateQueueHealthDisplay(data.data.metrics);
             }
             
         } catch (error) {
             console.error('Failed to load queue health:', error);
             this.updateQueueHealthDisplay({
-                status: 'error',
-                recent_jobs_count: 0,
-                failed_jobs_count: 0
+                overall_status: 'error',
+                job_statistics: {
+                    pending_jobs: 0,
+                    failed_jobs_total: 0
+                }
             });
         }
     }
@@ -443,7 +445,10 @@ class AdminQueueTesting {
             let statusText = 'Unknown';
             let statusClass = 'text-gray-900';
             
-            switch (metrics.status) {
+            // Use overall_status from the API response
+            const status = metrics.overall_status || metrics.status;
+            
+            switch (status) {
                 case 'healthy':
                     statusText = 'Healthy';
                     statusClass = 'text-green-600';
@@ -452,9 +457,14 @@ class AdminQueueTesting {
                     statusText = 'Warning';
                     statusClass = 'text-yellow-600';
                     break;
+                case 'critical':
                 case 'error':
                     statusText = 'Error';
                     statusClass = 'text-red-600';
+                    break;
+                case 'idle':
+                    statusText = 'Idle';
+                    statusClass = 'text-blue-600';
                     break;
             }
             
@@ -463,11 +473,15 @@ class AdminQueueTesting {
         }
         
         if (this.recentJobsCount) {
-            this.recentJobsCount.textContent = metrics.recent_jobs_count || 0;
+            // Get recent jobs count from job_statistics
+            const recentJobs = metrics.job_statistics?.pending_jobs || 0;
+            this.recentJobsCount.textContent = recentJobs;
         }
         
         if (this.failedJobsCount) {
-            this.failedJobsCount.textContent = metrics.failed_jobs_count || 0;
+            // Get failed jobs count from job_statistics
+            const failedJobs = metrics.job_statistics?.failed_jobs_total || 0;
+            this.failedJobsCount.textContent = failedJobs;
         }
     }
 
