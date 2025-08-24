@@ -245,14 +245,17 @@ class SetupSecurityService
     /**
      * Securely read a file with path validation and error handling.
      * 
-     * @param string $filePath The file path to read
+     * @param string $filePath The file path to read (relative to storage/app or absolute)
      * @return array Result with success status, content, and message
      */
     public function secureFileRead(string $filePath): array
     {
         try {
+            // Convert relative paths to absolute paths within storage/app
+            $absolutePath = $this->resolveStoragePath($filePath);
+            
             // Validate the file path for security
-            $pathValidation = $this->validateFilePath($filePath);
+            $pathValidation = $this->validateFilePath($absolutePath);
             if (!$pathValidation['is_valid']) {
                 return [
                     'success' => false,
@@ -262,7 +265,7 @@ class SetupSecurityService
             }
 
             // Check if file exists
-            if (!file_exists($filePath)) {
+            if (!file_exists($absolutePath)) {
                 return [
                     'success' => false,
                     'content' => null,
@@ -271,7 +274,7 @@ class SetupSecurityService
             }
 
             // Check if file is readable
-            if (!is_readable($filePath)) {
+            if (!is_readable($absolutePath)) {
                 return [
                     'success' => false,
                     'content' => null,
@@ -280,7 +283,7 @@ class SetupSecurityService
             }
 
             // Read file content
-            $content = file_get_contents($filePath);
+            $content = file_get_contents($absolutePath);
             
             if ($content === false) {
                 return [
@@ -306,6 +309,55 @@ class SetupSecurityService
     }
 
     /**
+     * Resolve a file path to an absolute path within the storage directory.
+     * 
+     * @param string $filePath The file path (relative or absolute)
+     * @return string The absolute path within storage/app
+     */
+    private function resolveStoragePath(string $filePath): string
+    {
+        // If already an absolute path within storage, return as-is
+        if (str_starts_with($filePath, storage_path())) {
+            return $filePath;
+        }
+        
+        // Convert relative path to absolute path within storage/app
+        return storage_path('app/' . ltrim($filePath, '/'));
+    }
+
+    /**
+     * Normalize a file path by resolving . and .. components.
+     * 
+     * @param string $path The path to normalize
+     * @return string The normalized path
+     */
+    private function normalizePath(string $path): string
+    {
+        // Convert to absolute path if relative
+        if (!str_starts_with($path, '/')) {
+            $path = getcwd() . '/' . $path;
+        }
+        
+        // Split path into components
+        $parts = explode('/', $path);
+        $normalized = [];
+        
+        foreach ($parts as $part) {
+            if ($part === '' || $part === '.') {
+                continue;
+            }
+            
+            if ($part === '..') {
+                array_pop($normalized);
+            } else {
+                $normalized[] = $part;
+            }
+        }
+        
+        return '/' . implode('/', $normalized);
+    }
+
+    /**
      * Validate file path for security concerns.
      * 
      * @param string $filePath The file path to validate
@@ -326,16 +378,24 @@ class SetupSecurityService
         }
         
         // Ensure path is within allowed directories (storage path)
-        $realPath = realpath(dirname($filePath));
+        $directory = dirname($filePath);
+        
+        // Try to get real path, but if directory doesn't exist, normalize the path
+        $realPath = realpath($directory);
+        if ($realPath === false) {
+            // Directory doesn't exist, so normalize the path manually
+            $realPath = $this->normalizePath($directory);
+        }
+        
         $allowedPaths = [
-            realpath(storage_path()),
-            realpath(storage_path('app')),
-            realpath(storage_path('logs'))
+            realpath(storage_path()) ?: $this->normalizePath(storage_path()),
+            realpath(storage_path('app')) ?: $this->normalizePath(storage_path('app')),
+            realpath(storage_path('logs')) ?: $this->normalizePath(storage_path('logs'))
         ];
         
         $isAllowed = false;
         foreach ($allowedPaths as $allowedPath) {
-            if ($allowedPath && strpos($realPath, $allowedPath) === 0) {
+            if ($allowedPath && str_starts_with($realPath, $allowedPath)) {
                 $isAllowed = true;
                 break;
             }
@@ -349,6 +409,181 @@ class SetupSecurityService
             'is_valid' => empty($violations),
             'violations' => $violations
         ];
+    }
+
+    /**
+     * Securely write content to a file with path validation and error handling.
+     * 
+     * @param string $filePath The file path to write to (relative to storage/app or absolute)
+     * @param string $content The content to write
+     * @param int $mode The file permissions mode (default: 0644)
+     * @return array Result with success status, message, and bytes written
+     */
+    public function secureFileWrite(string $filePath, string $content, int $mode = 0644): array
+    {
+        try {
+            // Convert relative paths to absolute paths within storage/app
+            $absolutePath = $this->resolveStoragePath($filePath);
+            
+            // Validate the file path for security
+            $pathValidation = $this->validateFilePath($absolutePath);
+            if (!$pathValidation['is_valid']) {
+                $this->logSecurityEvent('secure_file_write_failed', [
+                    'file_path' => $filePath,
+                    'absolute_path' => $absolutePath,
+                    'reason' => 'path_validation_failed',
+                    'violations' => $pathValidation['violations']
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'Invalid file path: ' . implode(', ', $pathValidation['violations']),
+                    'violations' => $pathValidation['violations'],
+                    'bytes_written' => null
+                ];
+            }
+
+            // Ensure parent directory exists
+            $directory = dirname($absolutePath);
+            if (!is_dir($directory)) {
+                if (!mkdir($directory, 0755, true)) {
+                    $this->logSecurityEvent('secure_file_write_failed', [
+                        'file_path' => $filePath,
+                        'absolute_path' => $absolutePath,
+                        'reason' => 'directory_creation_failed',
+                        'directory' => $directory
+                    ]);
+                    
+                    return [
+                        'success' => false,
+                        'message' => 'Failed to create parent directory: ' . $directory,
+                        'violations' => [],
+                        'bytes_written' => null
+                    ];
+                }
+            }
+
+            // Check if directory is writable
+            if (!is_writable($directory)) {
+                $this->logSecurityEvent('secure_file_write_failed', [
+                    'file_path' => $filePath,
+                    'absolute_path' => $absolutePath,
+                    'reason' => 'directory_not_writable',
+                    'directory' => $directory
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'Directory is not writable: ' . $directory,
+                    'violations' => [],
+                    'bytes_written' => null
+                ];
+            }
+
+            // Use atomic write with temporary file
+            $tempFile = $absolutePath . '.tmp.' . uniqid();
+            
+            // Write content to temporary file
+            $bytesWritten = file_put_contents($tempFile, $content, LOCK_EX);
+            
+            if ($bytesWritten === false) {
+                // Clean up temporary file if it was created
+                if (file_exists($tempFile)) {
+                    unlink($tempFile);
+                }
+                
+                $this->logSecurityEvent('secure_file_write_failed', [
+                    'file_path' => $filePath,
+                    'absolute_path' => $absolutePath,
+                    'reason' => 'write_failed',
+                    'temp_file' => $tempFile
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'Failed to write content to file: ' . $filePath,
+                    'violations' => [],
+                    'bytes_written' => null
+                ];
+            }
+
+            // Set file permissions on temporary file
+            if (!chmod($tempFile, $mode)) {
+                // Clean up temporary file
+                unlink($tempFile);
+                
+                $this->logSecurityEvent('secure_file_write_failed', [
+                    'file_path' => $filePath,
+                    'absolute_path' => $absolutePath,
+                    'reason' => 'chmod_failed',
+                    'mode' => decoct($mode),
+                    'temp_file' => $tempFile
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'Failed to set file permissions: ' . decoct($mode),
+                    'violations' => [],
+                    'bytes_written' => null
+                ];
+            }
+
+            // Atomically move temporary file to final location
+            if (!rename($tempFile, $absolutePath)) {
+                // Clean up temporary file
+                unlink($tempFile);
+                
+                $this->logSecurityEvent('secure_file_write_failed', [
+                    'file_path' => $filePath,
+                    'absolute_path' => $absolutePath,
+                    'reason' => 'atomic_move_failed',
+                    'temp_file' => $tempFile
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'Failed to move temporary file to final location: ' . $filePath,
+                    'violations' => [],
+                    'bytes_written' => null
+                ];
+            }
+
+            // Log successful write
+            $this->logSecurityEvent('secure_file_write_success', [
+                'file_path' => $filePath,
+                'absolute_path' => $absolutePath,
+                'bytes_written' => $bytesWritten,
+                'mode' => decoct($mode)
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'File written successfully',
+                'violations' => [],
+                'bytes_written' => $bytesWritten
+            ];
+
+        } catch (\Exception $e) {
+            // Clean up temporary file if it exists
+            if (isset($tempFile) && file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+            
+            $this->logSecurityEvent('secure_file_write_failed', [
+                'file_path' => $filePath,
+                'absolute_path' => $absolutePath ?? 'unknown',
+                'reason' => 'exception',
+                'exception_message' => $e->getMessage(),
+                'exception_class' => get_class($e)
+            ]);
+            
+            return [
+                'success' => false,
+                'message' => 'Error writing file: ' . $e->getMessage(),
+                'violations' => [],
+                'bytes_written' => null
+            ];
+        }
     }
 
     /**
