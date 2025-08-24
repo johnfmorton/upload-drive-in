@@ -105,9 +105,11 @@ Route::middleware(['auth', \App\Http\Middleware\FileDownloadRateLimitMiddleware:
 Route::get('/health', [\App\Http\Controllers\HealthController::class, 'check'])->name('health.check');
 Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, 'detailed'])->name('health.detailed');
 
-// Public Queue Testing Routes (for setup instructions)
-Route::post('/setup/queue/test', [\App\Http\Controllers\SetupController::class, 'testQueue'])->name('setup.queue.test');
-Route::get('/setup/queue/test/status', [\App\Http\Controllers\SetupController::class, 'checkQueueTestStatus'])->name('setup.queue.test.status');
+// Public Queue Testing Routes (for setup instructions) - with rate limiting
+Route::middleware(['setup.status.throttle:10,1'])->group(function () {
+    Route::post('/setup/queue/test', [\App\Http\Controllers\SetupController::class, 'testQueue'])->name('setup.queue.test');
+    Route::get('/setup/queue/test/status', [\App\Http\Controllers\SetupController::class, 'checkQueueTestStatus'])->name('setup.queue.test.status');
+});
 
 // Temporary debug route - remove after debugging
 Route::get('/debug-setup-status', function () {

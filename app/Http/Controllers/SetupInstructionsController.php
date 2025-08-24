@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\SetupDetectionService;
 use App\Services\SetupStatusService;
+use App\Services\SetupSecurityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ class SetupInstructionsController extends Controller
 {
     public function __construct(
         private SetupDetectionService $setupDetectionService,
-        private SetupStatusService $setupStatusService
+        private SetupStatusService $setupStatusService,
+        private SetupSecurityService $setupSecurityService
     ) {}
 
     /**
@@ -54,7 +56,35 @@ class SetupInstructionsController extends Controller
     public function refreshStatus(Request $request): JsonResponse
     {
         try {
-            // Validate CSRF token (handled automatically by VerifyCsrfToken middleware)
+            // Security validation
+            if ($this->setupSecurityService->shouldBlockRequest($request)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Request blocked for security reasons.',
+                        'code' => 'SECURITY_BLOCK'
+                    ]
+                ], 403);
+            }
+
+            // Validate and sanitize input
+            $sanitization = $this->setupSecurityService->sanitizeStatusRequest($request->all());
+            if (!$sanitization['is_valid']) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Invalid request parameters.',
+                        'code' => 'VALIDATION_ERROR',
+                        'details' => $sanitization['violations']
+                    ]
+                ], 422);
+            }
+
+            // Log security event
+            $this->setupSecurityService->logSecurityEvent('status_refresh_requested', [
+                'route' => 'setup.status.refresh',
+                'sanitized_input' => $sanitization['sanitized']
+            ]);
             
             // Get fresh status data for all steps
             $statuses = $this->setupStatusService->refreshAllStatuses();
@@ -98,12 +128,48 @@ class SetupInstructionsController extends Controller
     public function refreshSingleStep(Request $request): JsonResponse
     {
         try {
-            // Validate the step parameter
-            $validated = $request->validate([
-                'step' => 'required|string|in:database,mail,google_drive,migrations,admin_user,queue_worker'
-            ]);
+            // Security validation
+            if ($this->setupSecurityService->shouldBlockRequest($request)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Request blocked for security reasons.',
+                        'code' => 'SECURITY_BLOCK'
+                    ]
+                ], 403);
+            }
+
+            // Validate and sanitize input
+            $sanitization = $this->setupSecurityService->sanitizeStatusRequest($request->all());
+            if (!$sanitization['is_valid']) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Invalid request parameters.',
+                        'code' => 'VALIDATION_ERROR',
+                        'details' => $sanitization['violations']
+                    ]
+                ], 422);
+            }
+
+            // Additional validation for required step parameter
+            if (!isset($sanitization['sanitized']['step'])) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Step parameter is required.',
+                        'code' => 'MISSING_STEP'
+                    ]
+                ], 422);
+            }
             
-            $stepName = $validated['step'];
+            $stepName = $sanitization['sanitized']['step'];
+
+            // Log security event
+            $this->setupSecurityService->logSecurityEvent('single_step_refresh_requested', [
+                'route' => 'setup.status.refresh-step',
+                'step' => $stepName
+            ]);
             
             // Clear cache and get fresh status for all steps (since steps may be interdependent)
             $this->setupStatusService->clearStatusCache();
@@ -132,16 +198,6 @@ class SetupInstructionsController extends Controller
                 ],
                 'message' => "Status for '{$stepStatus['step_name']}' refreshed successfully"
             ]);
-            
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'message' => 'Invalid request parameters.',
-                    'code' => 'VALIDATION_ERROR',
-                    'details' => $e->errors()
-                ]
-            ], 422);
             
         } catch (Exception $e) {
             \Log::error('Failed to refresh single step status', [

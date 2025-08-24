@@ -79,6 +79,7 @@ class Kernel extends HttpKernel
         'prevent.client.password.login' => PreventClientPasswordLogin::class,
         '2fa' => RequireTwoFactorAuth::class,
         'file.download.throttle' => \App\Http\Middleware\FileDownloadRateLimitMiddleware::class,
+        'setup.status.throttle' => \App\Http\Middleware\SetupStatusRateLimitMiddleware::class,
         'require.setup' => \App\Http\Middleware\RequireSetupMiddleware::class,
         'setup.detection' => SetupDetectionMiddleware::class,
     ];

@@ -84,7 +84,7 @@
   - Implement "Cannot Verify" status with manual verification instructions
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 6.4_
 
-- [ ] 12. Implement comprehensive error handling and fallback mechanisms
+- [-] 12. Implement comprehensive error handling and fallback mechanisms
   - Add graceful degradation when status services are unavailable
   - Implement timeout handling for all status checks and queue tests
   - Add fallback to cached results when fresh checks fail
@@ -108,7 +108,7 @@
   - Ensure test coverage meets project standards (>80%)
   - _Requirements: All requirements validation_
 
-- [ ] 15. Add security measures and access control
+- [x] 15. Add security measures and access control
   - Implement proper authentication checks for all AJAX endpoints
   - Add CSRF protection for all form submissions and AJAX requests
   - Implement rate limiting for status checks and queue tests

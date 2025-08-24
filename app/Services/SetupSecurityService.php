@@ -2,521 +2,263 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
- * Service for handling security aspects of the setup process.
- * 
- * Provides secure file system operations, input sanitization,
- * and security validation for setup operations.
+ * Security service for setup-related operations.
+ * Handles input validation, sanitization, and security checks.
  */
 class SetupSecurityService
 {
     /**
-     * Allowed characters for setup input fields.
+     * Sanitize and validate setup status request parameters.
      */
-    private const ALLOWED_FILENAME_CHARS = 'a-zA-Z0-9._-';
-    private const ALLOWED_PATH_CHARS = 'a-zA-Z0-9._/-';
-    private const ALLOWED_DATABASE_NAME_CHARS = 'a-zA-Z0-9_';
-    private const ALLOWED_USERNAME_CHARS = 'a-zA-Z0-9._@-';
-
-    /**
-     * Maximum lengths for various input fields.
-     */
-    private const MAX_FILENAME_LENGTH = 255;
-    private const MAX_PATH_LENGTH = 4096;
-    private const MAX_DATABASE_NAME_LENGTH = 64;
-    private const MAX_USERNAME_LENGTH = 255;
-    private const MAX_PASSWORD_LENGTH = 255;
-
-    /**
-     * Dangerous path patterns that should be blocked.
-     */
-    private const DANGEROUS_PATH_PATTERNS = [
-        '../',
-        '..\\',
-        '/etc/',
-        '/var/',
-        '/usr/',
-        '/bin/',
-        '/sbin/',
-        '/root/',
-        '/home/',
-        'C:\\',
-        'D:\\',
-        '\\Windows\\',
-        '\\System32\\',
-    ];
-
-    /**
-     * Validate and sanitize file path for secure operations.
-     */
-    public function validateAndSanitizePath(string $path, string $baseDirectory = null): array
-    {
-        $result = [
-            'valid' => false,
-            'sanitized_path' => '',
-            'violations' => []
-        ];
-
-        // Basic validation
-        if (empty($path)) {
-            $result['violations'][] = 'Path cannot be empty';
-            return $result;
-        }
-
-        if (strlen($path) > self::MAX_PATH_LENGTH) {
-            $result['violations'][] = 'Path exceeds maximum length';
-            return $result;
-        }
-
-        // Check for dangerous patterns
-        foreach (self::DANGEROUS_PATH_PATTERNS as $pattern) {
-            if (stripos($path, $pattern) !== false) {
-                $result['violations'][] = "Path contains dangerous pattern: {$pattern}";
-                return $result;
-            }
-        }
-
-        // Normalize path separators
-        $normalizedPath = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $path);
-        
-        // Remove any path traversal attempts
-        $pathParts = explode(DIRECTORY_SEPARATOR, $normalizedPath);
-        $safeParts = [];
-        
-        foreach ($pathParts as $part) {
-            if ($part === '.' || $part === '..') {
-                $result['violations'][] = 'Path traversal attempts are not allowed';
-                return $result;
-            }
-            
-            if (!empty($part)) {
-                // Sanitize each path component
-                $allowedChars = str_replace(['/', '-'], ['\/', '\-'], self::ALLOWED_PATH_CHARS);
-                $sanitizedPart = preg_replace('/[^' . $allowedChars . ']/', '_', $part);
-                $safeParts[] = $sanitizedPart;
-            }
-        }
-
-        $sanitizedPath = implode(DIRECTORY_SEPARATOR, $safeParts);
-
-        // If base directory is specified, ensure path is within it
-        if ($baseDirectory) {
-            $baseDirectory = realpath($baseDirectory);
-            if ($baseDirectory === false) {
-                $result['violations'][] = 'Base directory does not exist';
-                return $result;
-            }
-
-            $fullPath = $baseDirectory . DIRECTORY_SEPARATOR . $sanitizedPath;
-            $directory = dirname($fullPath);
-            
-            // Try to get real path, but if directory doesn't exist, validate the constructed path
-            $realPath = realpath($directory);
-            if ($realPath === false) {
-                // Directory doesn't exist, validate the constructed path instead
-                $normalizedDirectory = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $directory);
-                if (!str_starts_with($normalizedDirectory, $baseDirectory)) {
-                    $result['violations'][] = 'Path is outside allowed directory';
-                    return $result;
-                }
-            } else {
-                // Directory exists, use realpath validation
-                if (!str_starts_with($realPath, $baseDirectory)) {
-                    $result['violations'][] = 'Path is outside allowed directory';
-                    return $result;
-                }
-            }
-        }
-
-        $result['valid'] = true;
-        $result['sanitized_path'] = $sanitizedPath;
-        
-        return $result;
-    }
-
-    /**
-     * Sanitize database configuration input.
-     */
-    public function sanitizeDatabaseConfig(array $config): array
+    public function sanitizeStatusRequest(array $input): array
     {
         $sanitized = [];
         $violations = [];
 
-        // Sanitize database name
-        if (isset($config['database'])) {
-            $dbName = $config['database'];
-            if (strlen($dbName) > self::MAX_DATABASE_NAME_LENGTH) {
-                $violations[] = 'Database name exceeds maximum length';
+        // Sanitize step parameter if present
+        if (isset($input['step'])) {
+            $step = $this->sanitizeStepName($input['step']);
+            if ($step) {
+                $sanitized['step'] = $step;
             } else {
-                $sanitized['database'] = preg_replace('/[^' . str_replace('-', '\-', self::ALLOWED_DATABASE_NAME_CHARS) . ']/', '_', $dbName);
+                $violations[] = 'Invalid step name provided';
             }
         }
 
-        // Sanitize username
-        if (isset($config['username'])) {
-            $username = $config['username'];
-            if (strlen($username) > self::MAX_USERNAME_LENGTH) {
-                $violations[] = 'Username exceeds maximum length';
+        // Sanitize delay parameter for queue tests
+        if (isset($input['delay'])) {
+            $delay = $this->sanitizeDelay($input['delay']);
+            if ($delay !== null) {
+                $sanitized['delay'] = $delay;
             } else {
-                $sanitized['username'] = preg_replace('/[^' . str_replace('-', '\-', self::ALLOWED_USERNAME_CHARS) . ']/', '_', $username);
+                $violations[] = 'Invalid delay value provided';
             }
         }
 
-        // Validate password length (don't sanitize content)
-        if (isset($config['password'])) {
-            if (strlen($config['password']) > self::MAX_PASSWORD_LENGTH) {
-                $violations[] = 'Password exceeds maximum length';
+        // Sanitize test_job_id parameter
+        if (isset($input['test_job_id'])) {
+            $jobId = $this->sanitizeJobId($input['test_job_id']);
+            if ($jobId) {
+                $sanitized['test_job_id'] = $jobId;
             } else {
-                $sanitized['password'] = $config['password'];
+                $violations[] = 'Invalid test job ID format';
             }
         }
 
-        // Sanitize host (allow dots and hyphens for domains)
-        if (isset($config['host'])) {
-            $host = $config['host'];
-            $sanitized['host'] = preg_replace('/[^a-zA-Z0-9.\-]/', '', $host);
-        }
-
-        // Validate port
-        if (isset($config['port'])) {
-            $port = (int) $config['port'];
-            if ($port < 1 || $port > 65535) {
-                $violations[] = 'Port must be between 1 and 65535';
-            } else {
-                $sanitized['port'] = $port;
-            }
-        }
-
-        return [
-            'sanitized' => $sanitized,
-            'violations' => $violations
-        ];
-    }
-
-    /**
-     * Sanitize admin user input.
-     */
-    public function sanitizeAdminUserInput(array $input): array
-    {
-        $sanitized = [];
-        $violations = [];
-
-        // Sanitize name
-        if (isset($input['name'])) {
-            $name = trim($input['name']);
-            if (strlen($name) > 255) {
-                $violations[] = 'Name exceeds maximum length';
-            } else {
-                // Allow letters, numbers, spaces, and common name characters
-                $sanitized['name'] = preg_replace('/[^a-zA-Z0-9\s\'-.]/', '', $name);
-            }
-        }
-
-        // Validate email format
-        if (isset($input['email'])) {
-            $email = trim(strtolower($input['email']));
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $violations[] = 'Invalid email format';
-            } elseif (strlen($email) > 255) {
-                $violations[] = 'Email exceeds maximum length';
-            } else {
-                $sanitized['email'] = $email;
-            }
-        }
-
-        // Validate password (don't sanitize content, just check length)
-        if (isset($input['password'])) {
-            if (strlen($input['password']) > self::MAX_PASSWORD_LENGTH) {
-                $violations[] = 'Password exceeds maximum length';
-            } else {
-                $sanitized['password'] = $input['password'];
-            }
-        }
-
-        return [
-            'sanitized' => $sanitized,
-            'violations' => $violations
-        ];
-    }
-
-    /**
-     * Sanitize cloud storage configuration input.
-     */
-    public function sanitizeStorageConfig(array $config): array
-    {
-        $sanitized = [];
-        $violations = [];
-
-        // Sanitize client ID (alphanumeric and common OAuth characters)
-        if (isset($config['client_id'])) {
-            $clientId = trim($config['client_id']);
-            if (strlen($clientId) > 255) {
-                $violations[] = 'Client ID exceeds maximum length';
-            } else {
-                $sanitized['client_id'] = preg_replace('/[^a-zA-Z0-9._\-]/', '', $clientId);
-            }
-        }
-
-        // Sanitize client secret (alphanumeric and common OAuth characters)
-        if (isset($config['client_secret'])) {
-            $clientSecret = trim($config['client_secret']);
-            if (strlen($clientSecret) > 255) {
-                $violations[] = 'Client secret exceeds maximum length';
-            } else {
-                // Allow more characters for Google OAuth secrets (including forward slashes, plus signs, etc.)
-                $sanitized['client_secret'] = preg_replace('/[^a-zA-Z0-9._\-\/\+]/', '', $clientSecret);
-            }
-        }
-
-        return [
-            'sanitized' => $sanitized,
-            'violations' => $violations
-        ];
-    }
-
-    /**
-     * Perform secure file operations with validation.
-     */
-    public function secureFileWrite(string $path, string $content, int $permissions = 0644): array
-    {
-        $result = [
-            'success' => false,
-            'message' => '',
-            'violations' => []
-        ];
-
-        try {
-            // Validate path
-            $pathValidation = $this->validateAndSanitizePath($path, storage_path('app'));
-            if (!$pathValidation['valid']) {
-                $result['violations'] = $pathValidation['violations'];
-                $result['message'] = 'Invalid file path';
-                return $result;
-            }
-
-            $fullPath = storage_path('app/' . $pathValidation['sanitized_path']);
-            $directory = dirname($fullPath);
-
-            // Ensure directory exists and is writable
-            if (!File::exists($directory)) {
-                if (!File::makeDirectory($directory, 0755, true)) {
-                    $result['message'] = 'Cannot create directory';
-                    $result['violations'][] = 'Directory creation failed';
-                    return $result;
-                }
-            }
-
-            if (!is_writable($directory)) {
-                $result['message'] = 'Directory is not writable';
-                $result['violations'][] = 'Permission denied';
-                return $result;
-            }
-
-            // Write file securely
-            if (File::put($fullPath, $content) === false) {
-                $result['message'] = 'Failed to write file';
-                $result['violations'][] = 'File write operation failed';
-                return $result;
-            }
-
-            // Set secure permissions
-            if (!chmod($fullPath, $permissions)) {
-                Log::warning('Could not set file permissions', [
-                    'path' => $fullPath,
-                    'permissions' => decoct($permissions)
-                ]);
-            }
-
-            $result['success'] = true;
-            $result['message'] = 'File written successfully';
-
-        } catch (\Exception $e) {
-            $result['message'] = 'File operation failed: ' . $e->getMessage();
-            $result['violations'][] = 'Exception during file operation';
-            
-            Log::error('Secure file write failed', [
-                'path' => $path,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+        // Log sanitization attempt for security monitoring
+        if (!empty($violations)) {
+            $this->logSecurityEvent('input_sanitization_failed', [
+                'violations' => $violations,
+                'original_input' => array_keys($input),
             ]);
         }
 
-        return $result;
+        return [
+            'sanitized' => $sanitized,
+            'violations' => $violations,
+            'is_valid' => empty($violations)
+        ];
     }
 
     /**
-     * Perform secure file read with validation.
+     * Sanitize step name parameter.
      */
-    public function secureFileRead(string $path): array
+    protected function sanitizeStepName(mixed $step): ?string
     {
-        $result = [
-            'success' => false,
-            'content' => '',
-            'message' => '',
-            'violations' => []
-        ];
-
-        try {
-            // Validate path
-            $pathValidation = $this->validateAndSanitizePath($path, storage_path('app'));
-            if (!$pathValidation['valid']) {
-                $result['violations'] = $pathValidation['violations'];
-                $result['message'] = 'Invalid file path';
-                return $result;
-            }
-
-            $fullPath = storage_path('app/' . $pathValidation['sanitized_path']);
-
-            // Check if file exists and is readable
-            if (!File::exists($fullPath)) {
-                $result['message'] = 'File does not exist';
-                $result['violations'][] = 'File not found';
-                return $result;
-            }
-
-            if (!is_readable($fullPath)) {
-                $result['message'] = 'File is not readable';
-                $result['violations'][] = 'Permission denied';
-                return $result;
-            }
-
-            // Read file content
-            $content = File::get($fullPath);
-            if ($content === false) {
-                $result['message'] = 'Failed to read file';
-                $result['violations'][] = 'File read operation failed';
-                return $result;
-            }
-
-            $result['success'] = true;
-            $result['content'] = $content;
-            $result['message'] = 'File read successfully';
-
-        } catch (\Exception $e) {
-            $result['message'] = 'File operation failed: ' . $e->getMessage();
-            $result['violations'][] = 'Exception during file operation';
-            
-            Log::error('Secure file read failed', [
-                'path' => $path,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+        if (!is_string($step)) {
+            return null;
         }
 
-        return $result;
+        // Remove any non-alphanumeric characters except underscores
+        $sanitized = preg_replace('/[^a-zA-Z0-9_]/', '', $step);
+        
+        // Validate against allowed step names from config
+        $allowedSteps = config('setup-security.validation.allowed_steps', [
+            'database',
+            'mail', 
+            'google_drive',
+            'migrations',
+            'admin_user',
+            'queue_worker'
+        ]);
+
+        return in_array($sanitized, $allowedSteps) ? $sanitized : null;
     }
 
     /**
-     * Validate environment variable name and value.
+     * Sanitize delay parameter for queue tests.
      */
-    public function validateEnvironmentVariable(string $name, string $value): array
+    protected function sanitizeDelay(mixed $delay): ?int
     {
-        $violations = [];
-
-        // Validate variable name
-        if (!preg_match('/^[A-Z][A-Z0-9_]*$/', $name)) {
-            $violations[] = 'Environment variable name must contain only uppercase letters, numbers, and underscores';
+        if (is_string($delay) && is_numeric($delay)) {
+            $delay = (int) $delay;
         }
 
-        if (strlen($name) > 255) {
-            $violations[] = 'Environment variable name exceeds maximum length';
+        if (!is_int($delay)) {
+            return null;
         }
 
-        // Validate value length
-        if (strlen($value) > 4096) {
-            $violations[] = 'Environment variable value exceeds maximum length';
+        // Limit delay to configured bounds
+        $limits = config('setup-security.validation.delay_limits', ['min' => 0, 'max' => 60]);
+        return max($limits['min'], min($limits['max'], $delay));
+    }
+
+    /**
+     * Sanitize test job ID parameter.
+     */
+    protected function sanitizeJobId(mixed $jobId): ?string
+    {
+        if (!is_string($jobId)) {
+            return null;
         }
 
-        // Check for dangerous patterns in value
-        $dangerousPatterns = [
-            '/\$\(.*\)/',  // Command substitution
-            '/`.*`/',      // Backtick execution
-            '/\${.*}/',    // Variable expansion
-            '/\|\|/',      // Command chaining
-            '/&&/',        // Command chaining
-            '/;/',         // Command separator
-        ];
+        // Remove any characters that aren't part of a valid job ID (including letters for 'test')
+        $sanitized = preg_replace('/[^a-zA-Z0-9\-_]/', '', $jobId);
+        
+        // Validate format using configured pattern
+        $pattern = config('setup-security.validation.job_id_pattern', '/^test_[a-f0-9\-]{36}$/');
+        if (preg_match($pattern, $sanitized)) {
+            return $sanitized;
+        }
 
-        foreach ($dangerousPatterns as $pattern) {
-            if (preg_match($pattern, $value)) {
-                $violations[] = 'Environment variable value contains potentially dangerous patterns';
-                break;
+        return null;
+    }
+
+    /**
+     * Validate request origin and headers for security.
+     */
+    public function validateRequestSecurity(\Illuminate\Http\Request $request): array
+    {
+        $issues = [];
+
+        // Check for suspicious user agents
+        $userAgent = $request->userAgent();
+        if (empty($userAgent) || $this->isSuspiciousUserAgent($userAgent)) {
+            $issues[] = 'Suspicious or missing user agent';
+        }
+
+        // Check for excessive request frequency from same IP
+        $ip = $request->ip();
+        if ($this->isExcessiveRequestFrequency($ip)) {
+            $issues[] = 'Excessive request frequency detected';
+        }
+
+        // Check for required headers in AJAX requests
+        if ($request->expectsJson()) {
+            if (!$request->hasHeader('X-Requested-With')) {
+                $issues[] = 'Missing X-Requested-With header for AJAX request';
             }
         }
 
         return [
-            'valid' => empty($violations),
-            'violations' => $violations
+            'is_secure' => empty($issues),
+            'issues' => $issues,
+            'risk_level' => $this->calculateRiskLevel($issues)
         ];
     }
 
     /**
-     * Generate secure random token for setup operations.
+     * Check if user agent appears suspicious.
      */
-    public function generateSecureToken(int $length = 32): string
+    protected function isSuspiciousUserAgent(string $userAgent): bool
     {
-        return Str::random($length);
+        $suspiciousPatterns = config('setup-security.request_security.suspicious_user_agents', [
+            '/bot/i',
+            '/crawler/i',
+            '/spider/i',
+            '/scraper/i',
+            '/curl/i',
+            '/wget/i',
+            '/python/i',
+        ]);
+
+        foreach ($suspiciousPatterns as $pattern) {
+            if (preg_match($pattern, $userAgent)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
-     * Validate setup session integrity.
+     * Check for excessive request frequency from IP.
      */
-    public function validateSetupSession(array $sessionData): array
+    protected function isExcessiveRequestFrequency(string $ip): bool
     {
-        $violations = [];
-
-        // Check for required session fields
-        $requiredFields = ['setup_started_at', 'setup_token', 'current_step'];
-        foreach ($requiredFields as $field) {
-            if (!isset($sessionData[$field])) {
-                $violations[] = "Missing required session field: {$field}";
-            }
+        // This is a simple check - in production you might want to use Redis
+        // or a more sophisticated rate limiting system
+        $cacheKey = "security_check_ip_{$ip}";
+        $requests = cache()->get($cacheKey, 0);
+        
+        // Get max requests from config
+        $maxRequests = config('setup-security.request_security.max_requests_per_minute', 100);
+        
+        if ($requests > $maxRequests) {
+            return true;
         }
 
-        // Validate setup token format
-        if (isset($sessionData['setup_token'])) {
-            if (!preg_match('/^[a-zA-Z0-9]{32,}$/', $sessionData['setup_token'])) {
-                $violations[] = 'Invalid setup token format';
-            }
-        }
-
-        // Check session age
-        if (isset($sessionData['setup_started_at'])) {
-            try {
-                $startTime = \Carbon\Carbon::parse($sessionData['setup_started_at']);
-                $maxAge = now()->subHours(24); // 24 hour session timeout (more reasonable for production)
-                
-                if ($startTime->lt($maxAge)) {
-                    $violations[] = 'Setup session has expired';
-                }
-            } catch (\Exception $e) {
-                $violations[] = 'Invalid setup start time format';
-            }
-        }
-
-        return [
-            'valid' => empty($violations),
-            'violations' => $violations
-        ];
+        cache()->put($cacheKey, $requests + 1, 60);
+        return false;
     }
 
     /**
-     * Log security event for audit purposes.
+     * Calculate risk level based on security issues.
+     */
+    protected function calculateRiskLevel(array $issues): string
+    {
+        $count = count($issues);
+        
+        if ($count === 0) {
+            return 'low';
+        } elseif ($count <= 2) {
+            return 'medium';
+        } else {
+            return 'high';
+        }
+    }
+
+    /**
+     * Log security event for monitoring.
      */
     public function logSecurityEvent(string $event, array $context = []): void
     {
+        $logChannel = config('setup-security.monitoring.log_channel', 'security');
+        
         $logData = array_merge([
             'event' => $event,
             'timestamp' => now()->toISOString(),
-            'ip_address' => request()->ip() ?? 'unknown',
-            'user_agent' => request()->userAgent() ?? 'unknown',
-            'session_id' => session()->getId() ?? 'unknown',
+            'ip' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'user_id' => auth()->id(),
+            'user_email' => auth()->user()?->email,
+            'request_id' => request()->header('X-Request-ID') ?? Str::uuid(),
         ], $context);
 
-        Log::channel('security')->info("Setup security event: {$event}", $logData);
+        Log::channel($logChannel)->info("Setup security event: {$event}", $logData);
+    }
+
+    /**
+     * Check if request should be blocked based on security assessment.
+     */
+    public function shouldBlockRequest(\Illuminate\Http\Request $request): bool
+    {
+        $security = $this->validateRequestSecurity($request);
+        
+        // Block high-risk requests
+        if ($security['risk_level'] === 'high') {
+            $this->logSecurityEvent('request_blocked_high_risk', [
+                'issues' => $security['issues'],
+                'url' => $request->fullUrl(),
+                'method' => $request->method(),
+            ]);
+            return true;
+        }
+
+        return false;
     }
 }

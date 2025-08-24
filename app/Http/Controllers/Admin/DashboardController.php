@@ -130,6 +130,17 @@ class DashboardController extends AdminController
      */
     public function testQueue(Request $request, QueueTestService $queueTestService): JsonResponse
     {
+        // Ensure user is authenticated and is admin (handled by AdminController parent class)
+        if (!auth()->check() || !auth()->user()->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'message' => 'Unauthorized access.',
+                    'code' => 'UNAUTHORIZED'
+                ]
+            ], 403);
+        }
+
         // Validate optional delay parameter (let validation exceptions bubble up)
         $request->validate([
             'delay' => 'sometimes|integer|min:0|max:60'
@@ -145,6 +156,7 @@ class DashboardController extends AdminController
                 'test_job_id' => $jobId,
                 'delay' => $delay,
                 'admin_user_id' => auth()->id(),
+                'admin_email' => auth()->user()->email,
             ]);
             
             return response()->json([
@@ -159,6 +171,7 @@ class DashboardController extends AdminController
             Log::error('Failed to dispatch queue test job via admin dashboard', [
                 'error' => $e->getMessage(),
                 'admin_user_id' => auth()->id(),
+                'admin_email' => auth()->user()->email,
             ]);
             
             return response()->json([
@@ -178,6 +191,17 @@ class DashboardController extends AdminController
      */
     public function checkQueueTestStatus(Request $request, QueueTestService $queueTestService): JsonResponse
     {
+        // Ensure user is authenticated and is admin
+        if (!auth()->check() || !auth()->user()->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'message' => 'Unauthorized access.',
+                    'code' => 'UNAUTHORIZED'
+                ]
+            ], 403);
+        }
+
         try {
             // Validate job ID parameter
             $request->validate([
@@ -206,6 +230,7 @@ class DashboardController extends AdminController
                 'error' => $e->getMessage(),
                 'test_job_id' => $request->input('test_job_id'),
                 'admin_user_id' => auth()->id(),
+                'admin_email' => auth()->user()->email,
             ]);
             
             return response()->json([
@@ -224,6 +249,17 @@ class DashboardController extends AdminController
      */
     public function getQueueHealth(QueueTestService $queueTestService): JsonResponse
     {
+        // Ensure user is authenticated and is admin
+        if (!auth()->check() || !auth()->user()->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'message' => 'Unauthorized access.',
+                    'code' => 'UNAUTHORIZED'
+                ]
+            ], 403);
+        }
+
         try {
             // Get queue health metrics
             $metrics = $queueTestService->getQueueHealthMetrics();
@@ -237,6 +273,7 @@ class DashboardController extends AdminController
             Log::error('Failed to get queue health metrics via admin dashboard', [
                 'error' => $e->getMessage(),
                 'admin_user_id' => auth()->id(),
+                'admin_email' => auth()->user()->email,
             ]);
             
             return response()->json([
