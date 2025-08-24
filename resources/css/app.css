@@ -113,14 +113,92 @@ input[type='file']:focus::file-selector-button {
 .step-status-details {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s ease-out;
+  transition: all 0.3s ease-out;
   margin-top: 0;
+  opacity: 0;
 }
 
 .step-status-details.show {
   max-height: 500px;
   margin-top: 0.75rem;
-  transition: max-height 0.3s ease-in;
+  opacity: 1;
+  transition: all 0.3s ease-in;
+}
+
+/* Status Indicator Transitions */
+.status-indicator {
+  transition: all 0.2s ease-in-out;
+}
+
+.status-indicator:hover {
+  transform: scale(1.02);
+}
+
+/* Button Enhancements */
+.refresh-button {
+  transition: all 0.2s ease-in-out;
+}
+
+.refresh-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.refresh-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Loading Spinner Animation */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Smooth Status Updates */
+.status-updating {
+  opacity: 0.6;
+  transition: opacity 0.15s ease-in-out;
+}
+
+/* Message Animations */
+.status-message {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Improvements */
+@media (max-width: 640px) {
+  .step-status-container {
+    padding: 0.75rem;
+  }
+  
+  .status-indicator {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+  }
+  
+  .refresh-button {
+    width: 100%;
+    margin-top: 1rem;
+  }
 }
 
 .step-status-details code {
