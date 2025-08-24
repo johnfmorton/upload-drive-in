@@ -279,6 +279,9 @@ class QueueTestService
             // Test job statistics
             $metrics['test_job_statistics'] = $this->getTestJobStatistics();
             
+            // Recent failed job details (for admin context)
+            $metrics['recent_failed_jobs'] = $this->getRecentFailedJobDetails($last24Hours);
+            
             // Overall health assessment
             $metrics = array_merge($metrics, $this->assessQueueHealth($metrics));
             
@@ -495,6 +498,55 @@ class QueueTestService
                 'test_jobs_24h' => 0,
                 'error' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Get recent failed job details for admin context.
+     * 
+     * @param Carbon $since Get failed jobs since this time
+     * @return array Recent failed job details
+     */
+    private function getRecentFailedJobDetails(Carbon $since): array
+    {
+        try {
+            $failedJobs = DB::table('failed_jobs')
+                ->where('failed_at', '>=', $since)
+                ->orderBy('failed_at', 'desc')
+                ->limit(5) // Only get the 5 most recent
+                ->get(['id', 'queue', 'payload', 'exception', 'failed_at']);
+            
+            $details = [];
+            foreach ($failedJobs as $job) {
+                $payload = json_decode($job->payload, true);
+                $jobClass = $payload['displayName'] ?? 'Unknown Job';
+                
+                // Extract the main error message (first line of exception)
+                $exceptionLines = explode("\n", $job->exception);
+                $mainError = $exceptionLines[0] ?? 'Unknown error';
+                
+                // Clean up the error message
+                if (strpos($mainError, ':') !== false) {
+                    $parts = explode(':', $mainError, 2);
+                    $mainError = trim($parts[1] ?? $parts[0]);
+                }
+                
+                $details[] = [
+                    'id' => $job->id,
+                    'job_class' => $jobClass,
+                    'queue' => $job->queue,
+                    'error_message' => $mainError,
+                    'failed_at' => $job->failed_at,
+                ];
+            }
+            
+            return $details;
+        } catch (Exception $e) {
+            Log::warning('Failed to get recent failed job details', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return [];
         }
     }
 

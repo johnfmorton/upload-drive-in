@@ -49,11 +49,23 @@ class DashboardController extends AdminController
         $completedAt = \Carbon\Carbon::parse($setupState['completed_at']);
         $isRecentlyCompleted = $completedAt->diffInMinutes(now()) <= 5;
 
-        // Check if user has logged in before (excluding the current session)
-        $hasLoggedInBefore = $user->last_login_at && 
-                           $user->last_login_at->lt($completedAt);
+        // If setup wasn't recently completed, don't show first-time message
+        if (!$isRecentlyCompleted) {
+            return false;
+        }
 
-        return $isRecentlyCompleted && !$hasLoggedInBefore;
+        // Check if we've already shown the first-time login message
+        // We'll use a session flag to track this per setup completion
+        $sessionKey = 'first_time_login_shown_' . $completedAt->timestamp;
+        
+        if (session()->has($sessionKey)) {
+            return false;
+        }
+
+        // Mark that we're showing the first-time login message
+        session()->put($sessionKey, true);
+        
+        return true;
     }
 
     public function destroy(FileUpload $file)

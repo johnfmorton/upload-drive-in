@@ -41,14 +41,15 @@ class AuthenticatedSessionController extends Controller
         if ($user) {
             $user->update(['last_login_at' => now()]);
         }
+        
         if ($user && $user->isAdmin()) {
             if ($user->two_factor_enabled) {
-            // Store the intended URL before redirecting to 2FA verification
+                // Store the intended URL before redirecting to 2FA verification
                 session(['url.intended' => route('admin.dashboard')]);
 
-            return redirect()->route('admin.2fa.verify')
-                ->with('warning', 'Please verify your two-factor authentication code.');
-        }
+                return redirect()->route('admin.2fa.verify')
+                    ->with('warning', 'Please verify your two-factor authentication code.');
+            }
 
             // If admin but no 2FA, redirect to admin dashboard
             return redirect()->route('admin.dashboard');

@@ -31,6 +31,7 @@ class AdminQueueTesting {
         // Queue health overview
         this.queueStatus = document.getElementById('queue-status');
         this.recentJobsCount = document.getElementById('recent-jobs-count');
+        this.recentJobsDescription = document.getElementById('recent-jobs-description');
         this.failedJobsCount = document.getElementById('failed-jobs-count');
         
         // Test results sections
@@ -44,6 +45,10 @@ class AdminQueueTesting {
         this.historicalResultsSection = document.getElementById('historical-results-section');
         this.historicalResultsList = document.getElementById('historical-results-list');
         this.clearTestHistoryBtn = document.getElementById('clear-test-history-btn');
+        
+        // Failed jobs details
+        this.failedJobsDetailsSection = document.getElementById('failed-jobs-details-section');
+        this.failedJobsList = document.getElementById('failed-jobs-list');
     }
 
     bindEvents() {
@@ -473,15 +478,40 @@ class AdminQueueTesting {
         }
         
         if (this.recentJobsCount) {
-            // Get recent jobs count from job_statistics
-            const recentJobs = metrics.job_statistics?.pending_jobs || 0;
-            this.recentJobsCount.textContent = recentJobs;
+            // Show recent test jobs (more meaningful than pending jobs for admin dashboard)
+            const recentTestJobs = metrics.test_job_statistics?.test_jobs_1h || 0;
+            const pendingJobs = metrics.job_statistics?.pending_jobs || 0;
+            
+            // Show recent test jobs if any, otherwise show pending jobs
+            if (recentTestJobs > 0) {
+                this.recentJobsCount.textContent = recentTestJobs;
+                if (this.recentJobsDescription) {
+                    this.recentJobsDescription.textContent = 'Test jobs (1h)';
+                }
+            } else if (pendingJobs > 0) {
+                this.recentJobsCount.textContent = pendingJobs;
+                if (this.recentJobsDescription) {
+                    this.recentJobsDescription.textContent = 'Pending jobs';
+                }
+            } else {
+                this.recentJobsCount.textContent = '0';
+                if (this.recentJobsDescription) {
+                    this.recentJobsDescription.textContent = 'No recent activity';
+                }
+            }
         }
         
         if (this.failedJobsCount) {
             // Get failed jobs count from job_statistics
             const failedJobs = metrics.job_statistics?.failed_jobs_total || 0;
             this.failedJobsCount.textContent = failedJobs;
+            
+            // Show/hide failed jobs details section
+            if (failedJobs > 0 && metrics.recent_failed_jobs && metrics.recent_failed_jobs.length > 0) {
+                this.displayFailedJobsDetails(metrics.recent_failed_jobs);
+            } else {
+                this.hideFailedJobsDetails();
+            }
         }
     }
 
@@ -586,6 +616,55 @@ class AdminQueueTesting {
             this.saveTestHistory();
             this.displayTestHistory();
         }
+    }
+
+    // Failed Jobs Details Management
+    displayFailedJobsDetails(failedJobs) {
+        if (!this.failedJobsDetailsSection || !this.failedJobsList) return;
+        
+        // Show the section
+        this.failedJobsDetailsSection.classList.remove('hidden');
+        
+        // Clear existing content
+        this.failedJobsList.innerHTML = '';
+        
+        // Add each failed job
+        failedJobs.forEach(job => {
+            const jobElement = this.createFailedJobElement(job);
+            this.failedJobsList.appendChild(jobElement);
+        });
+    }
+
+    hideFailedJobsDetails() {
+        if (this.failedJobsDetailsSection) {
+            this.failedJobsDetailsSection.classList.add('hidden');
+        }
+    }
+
+    createFailedJobElement(job) {
+        const div = document.createElement('div');
+        div.className = 'bg-white border border-red-200 rounded-md p-3';
+        
+        const jobClass = job.job_class.replace('App\\Jobs\\', ''); // Shorten class name
+        const failedAt = new Date(job.failed_at).toLocaleString();
+        
+        div.innerHTML = `
+            <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium text-gray-900">
+                        ${jobClass}
+                    </div>
+                    <div class="text-sm text-red-600 mt-1">
+                        ${job.error_message}
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">
+                        Failed: ${failedAt} • Queue: ${job.queue} • ID: ${job.id}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        return div;
     }
 
     // Animation and Visual Enhancement Methods

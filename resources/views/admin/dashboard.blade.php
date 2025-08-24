@@ -124,9 +124,10 @@
                                 </svg>
                             </div>
                             <div class="ml-4">
-                                <div class="text-sm font-medium text-gray-500">Recent Jobs</div>
+                                <div class="text-sm font-medium text-gray-500">Recent Activity</div>
                                 <div id="recent-jobs-count" class="text-2xl font-bold text-gray-900">-</div>
-                            </div>
+                                <div class="text-xs text-gray-400 mt-1" id="recent-jobs-description">Test jobs (1h)</div>
+        
                         </div>
                     </div>
                     
@@ -140,6 +141,28 @@
                             <div class="ml-4">
                                 <div class="text-sm font-medium text-gray-500">Failed Jobs</div>
                                 <div id="failed-jobs-count" class="text-2xl font-bold text-gray-900">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Failed Jobs Details Section -->
+                <div id="failed-jobs-details-section" class="hidden">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <h3 class="text-sm font-medium text-red-900 mb-2">Recent Failed Jobs</h3>
+                                <div id="failed-jobs-list" class="space-y-2">
+                                    <!-- Failed job details will be inserted here -->
+                                </div>
+                                <div class="mt-3 text-xs text-red-700">
+                                    <strong>Tip:</strong> Use <code class="bg-red-100 px-1 rounded">ddev artisan queue:failed</code> to see all failed jobs, or <code class="bg-red-100 px-1 rounded">ddev artisan queue:retry all</code> to retry them.
+                                </div>
                             </div>
                         </div>
                     </div>
