@@ -19,12 +19,11 @@ use Illuminate\Support\Facades\Route;
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-// Queue Testing Routes - with rate limiting for admin users
-Route::middleware(['setup.status.throttle:60,1'])->group(function () {
-    Route::post('/queue/test', [DashboardController::class, 'testQueue'])->name('queue.test');
-    Route::get('/queue/test/status', [DashboardController::class, 'checkQueueTestStatus'])->name('queue.test.status');
-    Route::get('/queue/health', [DashboardController::class, 'getQueueHealth'])->name('queue.health');
-});
+// Queue Testing Routes for admin users
+// TODO: Re-add rate limiting middleware once container resolution is fixed
+Route::post('/queue/test', [DashboardController::class, 'testQueue'])->name('queue.test');
+Route::get('/queue/test/status', [DashboardController::class, 'checkQueueTestStatus'])->name('queue.test.status');
+Route::get('/queue/health', [DashboardController::class, 'getQueueHealth'])->name('queue.health');
 
 // Admin profile routes
 Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

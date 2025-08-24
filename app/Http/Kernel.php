@@ -8,6 +8,7 @@ use App\Http\Middleware\EmployeeMiddleware;
 use App\Http\Middleware\PreventClientPasswordLogin;
 use App\Http\Middleware\RequireSetupMiddleware;
 use App\Http\Middleware\SetupDetectionMiddleware;
+use App\Http\Middleware\SetupStatusRateLimitMiddleware;
 use UploadDriveIn\LaravelAdmin2FA\Http\Middleware\RequireTwoFactorAuth;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 

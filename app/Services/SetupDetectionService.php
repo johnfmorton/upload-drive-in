@@ -7,8 +7,13 @@ use App\Enums\UserRole;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Exception;
+use Throwable;
+use PDOException;
+use Illuminate\Database\QueryException;
 
 /**
  * Service for detecting application setup completion status.
@@ -16,9 +21,25 @@ use Exception;
  * This service checks various setup requirements including database connectivity,
  * Google Drive configuration, and admin user existence to determine if the
  * application is properly configured.
+ * 
+ * Enhanced with comprehensive error handling, timeout management, and fallback mechanisms.
  */
 class SetupDetectionService
 {
+    /**
+     * Timeout for database operations in seconds.
+     */
+    private const DB_TIMEOUT = 5;
+    
+    /**
+     * Cache TTL for fallback results in seconds.
+     */
+    private const FALLBACK_CACHE_TTL = 300; // 5 minutes
+    
+    /**
+     * Cache key prefix for fallback data.
+     */
+    private const FALLBACK_CACHE_PREFIX = 'setup_detection_fallback_';
     /**
      * Check if the complete setup is finished.
      * 
@@ -40,21 +61,61 @@ class SetupDetectionService
      */
     public function getDatabaseStatus(): bool
     {
+        $cacheKey = self::FALLBACK_CACHE_PREFIX . 'database_status';
+        
         try {
             // Check if database environment variables are configured
             if (!$this->isDatabaseConfigured()) {
+                Log::debug('Database configuration incomplete', [
+                    'connection' => env('DB_CONNECTION'),
+                    'host' => env('DB_HOST') ? 'configured' : 'missing',
+                    'database' => env('DB_DATABASE') ? 'configured' : 'missing',
+                    'username' => env('DB_USERNAME') ? 'configured' : 'missing'
+                ]);
                 return false;
             }
 
-            // Test database connection by running a simple query
-            DB::connection()->getPdo();
+            // Test database connection with timeout
+            $result = $this->executeWithTimeout(function () {
+                DB::connection()->getPdo();
+                DB::select('SELECT 1');
+                return true;
+            }, self::DB_TIMEOUT);
             
-            // Verify we can query the database
-            DB::select('SELECT 1');
+            // Cache successful result
+            if ($result) {
+                Cache::put($cacheKey, true, self::FALLBACK_CACHE_TTL);
+            }
             
-            return true;
+            return $result;
+            
+        } catch (PDOException $e) {
+            Log::warning('Database PDO connection failed', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
+            
+        } catch (QueryException $e) {
+            Log::warning('Database query failed', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
+            
         } catch (Exception $e) {
-            return false;
+            Log::error('Unexpected database error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
+            
+        } catch (Throwable $e) {
+            Log::critical('Critical database error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
         }
     }
 
@@ -112,12 +173,48 @@ class SetupDetectionService
      */
     public function getAdminUserStatus(): bool
     {
+        $cacheKey = self::FALLBACK_CACHE_PREFIX . 'admin_user_status';
+        
         try {
-            // Try to query the database directly
-            // If database is not accessible, this will throw an exception
-            return User::where('role', UserRole::ADMIN)->exists();
+            // Execute with timeout to prevent hanging
+            $result = $this->executeWithTimeout(function () {
+                return User::where('role', UserRole::ADMIN)->exists();
+            }, self::DB_TIMEOUT);
+            
+            // Cache successful result
+            if ($result !== null) {
+                Cache::put($cacheKey, $result, self::FALLBACK_CACHE_TTL);
+            }
+            
+            return $result ?? false;
+            
+        } catch (PDOException $e) {
+            Log::warning('Admin user check failed - PDO error', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
+            
+        } catch (QueryException $e) {
+            Log::warning('Admin user check failed - Query error', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
+            
         } catch (Exception $e) {
-            return false;
+            Log::error('Admin user check failed - Unexpected error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
+            
+        } catch (Throwable $e) {
+            Log::critical('Admin user check failed - Critical error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
         }
     }
 
@@ -128,6 +225,8 @@ class SetupDetectionService
      */
     public function getMigrationStatus(): bool
     {
+        $cacheKey = self::FALLBACK_CACHE_PREFIX . 'migration_status';
+        
         try {
             // Core tables that must exist for the application to function
             $requiredTables = [
@@ -143,15 +242,50 @@ class SetupDetectionService
                 'client_user_relationships'
             ];
 
-            foreach ($requiredTables as $table) {
-                if (!Schema::hasTable($table)) {
-                    return false;
+            $result = $this->executeWithTimeout(function () use ($requiredTables) {
+                foreach ($requiredTables as $table) {
+                    if (!Schema::hasTable($table)) {
+                        Log::debug('Required table missing', ['table' => $table]);
+                        return false;
+                    }
                 }
+                return true;
+            }, self::DB_TIMEOUT);
+            
+            // Cache successful result
+            if ($result !== null) {
+                Cache::put($cacheKey, $result, self::FALLBACK_CACHE_TTL);
             }
-
-            return true;
+            
+            return $result ?? false;
+            
+        } catch (PDOException $e) {
+            Log::warning('Migration status check failed - PDO error', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
+            
+        } catch (QueryException $e) {
+            Log::warning('Migration status check failed - Query error', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
+            
         } catch (Exception $e) {
-            return false;
+            Log::error('Migration status check failed - Unexpected error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
+            
+        } catch (Throwable $e) {
+            Log::critical('Migration status check failed - Critical error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->getFallbackResult($cacheKey, false);
         }
     }
 
@@ -162,83 +296,117 @@ class SetupDetectionService
      */
     public function getQueueHealthStatus(): array
     {
+        $cacheKey = self::FALLBACK_CACHE_PREFIX . 'queue_health_status';
+        
         try {
-            // Check if jobs table exists first
-            if (!Schema::hasTable('jobs') || !Schema::hasTable('failed_jobs')) {
+            $result = $this->executeWithTimeout(function () {
+                // Check if jobs table exists first
+                if (!Schema::hasTable('jobs') || !Schema::hasTable('failed_jobs')) {
+                    return [
+                        'status' => 'incomplete',
+                        'message' => 'Queue tables not found - migrations may not be complete',
+                        'details' => [],
+                        'fallback' => false
+                    ];
+                }
+
+                $now = Carbon::now();
+                $last24Hours = $now->copy()->subHours(24);
+
+                // Count recent job activity
+                $recentJobs = DB::table('jobs')
+                    ->where('created_at', '>=', $last24Hours->timestamp)
+                    ->count();
+
+                // Count failed jobs in last 24 hours
+                $recentFailedJobs = DB::table('failed_jobs')
+                    ->where('failed_at', '>=', $last24Hours)
+                    ->count();
+
+                // Get total failed jobs
+                $totalFailedJobs = DB::table('failed_jobs')->count();
+
+                // Check for stalled jobs (jobs that have been reserved for more than 1 hour)
+                $stalledJobs = DB::table('jobs')
+                    ->whereNotNull('reserved_at')
+                    ->where('reserved_at', '<', $now->copy()->subHour()->timestamp)
+                    ->count();
+
+                // Determine status based on metrics
+                if ($recentFailedJobs > 10 || $stalledJobs > 5) {
+                    $status = 'error';
+                    $message = 'Queue worker appears to have issues';
+                } elseif ($recentJobs > 0 && $recentFailedJobs === 0) {
+                    $status = 'working';
+                    $message = 'Queue worker is processing jobs successfully';
+                } elseif ($recentJobs === 0 && $recentFailedJobs === 0) {
+                    // No recent activity and no recent failures - healthy idle state
+                    $status = 'idle';
+                    $message = 'Queue worker is idle - no recent activity';
+                } elseif ($recentFailedJobs > 5) {
+                    // Significant number of recent failures
+                    $status = 'needs_attention';
+                    $message = 'Queue worker may need attention - multiple recent failures detected';
+                } elseif ($recentFailedJobs > 0 && $recentFailedJobs <= 5 && $stalledJobs === 0) {
+                    // Some recent failures but not excessive and no stalled jobs
+                    // This suggests the worker might be functional now, just had some issues
+                    $status = 'idle';
+                    $message = 'Queue worker is idle - use test button to verify functionality';
+                } else {
+                    // Fallback for other scenarios
+                    $status = 'idle';
+                    $message = 'Queue worker appears idle';
+                }
+
                 return [
-                    'status' => 'incomplete',
-                    'message' => 'Queue tables not found - migrations may not be complete',
-                    'details' => []
+                    'status' => $status,
+                    'message' => $message,
+                    'details' => [
+                        'recent_jobs' => $recentJobs,
+                        'recent_failed_jobs' => $recentFailedJobs,
+                        'total_failed_jobs' => $totalFailedJobs,
+                        'stalled_jobs' => $stalledJobs,
+                        'checked_at' => $now->toISOString()
+                    ],
+                    'fallback' => false
                 ];
+            }, self::DB_TIMEOUT);
+            
+            if ($result !== null) {
+                // Cache successful result
+                Cache::put($cacheKey, $result, self::FALLBACK_CACHE_TTL);
+                return $result;
             }
-
-            $now = Carbon::now();
-            $last24Hours = $now->subHours(24);
-
-            // Count recent job activity
-            $recentJobs = DB::table('jobs')
-                ->where('created_at', '>=', $last24Hours->timestamp)
-                ->count();
-
-            // Count failed jobs in last 24 hours
-            $recentFailedJobs = DB::table('failed_jobs')
-                ->where('failed_at', '>=', $last24Hours)
-                ->count();
-
-            // Get total failed jobs
-            $totalFailedJobs = DB::table('failed_jobs')->count();
-
-            // Check for stalled jobs (jobs that have been reserved for more than 1 hour)
-            $stalledJobs = DB::table('jobs')
-                ->whereNotNull('reserved_at')
-                ->where('reserved_at', '<', $now->subHour()->timestamp)
-                ->count();
-
-            // Determine status based on metrics
-            if ($recentFailedJobs > 10 || $stalledJobs > 5) {
-                $status = 'error';
-                $message = 'Queue worker appears to have issues';
-            } elseif ($recentJobs > 0 && $recentFailedJobs === 0) {
-                $status = 'working';
-                $message = 'Queue worker is processing jobs successfully';
-            } elseif ($recentJobs === 0 && $recentFailedJobs === 0) {
-                // No recent activity and no recent failures - healthy idle state
-                $status = 'idle';
-                $message = 'Queue worker is idle - no recent activity';
-            } elseif ($recentFailedJobs > 5) {
-                // Significant number of recent failures
-                $status = 'needs_attention';
-                $message = 'Queue worker may need attention - multiple recent failures detected';
-            } elseif ($recentFailedJobs > 0 && $recentFailedJobs <= 5 && $stalledJobs === 0) {
-                // Some recent failures but not excessive and no stalled jobs
-                // This suggests the worker might be functional now, just had some issues
-                $status = 'idle';
-                $message = 'Queue worker is idle - use test button to verify functionality';
-            } else {
-                // Fallback for other scenarios
-                $status = 'idle';
-                $message = 'Queue worker appears idle';
-            }
-
-            return [
-                'status' => $status,
-                'message' => $message,
-                'details' => [
-                    'recent_jobs' => $recentJobs,
-                    'recent_failed_jobs' => $recentFailedJobs,
-                    'total_failed_jobs' => $totalFailedJobs,
-                    'stalled_jobs' => $stalledJobs,
-                    'checked_at' => $now->toISOString()
-                ]
-            ];
+            
+            throw new Exception('Timeout occurred during queue health check');
+            
+        } catch (PDOException $e) {
+            Log::warning('Queue health check failed - PDO error', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            return $this->getFallbackQueueStatus($cacheKey, $e);
+            
+        } catch (QueryException $e) {
+            Log::warning('Queue health check failed - Query error', [
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
+            ]);
+            return $this->getFallbackQueueStatus($cacheKey, $e);
+            
         } catch (Exception $e) {
-            return [
-                'status' => 'cannot_verify',
-                'message' => 'Unable to check queue status',
-                'details' => [
-                    'error' => $e->getMessage()
-                ]
-            ];
+            Log::error('Queue health check failed - Unexpected error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->getFallbackQueueStatus($cacheKey, $e);
+            
+        } catch (Throwable $e) {
+            Log::critical('Queue health check failed - Critical error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->getFallbackQueueStatus($cacheKey, $e);
         }
     }
 
@@ -498,5 +666,107 @@ class SetupDetectionService
         $isLocalPort = in_array($port, ['1025', '8025']);
         
         return $isLocalEnv && $isLocalHost && $isLocalPort;
+    }
+
+    /**
+     * Execute a function with timeout handling.
+     * 
+     * @param callable $callback The function to execute
+     * @param int $timeout Timeout in seconds
+     * @return mixed The result of the callback or null on timeout
+     * @throws Exception If the callback throws an exception
+     */
+    private function executeWithTimeout(callable $callback, int $timeout)
+    {
+        // Set database timeout if possible
+        try {
+            $originalTimeout = ini_get('default_socket_timeout');
+            ini_set('default_socket_timeout', $timeout);
+            
+            $result = $callback();
+            
+            // Restore original timeout
+            ini_set('default_socket_timeout', $originalTimeout);
+            
+            return $result;
+            
+        } catch (Exception $e) {
+            // Restore original timeout on error
+            if (isset($originalTimeout)) {
+                ini_set('default_socket_timeout', $originalTimeout);
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Get fallback result from cache or return default.
+     * 
+     * @param string $cacheKey Cache key to check
+     * @param mixed $default Default value if no cache available
+     * @return mixed Cached value or default
+     */
+    private function getFallbackResult(string $cacheKey, $default)
+    {
+        $cached = Cache::get($cacheKey);
+        
+        if ($cached !== null) {
+            Log::info('Using cached fallback result', [
+                'cache_key' => $cacheKey,
+                'cached_value' => $cached
+            ]);
+            return $cached;
+        }
+        
+        Log::warning('No cached fallback available, using default', [
+            'cache_key' => $cacheKey,
+            'default_value' => $default
+        ]);
+        
+        return $default;
+    }
+
+    /**
+     * Get fallback queue status with enhanced error context.
+     * 
+     * @param string $cacheKey Cache key to check
+     * @param Throwable $exception The exception that occurred
+     * @return array Fallback queue status
+     */
+    private function getFallbackQueueStatus(string $cacheKey, Throwable $exception): array
+    {
+        $cached = Cache::get($cacheKey);
+        
+        if ($cached !== null && is_array($cached)) {
+            Log::info('Using cached queue health fallback', [
+                'cache_key' => $cacheKey,
+                'cached_status' => $cached['status'] ?? 'unknown'
+            ]);
+            
+            // Mark as fallback data
+            $cached['fallback'] = true;
+            $cached['fallback_reason'] = 'Service temporarily unavailable';
+            $cached['last_error'] = $exception->getMessage();
+            
+            return $cached;
+        }
+        
+        Log::warning('No cached queue health available, returning error state', [
+            'cache_key' => $cacheKey,
+            'error' => $exception->getMessage()
+        ]);
+        
+        return [
+            'status' => 'cannot_verify',
+            'message' => 'Unable to check queue status - service temporarily unavailable',
+            'details' => [
+                'error' => $exception->getMessage(),
+                'error_type' => get_class($exception),
+                'fallback' => true,
+                'fallback_reason' => 'No cached data available',
+                'checked_at' => Carbon::now()->toISOString()
+            ],
+            'fallback' => true
+        ];
     }
 }

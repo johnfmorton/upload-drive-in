@@ -243,6 +243,115 @@ class SetupSecurityService
     }
 
     /**
+     * Securely read a file with path validation and error handling.
+     * 
+     * @param string $filePath The file path to read
+     * @return array Result with success status, content, and message
+     */
+    public function secureFileRead(string $filePath): array
+    {
+        try {
+            // Validate the file path for security
+            $pathValidation = $this->validateFilePath($filePath);
+            if (!$pathValidation['is_valid']) {
+                return [
+                    'success' => false,
+                    'content' => null,
+                    'message' => 'Invalid file path: ' . implode(', ', $pathValidation['violations'])
+                ];
+            }
+
+            // Check if file exists
+            if (!file_exists($filePath)) {
+                return [
+                    'success' => false,
+                    'content' => null,
+                    'message' => 'File does not exist: ' . $filePath
+                ];
+            }
+
+            // Check if file is readable
+            if (!is_readable($filePath)) {
+                return [
+                    'success' => false,
+                    'content' => null,
+                    'message' => 'File is not readable: ' . $filePath
+                ];
+            }
+
+            // Read file content
+            $content = file_get_contents($filePath);
+            
+            if ($content === false) {
+                return [
+                    'success' => false,
+                    'content' => null,
+                    'message' => 'Failed to read file content: ' . $filePath
+                ];
+            }
+
+            return [
+                'success' => true,
+                'content' => $content,
+                'message' => 'File read successfully'
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'content' => null,
+                'message' => 'Error reading file: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Validate file path for security concerns.
+     * 
+     * @param string $filePath The file path to validate
+     * @return array Validation result
+     */
+    private function validateFilePath(string $filePath): array
+    {
+        $violations = [];
+        
+        // Check for path traversal attempts
+        if (strpos($filePath, '..') !== false) {
+            $violations[] = 'Path traversal detected';
+        }
+        
+        // Check for null bytes
+        if (strpos($filePath, "\0") !== false) {
+            $violations[] = 'Null byte detected';
+        }
+        
+        // Ensure path is within allowed directories (storage path)
+        $realPath = realpath(dirname($filePath));
+        $allowedPaths = [
+            realpath(storage_path()),
+            realpath(storage_path('app')),
+            realpath(storage_path('logs'))
+        ];
+        
+        $isAllowed = false;
+        foreach ($allowedPaths as $allowedPath) {
+            if ($allowedPath && strpos($realPath, $allowedPath) === 0) {
+                $isAllowed = true;
+                break;
+            }
+        }
+        
+        if (!$isAllowed) {
+            $violations[] = 'Path outside allowed directories';
+        }
+        
+        return [
+            'is_valid' => empty($violations),
+            'violations' => $violations
+        ];
+    }
+
+    /**
      * Check if request should be blocked based on security assessment.
      */
     public function shouldBlockRequest(\Illuminate\Http\Request $request): bool

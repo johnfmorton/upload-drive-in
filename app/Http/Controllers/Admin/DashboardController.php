@@ -8,6 +8,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
+use Exception;
+use Throwable;
 
 class DashboardController extends AdminController
 {
@@ -130,55 +134,117 @@ class DashboardController extends AdminController
      */
     public function testQueue(Request $request, QueueTestService $queueTestService): JsonResponse
     {
-        // Ensure user is authenticated and is admin (handled by AdminController parent class)
-        if (!auth()->check() || !auth()->user()->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'message' => 'Unauthorized access.',
-                    'code' => 'UNAUTHORIZED'
-                ]
-            ], 403);
-        }
-
-        // Validate optional delay parameter (let validation exceptions bubble up)
-        $request->validate([
-            'delay' => 'sometimes|integer|min:0|max:60'
-        ]);
-
+        $startTime = microtime(true);
+        $requestId = uniqid('queue_test_', true);
+        
         try {
+            // Enhanced authentication check
+            if (!Auth::check() || !Auth::user()->isAdmin()) {
+                Log::warning('Unauthorized queue test attempt', [
+                    'request_id' => $requestId,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'authenticated' => Auth::check(),
+                    'user_id' => Auth::id()
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Unauthorized access.',
+                        'code' => 'UNAUTHORIZED',
+                        'request_id' => $requestId
+                    ]
+                ], 403);
+            }
+
+            // Enhanced validation with better error handling
+            try {
+                $validated = $request->validate([
+                    'delay' => 'sometimes|integer|min:0|max:60'
+                ]);
+            } catch (ValidationException $e) {
+                Log::warning('Queue test validation failed', [
+                    'request_id' => $requestId,
+                    'errors' => $e->errors(),
+                    'input' => $request->all()
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Invalid request parameters.',
+                        'code' => 'VALIDATION_ERROR',
+                        'details' => $e->errors(),
+                        'request_id' => $requestId
+                    ]
+                ], 422);
+            }
+
             $delay = $request->input('delay', 0);
             
-            // Dispatch test job and get job ID
-            $jobId = $queueTestService->dispatchTestJob($delay);
+            Log::info('Queue test job dispatch requested', [
+                'request_id' => $requestId,
+                'delay' => $delay,
+                'admin_user_id' => Auth::id(),
+                'admin_email' => Auth::user()->email,
+                'ip' => $request->ip()
+            ]);
             
-            Log::info('Queue test job dispatched via admin dashboard', [
+            // Dispatch test job with enhanced error handling
+            $jobId = $this->dispatchTestJobWithFallback($queueTestService, $delay, $requestId);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
+            Log::info('Queue test job dispatched successfully', [
+                'request_id' => $requestId,
                 'test_job_id' => $jobId,
                 'delay' => $delay,
-                'admin_user_id' => auth()->id(),
-                'admin_email' => auth()->user()->email,
+                'duration_ms' => $duration,
+                'admin_user_id' => Auth::id(),
+                'admin_email' => Auth::user()->email,
             ]);
             
             return response()->json([
                 'success' => true,
                 'message' => 'Test job dispatched successfully',
-                'test_job_id' => $jobId,
-                'delay' => $delay,
-                'dispatched_at' => now()->toISOString(),
+                'data' => [
+                    'test_job_id' => $jobId,
+                    'delay' => $delay,
+                    'dispatched_at' => now()->toISOString(),
+                    'request_id' => $requestId,
+                    'duration_ms' => $duration
+                ]
             ]);
             
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
             Log::error('Failed to dispatch queue test job via admin dashboard', [
+                'request_id' => $requestId,
                 'error' => $e->getMessage(),
-                'admin_user_id' => auth()->id(),
-                'admin_email' => auth()->user()->email,
+                'duration_ms' => $duration,
+                'trace' => $e->getTraceAsString(),
+                'admin_user_id' => Auth::id(),
+                'admin_email' => Auth::user()->email ?? 'unknown',
             ]);
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to dispatch test job',
+            return $this->getQueueErrorResponse($e, $requestId, 'DISPATCH_FAILED', 
+                'Failed to dispatch test job. Please try again.');
+                
+        } catch (Throwable $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
+            Log::critical('Critical error during queue test dispatch', [
+                'request_id' => $requestId,
                 'error' => $e->getMessage(),
-            ], 500);
+                'duration_ms' => $duration,
+                'trace' => $e->getTraceAsString(),
+                'admin_user_id' => Auth::id(),
+            ]);
+            
+            return $this->getQueueErrorResponse($e, $requestId, 'CRITICAL_ERROR', 
+                'A critical error occurred. Please try again.');
         }
     }
 
@@ -191,53 +257,109 @@ class DashboardController extends AdminController
      */
     public function checkQueueTestStatus(Request $request, QueueTestService $queueTestService): JsonResponse
     {
-        // Ensure user is authenticated and is admin
-        if (!auth()->check() || !auth()->user()->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'message' => 'Unauthorized access.',
-                    'code' => 'UNAUTHORIZED'
-                ]
-            ], 403);
-        }
-
+        $startTime = microtime(true);
+        $requestId = uniqid('status_check_', true);
+        
         try {
-            // Validate job ID parameter
-            $request->validate([
-                'test_job_id' => 'required|string|regex:/^test_[a-f0-9\-]{36}$/'
-            ]);
+            // Enhanced authentication check
+            if (!Auth::check() || !Auth::user()->isAdmin()) {
+                Log::warning('Unauthorized queue status check attempt', [
+                    'request_id' => $requestId,
+                    'ip' => $request->ip(),
+                    'test_job_id' => $request->input('test_job_id'),
+                    'authenticated' => Auth::check(),
+                    'user_id' => Auth::id()
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Unauthorized access.',
+                        'code' => 'UNAUTHORIZED',
+                        'request_id' => $requestId
+                    ]
+                ], 403);
+            }
+
+            // Enhanced validation with better error handling
+            try {
+                $validated = $request->validate([
+                    'test_job_id' => 'required|string|regex:/^test_[a-f0-9\-]{36}$/'
+                ]);
+            } catch (ValidationException $e) {
+                Log::warning('Queue status check validation failed', [
+                    'request_id' => $requestId,
+                    'errors' => $e->errors(),
+                    'test_job_id' => $request->input('test_job_id')
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Invalid job ID format.',
+                        'code' => 'VALIDATION_ERROR',
+                        'details' => $e->errors(),
+                        'request_id' => $requestId
+                    ]
+                ], 422);
+            }
 
             $jobId = $request->input('test_job_id');
             
-            // Get job status
-            $status = $queueTestService->checkTestJobStatus($jobId);
+            Log::debug('Queue test status check requested', [
+                'request_id' => $requestId,
+                'test_job_id' => $jobId,
+                'admin_user_id' => Auth::id()
+            ]);
+            
+            // Get job status with enhanced error handling
+            $status = $this->getJobStatusWithFallback($queueTestService, $jobId, $requestId);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
+            // Add request metadata to status
+            $status['request_id'] = $requestId;
+            $status['duration_ms'] = $duration;
             
             return response()->json([
                 'success' => true,
-                'status' => $status,
+                'data' => [
+                    'status' => $status,
+                    'request_id' => $requestId,
+                    'duration_ms' => $duration
+                ]
             ]);
             
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid job ID format',
-                'errors' => $e->errors(),
-            ], 422);
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
             
-        } catch (\Exception $e) {
             Log::error('Failed to check queue test job status via admin dashboard', [
+                'request_id' => $requestId,
                 'error' => $e->getMessage(),
+                'duration_ms' => $duration,
+                'trace' => $e->getTraceAsString(),
                 'test_job_id' => $request->input('test_job_id'),
-                'admin_user_id' => auth()->id(),
-                'admin_email' => auth()->user()->email,
+                'admin_user_id' => Auth::id(),
+                'admin_email' => Auth::user()->email ?? 'unknown',
             ]);
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to check test job status',
+            return $this->getQueueErrorResponse($e, $requestId, 'STATUS_CHECK_FAILED', 
+                'Failed to check test job status. Please try again.');
+                
+        } catch (Throwable $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
+            Log::critical('Critical error during queue status check', [
+                'request_id' => $requestId,
                 'error' => $e->getMessage(),
-            ], 500);
+                'duration_ms' => $duration,
+                'trace' => $e->getTraceAsString(),
+                'test_job_id' => $request->input('test_job_id'),
+                'admin_user_id' => Auth::id(),
+            ]);
+            
+            return $this->getQueueErrorResponse($e, $requestId, 'CRITICAL_ERROR', 
+                'A critical error occurred. Please try again.');
         }
     }
 
@@ -249,38 +371,275 @@ class DashboardController extends AdminController
      */
     public function getQueueHealth(QueueTestService $queueTestService): JsonResponse
     {
-        // Ensure user is authenticated and is admin
-        if (!auth()->check() || !auth()->user()->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'message' => 'Unauthorized access.',
-                    'code' => 'UNAUTHORIZED'
-                ]
-            ], 403);
-        }
-
+        $startTime = microtime(true);
+        $requestId = uniqid('health_check_', true);
+        
         try {
-            // Get queue health metrics
-            $metrics = $queueTestService->getQueueHealthMetrics();
+            // Enhanced authentication check
+            if (!Auth::check() || !Auth::user()->isAdmin()) {
+                Log::warning('Unauthorized queue health check attempt', [
+                    'request_id' => $requestId,
+                    'ip' => request()->ip(),
+                    'authenticated' => Auth::check(),
+                    'user_id' => Auth::id()
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Unauthorized access.',
+                        'code' => 'UNAUTHORIZED',
+                        'request_id' => $requestId
+                    ]
+                ], 403);
+            }
+
+            Log::info('Queue health metrics requested', [
+                'request_id' => $requestId,
+                'admin_user_id' => Auth::id(),
+                'admin_email' => Auth::user()->email
+            ]);
+            
+            // Get queue health metrics with enhanced error handling
+            $metrics = $this->getHealthMetricsWithFallback($queueTestService, $requestId);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
+            Log::info('Queue health metrics retrieved successfully', [
+                'request_id' => $requestId,
+                'duration_ms' => $duration,
+                'overall_status' => $metrics['overall_status'] ?? 'unknown',
+                'admin_user_id' => Auth::id()
+            ]);
             
             return response()->json([
                 'success' => true,
-                'metrics' => $metrics,
+                'data' => [
+                    'metrics' => $metrics,
+                    'request_id' => $requestId,
+                    'duration_ms' => $duration,
+                    'retrieved_at' => now()->toISOString()
+                ]
             ]);
             
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
             Log::error('Failed to get queue health metrics via admin dashboard', [
+                'request_id' => $requestId,
                 'error' => $e->getMessage(),
-                'admin_user_id' => auth()->id(),
-                'admin_email' => auth()->user()->email,
+                'duration_ms' => $duration,
+                'trace' => $e->getTraceAsString(),
+                'admin_user_id' => Auth::id(),
+                'admin_email' => Auth::user()->email ?? 'unknown',
             ]);
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve queue health metrics',
+            return $this->getQueueErrorResponse($e, $requestId, 'HEALTH_CHECK_FAILED', 
+                'Failed to retrieve queue health metrics. Please try again.');
+                
+        } catch (Throwable $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
+            Log::critical('Critical error during queue health check', [
+                'request_id' => $requestId,
                 'error' => $e->getMessage(),
-            ], 500);
+                'duration_ms' => $duration,
+                'trace' => $e->getTraceAsString(),
+                'admin_user_id' => Auth::id(),
+            ]);
+            
+            return $this->getQueueErrorResponse($e, $requestId, 'CRITICAL_ERROR', 
+                'A critical error occurred. Please try again.');
         }
+    }
+
+    /**
+     * Dispatch test job with fallback handling.
+     * 
+     * @param QueueTestService $queueTestService
+     * @param int $delay
+     * @param string $requestId
+     * @return string Job ID
+     * @throws Exception If dispatch fails after all attempts
+     */
+    private function dispatchTestJobWithFallback(QueueTestService $queueTestService, int $delay, string $requestId): string
+    {
+        $maxAttempts = 3;
+        $lastException = null;
+        
+        for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+            try {
+                if ($attempt > 0) {
+                    Log::debug('Retrying test job dispatch', [
+                        'request_id' => $requestId,
+                        'attempt' => $attempt + 1,
+                        'max_attempts' => $maxAttempts,
+                        'delay' => $delay
+                    ]);
+                    
+                    // Add delay between retries
+                    usleep(1000000); // 1 second
+                }
+                
+                return $queueTestService->dispatchTestJob($delay);
+                
+            } catch (Exception $e) {
+                $lastException = $e;
+                
+                Log::warning('Test job dispatch attempt failed', [
+                    'request_id' => $requestId,
+                    'attempt' => $attempt + 1,
+                    'max_attempts' => $maxAttempts,
+                    'error' => $e->getMessage(),
+                    'remaining_attempts' => $maxAttempts - $attempt - 1
+                ]);
+            }
+        }
+        
+        // All attempts failed
+        Log::error('Test job dispatch failed after all attempts', [
+            'request_id' => $requestId,
+            'max_attempts' => $maxAttempts,
+            'final_error' => $lastException ? $lastException->getMessage() : 'Unknown error'
+        ]);
+        
+        throw $lastException ?? new Exception('Failed to dispatch test job after all attempts');
+    }
+
+    /**
+     * Get job status with fallback handling.
+     * 
+     * @param QueueTestService $queueTestService
+     * @param string $jobId
+     * @param string $requestId
+     * @return array Job status
+     */
+    private function getJobStatusWithFallback(QueueTestService $queueTestService, string $jobId, string $requestId): array
+    {
+        try {
+            return $queueTestService->checkTestJobStatus($jobId);
+        } catch (Exception $e) {
+            Log::warning('Primary job status check failed, returning error status', [
+                'request_id' => $requestId,
+                'test_job_id' => $jobId,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Return error status as fallback
+            return [
+                'test_job_id' => $jobId,
+                'status' => 'error',
+                'message' => 'Unable to check job status - service temporarily unavailable',
+                'error' => $e->getMessage(),
+                'fallback' => true,
+                'checked_at' => now()->toISOString(),
+                'troubleshooting' => [
+                    'Check if cache service is running',
+                    'Verify application configuration',
+                    'Try refreshing the page',
+                    'Contact administrator if problem persists'
+                ]
+            ];
+        }
+    }
+
+    /**
+     * Get health metrics with fallback handling.
+     * 
+     * @param QueueTestService $queueTestService
+     * @param string $requestId
+     * @return array Health metrics
+     */
+    private function getHealthMetricsWithFallback(QueueTestService $queueTestService, string $requestId): array
+    {
+        try {
+            return $queueTestService->getQueueHealthMetrics();
+        } catch (Exception $e) {
+            Log::warning('Primary health metrics retrieval failed, returning fallback metrics', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Return fallback metrics
+            return [
+                'timestamp' => now()->toISOString(),
+                'overall_status' => 'error',
+                'health_message' => 'Unable to retrieve queue health metrics - service temporarily unavailable',
+                'error' => $e->getMessage(),
+                'fallback' => true,
+                'queue_tables_exist' => false,
+                'job_statistics' => [
+                    'pending_jobs' => 0,
+                    'failed_jobs_total' => 0,
+                    'failed_jobs_24h' => 0,
+                    'failed_jobs_1h' => 0,
+                ],
+                'stalled_jobs' => 0,
+                'test_job_statistics' => [
+                    'total_test_jobs' => 0,
+                    'test_jobs_1h' => 0,
+                    'test_jobs_24h' => 0,
+                ],
+                'recommendations' => [
+                    'Check if database is accessible',
+                    'Verify queue configuration',
+                    'Check application logs for errors',
+                    'Contact administrator for assistance'
+                ]
+            ];
+        }
+    }
+
+    /**
+     * Generate standardized error response for queue operations.
+     * 
+     * @param Throwable $exception The exception that occurred
+     * @param string $requestId Request identifier
+     * @param string $errorCode Error code for the response
+     * @param string $userMessage User-friendly error message
+     * @return JsonResponse
+     */
+    private function getQueueErrorResponse(Throwable $exception, string $requestId, string $errorCode, string $userMessage): JsonResponse
+    {
+        $errorData = [
+            'success' => false,
+            'error' => [
+                'message' => $userMessage,
+                'code' => $errorCode,
+                'request_id' => $requestId,
+                'timestamp' => now()->toISOString()
+            ]
+        ];
+
+        // Add technical details in debug mode
+        if (config('app.debug')) {
+            $errorData['error']['technical_details'] = [
+                'exception' => get_class($exception),
+                'message' => $exception->getMessage(),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine()
+            ];
+        }
+
+        // Add queue-specific troubleshooting guidance
+        $errorData['error']['troubleshooting'] = [
+            'Check if queue worker is running: php artisan queue:work',
+            'Verify queue configuration in .env file',
+            'Check for failed jobs: php artisan queue:failed',
+            'Review application logs for detailed errors',
+            'Ensure database and cache services are accessible'
+        ];
+
+        // Determine appropriate HTTP status code
+        $statusCode = 500;
+        if (strpos($errorCode, 'VALIDATION') !== false) {
+            $statusCode = 422;
+        } elseif (strpos($errorCode, 'UNAUTHORIZED') !== false) {
+            $statusCode = 403;
+        } elseif (strpos($errorCode, 'NOT_FOUND') !== false) {
+            $statusCode = 404;
+        }
+
+        return response()->json($errorData, $statusCode);
     }
 }

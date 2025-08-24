@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Exception;
+use Throwable;
+use PDOException;
+use Illuminate\Database\QueryException;
 
 /**
  * Service for testing queue functionality and monitoring queue health.
@@ -39,42 +42,112 @@ class QueueTestService
     private const CACHE_TTL = 3600;
 
     /**
+     * Maximum retry attempts for failed operations.
+     */
+    private const MAX_RETRY_ATTEMPTS = 3;
+
+    /**
+     * Retry delay in milliseconds.
+     */
+    private const RETRY_DELAY_MS = 1000;
+
+    /**
+     * Timeout for database operations in seconds.
+     */
+    private const DB_TIMEOUT = 10;
+
+    /**
      * Dispatch a test job and return unique job ID for tracking.
      * 
      * @param int $delay Optional delay in seconds before job processing
+     * @param int $retryAttempt Current retry attempt (internal use)
      * @return string Unique job ID for tracking
-     * @throws Exception If job dispatch fails
+     * @throws Exception If job dispatch fails after all retries
      */
-    public function dispatchTestJob(int $delay = 0): string
+    public function dispatchTestJob(int $delay = 0, int $retryAttempt = 0): string
     {
-        try {
-            // Generate unique job ID
-            $jobId = $this->generateUniqueJobId();
-            
-            // Initialize job status in cache
-            $this->initializeJobStatus($jobId, $delay);
-            
-            // Add job ID to index for cleanup tracking
-            $this->addJobToIndex($jobId);
-            
-            // Dispatch the test job
-            TestQueueJob::dispatch($jobId, $delay);
-            
-            Log::info('Test queue job dispatched', [
-                'test_job_id' => $jobId,
-                'delay' => $delay,
-                'dispatched_at' => Carbon::now()->toISOString(),
-            ]);
-            
-            return $jobId;
-        } catch (Exception $e) {
-            Log::error('Failed to dispatch test queue job', [
-                'error' => $e->getMessage(),
-                'delay' => $delay,
-            ]);
-            
-            throw new Exception('Failed to dispatch test job: ' . $e->getMessage());
+        $maxAttempts = self::MAX_RETRY_ATTEMPTS;
+        $lastException = null;
+        
+        for ($attempt = $retryAttempt; $attempt < $maxAttempts; $attempt++) {
+            try {
+                if ($attempt > 0) {
+                    Log::debug('Retrying test job dispatch', [
+                        'attempt' => $attempt + 1,
+                        'max_attempts' => $maxAttempts,
+                        'delay' => $delay
+                    ]);
+                    
+                    // Add delay between retries
+                    usleep(self::RETRY_DELAY_MS * 1000);
+                }
+                
+                // Generate unique job ID
+                $jobId = $this->generateUniqueJobId();
+                
+                // Initialize job status in cache with timeout handling
+                $this->initializeJobStatusWithTimeout($jobId, $delay);
+                
+                // Add job ID to index for cleanup tracking
+                $this->addJobToIndexWithRetry($jobId);
+                
+                // Dispatch the test job with error handling
+                $this->dispatchJobWithTimeout($jobId, $delay);
+                
+                Log::info('Test queue job dispatched successfully', [
+                    'test_job_id' => $jobId,
+                    'delay' => $delay,
+                    'attempt' => $attempt + 1,
+                    'dispatched_at' => Carbon::now()->toISOString(),
+                ]);
+                
+                return $jobId;
+                
+            } catch (Exception $e) {
+                $lastException = $e;
+                
+                Log::warning('Test job dispatch failed, will retry if attempts remain', [
+                    'attempt' => $attempt + 1,
+                    'max_attempts' => $maxAttempts,
+                    'delay' => $delay,
+                    'error' => $e->getMessage(),
+                    'remaining_attempts' => $maxAttempts - $attempt - 1
+                ]);
+                
+                // Don't retry certain types of errors
+                if ($this->shouldNotRetryDispatch($e)) {
+                    Log::info('Dispatch error should not be retried', [
+                        'error_type' => get_class($e),
+                        'error_message' => $e->getMessage()
+                    ]);
+                    break;
+                }
+            } catch (Throwable $e) {
+                $lastException = $e;
+                
+                Log::critical('Critical error during test job dispatch', [
+                    'attempt' => $attempt + 1,
+                    'delay' => $delay,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                break;
+            }
         }
+        
+        // All attempts failed
+        Log::error('Failed to dispatch test queue job after all retries', [
+            'max_attempts' => $maxAttempts,
+            'delay' => $delay,
+            'final_error' => $lastException ? $lastException->getMessage() : 'Unknown error'
+        ]);
+        
+        throw new Exception(
+            'Failed to dispatch test job after ' . $maxAttempts . ' attempts: ' . 
+            ($lastException ? $lastException->getMessage() : 'Unknown error'),
+            0,
+            $lastException
+        );
     }
 
     /**
@@ -86,37 +159,78 @@ class QueueTestService
     public function checkTestJobStatus(string $jobId): array
     {
         try {
+            // Validate job ID format
+            if (!$this->isValidJobId($jobId)) {
+                Log::warning('Invalid job ID format provided', [
+                    'job_id' => $jobId
+                ]);
+                
+                return [
+                    'test_job_id' => $jobId,
+                    'status' => 'invalid',
+                    'message' => 'Invalid job ID format',
+                    'error' => 'Job ID must match pattern: test_[uuid]',
+                    'checked_at' => Carbon::now()->toISOString(),
+                ];
+            }
+            
             $cacheKey = self::CACHE_PREFIX . $jobId;
-            $status = Cache::get($cacheKey);
+            
+            // Execute with timeout to prevent hanging
+            $status = $this->executeWithTimeout(function () use ($cacheKey) {
+                return Cache::get($cacheKey);
+            }, 5); // 5 second timeout for cache operations
             
             if (!$status) {
+                Log::debug('Test job not found in cache', [
+                    'test_job_id' => $jobId,
+                    'cache_key' => $cacheKey
+                ]);
+                
                 return [
                     'test_job_id' => $jobId,
                     'status' => 'not_found',
                     'message' => 'Test job not found or expired',
+                    'details' => [
+                        'cache_key' => $cacheKey,
+                        'possible_reasons' => [
+                            'Job ID does not exist',
+                            'Job data has expired from cache',
+                            'Cache service is unavailable'
+                        ]
+                    ],
                     'checked_at' => Carbon::now()->toISOString(),
                 ];
             }
             
             // Check for timeout if job is still pending or processing
             if (in_array($status['status'], ['pending', 'processing'])) {
-                $status = $this->checkForTimeout($jobId, $status);
+                $status = $this->checkForTimeoutWithFallback($jobId, $status);
             }
             
+            // Add additional metadata
+            $status['checked_at'] = Carbon::now()->toISOString();
+            $status['cache_hit'] = true;
+            
             return $status;
+            
         } catch (Exception $e) {
             Log::error('Failed to check test job status', [
                 'test_job_id' => $jobId,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
-            return [
+            return $this->getErrorJobStatus($jobId, $e);
+            
+        } catch (Throwable $e) {
+            Log::critical('Critical error checking test job status', [
                 'test_job_id' => $jobId,
-                'status' => 'error',
-                'message' => 'Error checking job status',
                 'error' => $e->getMessage(),
-                'checked_at' => Carbon::now()->toISOString(),
-            ];
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return $this->getErrorJobStatus($jobId, $e);
         }
     }
 
@@ -455,5 +569,302 @@ class QueueTestService
         }
         
         return $recommendations;
+    }
+
+    /**
+     * Execute a function with timeout handling.
+     * 
+     * @param callable $callback The function to execute
+     * @param int $timeout Timeout in seconds
+     * @return mixed The result of the callback or null on timeout
+     * @throws Exception If the callback throws an exception
+     */
+    private function executeWithTimeout(callable $callback, int $timeout)
+    {
+        $startTime = microtime(true);
+        
+        try {
+            // Set a reasonable timeout for the operation
+            $originalTimeout = ini_get('default_socket_timeout');
+            ini_set('default_socket_timeout', $timeout);
+            
+            $result = $callback();
+            
+            // Restore original timeout
+            ini_set('default_socket_timeout', $originalTimeout);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            Log::debug('Operation completed within timeout', [
+                'duration_ms' => $duration,
+                'timeout_seconds' => $timeout
+            ]);
+            
+            return $result;
+            
+        } catch (Exception $e) {
+            // Restore original timeout on error
+            if (isset($originalTimeout)) {
+                ini_set('default_socket_timeout', $originalTimeout);
+            }
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            Log::warning('Operation failed within timeout period', [
+                'duration_ms' => $duration,
+                'timeout_seconds' => $timeout,
+                'error' => $e->getMessage()
+            ]);
+            
+            throw $e;
+        }
+    }
+
+    /**
+     * Initialize job status in cache with timeout handling.
+     * 
+     * @param string $jobId The job ID
+     * @param int $delay The delay in seconds
+     * @return void
+     * @throws Exception If cache operation fails
+     */
+    private function initializeJobStatusWithTimeout(string $jobId, int $delay): void
+    {
+        $cacheKey = self::CACHE_PREFIX . $jobId;
+        
+        $initialStatus = [
+            'test_job_id' => $jobId,
+            'status' => 'pending',
+            'message' => 'Test job dispatched and waiting for processing',
+            'delay' => $delay,
+            'dispatched_at' => Carbon::now()->toISOString(),
+            'timeout_at' => Carbon::now()->addSeconds(self::DEFAULT_TIMEOUT)->toISOString(),
+            'fallback' => false
+        ];
+        
+        $this->executeWithTimeout(function () use ($cacheKey, $initialStatus) {
+            if (!Cache::put($cacheKey, $initialStatus, self::CACHE_TTL)) {
+                throw new Exception('Failed to store job status in cache');
+            }
+        }, 5);
+        
+        Log::debug('Job status initialized in cache', [
+            'test_job_id' => $jobId,
+            'cache_key' => $cacheKey,
+            'timeout_at' => $initialStatus['timeout_at']
+        ]);
+    }
+
+    /**
+     * Add job ID to index with retry logic.
+     * 
+     * @param string $jobId The job ID to add
+     * @return void
+     * @throws Exception If all retry attempts fail
+     */
+    private function addJobToIndexWithRetry(string $jobId): void
+    {
+        $maxAttempts = 3;
+        $lastException = null;
+        
+        for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+            try {
+                if ($attempt > 0) {
+                    usleep(500000); // 500ms delay between retries
+                }
+                
+                $this->executeWithTimeout(function () use ($jobId) {
+                    $jobIndex = Cache::get(self::INDEX_CACHE_KEY, []);
+                    
+                    $jobIndex[] = [
+                        'job_id' => $jobId,
+                        'created_at' => Carbon::now()->toISOString(),
+                    ];
+                    
+                    // Keep only last 100 jobs in index to prevent unlimited growth
+                    if (count($jobIndex) > 100) {
+                        $jobIndex = array_slice($jobIndex, -100);
+                    }
+                    
+                    if (!Cache::put(self::INDEX_CACHE_KEY, $jobIndex, self::CACHE_TTL * 24)) {
+                        throw new Exception('Failed to update job index in cache');
+                    }
+                }, 5);
+                
+                Log::debug('Job added to index successfully', [
+                    'test_job_id' => $jobId,
+                    'attempt' => $attempt + 1
+                ]);
+                
+                return; // Success
+                
+            } catch (Exception $e) {
+                $lastException = $e;
+                
+                Log::warning('Failed to add job to index, will retry', [
+                    'test_job_id' => $jobId,
+                    'attempt' => $attempt + 1,
+                    'max_attempts' => $maxAttempts,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+        
+        // All attempts failed - log but don't throw (index is not critical)
+        Log::error('Failed to add job to index after all retries', [
+            'test_job_id' => $jobId,
+            'max_attempts' => $maxAttempts,
+            'final_error' => $lastException ? $lastException->getMessage() : 'Unknown error'
+        ]);
+    }
+
+    /**
+     * Dispatch job with timeout handling.
+     * 
+     * @param string $jobId The job ID
+     * @param int $delay The delay in seconds
+     * @return void
+     * @throws Exception If job dispatch fails
+     */
+    private function dispatchJobWithTimeout(string $jobId, int $delay): void
+    {
+        $this->executeWithTimeout(function () use ($jobId, $delay) {
+            TestQueueJob::dispatch($jobId, $delay);
+        }, 10); // 10 second timeout for job dispatch
+        
+        Log::debug('Test job dispatched to queue', [
+            'test_job_id' => $jobId,
+            'delay' => $delay
+        ]);
+    }
+
+    /**
+     * Check if job ID has valid format.
+     * 
+     * @param string $jobId The job ID to validate
+     * @return bool True if valid format
+     */
+    private function isValidJobId(string $jobId): bool
+    {
+        return preg_match('/^test_[a-f0-9\-]{36}$/', $jobId) === 1;
+    }
+
+    /**
+     * Check for timeout with fallback handling.
+     * 
+     * @param string $jobId The job ID
+     * @param array $status Current job status
+     * @return array Updated job status
+     */
+    private function checkForTimeoutWithFallback(string $jobId, array $status): array
+    {
+        try {
+            $timeoutAt = Carbon::parse($status['timeout_at']);
+            
+            if (Carbon::now()->gt($timeoutAt)) {
+                $status['status'] = 'timeout';
+                $status['message'] = 'Test job timed out - queue worker may not be running';
+                $status['timed_out_at'] = Carbon::now()->toISOString();
+                $status['troubleshooting'] = [
+                    'Check if queue worker is running: php artisan queue:work',
+                    'Verify queue configuration in .env file',
+                    'Check for failed jobs: php artisan queue:failed',
+                    'Review application logs for errors'
+                ];
+                
+                // Update cache with timeout status
+                $cacheKey = self::CACHE_PREFIX . $jobId;
+                try {
+                    Cache::put($cacheKey, $status, self::CACHE_TTL);
+                } catch (Exception $e) {
+                    Log::warning('Failed to update cache with timeout status', [
+                        'test_job_id' => $jobId,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+                
+                Log::warning('Test job timed out', [
+                    'test_job_id' => $jobId,
+                    'timeout_at' => $timeoutAt->toISOString(),
+                    'current_time' => Carbon::now()->toISOString(),
+                ]);
+            }
+            
+            return $status;
+            
+        } catch (Exception $e) {
+            Log::error('Error checking for job timeout', [
+                'test_job_id' => $jobId,
+                'error' => $e->getMessage()
+            ]);
+            
+            // Return status as-is if we can't check timeout
+            return $status;
+        }
+    }
+
+    /**
+     * Get error job status for failed operations.
+     * 
+     * @param string $jobId The job ID
+     * @param Throwable $exception The exception that occurred
+     * @return array Error job status
+     */
+    private function getErrorJobStatus(string $jobId, Throwable $exception): array
+    {
+        return [
+            'test_job_id' => $jobId,
+            'status' => 'error',
+            'message' => 'Error checking job status - service temporarily unavailable',
+            'error' => $exception->getMessage(),
+            'error_type' => get_class($exception),
+            'troubleshooting' => [
+                'Check application logs for detailed error information',
+                'Verify cache service is running and accessible',
+                'Try refreshing the page and testing again',
+                'Contact administrator if problem persists'
+            ],
+            'checked_at' => Carbon::now()->toISOString(),
+            'fallback' => true
+        ];
+    }
+
+    /**
+     * Determine if a dispatch error should not be retried.
+     * 
+     * @param Exception $exception The exception to check
+     * @return bool True if the exception should not be retried
+     */
+    private function shouldNotRetryDispatch(Exception $exception): bool
+    {
+        // Don't retry configuration errors or permanent failures
+        $nonRetryableErrors = [
+            'InvalidArgumentException',
+            'BadMethodCallException',
+            'LogicException'
+        ];
+        
+        $exceptionClass = get_class($exception);
+        
+        foreach ($nonRetryableErrors as $errorClass) {
+            if (strpos($exceptionClass, $errorClass) !== false) {
+                return true;
+            }
+        }
+        
+        // Don't retry if error message indicates a permanent issue
+        $message = strtolower($exception->getMessage());
+        $permanentErrorIndicators = [
+            'class not found',
+            'method does not exist',
+            'invalid configuration',
+            'permission denied'
+        ];
+        
+        foreach ($permanentErrorIndicators as $indicator) {
+            if (strpos($message, $indicator) !== false) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

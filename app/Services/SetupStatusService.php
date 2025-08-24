@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Exception;
+use Throwable;
 
 /**
  * Service for centralized setup status management with caching.
@@ -18,6 +19,9 @@ class SetupStatusService
 {
     private const CACHE_TTL = 30; // 30 seconds TTL
     private const CACHE_KEY_PREFIX = 'setup_status';
+    private const FALLBACK_CACHE_TTL = 300; // 5 minutes for fallback data
+    private const MAX_RETRY_ATTEMPTS = 3;
+    private const RETRY_DELAY_MS = 1000; // 1 second
     
     private SetupDetectionService $setupDetectionService;
 
@@ -30,36 +34,86 @@ class SetupStatusService
      * Get detailed status information for all setup steps with structured responses.
      * 
      * @param bool $useCache Whether to use cached results (default: true)
+     * @param int $retryAttempt Current retry attempt (internal use)
      * @return array<string, array> Structured status data for each setup step
      */
-    public function getDetailedStepStatuses(bool $useCache = true): array
+    public function getDetailedStepStatuses(bool $useCache = true, int $retryAttempt = 0): array
     {
         $cacheKey = self::CACHE_KEY_PREFIX . '_detailed_statuses';
+        $fallbackCacheKey = $cacheKey . '_fallback';
         
         if ($useCache && Cache::has($cacheKey)) {
-            return Cache::get($cacheKey);
+            $cached = Cache::get($cacheKey);
+            Log::debug('Returning cached setup statuses', [
+                'cache_key' => $cacheKey,
+                'status_count' => count($cached)
+            ]);
+            return $cached;
         }
 
         try {
-            $statuses = $this->setupDetectionService->getAllStepStatuses();
+            $statuses = $this->executeWithRetry(function () {
+                return $this->setupDetectionService->getAllStepStatuses();
+            }, $retryAttempt);
             
             // Enhance the status data with additional metadata
             $enhancedStatuses = $this->enhanceStatusData($statuses);
             
-            // Cache the results
+            // Cache both regular and fallback results
             Cache::put($cacheKey, $enhancedStatuses, self::CACHE_TTL);
+            Cache::put($fallbackCacheKey, $enhancedStatuses, self::FALLBACK_CACHE_TTL);
+            
+            Log::debug('Successfully retrieved and cached setup statuses', [
+                'status_count' => count($enhancedStatuses),
+                'retry_attempt' => $retryAttempt
+            ]);
             
             return $enhancedStatuses;
+            
         } catch (Exception $e) {
             Log::error('Failed to get detailed step statuses', [
                 'error' => $e->getMessage(),
+                'retry_attempt' => $retryAttempt,
                 'trace' => $e->getTraceAsString()
             ]);
             
-            // Return cached data if available, otherwise return error state
-            if (Cache::has($cacheKey)) {
-                return Cache::get($cacheKey);
+            // Try fallback cache first
+            if (Cache::has($fallbackCacheKey)) {
+                $fallbackData = Cache::get($fallbackCacheKey);
+                Log::info('Using fallback cached data for setup statuses', [
+                    'fallback_cache_key' => $fallbackCacheKey,
+                    'status_count' => count($fallbackData)
+                ]);
+                
+                // Mark as fallback data
+                foreach ($fallbackData as $step => &$status) {
+                    $status['fallback'] = true;
+                    $status['fallback_reason'] = 'Service temporarily unavailable';
+                    $status['last_error'] = $e->getMessage();
+                }
+                
+                return $fallbackData;
             }
+            
+            // Return regular cache if available
+            if (Cache::has($cacheKey)) {
+                $regularCache = Cache::get($cacheKey);
+                Log::info('Using regular cached data as fallback', [
+                    'cache_key' => $cacheKey,
+                    'status_count' => count($regularCache)
+                ]);
+                return $regularCache;
+            }
+            
+            // Last resort: return error state
+            return $this->getErrorFallbackStatuses($e);
+            
+        } catch (Throwable $e) {
+            Log::critical('Critical error getting setup statuses', [
+                'error' => $e->getMessage(),
+                'retry_attempt' => $retryAttempt,
+                'trace' => $e->getTraceAsString()
+            ]);
             
             return $this->getErrorFallbackStatuses($e);
         }
@@ -68,30 +122,67 @@ class SetupStatusService
     /**
      * Refresh all status checks and update cache.
      * 
+     * @param bool $forceFresh Force fresh data even if service fails
      * @return array<string, array> Fresh status data for all setup steps
+     * @throws Exception If refresh fails and no fallback is available
      */
-    public function refreshAllStatuses(): array
+    public function refreshAllStatuses(bool $forceFresh = false): array
     {
+        $startTime = microtime(true);
+        
         try {
             // Clear existing cache
             $this->clearStatusCache();
             
-            // Get fresh status data (bypassing cache)
+            // Get fresh status data (bypassing cache) with retry logic
             $statuses = $this->getDetailedStepStatuses(false);
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
             
             Log::info('Setup statuses refreshed successfully', [
                 'timestamp' => Carbon::now()->toISOString(),
-                'status_count' => count($statuses)
+                'status_count' => count($statuses),
+                'duration_ms' => $duration,
+                'force_fresh' => $forceFresh
             ]);
             
             return $statuses;
+            
         } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
             Log::error('Failed to refresh setup statuses', [
                 'error' => $e->getMessage(),
+                'duration_ms' => $duration,
+                'force_fresh' => $forceFresh,
                 'trace' => $e->getTraceAsString()
             ]);
             
+            if (!$forceFresh) {
+                // Try to return cached data as fallback
+                $fallbackCacheKey = self::CACHE_KEY_PREFIX . '_detailed_statuses_fallback';
+                if (Cache::has($fallbackCacheKey)) {
+                    $fallbackData = Cache::get($fallbackCacheKey);
+                    Log::info('Returning fallback data after refresh failure', [
+                        'fallback_cache_key' => $fallbackCacheKey,
+                        'status_count' => count($fallbackData)
+                    ]);
+                    return $fallbackData;
+                }
+            }
+            
             throw $e;
+        } catch (Throwable $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
+            Log::critical('Critical error during status refresh', [
+                'error' => $e->getMessage(),
+                'duration_ms' => $duration,
+                'force_fresh' => $forceFresh,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            throw new Exception('Critical error during status refresh: ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -104,6 +195,7 @@ class SetupStatusService
     public function getStatusSummary(bool $useCache = true): array
     {
         $cacheKey = self::CACHE_KEY_PREFIX . '_summary';
+        $fallbackCacheKey = $cacheKey . '_fallback';
         
         if ($useCache && Cache::has($cacheKey)) {
             return Cache::get($cacheKey);
@@ -114,30 +206,52 @@ class SetupStatusService
             
             $summary = $this->calculateStatusSummary($statuses);
             
-            // Cache the summary
+            // Cache both regular and fallback summaries
             Cache::put($cacheKey, $summary, self::CACHE_TTL);
+            Cache::put($fallbackCacheKey, $summary, self::FALLBACK_CACHE_TTL);
             
             return $summary;
+            
         } catch (Exception $e) {
             Log::error('Failed to get status summary', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
-            // Return cached data if available
-            if (Cache::has($cacheKey)) {
-                return Cache::get($cacheKey);
+            // Try fallback cache first
+            if (Cache::has($fallbackCacheKey)) {
+                $fallbackSummary = Cache::get($fallbackCacheKey);
+                Log::info('Using fallback cached summary', [
+                    'fallback_cache_key' => $fallbackCacheKey
+                ]);
+                
+                // Mark as fallback data
+                $fallbackSummary['fallback'] = true;
+                $fallbackSummary['fallback_reason'] = 'Service temporarily unavailable';
+                $fallbackSummary['last_error'] = $e->getMessage();
+                
+                return $fallbackSummary;
             }
             
-            return [
-                'overall_status' => 'error',
-                'completion_percentage' => 0,
-                'completed_steps' => 0,
-                'total_steps' => 0,
-                'incomplete_steps' => [],
-                'error_steps' => [],
-                'last_updated' => Carbon::now()->toISOString(),
-                'error_message' => 'Unable to determine setup status'
-            ];
+            // Return regular cached data if available
+            if (Cache::has($cacheKey)) {
+                $regularCache = Cache::get($cacheKey);
+                Log::info('Using regular cached summary as fallback', [
+                    'cache_key' => $cacheKey
+                ]);
+                return $regularCache;
+            }
+            
+            // Last resort: return error summary
+            return $this->getErrorFallbackSummary($e);
+            
+        } catch (Throwable $e) {
+            Log::critical('Critical error getting status summary', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return $this->getErrorFallbackSummary($e);
         }
     }
 
@@ -356,5 +470,188 @@ class SetupStatusService
         }
         
         return $fallbackStatuses;
+    }
+
+    /**
+     * Execute a function with retry logic.
+     * 
+     * @param callable $callback The function to execute
+     * @param int $currentAttempt Current attempt number
+     * @return mixed The result of the callback
+     * @throws Exception If all retry attempts fail
+     */
+    private function executeWithRetry(callable $callback, int $currentAttempt = 0)
+    {
+        $maxAttempts = self::MAX_RETRY_ATTEMPTS;
+        $lastException = null;
+        
+        for ($attempt = $currentAttempt; $attempt < $maxAttempts; $attempt++) {
+            try {
+                if ($attempt > 0) {
+                    Log::debug('Retrying operation', [
+                        'attempt' => $attempt + 1,
+                        'max_attempts' => $maxAttempts,
+                        'delay_ms' => self::RETRY_DELAY_MS
+                    ]);
+                    
+                    // Add delay between retries
+                    usleep(self::RETRY_DELAY_MS * 1000);
+                }
+                
+                return $callback();
+                
+            } catch (Exception $e) {
+                $lastException = $e;
+                
+                Log::warning('Operation failed, will retry if attempts remain', [
+                    'attempt' => $attempt + 1,
+                    'max_attempts' => $maxAttempts,
+                    'error' => $e->getMessage(),
+                    'remaining_attempts' => $maxAttempts - $attempt - 1
+                ]);
+                
+                // Don't retry on certain types of errors
+                if ($this->shouldNotRetry($e)) {
+                    Log::info('Error type should not be retried', [
+                        'error_type' => get_class($e),
+                        'error_message' => $e->getMessage()
+                    ]);
+                    break;
+                }
+            }
+        }
+        
+        // All attempts failed
+        Log::error('All retry attempts exhausted', [
+            'max_attempts' => $maxAttempts,
+            'final_error' => $lastException ? $lastException->getMessage() : 'Unknown error'
+        ]);
+        
+        throw $lastException ?? new Exception('Operation failed after all retry attempts');
+    }
+
+    /**
+     * Determine if an exception should not be retried.
+     * 
+     * @param Exception $exception The exception to check
+     * @return bool True if the exception should not be retried
+     */
+    private function shouldNotRetry(Exception $exception): bool
+    {
+        // Don't retry configuration errors or permanent failures
+        $nonRetryableErrors = [
+            'InvalidArgumentException',
+            'BadMethodCallException',
+            'LogicException'
+        ];
+        
+        $exceptionClass = get_class($exception);
+        
+        foreach ($nonRetryableErrors as $errorClass) {
+            if (strpos($exceptionClass, $errorClass) !== false) {
+                return true;
+            }
+        }
+        
+        // Don't retry if error message indicates a permanent issue
+        $message = strtolower($exception->getMessage());
+        $permanentErrorIndicators = [
+            'access denied',
+            'permission denied',
+            'authentication failed',
+            'invalid credentials',
+            'not found',
+            'does not exist'
+        ];
+        
+        foreach ($permanentErrorIndicators as $indicator) {
+            if (strpos($message, $indicator) !== false) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Get error fallback summary when all else fails.
+     * 
+     * @param Throwable $exception The exception that caused the failure
+     * @return array Fallback summary data
+     */
+    private function getErrorFallbackSummary(Throwable $exception): array
+    {
+        Log::warning('Returning error fallback summary', [
+            'error' => $exception->getMessage(),
+            'error_type' => get_class($exception)
+        ]);
+        
+        return [
+            'overall_status' => 'error',
+            'completion_percentage' => 0,
+            'completed_steps' => 0,
+            'total_steps' => 6, // Known number of setup steps
+            'incomplete_steps' => ['database', 'mail', 'google_drive', 'migrations', 'admin_user', 'queue_worker'],
+            'error_steps' => ['database', 'mail', 'google_drive', 'migrations', 'admin_user', 'queue_worker'],
+            'last_updated' => Carbon::now()->toISOString(),
+            'error_message' => 'Unable to determine setup status - service temporarily unavailable',
+            'technical_error' => $exception->getMessage(),
+            'fallback' => true,
+            'fallback_reason' => 'All status checks failed'
+        ];
+    }
+
+    /**
+     * Clear all cached status data including fallback caches.
+     * 
+     * @return void
+     */
+    public function clearAllCaches(): void
+    {
+        $cacheKeys = [
+            self::CACHE_KEY_PREFIX . '_detailed_statuses',
+            self::CACHE_KEY_PREFIX . '_detailed_statuses_fallback',
+            self::CACHE_KEY_PREFIX . '_summary',
+            self::CACHE_KEY_PREFIX . '_summary_fallback'
+        ];
+        
+        foreach ($cacheKeys as $key) {
+            Cache::forget($key);
+        }
+        
+        Log::debug('All setup status caches cleared', [
+            'cleared_keys' => $cacheKeys
+        ]);
+    }
+
+    /**
+     * Get cache statistics for debugging.
+     * 
+     * @return array Cache statistics
+     */
+    public function getCacheStatistics(): array
+    {
+        $cacheKeys = [
+            'detailed_statuses' => self::CACHE_KEY_PREFIX . '_detailed_statuses',
+            'detailed_statuses_fallback' => self::CACHE_KEY_PREFIX . '_detailed_statuses_fallback',
+            'summary' => self::CACHE_KEY_PREFIX . '_summary',
+            'summary_fallback' => self::CACHE_KEY_PREFIX . '_summary_fallback'
+        ];
+        
+        $stats = [
+            'cache_ttl' => self::CACHE_TTL,
+            'fallback_cache_ttl' => self::FALLBACK_CACHE_TTL,
+            'keys' => []
+        ];
+        
+        foreach ($cacheKeys as $name => $key) {
+            $stats['keys'][$name] = [
+                'key' => $key,
+                'exists' => Cache::has($key),
+                'size_bytes' => Cache::has($key) ? strlen(serialize(Cache::get($key))) : 0
+            ];
+        }
+        
+        return $stats;
     }
 }
