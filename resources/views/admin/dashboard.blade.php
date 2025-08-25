@@ -9,8 +9,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
             @if ($isFirstTimeLogin)
-                @if ($isFirstTimeLogin)
-                    <!-- Welcome Message for First-Time Login -->
+                <!-- Welcome Message for First-Time Login -->
                     <div
                         class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 shadow-sm">
                         <div class="flex items-start">
