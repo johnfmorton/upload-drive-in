@@ -30,10 +30,12 @@
                                 <div class="space-y-2">
                                     <h4 class="font-medium">Next steps to get started:</h4>
                                     <ul class="list-disc list-inside space-y-1 text-sm">
-                                        <li>You need to connect your account to the Google Drive application. See the Google Drive Connection below to finish that configuration.</li>
+                                        <li>Connect your Google account to the Google Drive application. See the
+                                            Google Drive Connection.</li>
+                                        <li>Customize your company name, logo, etc., using the branding settings page.</li>
                                         <li>Share your upload link with clients to start receiving files</li>
                                         <li>Create employee accounts for team members</li>
-                                        <li>Customize your application settings and branding</li>
+
                                     </ul>
                                 </div>
                             </div>
