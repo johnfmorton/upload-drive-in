@@ -14,12 +14,10 @@ class AdminQueueTesting {
         this.testStartTime = null;
         this.pollingInterval = null;
         this.elapsedTimeInterval = null;
-        this.testHistory = this.loadTestHistory();
         
         this.initializeElements();
         this.bindEvents();
         this.loadQueueHealth();
-        this.displayTestHistory();
     }
 
     initializeElements() {
@@ -41,10 +39,7 @@ class AdminQueueTesting {
         this.testElapsedTime = document.getElementById('test-elapsed-time');
         this.testResultsDisplay = document.getElementById('test-results-display');
         
-        // Historical results
-        this.historicalResultsSection = document.getElementById('historical-results-section');
-        this.historicalResultsList = document.getElementById('historical-results-list');
-        this.clearTestHistoryBtn = document.getElementById('clear-test-history-btn');
+
         
         // Failed jobs details
         this.failedJobsDetailsSection = document.getElementById('failed-jobs-details-section');
@@ -60,9 +55,7 @@ class AdminQueueTesting {
             this.refreshQueueHealthBtn.addEventListener('click', () => this.loadQueueHealth());
         }
         
-        if (this.clearTestHistoryBtn) {
-            this.clearTestHistoryBtn.addEventListener('click', () => this.clearTestHistory());
-        }
+
     }
 
     async startQueueTest() {
@@ -196,7 +189,6 @@ class AdminQueueTesting {
         };
         
         this.displayTestResult(result);
-        this.addToTestHistory(result);
         
         // Show success notification
         this.showSuccessNotification(`Queue worker completed test in ${processingTime.toFixed(2)}s`);
@@ -217,7 +209,6 @@ class AdminQueueTesting {
         };
         
         this.displayTestResult(result);
-        this.addToTestHistory(result);
     }
 
     handleTestTimeout() {
@@ -235,7 +226,6 @@ class AdminQueueTesting {
         };
         
         this.displayTestResult(result);
-        this.addToTestHistory(result);
     }
 
     handleTestError(message) {
@@ -252,7 +242,6 @@ class AdminQueueTesting {
         };
         
         this.displayTestResult(result);
-        this.addToTestHistory(result);
         
         // Show detailed error notification
         this.showDetailedError(new Error(message), 'Queue test execution');
@@ -515,108 +504,7 @@ class AdminQueueTesting {
         }
     }
 
-    // Test History Management
-    loadTestHistory() {
-        try {
-            const stored = localStorage.getItem('admin_queue_test_history');
-            return stored ? JSON.parse(stored) : [];
-        } catch (error) {
-            console.error('Failed to load test history:', error);
-            return [];
-        }
-    }
 
-    addToTestHistory(result) {
-        this.testHistory.unshift(result);
-        
-        // Keep only last 10 results
-        if (this.testHistory.length > 10) {
-            this.testHistory = this.testHistory.slice(0, 10);
-        }
-        
-        this.saveTestHistory();
-        this.displayTestHistory();
-    }
-
-    saveTestHistory() {
-        try {
-            localStorage.setItem('admin_queue_test_history', JSON.stringify(this.testHistory));
-        } catch (error) {
-            console.error('Failed to save test history:', error);
-        }
-    }
-
-    displayTestHistory() {
-        if (!this.historicalResultsList || this.testHistory.length === 0) {
-            if (this.historicalResultsSection) {
-                this.historicalResultsSection.classList.add('hidden');
-            }
-            return;
-        }
-        
-        // Show historical results section
-        if (this.historicalResultsSection) {
-            this.historicalResultsSection.classList.remove('hidden');
-        }
-        
-        // Clear existing history
-        this.historicalResultsList.innerHTML = '';
-        
-        // Add historical results (limit to 5 for display)
-        this.testHistory.slice(0, 5).forEach(result => {
-            const element = this.createHistoricalResultElement(result);
-            this.historicalResultsList.appendChild(element);
-        });
-    }
-
-    createHistoricalResultElement(result) {
-        const div = document.createElement('div');
-        
-        let statusColor;
-        switch (result.status) {
-            case 'success':
-                statusColor = 'text-green-600';
-                break;
-            case 'failed':
-            case 'error':
-                statusColor = 'text-red-600';
-                break;
-            case 'timeout':
-                statusColor = 'text-yellow-600';
-                break;
-            default:
-                statusColor = 'text-gray-600';
-        }
-        
-        const timestamp = new Date(result.timestamp).toLocaleString();
-        
-        div.className = 'flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md';
-        div.innerHTML = `
-            <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium text-gray-900 truncate">
-                    ${result.message}
-                </div>
-                <div class="text-xs text-gray-500">
-                    ${timestamp}
-                </div>
-            </div>
-            <div class="flex-shrink-0 ml-3">
-                <span class="text-sm font-medium ${statusColor} capitalize">
-                    ${result.status}
-                </span>
-            </div>
-        `;
-        
-        return div;
-    }
-
-    clearTestHistory() {
-        if (confirm('Are you sure you want to clear the test history?')) {
-            this.testHistory = [];
-            this.saveTestHistory();
-            this.displayTestHistory();
-        }
-    }
 
     // Failed Jobs Details Management
     displayFailedJobsDetails(failedJobs) {
