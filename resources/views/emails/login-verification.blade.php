@@ -14,11 +14,27 @@
         .button {
             display: inline-block;
             padding: 10px 20px;
-            background-color: #4F46E5;
-            color: white;
-            text-decoration: none;
+            background-color: #4F46E5 !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
             border-radius: 5px;
             margin: 20px 0;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        /* Gmail-specific fixes */
+        .button:visited {
+            color: #ffffff !important;
+        }
+        
+        .button:hover {
+            color: #ffffff !important;
+            background-color: #3730A3 !important;
+        }
+        
+        .button:active {
+            color: #ffffff !important;
         }
         .footer {
             margin-top: 30px;
@@ -32,7 +48,7 @@
 
     <p>{{ __('messages.verify_email_intro', ['company_name' => config('app.company_name')]) }}</p>
 
-    <a href="{{ $verificationUrl }}" class="button">{{ __('messages.verify_email_button') }}</a>
+    <a href="{{ $verificationUrl }}" class="button" style="display: inline-block; padding: 10px 20px; background-color: #4F46E5 !important; color: #ffffff !important; text-decoration: none !important; border-radius: 5px; margin: 20px 0; font-weight: 600; text-align: center;">{{ __('messages.verify_email_button') }}</a>
 
     <p>{{ __('messages.verify_email_ignore') }}</p>
 
