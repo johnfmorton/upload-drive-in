@@ -29,7 +29,7 @@ class LoginVerificationMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.login-verification',
+            markdown: 'emails.login-verification-markdown',
         );
     }
 }
