@@ -229,37 +229,42 @@ img {
 .button {
     -webkit-text-size-adjust: none;
     border-radius: 4px;
-    color: #fff;
+    color: #ffffff !important;
     display: inline-block;
     overflow: hidden;
-    text-decoration: none;
+    text-decoration: none !important;
+    font-weight: 600;
+    text-align: center;
 }
 
 .button-blue,
 .button-primary {
-    background-color: #2d3748;
+    background-color: #2d3748 !important;
     border-bottom: 8px solid #2d3748;
     border-left: 18px solid #2d3748;
     border-right: 18px solid #2d3748;
     border-top: 8px solid #2d3748;
+    color: #ffffff !important;
 }
 
 .button-green,
 .button-success {
-    background-color: #48bb78;
+    background-color: #48bb78 !important;
     border-bottom: 8px solid #48bb78;
     border-left: 18px solid #48bb78;
     border-right: 18px solid #48bb78;
     border-top: 8px solid #48bb78;
+    color: #ffffff !important;
 }
 
 .button-red,
 .button-error {
-    background-color: #e53e3e;
+    background-color: #e53e3e !important;
     border-bottom: 8px solid #e53e3e;
     border-left: 18px solid #e53e3e;
     border-right: 18px solid #e53e3e;
     border-top: 8px solid #e53e3e;
+    color: #ffffff !important;
 }
 
 /* Panels */

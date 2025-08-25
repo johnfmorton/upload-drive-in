@@ -30,8 +30,8 @@
                                 <div class="space-y-2">
                                     <h4 class="font-medium">Next steps to get started:</h4>
                                     <ul class="list-disc list-inside space-y-1 text-sm">
+                                        <li>You need to connect your account to the Google Drive application. See the Google Drive Connection below to finish that configuration.</li>
                                         <li>Share your upload link with clients to start receiving files</li>
-                                        <li>Configure additional cloud storage providers if needed</li>
                                         <li>Create employee accounts for team members</li>
                                         <li>Customize your application settings and branding</li>
                                     </ul>
@@ -229,22 +229,6 @@
                             </div>
                         </div>
                     </div>
-
-                    {{-- <!-- Historical Test Results -->
-                    <div id="historical-results-section" class="hidden">
-                        <div class="border-t border-gray-200 pt-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-md font-medium text-gray-900">Recent Test History</h3>
-                                <button id="clear-test-history-btn" type="button"
-                                    class="text-sm text-gray-500 hover:text-gray-700">
-                                    Clear History
-                                </button>
-                            </div>
-                            <div id="historical-results-list" class="space-y-2">
-                                <!-- Historical results will be dynamically inserted here -->
-                            </div>
-                        </div>
-                    </div> --}}
                 </div>
             </div>
             <!-- File Management Section -->
