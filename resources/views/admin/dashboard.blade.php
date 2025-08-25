@@ -251,7 +251,7 @@
                             </div>
                         </div>
                     </div>
-
+                </div> 
                     <!-- File Management Section -->
                     <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
