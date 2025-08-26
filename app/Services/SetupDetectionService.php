@@ -322,10 +322,8 @@ class SetupDetectionService
                 $now = Carbon::now();
                 $last24Hours = $now->copy()->subHours(24);
 
-                // Count recent job activity
-                $recentJobs = DB::table('jobs')
-                    ->where('created_at', '>=', $last24Hours->timestamp)
-                    ->count();
+                // Count pending jobs (jobs still in queue)
+                $pendingJobs = DB::table('jobs')->count();
 
                 // Count failed jobs in last 24 hours
                 $recentFailedJobs = DB::table('failed_jobs')
@@ -341,14 +339,34 @@ class SetupDetectionService
                     ->where('reserved_at', '<', $now->copy()->subHour()->timestamp)
                     ->count();
 
+                // Try to get recent job activity from QueueTestService if available
+                $recentJobActivity = 0;
+                try {
+                    $queueTestService = app(\App\Services\QueueTestService::class);
+                    $healthMetrics = $queueTestService->getQueueHealthMetrics();
+                    
+                    // Use test job statistics as a proxy for recent activity
+                    if (isset($healthMetrics['test_job_statistics']['test_jobs_24h'])) {
+                        $recentJobActivity = $healthMetrics['test_job_statistics']['test_jobs_24h'];
+                    }
+                } catch (Exception $e) {
+                    Log::debug('Could not get test job statistics for queue health', [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
                 // Determine status based on metrics
                 if ($recentFailedJobs > 10 || $stalledJobs > 5) {
                     $status = 'error';
                     $message = 'Queue worker appears to have issues';
-                } elseif ($recentJobs > 0 && $recentFailedJobs === 0) {
+                } elseif ($pendingJobs > 0 && $recentFailedJobs === 0) {
                     $status = 'working';
                     $message = 'Queue worker is processing jobs successfully';
-                } elseif ($recentJobs === 0 && $recentFailedJobs === 0) {
+                } elseif ($recentJobActivity > 0 && $recentFailedJobs === 0) {
+                    // Recent test job activity indicates worker is functioning
+                    $status = 'working';
+                    $message = 'Queue worker is functioning properly';
+                } elseif ($pendingJobs === 0 && $recentFailedJobs === 0 && $recentJobActivity === 0) {
                     // No recent activity and no recent failures - healthy idle state
                     $status = 'idle';
                     $message = 'Queue worker is idle - no recent activity';
@@ -371,7 +389,8 @@ class SetupDetectionService
                     'status' => $status,
                     'message' => $message,
                     'details' => [
-                        'recent_jobs' => $recentJobs,
+                        'recent_jobs' => $recentJobActivity, // Use test job activity as proxy for recent jobs
+                        'pending_jobs' => $pendingJobs,
                         'recent_failed_jobs' => $recentFailedJobs,
                         'total_failed_jobs' => $totalFailedJobs,
                         'stalled_jobs' => $stalledJobs,
