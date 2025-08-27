@@ -763,29 +763,29 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                     <!-- Completion Notice -->
                     <div class="bg-green-50 border border-green-200 rounded-lg p-6">
                         <div class="flex">
-                            <div class="flex-shrink-0">
+                            {{-- <div class="flex-shrink-0">
                                 <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                            </div>
+                            </div> --}}
                             <div class="ml-3">
                                 <h3 class="text-lg font-medium text-green-800">
-                                    Setup Complete!
+                                   Disable access to the set-up instruction process.
                                 </h3>
                                 <div class="mt-2 text-sm text-green-700">
                                     <p>
-                                        Once you've completed all the steps above, refresh this page to access the
-                                        application.
-                                        The system will automatically detect your configuration and redirect you to the
-                                        login page.
+                                        To secure your app, once you've completed all the steps above, you disable the set-up process by
+                                        setting the <code class="bg-gray-100 px-2 py-1 rounded text-sm">APP_SETUP_ENABLED</code> to <code class="bg-gray-100 px-2 py-1 rounded text-sm">false</code> in the <code class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code> file. You can also
+                                        do that by clicking the button below.
                                     </p>
                                 </div>
                                 <div class="mt-4">
-                                    <button onclick="window.location.reload()"
-                                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
-                                        Refresh Page
+                                    <button id="disable-setup-btn" onclick="disableSetup()"
+                                        class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <span id="disable-setup-text">Disable the set-up process</span>
+                                      
                                     </button>
                                 </div>
                             </div>
@@ -925,6 +925,76 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         alert('Copy failed. Please select and copy the text manually.');
                     }
                 }
+            }
+        }
+
+        /**
+         * Disable the setup process by setting APP_SETUP_ENABLED to false
+         */
+        async function disableSetup() {
+            const button = document.getElementById('disable-setup-btn');
+            const buttonText = document.getElementById('disable-setup-text');
+            const spinner = document.getElementById('disable-setup-spinner');
+
+            if (!button || !buttonText || !spinner) {
+                console.error('Required elements not found');
+                alert('Error: Could not find required elements. Please refresh the page and try again.');
+                return;
+            }
+
+            // Disable button and show loading state
+            button.disabled = true;
+            buttonText.textContent = 'Disabling...';
+            spinner.classList.remove('hidden');
+
+            try {
+                // Get CSRF token
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+                const response = await fetch('{{ route('setup.disable') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Success - show success message and redirect
+                    buttonText.textContent = 'Setup Disabled!';
+                    spinner.classList.add('hidden');
+                    button.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    button.classList.add('bg-green-700');
+
+                    // Show success message
+                    alert(
+                        'Setup process has been disabled successfully! The page will now redirect to the main application.');
+
+                    // Redirect to home page after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    // Error response
+                    console.error('Setup disable failed:', data.error);
+                    alert('Failed to disable setup: ' + (data.error?.message || 'Unknown error occurred'));
+
+                    // Reset button state
+                    button.disabled = false;
+                    buttonText.textContent = 'Disable the Set-up process';
+                    spinner.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Network error:', error);
+                alert('Network error occurred. Please check your connection and try again.');
+
+                // Reset button state
+                button.disabled = false;
+                buttonText.textContent = 'Disable the Set-up process';
+                spinner.classList.add('hidden');
             }
         }
     </script>

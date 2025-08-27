@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\SetupDetectionService;
 use App\Services\SetupStatusService;
 use App\Services\SetupSecurityService;
+use App\Services\EnvironmentFileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,8 @@ class SetupInstructionsController extends Controller
     public function __construct(
         private SetupDetectionService $setupDetectionService,
         private SetupStatusService $setupStatusService,
-        private SetupSecurityService $setupSecurityService
+        private SetupSecurityService $setupSecurityService,
+        private EnvironmentFileService $environmentFileService
     ) {}
 
     /**
@@ -488,5 +490,113 @@ class SetupInstructionsController extends Controller
         }
 
         return response()->json($errorData, $statusCode);
+    }
+
+    /**
+     * Disable the setup process by setting APP_SETUP_ENABLED to false.
+     */
+    public function disableSetup(Request $request): JsonResponse
+    {
+        $requestId = uniqid('disable_setup_', true);
+        
+        try {
+            Log::info('Setup disable requested', [
+                'request_id' => $requestId,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            // Security validation
+            if ($this->setupSecurityService->shouldBlockRequest($request)) {
+                Log::warning('Setup disable blocked by security service', [
+                    'request_id' => $requestId,
+                    'ip' => $request->ip()
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Request blocked for security reasons.',
+                        'code' => 'SECURITY_BLOCK',
+                        'request_id' => $requestId
+                    ]
+                ], 403);
+            }
+
+            // Log security event
+            $this->setupSecurityService->logSecurityEvent('setup_disable_requested', [
+                'route' => 'setup.disable',
+                'request_id' => $requestId
+            ]);
+
+            // Update environment file to disable setup
+            $result = $this->environmentFileService->updateEnvironmentFile([
+                'APP_SETUP_ENABLED' => 'false'
+            ]);
+
+            if (!$result['success']) {
+                Log::error('Failed to disable setup', [
+                    'request_id' => $requestId,
+                    'error' => $result['message'],
+                    'violations' => $result['violations'] ?? []
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Failed to disable setup: ' . $result['message'],
+                        'code' => 'UPDATE_FAILED',
+                        'request_id' => $requestId,
+                        'violations' => $result['violations'] ?? []
+                    ]
+                ], 500);
+            }
+
+            Log::info('Setup disabled successfully', [
+                'request_id' => $requestId,
+                'backup_path' => $result['backup_path'] ?? null
+            ]);
+
+            // Log security event for successful disable
+            $this->setupSecurityService->logSecurityEvent('setup_disabled', [
+                'request_id' => $requestId,
+                'backup_created' => $result['backup_created'] ?? false
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Setup process has been disabled successfully.',
+                'data' => [
+                    'backup_created' => $result['backup_created'] ?? false,
+                    'backup_path' => $result['backup_path'] ?? null,
+                    'request_id' => $requestId,
+                    'disabled_at' => now()->toISOString()
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Failed to disable setup', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+            
+            return $this->getErrorResponse($e, $requestId, 'DISABLE_FAILED', 
+                'Failed to disable setup. Please try again.');
+                
+        } catch (Throwable $e) {
+            Log::critical('Critical error during setup disable', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+            
+            return $this->getErrorResponse($e, $requestId, 'CRITICAL_ERROR', 
+                'A critical error occurred. Please try again.');
+        }
     }
 }

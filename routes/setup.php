@@ -25,4 +25,7 @@ Route::middleware(['web', 'require.setup.enabled'])->prefix('setup')->name('setu
     Route::post('/status/refresh', [\App\Http\Controllers\SetupInstructionsController::class, 'refreshStatus'])->name('status.refresh');
     Route::post('/status/refresh-step', [\App\Http\Controllers\SetupInstructionsController::class, 'refreshSingleStep'])->name('status.refresh-step');
     
+    // Setup disable endpoint
+    Route::post('/disable', [\App\Http\Controllers\SetupInstructionsController::class, 'disableSetup'])->name('disable');
+    
 });

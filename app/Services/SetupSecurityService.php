@@ -605,4 +605,52 @@ class SetupSecurityService
 
         return false;
     }
+
+    /**
+     * Validate environment variable name and value for security.
+     */
+    public function validateEnvironmentVariable(string $name, string $value): array
+    {
+        $violations = [];
+
+        // Validate variable name
+        if (!preg_match('/^[A-Z][A-Z0-9_]*$/', $name)) {
+            $violations[] = "Invalid environment variable name format: {$name}";
+        }
+
+        // Check for dangerous patterns in value
+        if (preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $value)) {
+            $violations[] = "Environment variable value contains invalid characters";
+        }
+
+        // Check for potential code injection patterns
+        $dangerousPatterns = [
+            '/\$\{.*\}/',           // Variable substitution
+            '/`.*`/',               // Command substitution
+            '/\$\(.*\)/',           // Command substitution
+            '/;.*/',                // Command chaining
+            '/\|.*/',               // Pipe operations
+            '/&.*/',                // Background processes
+            '/\n.*/',               // Newline injection
+            '/\r.*/',               // Carriage return injection
+        ];
+
+        foreach ($dangerousPatterns as $pattern) {
+            if (preg_match($pattern, $value)) {
+                $violations[] = "Environment variable value contains potentially dangerous patterns";
+                break;
+            }
+        }
+
+        // Check value length (prevent extremely long values)
+        $maxLength = config('setup-security.validation.max_env_value_length', 1000);
+        if (strlen($value) > $maxLength) {
+            $violations[] = "Environment variable value exceeds maximum length of {$maxLength} characters";
+        }
+
+        return [
+            'valid' => empty($violations),
+            'violations' => $violations
+        ];
+    }
 }
