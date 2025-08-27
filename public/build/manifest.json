@@ -1,6 +1,10 @@
 {
+  "_chunk.SBCFYC2S-DMThxOYY.js": {
+    "file": "assets/chunk.SBCFYC2S-DMThxOYY.js",
+    "name": "chunk.SBCFYC2S"
+  },
   "resources/css/app.css": {
-    "file": "assets/app-ClpNz2CQ.css",
+    "file": "assets/app-Bpeaf45a.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
@@ -11,10 +15,13 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-ENMRYEZ9.js",
+    "file": "assets/app-_-uRIMtx.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
+    "imports": [
+      "_chunk.SBCFYC2S-DMThxOYY.js"
+    ],
     "css": [
       "assets/app-Dj-zwn9H.css"
     ]
@@ -32,9 +39,12 @@
     "isEntry": true
   },
   "resources/js/setup-status.js": {
-    "file": "assets/setup-status-C0SwQxfl.js",
+    "file": "assets/setup-status-CrVYHda9.js",
     "name": "setup-status",
     "src": "resources/js/setup-status.js",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "_chunk.SBCFYC2S-DMThxOYY.js"
+    ]
   }
 }

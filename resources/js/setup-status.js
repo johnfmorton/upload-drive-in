@@ -46,14 +46,6 @@ class SetupStatusManager {
         this.setupCSRFToken();
         this.bindEventListeners();
         this.setupKeyboardNavigation();
-
-        // Auto-check status on page load with a small delay
-        setTimeout(() => {
-            this.refreshAllStatuses();
-        }, 1000);
-
-        // Start automatic polling for configuration changes during setup
-        this.startSetupPolling();
     }
 
     /**
@@ -1143,25 +1135,7 @@ class SetupStatusManager {
         }
     }
 
-    /**
-     * Start automatic polling for configuration changes during setup
-     */
-    startSetupPolling() {
-        // Poll more frequently during setup to detect configuration changes
-        const setupPollingInterval = 15000; // 15 seconds
-        
-        setInterval(() => {
-            if (!this.refreshInProgress) {
-                // Only poll if we're still on the setup page
-                if (window.location.pathname.includes('setup') || 
-                    window.location.pathname.includes('instructions')) {
-                    this.refreshAllStatuses();
-                }
-            }
-        }, setupPollingInterval);
-        
-        console.log('Setup polling started - checking for configuration changes every 15 seconds');
-    }
+
 
 
 }
