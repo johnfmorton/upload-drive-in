@@ -5,6 +5,11 @@
  * Provides real-time status updates, error handling, and retry logic.
  */
 
+// Import Shoelace components for toast notifications
+import '@shoelace-style/shoelace/dist/components/alert/alert.js';
+import '@shoelace-style/shoelace/dist/components/icon/icon.js';
+import '@shoelace-style/shoelace/dist/components/button/button.js';
+
 class SetupStatusManager {
     constructor(options = {}) {
         this.statusSteps = [
@@ -77,11 +82,7 @@ class SetupStatusManager {
             refreshButton.addEventListener("click", this.refreshAllStatuses);
         }
 
-        // Force refresh button
-        const forceRefreshButton = document.getElementById("force-refresh-btn");
-        if (forceRefreshButton) {
-            forceRefreshButton.addEventListener("click", () => this.forceCacheRefresh());
-        }
+
 
         // Individual step refresh buttons (if they exist)
         this.statusSteps.forEach((step) => {
@@ -450,21 +451,7 @@ class SetupStatusManager {
             }
         }
 
-        // Handle force refresh button
-        const forceButton = document.getElementById("force-refresh-btn");
-        const forceButtonText = document.getElementById("force-refresh-btn-text");
-        const forceSpinner = document.getElementById("force-refresh-spinner");
 
-        if (forceButton && forceButtonText && forceSpinner) {
-            forceButton.disabled = isLoading;
-            forceButtonText.textContent = isLoading ? "Refreshing..." : "Force Refresh";
-
-            if (isLoading) {
-                forceSpinner.classList.remove("hidden");
-            } else {
-                forceSpinner.classList.add("hidden");
-            }
-        }
 
         // Set all steps to checking state if loading
         if (isLoading) {
@@ -560,79 +547,90 @@ class SetupStatusManager {
     }
 
     /**
-     * Show message to user
+     * Show toast notification using Shoelace alert component
      */
     showMessage(message, type = "info", showRetryButton = false) {
-        // Remove existing messages
+        // Clear any existing toast messages
         this.clearMessages();
 
-        const messageContainer = document.createElement("div");
-        messageContainer.className = `status-message status-message-${type}`;
-        messageContainer.innerHTML = `
-            <div class="flex items-center justify-between p-4 rounded-md ${this.getMessageClasses(
-                type
-            )}">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        ${this.getMessageIcon(type)}
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm font-medium">${message}</p>
-                    </div>
-                </div>
-                ${
-                    showRetryButton
-                        ? `
-                    <button class="retry-refresh-btn ml-4 bg-white bg-opacity-20 hover:bg-opacity-30 text-current px-3 py-1 rounded text-sm transition-colors">
-                        Retry Now
-                    </button>
-                `
-                        : ""
-                }
-                <button class="dismiss-message-btn ml-2 text-current hover:text-opacity-70" onclick="this.parentElement.parentElement.remove()">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+        // Get or create toast container
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'toast-container';
+            document.body.appendChild(toastContainer);
+        }
+
+        // Map our types to Shoelace variants
+        const variantMap = {
+            'success': 'success',
+            'error': 'danger',
+            'warning': 'warning',
+            'info': 'primary'
+        };
+
+        // Create Shoelace alert element
+        const alert = document.createElement('sl-alert');
+        alert.setAttribute('variant', variantMap[type] || 'primary');
+        alert.setAttribute('closable', 'true');
+        alert.className = 'status-message';
+        
+        // Add content
+        let alertContent = `
+            <sl-icon slot="icon" name="${this.getIconName(type)}"></sl-icon>
+            ${message}
         `;
 
-        // Insert after the header
-        const header = document.querySelector(".text-center.mb-8");
-        if (header) {
-            header.insertAdjacentElement("afterend", messageContainer);
+        // Add retry button if requested
+        if (showRetryButton) {
+            alertContent += `
+                <sl-button slot="action" variant="text" size="small" class="retry-refresh-btn">
+                    Retry Now
+                </sl-button>
+            `;
         }
 
-        // Auto-dismiss success messages
-        if (type === "success") {
+        alert.innerHTML = alertContent;
+
+        // Add to container
+        toastContainer.appendChild(alert);
+
+        // Show the alert with animation
+        alert.toast();
+
+        // Auto-dismiss success messages after 5 seconds
+        if (type === 'success') {
             setTimeout(() => {
-                messageContainer.remove();
+                if (alert.parentNode) {
+                    alert.hide();
+                }
             }, 5000);
         }
+
+        // Handle retry button click if present
+        if (showRetryButton) {
+            const retryBtn = alert.querySelector('.retry-refresh-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => {
+                    alert.hide();
+                    this.retryRefresh();
+                });
+            }
+        }
     }
 
-    /**
-     * Get CSS classes for message type
-     */
-    getMessageClasses(type) {
-        const classes = {
-            success: "bg-green-100 border border-green-200 text-green-800",
-            error: "bg-red-100 border border-red-200 text-red-800",
-            warning: "bg-yellow-100 border border-yellow-200 text-yellow-800",
-            info: "bg-blue-100 border border-blue-200 text-blue-800",
-        };
-        return classes[type] || classes.info;
-    }
+
 
     /**
-     * Get icon for message type
+     * Get Shoelace icon name for message type
      */
-    getMessageIcon(type) {
+    getIconName(type) {
         const icons = {
-            success: '<span class="w-5 h-5 text-lg">✅</span>',
-            error: '<span class="w-5 h-5 text-lg">🚫</span>',
-            warning: '<span class="w-5 h-5 text-lg">⚠️</span>',
-            info: '<span class="w-5 h-5 text-lg">ℹ️</span>',
+            success: 'check-circle',
+            error: 'exclamation-triangle',
+            warning: 'exclamation-triangle',
+            info: 'info-circle',
         };
         return icons[type] || icons.info;
     }
@@ -652,21 +650,29 @@ class SetupStatusManager {
     }
 
     /**
-     * Clear all messages
+     * Clear all toast messages
      */
     clearMessages() {
-        document
-            .querySelectorAll(".status-message")
-            .forEach((msg) => msg.remove());
+        const toastContainer = document.getElementById('toast-container');
+        if (toastContainer) {
+            // Hide all existing alerts
+            toastContainer.querySelectorAll('sl-alert').forEach(alert => {
+                alert.hide();
+            });
+        }
     }
 
     /**
      * Clear error messages specifically
      */
     clearErrorMessages() {
-        document
-            .querySelectorAll(".status-message-error")
-            .forEach((msg) => msg.remove());
+        const toastContainer = document.getElementById('toast-container');
+        if (toastContainer) {
+            // Hide error alerts (danger variant)
+            toastContainer.querySelectorAll('sl-alert[variant="danger"]').forEach(alert => {
+                alert.hide();
+            });
+        }
     }
 
     /**
@@ -1157,51 +1163,7 @@ class SetupStatusManager {
         console.log('Setup polling started - checking for configuration changes every 15 seconds');
     }
 
-    /**
-     * Force clear configuration cache and refresh
-     * This method can be called when user manually updates configuration
-     */
-    async forceCacheRefresh() {
-        try {
-            this.setLoadingState(true);
-            this.clearErrorMessages();
-            
-            // Make a request that will trigger cache clearing
-            const response = await this.makeAjaxRequest(
-                "/setup/status/refresh",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": this.getCSRFToken(),
-                        "X-Requested-With": "XMLHttpRequest",
-                    },
-                    body: JSON.stringify({
-                        force_cache_clear: true
-                    })
-                }
-            );
 
-            if (!response.success) {
-                throw new Error(
-                    response.error?.message || "Failed to refresh status"
-                );
-            }
-
-            // Update all step statuses
-            this.updateAllStepStatuses(response.data.statuses);
-            this.updateLastChecked();
-            this.resetRetryAttempts();
-
-            // Show success feedback
-            this.showSuccessMessage("Configuration refreshed successfully");
-        } catch (error) {
-            console.error("Error forcing cache refresh:", error);
-            this.handleRefreshError(error, "force_refresh");
-        } finally {
-            this.setLoadingState(false);
-        }
-    }
 }
 
 // Global functions for backward compatibility

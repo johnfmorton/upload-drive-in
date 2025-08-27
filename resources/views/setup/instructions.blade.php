@@ -76,6 +76,12 @@
             @apply block;
         }
 
+        /* Toast Container Styles */
+        .toast-container {
+            @apply fixed top-4 right-4 z-50 space-y-2;
+            max-width: 400px;
+        }
+
         @media (max-width: 640px) {
             .step-status-container {
                 @apply flex-col items-start space-y-2;
@@ -84,11 +90,18 @@
             .status-indicator {
                 @apply text-xs px-2 py-1;
             }
+
+            .toast-container {
+                @apply left-4 right-4 top-4;
+                max-width: none;
+            }
         }
     </style>
 </head>
 
 <body class="font-sans antialiased bg-gray-50">
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
     <div class="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div class="sm:mx-auto sm:w-full sm:max-w-4xl">
             <!-- Header -->
@@ -99,14 +112,15 @@
                 <!-- Status Refresh Section -->
                 <div
                     class="mt-6 flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-                    <button id="refresh-status-btn" class="refresh-button">
+                    <button id="refresh-status-btn"
+                        class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
                         <span id="refresh-btn-text">Check Status</span>
                         <div id="refresh-spinner" class="loading-spinner hidden ml-2"></div>
-                    </button>
-                    <button id="force-refresh-btn" class="refresh-button bg-orange-600 hover:bg-orange-700"
-                        title="Clear cache and refresh status - use this if you just updated configuration">
-                        <span id="force-refresh-btn-text">Force Refresh</span>
-                        <div id="force-refresh-spinner" class="loading-spinner hidden ml-2"></div>
                     </button>
 
                     <div id="last-checked" class="text-sm text-gray-500 hidden">
@@ -927,7 +941,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         console.log('Restoring button to original state');
                         button.textContent = originalText;
                         button.className = originalClasses.join(' ');
-                    }, 2000);
+                    }, 15000);
                 } else {
                     console.error('Copy button not found in container');
                 }
