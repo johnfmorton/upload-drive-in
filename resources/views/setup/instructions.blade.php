@@ -357,18 +357,20 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                             <p class="text-gray-600 mb-4">
                                 When <a href="https://console.cloud.google.com/apis/credentials" target="_blank"
                                     class="underline text-blue-800" rel="noopener noreferrer">setting up your Google
-                                    Cloud Project OAuth 2.0 client</a>, add the following <strong>Authorized JavaScript origin</strong> and <strong>Authorized
+                                    Cloud Project OAuth 2.0 client</a>, add the following <strong>Authorized JavaScript
+                                    origin</strong> and <strong>Authorized
                                     redirect URI</strong> to your app:
                             </p>
 
                             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 relative">
-                                <button onclick="copyToClipboard('redirect-uri')"
+                                <button onclick="copyToClipboard('javascript-origin')"
                                     class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
                                     Copy
                                 </button>
                                 <div class="pr-16">
-                                    <label class="block text-sm font-medium text-blue-800 mb-2">Authorized JavaScript origin:</label>
-                                    <code id="redirect-uri"
+                                    <label class="block text-sm font-medium text-blue-800 mb-2">Authorized JavaScript
+                                        origin:</label>
+                                    <code id="javascript-origin"
                                         class="block bg-white border border-blue-300 rounded px-3 py-2 text-blue-900 font-mono text-sm break-all">{{ config('app.url') }}</code>
                                 </div>
                             </div>
@@ -406,7 +408,8 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                         <li>Click <strong>Create Credentials</strong> → <strong>OAuth 2.0 Client
                                                 IDs</strong></li>
                                         <li>Choose <strong>Web application</strong> as the application type</li>
-                                        <li>Add the authorized JavaScript origin shown above to <strong>Authorized JavaScript origins
+                                        <li>Add the authorized JavaScript origin shown above to <strong>Authorized
+                                                JavaScript origins
                                             </strong></li>
                                         <li>Add the redirect URI shown above to <strong>Authorized redirect
                                                 URIs</strong></li>
@@ -513,7 +516,8 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                         paths.
                                         Adjust the paths (<code>/var/www/html</code>, <code>/home/forge/default</code>)
                                         to match your actual application directory.
-                                        For Laravel Forge, depending on how your server is configured, you may use the specific PHP version (e.g., <code>php8.3</code>,
+                                        For Laravel Forge, depending on how your server is configured, you may use the
+                                        specific PHP version (e.g., <code>php8.3</code>,
                                         <code>php8.4</code>) instead of just <code>php</code>.
                                     </p>
                                 </div>
@@ -566,7 +570,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                             <div class="bg-gray-100 p-3 rounded font-mono text-xs overflow-x-auto">
                                                 [program:laravel-worker]<br>
                                                 process_name=%(program_name)s_%(process_num)02d<br>
-                                                command=php /var/www/html/artisan queue:work --sleep=3 --tries=3
+                                                command=php {{ base_path() }}/artisan queue:work --sleep=3 --tries=3
                                                 --max-time=3600<br>
                                                 autostart=true<br>
                                                 autorestart=true<br>
@@ -575,7 +579,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                                 user=www-data<br>
                                                 numprocs=1<br>
                                                 redirect_stderr=true<br>
-                                                stdout_logfile=/var/www/html/storage/logs/worker.log<br>
+                                                stdout_logfile={{ base_path() }}/storage/logs/worker.log<br>
                                                 stopwaitsecs=3600
                                             </div>
                                             <p class="text-gray-600 mt-2 text-xs">Then run: <code>sudo supervisorctl
@@ -598,9 +602,9 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                                 User=www-data<br>
                                                 Group=www-data<br>
                                                 Restart=always<br>
-                                                ExecStart=php /var/www/html/artisan queue:work --sleep=3 --tries=3
+                                                ExecStart=php {{ base_path() }}/artisan queue:work --sleep=3 --tries=3
                                                 --max-time=3600<br>
-                                                WorkingDirectory=/var/www/html<br>
+                                                WorkingDirectory={{ base_path() }}<br>
                                                 <br>
                                                 [Install]<br>
                                                 WantedBy=multi-user.target
@@ -618,11 +622,13 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                                 <strong>Command:</strong> php artisan queue:work --sleep=3 --tries=3
                                                 --max-time=3600<br>
                                                 <strong>User:</strong> forge<br>
-                                                <strong>Directory:</strong> /home/forge/default
+                                                <strong>Directory:</strong> {{ base_path() }}
                                             </div>
                                             <div class="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
-                                                <strong>Note:</strong> Depending on your server's set up, you may replace <code>php</code> with your server's
-                                                PHP version (e.g., <code>php8.4</code>, <code>php8.2</code>). Also, replace <code>/home/forge/default</code> with 
+                                                <strong>Note:</strong> Depending on your server's set up, you may
+                                                replace <code>php</code> with your server's
+                                                PHP version (e.g., <code>php8.4</code>, <code>php8.2</code>). Also,
+                                                replace <code>{{ base_path() }}</code> with
                                                 the directory to your site.
                                             </div>
                                         </div>
