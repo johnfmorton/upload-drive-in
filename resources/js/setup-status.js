@@ -329,6 +329,8 @@ class SetupStatusManager {
         // Remove all status classes
         const statusClasses = [
             "status-completed",
+            "status-working",
+            "status-idle",
             "status-incomplete",
             "status-error",
             "status-checking",
@@ -389,6 +391,8 @@ class SetupStatusManager {
 
         const statusEmojis = {
             completed: "✅",
+            working: "✅",      // Queue worker is actively processing jobs
+            idle: "✅",         // Queue worker is idle but functioning properly
             incomplete: "❌",
             error: "🚫",
             "cannot-verify": "❓",

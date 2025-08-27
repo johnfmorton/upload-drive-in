@@ -13,90 +13,6 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/setup-status.js'])
-
-    <!-- Status Indicator Styles -->
-    <style>
-        .status-indicator {
-            @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-        }
-
-        .status-completed {
-            @apply bg-green-100 text-green-800;
-        }
-
-        .status-incomplete {
-            @apply bg-red-100 text-red-800;
-        }
-
-        .status-error {
-            @apply bg-red-100 text-red-800;
-        }
-
-        .status-checking {
-            @apply bg-blue-100 text-blue-800;
-        }
-
-        .status-cannot-verify {
-            @apply bg-gray-100 text-gray-800;
-        }
-
-        .status-needs_attention {
-            @apply bg-yellow-100 text-yellow-800;
-        }
-
-        .status-icon {
-            @apply w-4 h-4 mr-1.5;
-        }
-
-        .refresh-button {
-            @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-        }
-
-        .refresh-button:disabled {
-            @apply bg-gray-400;
-        }
-
-        .loading-spinner {
-            @apply animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full;
-        }
-
-        .step-status-container {
-            @apply flex items-center justify-between mb-4;
-        }
-
-        .step-header {
-            @apply flex items-center;
-        }
-
-        .step-status-details {
-            @apply mt-2 text-sm text-gray-600 hidden;
-        }
-
-        .step-status-details.show {
-            @apply block;
-        }
-
-        /* Toast Container Styles */
-        .toast-container {
-            @apply fixed top-4 right-4 z-50 space-y-2;
-            max-width: 400px;
-        }
-
-        @media (max-width: 640px) {
-            .step-status-container {
-                @apply flex-col items-start space-y-2;
-            }
-
-            .status-indicator {
-                @apply text-xs px-2 py-1;
-            }
-
-            .toast-container {
-                @apply left-4 right-4 top-4;
-                max-width: none;
-            }
-        }
-    </style>
 </head>
 
 <body class="font-sans antialiased bg-gray-50">
@@ -152,8 +68,8 @@
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-database">
-                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
-                                    <span id="status-database-text">Checking...</span>
+                                    <span class="status-emoji w-4 h-4 mr-1.5">🔄</span>
+                                    <span id="status-database-text">Click the Check Status button</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
                                     onclick="toggleStatusDetails('database')" title="Show details">
@@ -214,8 +130,8 @@ DB_PASSWORD=your_database_password</code></pre>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-mail">
-                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
-                                    <span id="status-mail-text">Checking...</span>
+                                    <span class="status-emoji w-4 h-4 mr-1.5">🔄</span>
+                                    <span id="status-mail-text">Click the Check Status button</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600" onclick="toggleStatusDetails('mail')"
                                     title="Show details">
@@ -340,8 +256,8 @@ MAIL_FROM_ADDRESS=name@example.com</code></pre>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-google_drive">
-                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
-                                    <span id="status-google_drive-text">Checking...</span>
+                                    <span class="status-emoji w-4 h-4 mr-1.5">🔄</span>
+                                    <span id="status-google_drive-text">Click the Check Status button</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
                                     onclick="toggleStatusDetails('google_drive')" title="Show details">
@@ -474,8 +390,8 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-queue_worker">
-                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
-                                    <span id="status-queue_worker-text">Checking...</span>
+                                    <span class="status-emoji w-4 h-4 mr-1.5">🔄</span>
+                                    <span id="status-queue_worker-text">Click the Check Status button</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
                                     onclick="toggleStatusDetails('queue_worker')" title="Show details">
@@ -753,8 +669,8 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-migrations">
-                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
-                                    <span id="status-migrations-text">Checking...</span>
+                                    <span class="status-emoji w-4 h-4 mr-1.5">🔄</span>
+                                    <span id="status-migrations-text">Click the Check Status button</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
                                     onclick="toggleStatusDetails('migrations')" title="Show details">
@@ -794,8 +710,8 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <div class="status-indicator status-checking" id="status-admin_user">
-                                    <span class="status-emoji w-4 h-4 mr-1.5 text-base">🔄</span>
-                                    <span id="status-admin_user-text">Checking...</span>
+                                    <span class="status-emoji w-4 h-4 mr-1.5">🔄</span>
+                                    <span id="status-admin_user-text">Click the Check Status button</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
                                     onclick="toggleStatusDetails('admin_user')" title="Show details">
