@@ -934,9 +934,8 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
         async function disableSetup() {
             const button = document.getElementById('disable-setup-btn');
             const buttonText = document.getElementById('disable-setup-text');
-            const spinner = document.getElementById('disable-setup-spinner');
 
-            if (!button || !buttonText || !spinner) {
+            if (!button || !buttonText) {
                 console.error('Required elements not found');
                 alert('Error: Could not find required elements. Please refresh the page and try again.');
                 return;
@@ -945,7 +944,6 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
             // Disable button and show loading state
             button.disabled = true;
             buttonText.textContent = 'Disabling...';
-            spinner.classList.remove('hidden');
 
             try {
                 // Get CSRF token
@@ -965,7 +963,6 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                 if (data.success) {
                     // Success - show success message and redirect
                     buttonText.textContent = 'Setup Disabled!';
-                    spinner.classList.add('hidden');
                     button.classList.remove('bg-green-600', 'hover:bg-green-700');
                     button.classList.add('bg-green-700');
 
@@ -984,8 +981,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
 
                     // Reset button state
                     button.disabled = false;
-                    buttonText.textContent = 'Disable the Set-up process';
-                    spinner.classList.add('hidden');
+                    buttonText.textContent = 'Disable the set-up process';
                 }
             } catch (error) {
                 console.error('Network error:', error);
@@ -993,8 +989,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
 
                 // Reset button state
                 button.disabled = false;
-                buttonText.textContent = 'Disable the Set-up process';
-                spinner.classList.add('hidden');
+                buttonText.textContent = 'Disable the set-up process';
             }
         }
     </script>

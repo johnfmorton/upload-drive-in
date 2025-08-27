@@ -62,6 +62,8 @@ return [
         ],
         
         'job_id_pattern' => '/^test_[a-f0-9\-]{36}$/',
+        
+        'max_env_value_length' => 1000,
     ],
 
     /*
