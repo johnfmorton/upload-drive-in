@@ -41,6 +41,18 @@ class SetupDetectionMiddleware
                 'route_name' => $request->route()?->getName()
             ]);
 
+            // Check if setup is enabled first
+            $setupEnabled = $this->setupDetectionService->isSetupEnabled();
+            \Log::info('SetupDetectionMiddleware: Setup enabled check', [
+                'setup_enabled' => $setupEnabled
+            ]);
+
+            // If setup is disabled, allow all requests through
+            if (!$setupEnabled) {
+                \Log::info('SetupDetectionMiddleware: Setup disabled, allowing all access');
+                return $next($request);
+            }
+
             // Allow setup instructions route to pass through
             if ($this->isSetupInstructionsRoute($request)) {
                 \Log::info('SetupDetectionMiddleware: Allowing setup instructions route', [

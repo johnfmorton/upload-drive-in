@@ -147,14 +147,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Bootstrap Checks
+    | Setup Enabled
     |--------------------------------------------------------------------------
     |
-    | Whether to perform setup checks during application bootstrap.
-    | Disabling this can improve performance but may miss setup requirements.
+    | Whether the setup process is enabled. When disabled, the application
+    | will skip setup checks and consider setup complete. This should be
+    | set to false after initial setup is complete.
     |
     */
-    'bootstrap_checks' => env('SETUP_BOOTSTRAP_CHECKS', true),
+    'enabled' => env('APP_SETUP_ENABLED', false),
 
     /*
     |--------------------------------------------------------------------------
@@ -165,7 +166,7 @@ return [
     | The cache will be cleared when setup state changes.
     |
     */
-    'cache_state' => env('SETUP_CACHE_STATE', true),
+    'cache_state' => true,
 
     /*
     |--------------------------------------------------------------------------
@@ -176,7 +177,7 @@ return [
     | Set to 0 to cache indefinitely until manually cleared.
     |
     */
-    'cache_ttl' => env('SETUP_CACHE_TTL', 300), // 5 minutes
+    'cache_ttl' => 300, // 5 minutes
 
     /*
     |--------------------------------------------------------------------------
@@ -194,8 +195,8 @@ return [
     ],
 
     'asset_checks' => [
-        'vite_manifest_required' => env('SETUP_ASSET_MANIFEST_REQUIRED', true),
-        'node_environment_check' => env('SETUP_NODE_ENVIRONMENT_CHECK', true),
-        'build_instructions_enabled' => env('SETUP_BUILD_INSTRUCTIONS_ENABLED', true),
+        'vite_manifest_required' => true,
+        'node_environment_check' => false,
+        'build_instructions_enabled' => true,
     ],
 ];

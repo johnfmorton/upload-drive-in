@@ -2,14 +2,7 @@
 
 namespace App\Http;
 
-use App\Http\Middleware\AdminMiddleware;
-use App\Http\Middleware\ClientMiddleware;
-use App\Http\Middleware\EmployeeMiddleware;
-use App\Http\Middleware\PreventClientPasswordLogin;
-use App\Http\Middleware\RequireSetupMiddleware;
-use App\Http\Middleware\SetupDetectionMiddleware;
-use App\Http\Middleware\SetupStatusRateLimitMiddleware;
-use UploadDriveIn\LaravelAdmin2FA\Http\Middleware\RequireTwoFactorAuth;
+
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
@@ -58,6 +51,9 @@ class Kernel extends HttpKernel
      * The application's middleware aliases.
      *
      * Aliases may be used instead of class names to conveniently assign middleware to routes and groups.
+     * 
+     * Note: In Laravel 11+, middleware aliases are registered in bootstrap/app.php
+     * This array is kept for backward compatibility but is not actively used.
      *
      * @var array<string, class-string|string>
      */
@@ -73,21 +69,7 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'extend.setup.session' => \App\Http\Middleware\ExtendSetupSession::class,
-        'admin' => AdminMiddleware::class,
-        'client' => ClientMiddleware::class,
-        'employee' => EmployeeMiddleware::class,
-        'prevent.client.password.login' => PreventClientPasswordLogin::class,
-        '2fa' => RequireTwoFactorAuth::class,
-        'file.download.throttle' => \App\Http\Middleware\FileDownloadRateLimitMiddleware::class,
-        'setup.status.throttle' => \App\Http\Middleware\SetupStatusRateLimitMiddleware::class,
-        'require.setup' => \App\Http\Middleware\RequireSetupMiddleware::class,
-        'setup.detection' => SetupDetectionMiddleware::class,
     ];
 
-    public function handle($request)
-    {
-        \Log::info('Kernel: Handling request with middleware stack.', ['middleware' => $this->middlewareAliases]);
-        return parent::handle($request);
-    }
+
 }

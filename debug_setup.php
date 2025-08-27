@@ -99,12 +99,7 @@ echo "\n=== Environment Variables Check ===\n";
 
 // Check for setup-related environment variables
 $setupVars = [
-    'SETUP_BOOTSTRAP_CHECKS',
-    'SETUP_CACHE_STATE', 
-    'SETUP_CACHE_TTL',
-    'SETUP_ASSET_MANIFEST_REQUIRED',
-    'SETUP_NODE_ENVIRONMENT_CHECK',
-    'SETUP_BUILD_INSTRUCTIONS_ENABLED'
+    'APP_SETUP_ENABLED'
 ];
 
 foreach ($setupVars as $var) {
@@ -121,10 +116,9 @@ foreach ($setupVars as $var) {
 }
 
 echo "\n=== Recommendations ===\n";
-echo "1. Add SETUP_BOOTSTRAP_CHECKS=true to .env file\n";
-echo "2. Set SETUP_CACHE_STATE=false temporarily\n";
-echo "3. Clear all caches: php artisan config:clear && php artisan cache:clear\n";
-echo "4. Remove setup state: rm -f storage/app/setup/setup-state.json\n";
+echo "1. Add APP_SETUP_ENABLED=true to .env file\n";
+echo "2. Clear all caches: php artisan config:clear && php artisan cache:clear\n";
+echo "3. Remove setup state: rm -f storage/app/setup/setup-state.json\n";
 echo "5. Try visiting /setup directly in your browser\n";
 echo "6. Check Laravel logs in storage/logs/laravel.log\n";
 

@@ -23,8 +23,7 @@ try {
         'DB_CONNECTION' => env('DB_CONNECTION'),
         'DB_HOST' => env('DB_HOST'),
         'DB_DATABASE' => env('DB_DATABASE'),
-        'SETUP_BOOTSTRAP_CHECKS' => env('SETUP_BOOTSTRAP_CHECKS') ? 'true' : 'false',
-        'SETUP_CACHE_STATE' => env('SETUP_CACHE_STATE') ? 'true' : 'false',
+        'APP_SETUP_ENABLED' => env('APP_SETUP_ENABLED') ? 'true' : 'false',
     ];
     
     foreach ($setupVars as $key => $value) {

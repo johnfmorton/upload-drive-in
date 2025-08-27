@@ -107,8 +107,8 @@ Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, '
 
 // Public Queue Testing Routes (for setup instructions)
 // TODO: Re-add rate limiting middleware once container resolution is fixed
-Route::post('/setup/queue/test', [\App\Http\Controllers\SetupController::class, 'testQueue'])->name('setup.queue.test');
-Route::get('/setup/queue/test/status', [\App\Http\Controllers\SetupController::class, 'checkQueueTestStatus'])->name('setup.queue.test.status');
+Route::post('/setup/queue/test', [\App\Http\Controllers\SetupController::class, 'testQueue'])->name('setup.queue.test')->middleware('require.setup.enabled');
+Route::get('/setup/queue/test/status', [\App\Http\Controllers\SetupController::class, 'checkQueueTestStatus'])->name('setup.queue.test.status')->middleware('require.setup.enabled');
 
 // Temporary debug route - remove after debugging
 Route::get('/debug-setup-status', function () {
@@ -143,11 +143,11 @@ Route::get('/debug-setup-status', function () {
         ],
         'setup_checks_config' => $checks,
         'environment' => [
-            'SETUP_BOOTSTRAP_CHECKS' => config('setup.bootstrap_checks'),
+            'APP_SETUP_ENABLED' => config('setup.enabled'),
             'SETUP_CACHE_STATE' => config('setup.cache_state'),
         ]
     ]);
-})->name('debug.setup.status');
+})->name('debug.setup.status')->middleware('require.setup.enabled');
 
 // Force reset setup state - remove after debugging
 Route::get('/force-reset-setup', function () {
@@ -197,7 +197,7 @@ Route::get('/force-reset-setup', function () {
             'error' => $e->getMessage()
         ], 500);
     }
-})->name('debug.reset.setup');
+})->name('debug.reset.setup')->middleware('require.setup.enabled');
 
 // Test performSetupChecks directly - remove after debugging
 Route::get('/test-setup-checks', function () {
@@ -226,7 +226,7 @@ Route::get('/test-setup-checks', function () {
             'trace' => $e->getTraceAsString()
         ], 500);
     }
-})->name('test.setup.checks');
+})->name('test.setup.checks')->middleware('require.setup.enabled');
 
 // Detailed setup logic debug - remove after debugging
 Route::get('/debug-setup-logic', function () {
@@ -311,7 +311,7 @@ Route::get('/debug-setup-logic', function () {
             'trace' => $e->getTraceAsString()
         ], 500);
     }
-})->name('debug.setup.logic');
+})->name('debug.setup.logic')->middleware('require.setup.enabled');
 
 // Debug session validation - remove after debugging
 Route::get('/debug-session-validation', function () {

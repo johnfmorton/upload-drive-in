@@ -4,13 +4,94 @@ This comprehensive guide covers caching, queue, and background job processing co
 
 ## Table of Contents
 
-1. [Caching Configuration](#caching-configuration)
-2. [Queue Configuration](#queue-configuration)
-3. [Background Job Processing](#background-job-processing)
-4. [Environment Validation](#environment-validation)
-5. [Environment Cleanup](#environment-cleanup)
-6. [Production Recommendations](#production-recommendations)
-7. [Quick Reference](#quick-reference)
+1. [Setup Configuration](#setup-configuration)
+2. [Caching Configuration](#caching-configuration)
+3. [Queue Configuration](#queue-configuration)
+4. [Background Job Processing](#background-job-processing)
+5. [Environment Validation](#environment-validation)
+6. [Environment Cleanup](#environment-cleanup)
+7. [Production Recommendations](#production-recommendations)
+8. [Quick Reference](#quick-reference)
+
+---
+
+## Setup Configuration
+
+The application includes a setup process that guides users through initial configuration. This section controls whether the setup process is available.
+
+### Setup Process Control
+
+**Configuration:**
+```env
+# Controls whether the application setup process is available.
+# Set to "true" only during initial installation or reconfiguration.
+# After setup is complete, set this to "false" to prevent unauthorized access.
+APP_SETUP_ENABLED=true
+```
+
+**Behavior:**
+- **`APP_SETUP_ENABLED=true`**: Setup process is available, setup checks are performed
+- **`APP_SETUP_ENABLED=false`**: Setup process is disabled, application behaves as if setup is complete
+
+### When to Enable Setup
+
+**Enable setup (`APP_SETUP_ENABLED=true`) when:**
+- Initial application installation
+- Reconfiguring the application
+- Troubleshooting setup-related issues
+- Adding new admin users or changing core configuration
+
+**Disable setup (`APP_SETUP_ENABLED=false`) when:**
+- Application is fully configured and running in production
+- Setup process should not be accessible to users
+- All required configuration is complete
+
+### Security Considerations
+
+**Important:** Always set `APP_SETUP_ENABLED=false` in production after setup is complete to prevent unauthorized access to the setup process.
+
+**Setup Process Access:**
+- When enabled, setup instructions are available at `/setup/instructions`
+- Setup process includes sensitive configuration checks
+- Disabling setup prevents access to configuration details
+
+### Validation
+
+**Check setup status:**
+```bash
+ddev artisan tinker --execute="echo 'Setup enabled: ' . (config('setup.enabled') ? 'true' : 'false') . PHP_EOL;"
+```
+
+**Test setup detection:**
+```bash
+ddev artisan tinker --execute="\$service = app(\App\Services\SetupDetectionService::class); echo 'Setup enabled: ' . (\$service->isSetupEnabled() ? 'true' : 'false') . PHP_EOL; echo 'Setup complete: ' . (\$service->isSetupComplete() ? 'true' : 'false') . PHP_EOL;"
+```
+
+### Migration from Legacy Setup Configuration
+
+**Old Configuration (deprecated):**
+```env
+# These variables are no longer used
+SETUP_BOOTSTRAP_CHECKS=true
+SETUP_CACHE_STATE=false
+SETUP_CACHE_TTL=0
+SETUP_ASSET_MANIFEST_REQUIRED=true
+SETUP_NODE_ENVIRONMENT_CHECK=false
+SETUP_BUILD_INSTRUCTIONS_ENABLED=true
+```
+
+**New Configuration (current):**
+```env
+# Single variable controls entire setup process
+APP_SETUP_ENABLED=true
+```
+
+**Migration Steps:**
+1. Remove old `SETUP_*` variables from `.env` file
+2. Add `APP_SETUP_ENABLED=true` to `.env` file
+3. Clear configuration cache: `ddev artisan config:clear`
+4. Test setup functionality
+5. Set `APP_SETUP_ENABLED=false` when setup is complete
 
 ---
 
@@ -875,6 +956,7 @@ php artisan up
 #### Development Setup (File Cache + Database Queue)
 ```env
 # Minimal development configuration
+APP_SETUP_ENABLED=true
 CACHE_STORE=file
 QUEUE_CONNECTION=database
 ```
@@ -888,6 +970,7 @@ ddev artisan validate:queue --backend=database
 #### Production Setup (Database Cache + Database Queue)
 ```env
 # Production with database backends
+APP_SETUP_ENABLED=false
 CACHE_STORE=database
 QUEUE_CONNECTION=database
 ```
@@ -901,6 +984,7 @@ ddev artisan validate:queue --backend=database
 #### High-Performance Setup (Redis Cache + Redis Queue)
 ```env
 # Redis configuration (requires DDEV Redis service)
+APP_SETUP_ENABLED=false
 REDIS_HOST=redis
 REDIS_PASSWORD=null
 REDIS_PORT=6379
@@ -954,6 +1038,7 @@ MEMCACHED_PASSWORD=
 **Required Variables:**
 ```env
 # Always keep these
+APP_SETUP_ENABLED=true
 CACHE_STORE=file
 QUEUE_CONNECTION=database
 ```

@@ -47,11 +47,33 @@ class SetupDetectionService
      */
     public function isSetupComplete(): bool
     {
+        // If setup is disabled, consider it complete (setup process not available)
+        if (!$this->isSetupEnabled()) {
+            return true;
+        }
+        
         return $this->getDatabaseStatus() 
             && $this->getMailStatus()
             && $this->getGoogleDriveStatus() 
             && $this->getAdminUserStatus()
             && $this->getMigrationStatus();
+    }
+
+    /**
+     * Check if the setup process is enabled.
+     * 
+     * @return bool True if setup is enabled
+     */
+    public function isSetupEnabled(): bool
+    {
+        $enabled = config('setup.enabled', false);
+        
+        // Handle string values from environment
+        if (is_string($enabled)) {
+            return strtolower($enabled) === 'true';
+        }
+        
+        return (bool) $enabled;
     }
 
     /**
@@ -588,6 +610,19 @@ class SetupDetectionService
         // Queue health status
         $queueHealth = $this->getQueueHealthStatus();
         $statuses['queue_worker'] = $queueHealth;
+
+        // Setup enabled status
+        $setupEnabled = $this->isSetupEnabled();
+        $statuses['setup_enabled'] = [
+            'status' => $setupEnabled ? 'enabled' : 'disabled',
+            'message' => $setupEnabled ? 'Setup process is enabled' : 'Setup process is disabled',
+            'details' => [
+                'enabled' => $setupEnabled,
+                'env_value' => env('APP_SETUP_ENABLED'),
+                'config_value' => config('setup.enabled'),
+                'checked_at' => Carbon::now()->toISOString()
+            ]
+        ];
 
         return $statuses;
     }

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web'])->prefix('setup')->name('setup.')->group(function () {
+Route::middleware(['web', 'require.setup.enabled'])->prefix('setup')->name('setup.')->group(function () {
     
     // Setup instructions route - accessible without authentication
     // This route handles its own redirect logic when setup is complete
