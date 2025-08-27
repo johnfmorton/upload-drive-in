@@ -3,7 +3,7 @@
     x-data="filePreviewModal"
     x-on:open-preview-modal.window="openModal($event.detail)"
     x-show="open"
-    class="fixed inset-0 z-50 overflow-y-auto"
+    class="fixed inset-0 z-[10001] overflow-y-auto"
     style="display: none;"
     x-on:keydown.escape="closeModal()"
 >

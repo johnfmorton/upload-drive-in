@@ -149,16 +149,18 @@
 
 /* Enhanced File Preview Modal Styles */
 .preview-modal {
-    @apply fixed inset-0 z-50;
+    @apply fixed inset-0 z-[10002];
 }
 
 .preview-modal-overlay {
     @apply fixed inset-0 bg-black/75 transition-opacity;
+    z-index: 10002;
 }
 
 .preview-modal-panel {
     @apply inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all;
     max-height: 95vh;
+    z-index: 10003;
 }
 
 /* Image viewer styles */
@@ -745,5 +747,130 @@ hanced Table Controls */
 
     .sticky-column {
         @apply static;
+    }
+}
+
+/* Enhanced Modal Styles for Delete Confirmation */
+.modal-container {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    overflow-y: auto;
+    pointer-events: auto;
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    transition: opacity 300ms ease-out;
+}
+
+.modal-panel {
+    position: relative;
+    z-index: 10000;
+    pointer-events: auto;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Ensure modal is always on top */
+.modal-container.show {
+    z-index: 9999 !important;
+}
+
+.modal-panel.show {
+    z-index: 10000 !important;
+}
+
+/* Prevent modal from being hidden by other elements */
+.modal-backdrop {
+    backdrop-filter: blur(2px);
+}
+
+/* Enhanced focus management */
+.modal-panel:focus-within {
+    outline: none;
+}
+
+/* Improved button styling in modals */
+.modal-panel button:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Loading state for modal buttons */
+.modal-button-loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Modal animation improvements */
+.modal-enter {
+    opacity: 0;
+    transform: scale(0.95) translateY(1rem);
+}
+
+.modal-enter-active {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.modal-exit {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+.modal-exit-active {
+    opacity: 0;
+    transform: scale(0.95) translateY(1rem);
+    transition: opacity 200ms ease-in, transform 200ms ease-in;
+}
+
+/* Responsive modal sizing */
+@media (max-width: 640px) {
+    .modal-panel {
+        margin: 1rem;
+        max-width: calc(100vw - 2rem);
+    }
+}
+
+@media (min-width: 641px) {
+    .modal-panel {
+        max-width: 32rem;
+        margin: 2rem auto;
+    }
+}
+
+/* High contrast mode support for modals */
+@media (prefers-contrast: high) {
+    .modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+    
+    .modal-panel {
+        border: 2px solid #000;
+    }
+}
+
+/* Reduced motion support for modals */
+@media (prefers-reduced-motion: reduce) {
+    .modal-enter-active,
+    .modal-exit-active {
+        transition: none;
+    }
+    
+    .modal-backdrop {
+        transition: none;
+    }
+}
+
+/* Print styles for modals */
+@media print {
+    .modal-container {
+        display: none !important;
     }
 }

@@ -352,8 +352,9 @@
                     </div>
 
                     <!-- Confirmation Dialog -->
-                    <div x-show="showConfirmDialog" x-cloak class="fixed inset-0 z-50 overflow-y-auto"
-                        aria-labelledby="confirm-modal-title" role="dialog" aria-modal="true">
+                    <div x-show="showConfirmDialog" x-cloak class="fixed inset-0 z-[9999] overflow-y-auto"
+                        aria-labelledby="confirm-modal-title" role="dialog" aria-modal="true"
+                        style="pointer-events: auto;">
                         <div
                             class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                             <!-- Background overlay -->
@@ -362,7 +363,7 @@
                                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
                                 x-transition:leave-end="opacity-0"
                                 class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                                x-on:click="showConfirmDialog = false" aria-hidden="true"></div>
+                                x-on:click="handleBackgroundClick($event)" aria-hidden="true"></div>
 
                             <!-- Modal panel -->
                             <div x-show="showConfirmDialog" x-transition:enter="ease-out duration-300"
@@ -371,7 +372,8 @@
                                 x-transition:leave="ease-in duration-200"
                                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full relative z-[10000]"
+                                style="pointer-events: auto;">
                                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                                     <div class="sm:flex sm:items-start">
                                         <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full sm:mx-0 sm:h-10 sm:w-10"
@@ -907,6 +909,12 @@
                     confirmDialogAction: null,
                     confirmDialogType: 'info', // 'danger', 'warning', 'info'
                     confirmDialogDestructive: false,
+
+                    // Enhanced modal state management
+                    modalDebugInfo: null,
+                    modalPreventClose: false,
+                    modalInitialized: false,
+                    modalCloseTimeout: null,
 
                     // Operation states
                     isDeleting: false,
@@ -1739,25 +1747,100 @@
                     },
 
                     showConfirmation(title, message, action, type = 'info') {
-                        this.confirmDialogTitle = title;
-                        this.confirmDialogMessage = message;
-                        this.confirmDialogAction = action;
-                        this.confirmDialogType = type;
-                        this.confirmDialogDestructive = type === 'danger';
-                        this.showConfirmDialog = true;
+                        try {
+                            // Clear any existing timeouts
+                            if (this.modalCloseTimeout) {
+                                clearTimeout(this.modalCloseTimeout);
+                                this.modalCloseTimeout = null;
+                            }
+                            
+                            // Set modal state with debugging
+                            this.confirmDialogTitle = title;
+                            this.confirmDialogMessage = message;
+                            this.confirmDialogAction = action;
+                            this.confirmDialogType = type;
+                            this.confirmDialogDestructive = type === 'danger';
+                            this.modalPreventClose = false;
+                            this.modalInitialized = true;
+                            
+                            // Use nextTick to ensure DOM is ready
+                            this.$nextTick(() => {
+                                this.showConfirmDialog = true;
+                                this.modalDebugInfo = {
+                                    timestamp: Date.now(),
+                                    title: title,
+                                    type: type,
+                                    actionType: typeof action
+                                };
+                                
+                                // Set auto-recovery timeout (30 seconds)
+                                this.modalCloseTimeout = setTimeout(() => {
+                                    if (this.showConfirmDialog) {
+                                        console.warn('Modal auto-recovery triggered for:', title);
+                                        this.recoverModalState();
+                                    }
+                                }, 30000);
+                            });
+                        } catch (error) {
+                            this.logModalError(error, 'showConfirmation');
+                            // Fallback to simple modal display
+                            this.showConfirmDialog = true;
+                        }
                     },
 
                     confirmAction() {
-                        if (this.confirmDialogAction && typeof this.confirmDialogAction === 'function') {
-                            this.confirmDialogAction();
+                        try {
+                            // Clear timeout
+                            if (this.modalCloseTimeout) {
+                                clearTimeout(this.modalCloseTimeout);
+                                this.modalCloseTimeout = null;
+                            }
+                            
+                            // Execute action if valid
+                            if (this.confirmDialogAction && typeof this.confirmDialogAction === 'function') {
+                                this.confirmDialogAction();
+                            }
+                            
+                            // Clean up modal state
+                            this.showConfirmDialog = false;
+                            this.modalPreventClose = false;
+                            this.confirmDialogAction = null;
+                            this.modalDebugInfo = {
+                                ...this.modalDebugInfo,
+                                closeReason: 'confirmed',
+                                closedAt: Date.now()
+                            };
+                        } catch (error) {
+                            this.logModalError(error, 'confirmAction');
+                            // Force close modal on error
+                            this.recoverModalState();
                         }
-                        this.showConfirmDialog = false;
                     },
 
                     cancelConfirmation() {
-                        this.showConfirmDialog = false;
-                        this.confirmDialogAction = null;
-                        this.confirmDialogDestructive = false;
+                        try {
+                            // Clear timeout
+                            if (this.modalCloseTimeout) {
+                                clearTimeout(this.modalCloseTimeout);
+                                this.modalCloseTimeout = null;
+                            }
+                            
+                            // Complete state reset
+                            this.showConfirmDialog = false;
+                            this.confirmDialogAction = null;
+                            this.confirmDialogDestructive = false;
+                            this.modalPreventClose = false;
+                            this.modalInitialized = false;
+                            this.modalDebugInfo = {
+                                ...this.modalDebugInfo,
+                                closeReason: 'cancelled',
+                                closedAt: Date.now()
+                            };
+                        } catch (error) {
+                            this.logModalError(error, 'cancelConfirmation');
+                            // Force recovery on error
+                            this.recoverModalState();
+                        }
                     },
 
                     showBulkProgress(operation, total, message = '') {
@@ -1795,6 +1878,57 @@
 
                     hideDownloadProgress() {
                         this.downloadProgress.show = false;
+                    },
+
+                    // Modal state recovery and debugging methods
+                    recoverModalState() {
+                        console.warn('Recovering modal state');
+                        this.showConfirmDialog = false;
+                        this.modalPreventClose = false;
+                        this.confirmDialogAction = null;
+                        this.modalInitialized = false;
+                        this.confirmDialogDestructive = false;
+                        if (this.modalCloseTimeout) {
+                            clearTimeout(this.modalCloseTimeout);
+                            this.modalCloseTimeout = null;
+                        }
+                        this.modalDebugInfo = {
+                            ...this.modalDebugInfo,
+                            closeReason: 'recovered',
+                            recoveredAt: Date.now()
+                        };
+                    },
+
+                    logModalError(error, context) {
+                        console.error('Modal Error:', {
+                            error: error,
+                            context: context,
+                            modalState: {
+                                showConfirmDialog: this.showConfirmDialog,
+                                modalInitialized: this.modalInitialized,
+                                modalPreventClose: this.modalPreventClose,
+                                debugInfo: this.modalDebugInfo
+                            },
+                            timestamp: Date.now()
+                        });
+                    },
+
+                    handleBackgroundClick(event) {
+                        // Only close if clicking directly on the background, not on child elements
+                        if (event.target === event.currentTarget && !this.modalPreventClose) {
+                            this.cancelConfirmation();
+                        }
+                    },
+
+                    debugModal() {
+                        return {
+                            state: this.showConfirmDialog,
+                            initialized: this.modalInitialized,
+                            preventClose: this.modalPreventClose,
+                            debugInfo: this.modalDebugInfo,
+                            hasAction: !!this.confirmDialogAction,
+                            timestamp: Date.now()
+                        };
                     },
 
                     showError(message, isRetryable = false) {

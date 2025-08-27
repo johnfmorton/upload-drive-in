@@ -10,7 +10,7 @@
         open = true;
     "
     x-show="open"
-    class="fixed inset-0 z-50 overflow-y-auto"
+    class="fixed inset-0 z-[10000] overflow-y-auto"
     style="display: none;"
 >
     <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
