@@ -40,7 +40,10 @@ class RequireSetupMiddleware
 
             // Allow setup routes to pass through
             if ($this->isSetupRoute($request)) {
-                \Log::info('RequireSetupMiddleware: Setup route detected, allowing through');
+                \Log::info('RequireSetupMiddleware: Setup route detected, allowing through', [
+                    'path' => $request->path(),
+                    'route_name' => $request->route()?->getName()
+                ]);
                 return $next($request);
             }
 
@@ -83,7 +86,7 @@ class RequireSetupMiddleware
                     }
                     
                     // Redirect to appropriate setup step
-                    return redirect('/setup/database-simple');
+                    return redirect('/setup/instructions');
                 }
             } catch (\Exception $e) {
                 \Log::error('RequireSetupMiddleware: Exception during setup check', [
@@ -93,7 +96,7 @@ class RequireSetupMiddleware
                 
                 // If setup check fails, assume setup is required
                 // This prevents breaking the application during bootstrap issues
-                $redirectUrl = '/setup/database-simple';
+                $redirectUrl = '/setup/instructions';
                 
                 \Log::info('RequireSetupMiddleware: Redirecting to setup due to exception', [
                     'url' => $redirectUrl,
@@ -121,7 +124,7 @@ class RequireSetupMiddleware
             ]);
             
             // Last resort - redirect to setup
-            return redirect('/setup/database');
+            return redirect('/setup/instructions');
         }
     }
 
@@ -153,6 +156,13 @@ class RequireSetupMiddleware
     {
         $path = $request->path();
         $routePrefix = Config::get('setup.route_prefix', 'setup');
+        
+        \Log::info('RequireSetupMiddleware: Checking if setup route', [
+            'path' => $path,
+            'route_prefix' => $routePrefix,
+            'route_name' => $request->route()?->getName(),
+            'starts_with_prefix' => str_starts_with($path, $routePrefix)
+        ]);
         
         // Allow all setup routes based on configured prefix
         if (str_starts_with($path, $routePrefix)) {

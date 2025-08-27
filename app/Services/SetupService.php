@@ -94,8 +94,15 @@ class SetupService
                 \Log::info('Assets check passed');
             }
             
-            // Database connectivity check
+            // Database configuration check (before attempting connection)
             if ($this->checks['database_connectivity'] ?? true) {
+                \Log::info('Checking database configuration...');
+                if (!$this->isDatabaseConfigurationComplete()) {
+                    \Log::info('Setup required: Database configuration incomplete');
+                    return true;
+                }
+                \Log::info('Database configuration check passed');
+                
                 \Log::info('Checking database connectivity...');
                 DB::connection()->getPdo();
                 \Log::info('Database connectivity check passed');
@@ -164,7 +171,7 @@ class SetupService
             }
             
             // Database step
-            if (!$this->isDatabaseConfigured()) {
+            if (!$this->isDatabaseConfigurationComplete() || !$this->isDatabaseConfigured()) {
                 return 'database';
             }
             
@@ -503,11 +510,129 @@ class SetupService
     }
 
     /**
+     * Check if database configuration is complete (has all required credentials)
+     */
+    public function isDatabaseConfigurationComplete(): bool
+    {
+        $connection = Config::get('database.default');
+        
+        // For SQLite, just check if the connection is set
+        if ($connection === 'sqlite') {
+            return true; // SQLite doesn't need credentials
+        }
+        
+        // For MySQL/MariaDB/PostgreSQL, check required credentials
+        if (in_array($connection, ['mysql', 'mariadb', 'pgsql'])) {
+            // Check if we're in a development environment that auto-provides DB credentials
+            $isDevelopmentEnvironment = $this->isDevelopmentEnvironmentWithAutoDb();
+            
+            if ($isDevelopmentEnvironment) {
+                // In development environments like DDEV, check if .env file has proper config
+                return $this->isEnvFileDbConfigComplete();
+            }
+            
+            // In production/normal environments, check actual environment variables
+            $host = env('DB_HOST');
+            $database = env('DB_DATABASE');
+            $username = env('DB_USERNAME');
+            
+            // If any required credential is missing/empty, configuration is incomplete
+            if (empty($host) || empty($database) || empty($username)) {
+                \Log::info('Database configuration incomplete', [
+                    'connection' => $connection,
+                    'has_host' => !empty($host),
+                    'has_database' => !empty($database),
+                    'has_username' => !empty($username)
+                ]);
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    /**
+     * Check if we're in a development environment that auto-provides database credentials
+     */
+    private function isDevelopmentEnvironmentWithAutoDb(): bool
+    {
+        // Check for DDEV environment
+        if (env('DDEV_PROJECT') || env('IS_DDEV_PROJECT')) {
+            return true;
+        }
+        
+        // Check for other common development environments
+        if (env('LARAVEL_SAIL') || env('APP_ENV') === 'local') {
+            // Additional checks to see if DB credentials are auto-provided
+            $host = env('DB_HOST');
+            $database = env('DB_DATABASE');
+            $username = env('DB_USERNAME');
+            
+            // If all credentials are simple/default values, likely auto-provided
+            if ($host === 'db' && $database === 'db' && $username === 'db') {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if .env file has complete database configuration
+     */
+    private function isEnvFileDbConfigComplete(): bool
+    {
+        $envPath = base_path('.env');
+        
+        if (!File::exists($envPath)) {
+            \Log::info('No .env file found, database configuration incomplete');
+            return false;
+        }
+        
+        $envContent = File::get($envPath);
+        $connection = Config::get('database.default');
+        
+        // For MySQL/MariaDB/PostgreSQL, check if required fields are uncommented and have values
+        if (in_array($connection, ['mysql', 'mariadb', 'pgsql'])) {
+            $requiredFields = ['DB_HOST', 'DB_DATABASE', 'DB_USERNAME'];
+            $foundFields = [];
+            
+            foreach ($requiredFields as $field) {
+                // Check if field exists and is not commented out
+                if (preg_match('/^' . preg_quote($field) . '=(.+)$/m', $envContent, $matches)) {
+                    $value = trim($matches[1], '"\'');
+                    if (!empty($value)) {
+                        $foundFields[] = $field;
+                    }
+                }
+            }
+            
+            $isComplete = count($foundFields) === count($requiredFields);
+            
+            \Log::info('Checked .env file database configuration', [
+                'connection' => $connection,
+                'required_fields' => $requiredFields,
+                'found_fields' => $foundFields,
+                'is_complete' => $isComplete
+            ]);
+            
+            return $isComplete;
+        }
+        
+        return true;
+    }
+
+    /**
      * Check if database is properly configured
      */
     public function isDatabaseConfigured(): bool
     {
         try {
+            // First check if configuration is complete
+            if (!$this->isDatabaseConfigurationComplete()) {
+                return false;
+            }
+            
             DB::connection()->getPdo();
             return Schema::hasTable('users');
         } catch (\Exception $e) {

@@ -27,25 +27,14 @@ class SetupInstructionsController extends Controller
      */
     public function show(): View|RedirectResponse
     {
-        // If setup is complete, redirect to appropriate dashboard
-        if ($this->setupDetectionService->isSetupComplete()) {
-            // If user is authenticated, redirect to their appropriate dashboard
-            if (Auth::check()) {
-                $user = Auth::user();
-                
-                if ($user->isAdmin()) {
-                    return redirect()->route('admin.dashboard');
-                } elseif ($user->isEmployee()) {
-                    return redirect()->route('employee.dashboard', ['username' => $user->username]);
-                } elseif ($user->isClient()) {
-                    return redirect()->route('client.dashboard');
-                }
-            }
-            
-            // If not authenticated, redirect to home page
-            return redirect()->route('home');
-        }
-
+        // For the setup instructions page, we assume setup is not complete
+        // and skip the database-dependent setup completion check to avoid
+        // infinite loops when database configuration is incomplete.
+        // 
+        // The middleware will handle redirecting users away from this page
+        // if setup is actually complete.
+        
+        Log::info('Showing setup instructions page');
         return view('setup.instructions');
     }
 

@@ -61,64 +61,22 @@ class SetupDetectionService
      */
     public function getDatabaseStatus(): bool
     {
-        $cacheKey = self::FALLBACK_CACHE_PREFIX . 'database_status';
-        
         try {
             // Clear configuration cache if we're in setup mode to ensure fresh config reads
             $this->clearConfigCacheIfInSetup();
             
-            // Check if database environment variables are configured
-            if (!$this->isDatabaseConfigured()) {
-                Log::debug('Database configuration incomplete', [
-                    'connection' => env('DB_CONNECTION'),
-                    'host' => env('DB_HOST') ? 'configured' : 'missing',
-                    'database' => env('DB_DATABASE') ? 'configured' : 'missing',
-                    'username' => env('DB_USERNAME') ? 'configured' : 'missing'
-                ]);
-                return false;
-            }
-
-            // Test database connection with timeout
-            $result = $this->executeWithTimeout(function () {
-                DB::connection()->getPdo();
-                DB::select('SELECT 1');
-                return true;
-            }, self::DB_TIMEOUT);
+            // Use the new DatabaseCredentialService for better checking
+            $databaseCredentialService = app(\App\Services\DatabaseCredentialService::class);
+            $credentialStatus = $databaseCredentialService->checkDatabaseCredentials();
             
-            // Cache successful result
-            if ($result) {
-                Cache::put($cacheKey, true, self::FALLBACK_CACHE_TTL);
-            }
-            
-            return $result;
-            
-        } catch (PDOException $e) {
-            Log::warning('Database PDO connection failed', [
-                'error' => $e->getMessage(),
-                'code' => $e->getCode()
-            ]);
-            return $this->getFallbackResult($cacheKey, false);
-            
-        } catch (QueryException $e) {
-            Log::warning('Database query failed', [
-                'error' => $e->getMessage(),
-                'code' => $e->getCode()
-            ]);
-            return $this->getFallbackResult($cacheKey, false);
+            return $credentialStatus['status'] === 'completed';
             
         } catch (Exception $e) {
-            Log::error('Unexpected database error', [
+            Log::error('Error checking database status', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return $this->getFallbackResult($cacheKey, false);
-            
-        } catch (Throwable $e) {
-            Log::critical('Critical database error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return $this->getFallbackResult($cacheKey, false);
+            return false;
         }
     }
 
@@ -447,35 +405,45 @@ class SetupDetectionService
     {
         $statuses = [];
 
-        // Database status
+        // Database status with detailed feedback
         try {
-            $dbStatus = $this->getDatabaseStatus();
-            if ($dbStatus) {
-                $connectionName = config('database.default');
-                $driver = config("database.connections.{$connectionName}.driver");
-                $statuses['database'] = [
-                    'status' => 'completed',
-                    'message' => 'Database connection is working',
-                    'details' => [
-                        'connection_name' => $connectionName,
-                        'driver' => $driver,
-                        'checked_at' => Carbon::now()->toISOString()
-                    ]
-                ];
-            } else {
-                $statuses['database'] = [
-                    'status' => 'cannot_verify',
-                    'message' => 'Database connection not configured or not accessible',
-                    'details' => [
-                        'checked_at' => Carbon::now()->toISOString()
-                    ]
-                ];
-            }
-        } catch (Exception $e) {
+            // Clear configuration cache if we're in setup mode to ensure fresh config reads
+            $this->clearConfigCacheIfInSetup();
+            
+            // Use the new DatabaseCredentialService for detailed checking
+            $databaseCredentialService = app(\App\Services\DatabaseCredentialService::class);
+            $credentialStatus = $databaseCredentialService->checkDatabaseCredentials();
+            
+            // Map the detailed status to our setup status format
             $statuses['database'] = [
-                'status' => 'cannot_verify',
+                'status' => $credentialStatus['status'],
+                'message' => $credentialStatus['message'],
+                'details' => [
+                    'description' => $credentialStatus['details'],
+                    'scenario' => $credentialStatus['metadata']['scenario'] ?? 'unknown',
+                    'checked_at' => $credentialStatus['metadata']['checked_at'],
+                    'metadata' => $credentialStatus['metadata']
+                ]
+            ];
+            
+            // Add fix instructions for incomplete or error states
+            if (in_array($credentialStatus['status'], ['incomplete', 'error'])) {
+                $fixInstructions = $databaseCredentialService->getFixInstructions($credentialStatus);
+                $statuses['database']['details']['fix_instructions'] = $fixInstructions;
+            }
+            
+        } catch (Exception $e) {
+            Log::error('Error getting detailed database status', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            $statuses['database'] = [
+                'status' => 'error',
                 'message' => 'Error checking database status',
                 'details' => [
+                    'description' => 'An unexpected error occurred while checking database credentials',
+                    'scenario' => 'check_error',
                     'error' => $e->getMessage(),
                     'checked_at' => Carbon::now()->toISOString()
                 ]
@@ -664,11 +632,100 @@ class SetupDetectionService
     private function isDatabaseConfigured(): bool
     {
         $connection = env('DB_CONNECTION');
-        $host = env('DB_HOST');
-        $database = env('DB_DATABASE');
-        $username = env('DB_USERNAME');
+        
+        // For SQLite, just check if the connection is set
+        if ($connection === 'sqlite') {
+            return !empty($connection);
+        }
+        
+        // For MySQL/MariaDB/PostgreSQL, check required credentials
+        if (in_array($connection, ['mysql', 'mariadb', 'pgsql'])) {
+            // Check if we're in a development environment that auto-provides DB credentials
+            if ($this->isDevelopmentEnvironmentWithAutoDb()) {
+                // In development environments like DDEV, check if .env file has proper config
+                return $this->isEnvFileDbConfigComplete();
+            }
+            
+            // In production/normal environments, check actual environment variables
+            $host = env('DB_HOST');
+            $database = env('DB_DATABASE');
+            $username = env('DB_USERNAME');
+            
+            return !empty($connection) && !empty($host) && !empty($database) && !empty($username);
+        }
+        
+        return !empty($connection);
+    }
 
-        return !empty($connection) && !empty($host) && !empty($database) && !empty($username);
+    /**
+     * Check if we're in a development environment that auto-provides database credentials
+     */
+    private function isDevelopmentEnvironmentWithAutoDb(): bool
+    {
+        // Check for DDEV environment
+        if (env('DDEV_PROJECT') || env('IS_DDEV_PROJECT')) {
+            return true;
+        }
+        
+        // Check for other common development environments
+        if (env('LARAVEL_SAIL') || env('APP_ENV') === 'local') {
+            // Additional checks to see if DB credentials are auto-provided
+            $host = env('DB_HOST');
+            $database = env('DB_DATABASE');
+            $username = env('DB_USERNAME');
+            
+            // If all credentials are simple/default values, likely auto-provided
+            if ($host === 'db' && $database === 'db' && $username === 'db') {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if .env file has complete database configuration
+     */
+    private function isEnvFileDbConfigComplete(): bool
+    {
+        $envPath = base_path('.env');
+        
+        if (!file_exists($envPath)) {
+            Log::info('No .env file found, database configuration incomplete');
+            return false;
+        }
+        
+        $envContent = file_get_contents($envPath);
+        $connection = env('DB_CONNECTION');
+        
+        // For MySQL/MariaDB/PostgreSQL, check if required fields are uncommented and have values
+        if (in_array($connection, ['mysql', 'mariadb', 'pgsql'])) {
+            $requiredFields = ['DB_HOST', 'DB_DATABASE', 'DB_USERNAME'];
+            $foundFields = [];
+            
+            foreach ($requiredFields as $field) {
+                // Check if field exists and is not commented out
+                if (preg_match('/^' . preg_quote($field) . '=(.+)$/m', $envContent, $matches)) {
+                    $value = trim($matches[1], '"\'');
+                    if (!empty($value)) {
+                        $foundFields[] = $field;
+                    }
+                }
+            }
+            
+            $isComplete = count($foundFields) === count($requiredFields);
+            
+            Log::info('Checked .env file database configuration', [
+                'connection' => $connection,
+                'required_fields' => $requiredFields,
+                'found_fields' => $foundFields,
+                'is_complete' => $isComplete
+            ]);
+            
+            return $isComplete;
+        }
+        
+        return true;
     }
 
     /**

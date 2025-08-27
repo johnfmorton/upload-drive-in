@@ -43,7 +43,10 @@ class SetupDetectionMiddleware
 
             // Allow setup instructions route to pass through
             if ($this->isSetupInstructionsRoute($request)) {
-                \Log::info('SetupDetectionMiddleware: Allowing setup instructions route');
+                \Log::info('SetupDetectionMiddleware: Allowing setup instructions route', [
+                    'path' => $request->path(),
+                    'route_name' => $request->route()?->getName()
+                ]);
                 return $next($request);
             }
 
@@ -98,6 +101,14 @@ class SetupDetectionMiddleware
     private function isSetupInstructionsRoute(Request $request): bool
     {
         $routeName = $request->route()?->getName();
+        $path = $request->path();
+        
+        \Log::info('SetupDetectionMiddleware: Checking if setup instructions route', [
+            'route_name' => $routeName,
+            'path' => $path,
+            'is_setup_instructions' => $routeName === 'setup.instructions'
+        ]);
+        
         return $routeName === 'setup.instructions';
     }
 

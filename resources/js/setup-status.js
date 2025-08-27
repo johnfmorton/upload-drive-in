@@ -975,7 +975,10 @@ class SetupStatusManager {
                 break;
 
             case "database":
-                if (details.connection_name) {
+                // Handle new detailed database status
+                if (details.scenario) {
+                    html += this.getDatabaseStatusDetails(status, details);
+                } else if (details.connection_name) {
                     html += `<div class="mb-2"><strong>Connection:</strong> ${details.connection_name}</div>`;
                 }
                 break;
@@ -997,6 +1000,120 @@ class SetupStatusManager {
             html += `<div class="mb-2 p-2 bg-red-50 border border-red-200 rounded">
                 <strong>Error:</strong> ${details.error}
             </div>`;
+        }
+
+        return html;
+    }
+
+    /**
+     * Get detailed database status information
+     */
+    getDatabaseStatusDetails(status, details) {
+        const scenario = details.scenario;
+        let html = '';
+
+        switch (scenario) {
+            case 'no_credentials':
+                html += `
+                    <div class="mb-3 p-3 bg-red-50 border border-red-200 rounded">
+                        <div class="flex items-start">
+                            <span class="text-red-600 text-lg mr-2">❌</span>
+                            <div>
+                                <h4 class="text-sm font-medium text-red-800">No Database Credentials</h4>
+                                <p class="mt-1 text-sm text-red-700">${details.description}</p>
+                                <div class="mt-2">
+                                    <p class="text-sm font-medium text-red-800">Missing fields:</p>
+                                    <ul class="mt-1 text-sm text-red-700 list-disc list-inside">
+                                        ${details.metadata.missing_fields.map(field => `<li>${field}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+
+            case 'partial_credentials':
+                html += `
+                    <div class="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                        <div class="flex items-start">
+                            <span class="text-yellow-600 text-lg mr-2">⚠️</span>
+                            <div>
+                                <h4 class="text-sm font-medium text-yellow-800">Partial Database Configuration</h4>
+                                <p class="mt-1 text-sm text-yellow-700">${details.description}</p>
+                                <div class="mt-2 grid grid-cols-1 gap-2">
+                                    <div>
+                                        <p class="text-sm font-medium text-yellow-800">Missing fields:</p>
+                                        <ul class="mt-1 text-sm text-yellow-700 list-disc list-inside">
+                                            ${details.metadata.missing_fields.map(field => `<li>${field}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-yellow-800">Configured fields:</p>
+                                        <ul class="mt-1 text-sm text-yellow-700 list-disc list-inside">
+                                            ${details.metadata.configured_fields.map(field => `<li>${field}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+
+            case 'connection_failed':
+                html += `
+                    <div class="mb-3 p-3 bg-red-50 border border-red-200 rounded">
+                        <div class="flex items-start">
+                            <span class="text-red-600 text-lg mr-2">🚫</span>
+                            <div>
+                                <h4 class="text-sm font-medium text-red-800">Database Connection Failed</h4>
+                                <p class="mt-1 text-sm text-red-700">${details.description}</p>
+                                <div class="mt-2">
+                                    <p class="text-sm font-medium text-red-800">Connection details:</p>
+                                    <ul class="mt-1 text-sm text-red-700 space-y-1">
+                                        <li><strong>Type:</strong> ${details.metadata.connection_type}</li>
+                                        <li><strong>Host:</strong> ${details.metadata.host}</li>
+                                        <li><strong>Database:</strong> ${details.metadata.database}</li>
+                                        <li><strong>Username:</strong> ${details.metadata.username}</li>
+                                    </ul>
+                                    ${details.metadata.error_message ? `
+                                        <div class="mt-2 p-2 bg-red-100 rounded text-xs text-red-800">
+                                            <strong>Error:</strong> ${details.metadata.error_message}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+
+            case 'connection_successful':
+                html += `
+                    <div class="mb-3 p-3 bg-green-50 border border-green-200 rounded">
+                        <div class="flex items-start">
+                            <span class="text-green-600 text-lg mr-2">✅</span>
+                            <div>
+                                <h4 class="text-sm font-medium text-green-800">Database Connection Successful</h4>
+                                <p class="mt-1 text-sm text-green-700">${details.description}</p>
+                                <div class="mt-2">
+                                    <p class="text-sm font-medium text-green-800">Connection details:</p>
+                                    <ul class="mt-1 text-sm text-green-700 space-y-1">
+                                        <li><strong>Type:</strong> ${details.metadata.connection_type}</li>
+                                        <li><strong>Host:</strong> ${details.metadata.host}</li>
+                                        <li><strong>Database:</strong> ${details.metadata.database}</li>
+                                        <li><strong>Username:</strong> ${details.metadata.username}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                break;
+
+            default:
+                html += `<div class="mb-2"><strong>Status:</strong> ${details.description || 'Database status information available'}</div>`;
         }
 
         return html;
