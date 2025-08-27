@@ -306,3 +306,124 @@ input[type='file']:focus::file-selector-button {
     max-width: none;
   }
 }
+
+/* 
+ * Modal Z-Index Debugging Utilities
+ * 
+ * These utilities provide visual debugging for modal z-index hierarchy issues.
+ * For complete documentation, see:
+ * - docs/modal-z-index-standards.md
+ * - resources/views/components/modal-z-index-reference.md
+ * - resources/css/modal-debug.css
+ * 
+ * Z-Index Standards:
+ * - Modal Container: z-[9999] (9999)
+ * - Modal Content: z-[10000] (10000) 
+ * - Modal Backdrop: z-[9998] (9998)
+ * - Debug Elements: 99999 (always visible)
+ * 
+ * Enable debugging: Add ?modal-debug=true to URL
+ */
+.modal-debug-enabled {
+  /* Enable debugging mode for modals */
+}
+
+.modal-debug-enabled .modal-container {
+  /* Visual debugging for modal container */
+  outline: 3px solid #ff0000 !important;
+  outline-offset: -3px;
+}
+
+.modal-debug-enabled .modal-container::before {
+  content: 'Modal Container (z-index: ' attr(data-z-index) ')';
+  position: absolute;
+  top: -30px;
+  left: 0;
+  background: #ff0000;
+  color: white;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 99999;
+  border-radius: 4px;
+}
+
+.modal-debug-enabled .modal-backdrop {
+  /* Visual debugging for modal backdrop */
+  outline: 3px solid #00ff00 !important;
+  outline-offset: -3px;
+}
+
+.modal-debug-enabled .modal-backdrop::before {
+  content: 'Backdrop (z-index: ' attr(data-z-index) ')';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #00ff00;
+  color: black;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 99999;
+  border-radius: 4px;
+}
+
+.modal-debug-enabled .modal-content {
+  /* Visual debugging for modal content */
+  outline: 3px solid #0000ff !important;
+  outline-offset: -3px;
+}
+
+.modal-debug-enabled .modal-content::before {
+  content: 'Modal Content (z-index: ' attr(data-z-index) ')';
+  position: absolute;
+  top: -30px;
+  right: 0;
+  background: #0000ff;
+  color: white;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 99999;
+  border-radius: 4px;
+}
+
+/* Z-Index visualization classes */
+.z-debug-low {
+  background-color: rgba(255, 0, 0, 0.1) !important;
+  border: 2px dashed #ff0000 !important;
+}
+
+.z-debug-medium {
+  background-color: rgba(255, 255, 0, 0.1) !important;
+  border: 2px dashed #ffff00 !important;
+}
+
+.z-debug-high {
+  background-color: rgba(0, 255, 0, 0.1) !important;
+  border: 2px dashed #00ff00 !important;
+}
+
+.z-debug-highest {
+  background-color: rgba(0, 0, 255, 0.1) !important;
+  border: 2px dashed #0000ff !important;
+}
+
+/* Stacking context visualization */
+.stacking-context-debug {
+  position: relative;
+}
+
+.stacking-context-debug::after {
+  content: 'Stacking Context';
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #ff6600;
+  color: white;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  z-index: 99999;
+  border-radius: 0 0 0 4px;
+}

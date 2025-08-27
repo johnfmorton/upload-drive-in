@@ -10,6 +10,11 @@ import "./setup-wizard";
 // Import Admin Queue Testing functionality
 import "./admin-queue-testing";
 
+// Import Modal Debugging utilities (only in development)
+if (process.env.NODE_ENV === 'development' || window.location.search.includes('modal-debug=true')) {
+    import("./modal-debug");
+}
+
 // Import Dropzone CSS
 import "dropzone/dist/dropzone.css";
 

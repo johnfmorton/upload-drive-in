@@ -4,7 +4,7 @@
     "name": "chunk.SBCFYC2S"
   },
   "resources/css/app.css": {
-    "file": "assets/app-fc2pYOpq.css",
+    "file": "assets/app-C8F5KOKQ.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
@@ -15,12 +15,15 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-CVdKkwWl.js",
+    "file": "assets/app-C1WdzlMD.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
       "_chunk.SBCFYC2S-DMThxOYY.js"
+    ],
+    "dynamicImports": [
+      "resources/js/modal-debug.js"
     ],
     "css": [
       "assets/app-Dj-zwn9H.css"
@@ -31,6 +34,12 @@
     "name": "database-config",
     "src": "resources/js/database-config.js",
     "isEntry": true
+  },
+  "resources/js/modal-debug.js": {
+    "file": "assets/modal-debug-pWXn5V8E.js",
+    "name": "modal-debug",
+    "src": "resources/js/modal-debug.js",
+    "isDynamicEntry": true
   },
   "resources/js/setup-progress.js": {
     "file": "assets/setup-progress-BPpWZt3r.js",

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Overlay Test</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Debug styles for z-index visualization */
+        .z-debug-highest {
+            border: 3px solid red !important;
+        }
+        .z-debug-high {
+            border: 2px solid orange !important;
+        }
+        .stacking-context-debug {
+            border: 2px solid blue !important;
+        }
+        
+        /* Modal debug info */
+        .modal-debug-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 99999;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Modal Overlay Test</h1>
+        
+        <div class="space-y-4 mb-8">
+            <button 
+                onclick="triggerModal('upload-success')"
+                class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Test Upload Success Modal
+            </button>
+            
+            <button 
+                onclick="triggerModal('association-success')"
+                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Test Association Success Modal
+            </button>
+            
+            <button 
+                onclick="triggerModal('upload-error')"
+                class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                Test Upload Error Modal
+            </button>
+            
+            <button 
+                onclick="enableDebugMode()"
+                class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                Enable Debug Mode
+            </button>
+            
+            <button 
+                onclick="testDelayedOverlay()"
+                class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                Test Delayed Overlay Issue
+            </button>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">Test Instructions</h2>
+            <ol class="list-decimal list-inside space-y-2">
+                <li>Click "Test Upload Success Modal" to trigger the modal</li>
+                <li>Verify the modal appears immediately without any gray overlay</li>
+                <li>Wait 2-3 seconds to ensure no overlay appears on top</li>
+                <li>Test that the close button is clickable</li>
+                <li>Test that clicking the backdrop closes the modal</li>
+                <li>Enable debug mode to see z-index visualization</li>
+                <li>Use "Test Delayed Overlay Issue" to simulate the original problem</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Debug Info Panel -->
+    <div id="debugInfo" class="modal-debug-info" style="display: none;">
+        <div>Debug Mode: <span id="debugStatus">OFF</span></div>
+        <div>Active Modals: <span id="activeModals">0</span></div>
+        <div>Last Action: <span id="lastAction">None</span></div>
+    </div>
+
+    <!-- Upload Success Modal -->
+    <div
+        x-data="{
+            show: false,
+            debugMode: window.location.search.includes('modal-debug=true') || localStorage.getItem('modal-debug') === 'true',
+            focusables() {
+                let selector = 'a, button, input:not([type=\'hidden\']), textarea, select, details, [tabindex]:not([tabindex=\'-1\'])'
+                return [...$el.querySelectorAll(selector)]
+                    .filter(el => ! el.hasAttribute('disabled'))
+            },
+            firstFocusable() { return this.focusables()[0] },
+            lastFocusable() { return this.focusables().slice(-1)[0] },
+            nextFocusable() { return this.focusables()[this.nextFocusableIndex()] || this.firstFocusable() },
+            prevFocusable() { return this.focusables()[this.prevFocusableIndex()] || this.lastFocusable() },
+            nextFocusableIndex() { return (this.focusables().indexOf(document.activeElement) + 1) % (this.focusables().length + 1) },
+            prevFocusableIndex() { return Math.max(0, this.focusables().indexOf(document.activeElement)) -1 },
+            logModalState(action) {
+                if (this.debugMode) {
+                    console.group(`🔍 Modal Debug: ${action} - upload-success`);
+                    console.log('Modal Name:', 'upload-success');
+                    console.log('Show State:', this.show);
+                    console.log('Container Z-Index:', getComputedStyle($el).zIndex);
+                    console.log('Timestamp:', new Date().toISOString());
+                    console.groupEnd();
+                    updateDebugInfo('Last Action', action);
+                }
+            }
+        }"
+        x-init="
+            if (debugMode) {
+                document.body.classList.add('modal-debug-enabled');
+                logModalState('Initialized');
+            }
+            $watch('show', value => {
+                if (debugMode) {
+                    logModalState(value ? 'Opening' : 'Closing');
+                }
+                if (value) {
+                    document.body.classList.add('overflow-y-hidden');
+                    setTimeout(() => firstFocusable().focus(), 100);
+                } else {
+                    document.body.classList.remove('overflow-y-hidden');
+                }
+                updateActiveModalCount();
+            })
+        "
+        x-on:open-modal.window="$event.detail == 'upload-success' ? (show = true, debugMode && logModalState('Event Triggered')) : null"
+        x-on:close-modal.window="$event.detail == 'upload-success' ? (show = false, debugMode && logModalState('Close Event')) : null"
+        x-on:close.stop="show = false"
+        x-on:keydown.escape.window="show = false"
+        x-on:keydown.tab.prevent="$event.shiftKey || nextFocusable().focus()"
+        x-on:keydown.shift.tab.prevent="prevFocusable().focus()"
+        x-show="show"
+        class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-[9999] modal-container"
+        :class="{ 'z-debug-highest': debugMode }"
+        data-modal-name="upload-success"
+        data-z-index="9999"
+        data-modal-type="container"
+        style="display: none;"
+    >
+        <!-- Backdrop -->
+        <div
+            x-show="show"
+            class="fixed inset-0 bg-gray-500 opacity-75 z-[9998] modal-backdrop"
+            :class="{ 'z-debug-high': debugMode }"
+            x-on:click="show = false"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-75"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-75"
+            x-transition:leave-end="opacity-0"
+            data-modal-name="upload-success"
+            data-z-index="9998"
+            data-modal-type="backdrop"
+        ></div>
+
+        <!-- Modal content -->
+        <div
+            x-show="show"
+            class="relative mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full sm:max-w-2xl sm:mx-auto z-[10000] modal-content"
+            :class="{ 'z-debug-highest': debugMode, 'stacking-context-debug': debugMode }"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            data-modal-name="upload-success"
+            data-z-index="10000"
+            data-modal-type="content"
+        >
+            <div class="p-6">
+                <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-green-100">
+                    <svg class="size-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                </div>
+                <div class="mt-3 text-center sm:mt-5">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900">Upload Complete</h3>
+                    <p class="mt-2 text-sm text-gray-500">Files uploaded successfully!</p>
+                </div>
+                <div class="mt-5 sm:mt-6">
+                    <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Association Success Modal -->
+    <div
+        x-data="{
+            show: false,
+            debugMode: window.location.search.includes('modal-debug=true') || localStorage.getItem('modal-debug') === 'true'
+        }"
+        x-on:open-modal.window="$event.detail == 'association-success' ? show = true : null"
+        x-on:close-modal.window="$event.detail == 'association-success' ? show = false : null"
+        x-on:close.stop="show = false"
+        x-on:keydown.escape.window="show = false"
+        x-show="show"
+        class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-[9999] modal-container"
+        data-modal-name="association-success"
+        style="display: none;"
+    >
+        <div x-show="show" class="fixed inset-0 bg-gray-500 opacity-75 z-[9998]" x-on:click="show = false"></div>
+        <div x-show="show" class="relative mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full sm:max-w-2xl sm:mx-auto z-[10000]">
+            <div class="p-6">
+                <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-green-100">
+                    <svg class="size-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                    </svg>
+                </div>
+                <div class="mt-3 text-center sm:mt-5">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900">Success</h3>
+                    <p class="mt-2 text-sm text-gray-500">Files uploaded and message associated successfully!</p>
+                </div>
+                <div class="mt-5 sm:mt-6">
+                    <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Error Modal -->
+    <div
+        x-data="{
+            show: false,
+            debugMode: window.location.search.includes('modal-debug=true') || localStorage.getItem('modal-debug') === 'true'
+        }"
+        x-on:open-modal.window="$event.detail == 'upload-error' ? show = true : null"
+        x-on:close-modal.window="$event.detail == 'upload-error' ? show = false : null"
+        x-on:close.stop="show = false"
+        x-on:keydown.escape.window="show = false"
+        x-show="show"
+        class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-[9999] modal-container"
+        data-modal-name="upload-error"
+        style="display: none;"
+    >
+        <div x-show="show" class="fixed inset-0 bg-gray-500 opacity-75 z-[9998]" x-on:click="show = false"></div>
+        <div x-show="show" class="relative mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full sm:max-w-2xl sm:mx-auto z-[10000]">
+            <div class="p-6">
+                <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-red-100">
+                    <svg class="size-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z" />
+                    </svg>
+                </div>
+                <div class="mt-3 text-center sm:mt-5">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900">Upload Failed</h3>
+                    <p class="mt-2 text-sm text-gray-500">Some files failed to upload. Please remove them or check the errors and try again.</p>
+                </div>
+                <div class="mt-5 sm:mt-6">
+                    <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test functions
+        function triggerModal(modalName) {
+            console.log(`Triggering modal: ${modalName}`);
+            window.dispatchEvent(new CustomEvent('open-modal', { detail: modalName }));
+            updateDebugInfo('Last Action', `Opened ${modalName}`);
+        }
+
+        function enableDebugMode() {
+            localStorage.setItem('modal-debug', 'true');
+            document.getElementById('debugInfo').style.display = 'block';
+            updateDebugInfo('Debug Status', 'ON');
+            location.reload();
+        }
+
+        function testDelayedOverlay() {
+            // Simulate the original overlay issue
+            triggerModal('upload-success');
+            
+            // After 1.5 seconds, create a problematic overlay
+            setTimeout(() => {
+                const overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 bg-gray-500 opacity-75';
+                overlay.style.zIndex = '9999'; // Same as modal container
+                overlay.id = 'problematic-overlay';
+                document.body.appendChild(overlay);
+                
+                console.warn('Problematic overlay added with z-index 9999');
+                updateDebugInfo('Last Action', 'Added problematic overlay');
+                
+                // Remove it after 3 seconds
+                setTimeout(() => {
+                    const problemOverlay = document.getElementById('problematic-overlay');
+                    if (problemOverlay) {
+                        problemOverlay.remove();
+                        console.log('Problematic overlay removed');
+                        updateDebugInfo('Last Action', 'Removed problematic overlay');
+                    }
+                }, 3000);
+            }, 1500);
+        }
+
+        function updateDebugInfo(key, value) {
+            const element = document.getElementById(key.replace(' ', ''));
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        function updateActiveModalCount() {
+            const activeModals = document.querySelectorAll('[data-modal-name][x-show="true"]').length;
+            updateDebugInfo('Active Modals', activeModals);
+        }
+
+        // Initialize debug info if debug mode is enabled
+        if (window.location.search.includes('modal-debug=true') || localStorage.getItem('modal-debug') === 'true') {
+            document.getElementById('debugInfo').style.display = 'block';
+            updateDebugInfo('Debug Status', 'ON');
+        }
+    </script>
+</body>
+</html>

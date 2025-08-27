@@ -352,8 +352,14 @@
                     </div>
 
                     <!-- Confirmation Dialog -->
-                    <div x-show="showConfirmDialog" x-cloak class="fixed inset-0 z-[9999] overflow-y-auto"
+                    <div x-show="showConfirmDialog" x-cloak class="fixed inset-0 z-[9999] overflow-y-auto modal-container"
                         aria-labelledby="confirm-modal-title" role="dialog" aria-modal="true"
+                        :class="{ 'z-debug-highest': debugMode }"
+                        data-modal-name="file-manager-confirm"
+                        data-z-index="9999"
+                        data-modal-type="container"
+                        x-on:close.stop="showConfirmDialog = false"
+                        x-on:keydown.escape.window="showConfirmDialog = false"
                         style="pointer-events: auto;">
                         <div
                             class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -362,8 +368,13 @@
                                 x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
                                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
                                 x-transition:leave-end="opacity-0"
-                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-                                x-on:click="handleBackgroundClick($event)" aria-hidden="true"></div>
+                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-[9998] modal-backdrop"
+                                :class="{ 'z-debug-medium': debugMode }"
+                                x-on:click.stop="handleBackgroundClick($event)"
+                                data-modal-name="file-manager-confirm"
+                                data-z-index="9998"
+                                data-modal-type="backdrop"
+                                aria-hidden="true"></div>
 
                             <!-- Modal panel -->
                             <div x-show="showConfirmDialog" x-transition:enter="ease-out duration-300"
@@ -372,7 +383,11 @@
                                 x-transition:leave="ease-in duration-200"
                                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full relative z-[10000]"
+                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full relative z-[10000] modal-content"
+                                :class="{ 'z-debug-high': debugMode, 'stacking-context-debug': debugMode }"
+                                data-modal-name="file-manager-confirm"
+                                data-z-index="10000"
+                                data-modal-type="content"
                                 style="pointer-events: auto;">
                                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                                     <div class="sm:flex sm:items-start">
@@ -441,8 +456,12 @@
                     </div>
 
                     <!-- Bulk Operation Progress Modal -->
-                    <div x-show="bulkOperationProgress.show" x-cloak class="fixed inset-0 z-50 overflow-y-auto"
-                        aria-labelledby="progress-modal-title" role="dialog" aria-modal="true">
+                    <div x-show="bulkOperationProgress.show" x-cloak class="fixed inset-0 z-[9999] overflow-y-auto modal-container"
+                        aria-labelledby="progress-modal-title" role="dialog" aria-modal="true"
+                        :class="{ 'z-debug-highest': debugMode }"
+                        data-modal-name="file-manager-bulk-progress"
+                        data-z-index="9999"
+                        data-modal-type="container">
                         <div
                             class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                             <!-- Background overlay -->
@@ -450,7 +469,12 @@
                                 x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
                                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
                                 x-transition:leave-end="opacity-0"
-                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true">
+                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-[9998] modal-backdrop"
+                                :class="{ 'z-debug-medium': debugMode }"
+                                data-modal-name="file-manager-bulk-progress"
+                                data-z-index="9998"
+                                data-modal-type="backdrop"
+                                aria-hidden="true">
                             </div>
 
                             <!-- Modal panel -->
@@ -460,7 +484,11 @@
                                 x-transition:leave="ease-in duration-200"
                                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full relative z-[10000] modal-content"
+                                :class="{ 'z-debug-high': debugMode, 'stacking-context-debug': debugMode }"
+                                data-modal-name="file-manager-bulk-progress"
+                                data-z-index="10000"
+                                data-modal-type="content">
                                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                                     <div class="sm:flex sm:items-start">
                                         <div
@@ -506,8 +534,12 @@
                     </div>
 
                     <!-- Download Progress Modal -->
-                    <div x-show="downloadProgress.show" x-cloak class="fixed inset-0 z-50 overflow-y-auto"
-                        aria-labelledby="download-progress-modal-title" role="dialog" aria-modal="true">
+                    <div x-show="downloadProgress.show" x-cloak class="fixed inset-0 z-[9999] overflow-y-auto modal-container"
+                        aria-labelledby="download-progress-modal-title" role="dialog" aria-modal="true"
+                        :class="{ 'z-debug-highest': debugMode }"
+                        data-modal-name="file-manager-download-progress"
+                        data-z-index="9999"
+                        data-modal-type="container">
                         <div
                             class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                             <!-- Background overlay -->
@@ -515,7 +547,12 @@
                                 x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
                                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100"
                                 x-transition:leave-end="opacity-0"
-                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true">
+                                class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-[9998] modal-backdrop"
+                                :class="{ 'z-debug-medium': debugMode }"
+                                data-modal-name="file-manager-download-progress"
+                                data-z-index="9998"
+                                data-modal-type="backdrop"
+                                aria-hidden="true">
                             </div>
 
                             <!-- Modal panel -->
@@ -525,7 +562,11 @@
                                 x-transition:leave="ease-in duration-200"
                                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full relative z-[10000] modal-content"
+                                :class="{ 'z-debug-high': debugMode, 'stacking-context-debug': debugMode }"
+                                data-modal-name="file-manager-download-progress"
+                                data-z-index="10000"
+                                data-modal-type="content">
                                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                                     <div class="sm:flex sm:items-start">
                                         <div
@@ -565,8 +606,16 @@
 
                     <!-- Loading Overlay -->
                     <div x-show="isLoading" x-cloak
-                        class="fixed inset-0 z-40 bg-gray-500 bg-opacity-75 flex items-center justify-center">
-                        <div class="bg-white rounded-lg p-6 shadow-xl max-w-md w-full">
+                        class="fixed inset-0 z-[8999] bg-gray-500 bg-opacity-75 flex items-center justify-center"
+                        :class="{ 'z-debug-low': debugMode }"
+                        data-modal-name="file-manager-loading"
+                        data-z-index="8999"
+                        data-modal-type="loading-overlay">
+                        <div class="bg-white rounded-lg p-6 shadow-xl max-w-md w-full relative z-[9000]"
+                            :class="{ 'z-debug-low': debugMode }"
+                            data-modal-name="file-manager-loading"
+                            data-z-index="9000"
+                            data-modal-type="loading-content">
                             <div class="flex flex-col space-y-4">
                                 <div class="flex items-center space-x-4">
                                     <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg"
@@ -807,6 +856,31 @@
     @include('admin.file-manager.partials.delete-modal')
     @include('admin.file-manager.partials.bulk-delete-modal')
 
+    @push('styles')
+        @if(request()->has('modal-debug') && request()->get('modal-debug') === 'true')
+            <link rel="stylesheet" href="{{ asset('css/modal-debug.css') }}">
+            <style>
+                /* File Manager specific debug styles */
+                .file-manager .modal-container.modal-debug-enabled {
+                    border: 2px dashed rgba(255, 0, 0, 0.5) !important;
+                }
+                .file-manager .modal-container.modal-debug-enabled::before {
+                    content: "FILE MANAGER MODAL";
+                    position: absolute;
+                    top: -25px;
+                    left: 0;
+                    background: rgba(255, 0, 0, 0.8);
+                    color: white;
+                    padding: 2px 6px;
+                    font-size: 10px;
+                    font-weight: bold;
+                    border-radius: 3px;
+                    z-index: 99999;
+                }
+            </style>
+        @endif
+    @endpush
+
     @push('scripts')
         <script>
             // Define the component before Alpine.js processes it
@@ -910,11 +984,13 @@
                     confirmDialogType: 'info', // 'danger', 'warning', 'info'
                     confirmDialogDestructive: false,
 
-                    // Enhanced modal state management
+                    // Enhanced modal state management with standardized debugging
+                    debugMode: window.location.search.includes('modal-debug=true') || localStorage.getItem('modal-debug') === 'true',
                     modalDebugInfo: null,
                     modalPreventClose: false,
                     modalInitialized: false,
                     modalCloseTimeout: null,
+                    modalDebugger: null, // Reference to global modal debugger instance
 
                     // Operation states
                     isDeleting: false,
@@ -1118,6 +1194,15 @@
 
                     init() {
                         // Initialize component
+
+                        // Initialize debug mode and integrate with standardized modal debugger
+                        if (this.debugMode) {
+                            document.body.classList.add('modal-debug-enabled');
+                            console.log('🔍 Modal Debug: File Manager initialized with debug mode enabled');
+                            
+                            // Initialize modal debugger integration
+                            this.initializeModalDebugger();
+                        }
 
                         // Ensure files is always an array
                         if (!Array.isArray(this.files)) {
@@ -1748,13 +1833,21 @@
 
                     showConfirmation(title, message, action, type = 'info') {
                         try {
-                            // Clear any existing timeouts
+                            // Enhanced debug logging following standardized patterns
+                            this.logModalDebugInfo('Showing confirmation modal', {
+                                title: title,
+                                type: type,
+                                actionType: typeof action,
+                                hasAction: !!action
+                            });
+                            
+                            // Clear any existing timeouts to prevent conflicts
                             if (this.modalCloseTimeout) {
                                 clearTimeout(this.modalCloseTimeout);
                                 this.modalCloseTimeout = null;
                             }
                             
-                            // Set modal state with debugging
+                            // Comprehensive state initialization with enhanced stability
                             this.confirmDialogTitle = title;
                             this.confirmDialogMessage = message;
                             this.confirmDialogAction = action;
@@ -1763,83 +1856,193 @@
                             this.modalPreventClose = false;
                             this.modalInitialized = true;
                             
-                            // Use nextTick to ensure DOM is ready
+                            // Initialize debug info early for better tracking
+                            this.modalDebugInfo = {
+                                timestamp: Date.now(),
+                                title: title,
+                                type: type,
+                                actionType: typeof action,
+                                modalName: 'file-manager-confirm',
+                                initializationStep: 'pre-dom-ready'
+                            };
+                            
+                            // Use nextTick to ensure DOM is ready before showing modal
                             this.$nextTick(() => {
+                                // Verify state is still valid before proceeding
+                                if (!this.modalInitialized) {
+                                    this.logModalDebugInfo('Modal state was reset during initialization, aborting');
+                                    return;
+                                }
+                                
                                 this.showConfirmDialog = true;
+                                
+                                // Update debug info to reflect DOM ready state
                                 this.modalDebugInfo = {
-                                    timestamp: Date.now(),
-                                    title: title,
-                                    type: type,
-                                    actionType: typeof action
+                                    ...this.modalDebugInfo,
+                                    initializationStep: 'dom-ready',
+                                    displayedAt: Date.now()
                                 };
                                 
-                                // Set auto-recovery timeout (30 seconds)
+                                // Apply debug classes if debug mode is enabled
+                                if (this.debugMode) {
+                                    this.$nextTick(() => {
+                                        this.applyDebugClasses();
+                                    });
+                                }
+                                
+                                // Set auto-recovery timeout (30 seconds) using standardized pattern
                                 this.modalCloseTimeout = setTimeout(() => {
-                                    if (this.showConfirmDialog) {
-                                        console.warn('Modal auto-recovery triggered for:', title);
-                                        this.recoverModalState();
+                                    if (this.showConfirmDialog && this.modalInitialized) {
+                                        this.logModalDebugInfo('Modal auto-recovery triggered', {
+                                            title: title,
+                                            reason: 'timeout_recovery',
+                                            timeoutDuration: 30000
+                                        });
+                                        this.recoverFromStuckModal();
                                     }
                                 }, 30000);
+                                
+                                this.logModalDebugInfo('Confirmation modal displayed successfully', {
+                                    timeToDisplay: Date.now() - this.modalDebugInfo.timestamp
+                                });
                             });
                         } catch (error) {
                             this.logModalError(error, 'showConfirmation');
-                            // Fallback to simple modal display
-                            this.showConfirmDialog = true;
+                            
+                            // Enhanced fallback with proper state cleanup
+                            try {
+                                // Clear any partial state
+                                if (this.modalCloseTimeout) {
+                                    clearTimeout(this.modalCloseTimeout);
+                                    this.modalCloseTimeout = null;
+                                }
+                                
+                                // Simple fallback modal display
+                                this.showConfirmDialog = true;
+                                this.modalInitialized = true;
+                                this.logModalDebugInfo('Fallback modal display used due to error');
+                            } catch (fallbackError) {
+                                this.logModalError(fallbackError, 'showConfirmation fallback');
+                                // Last resort: force modal recovery
+                                this.recoverFromStuckModal();
+                            }
                         }
                     },
 
                     confirmAction() {
                         try {
-                            // Clear timeout
+                            this.logModalDebugInfo('Confirming modal action', {
+                                hasAction: !!this.confirmDialogAction,
+                                actionType: typeof this.confirmDialogAction,
+                                modalState: this.showConfirmDialog,
+                                preventClose: this.modalPreventClose
+                            });
+                            
+                            // Prevent multiple executions
+                            if (this.modalPreventClose) {
+                                this.logModalDebugInfo('Modal action already in progress, ignoring duplicate call');
+                                return;
+                            }
+                            
+                            // Set loading state to prevent duplicate actions
+                            this.modalPreventClose = true;
+                            this.isLoading = true;
+                            
+                            // Clear any existing timeouts
                             if (this.modalCloseTimeout) {
                                 clearTimeout(this.modalCloseTimeout);
                                 this.modalCloseTimeout = null;
                             }
                             
-                            // Execute action if valid
-                            if (this.confirmDialogAction && typeof this.confirmDialogAction === 'function') {
-                                this.confirmDialogAction();
+                            // Enhanced function validation before execution
+                            if (this.confirmDialogAction) {
+                                if (typeof this.confirmDialogAction === 'function') {
+                                    this.logModalDebugInfo('Executing confirmation action');
+                                    
+                                    // Execute the action with error handling
+                                    try {
+                                        this.confirmDialogAction();
+                                        this.logModalDebugInfo('Confirmation action executed successfully');
+                                    } catch (actionError) {
+                                        this.logModalError(actionError, 'confirmAction - action execution');
+                                        // Don't close modal on action error, let user retry
+                                        this.modalPreventClose = false;
+                                        this.isLoading = false;
+                                        return;
+                                    }
+                                } else {
+                                    this.logModalDebugInfo('Invalid action type - not a function', {
+                                        actionType: typeof this.confirmDialogAction,
+                                        actionValue: this.confirmDialogAction
+                                    });
+                                    // Still close modal for invalid actions
+                                }
+                            } else {
+                                this.logModalDebugInfo('No action to execute - proceeding with modal close');
                             }
                             
-                            // Clean up modal state
-                            this.showConfirmDialog = false;
-                            this.modalPreventClose = false;
-                            this.confirmDialogAction = null;
-                            this.modalDebugInfo = {
-                                ...this.modalDebugInfo,
-                                closeReason: 'confirmed',
-                                closedAt: Date.now()
-                            };
+                            // Enhanced state cleanup with comprehensive reset
+                            this.performCompleteStateCleanup('confirmed');
+                            
+                            this.logModalDebugInfo('Modal action confirmed and closed successfully');
                         } catch (error) {
                             this.logModalError(error, 'confirmAction');
-                            // Force close modal on error
-                            this.recoverModalState();
+                            // Force close modal on error using enhanced recovery
+                            this.recoverFromStuckModal();
                         }
                     },
 
                     cancelConfirmation() {
                         try {
-                            // Clear timeout
+                            this.logModalDebugInfo('Cancelling modal confirmation', {
+                                modalState: this.showConfirmDialog,
+                                hasAction: !!this.confirmDialogAction,
+                                preventClose: this.modalPreventClose,
+                                isLoading: this.isLoading
+                            });
+                            
+                            // Prevent multiple cancellations
+                            if (!this.showConfirmDialog && !this.modalPreventClose) {
+                                this.logModalDebugInfo('Modal already closed, ignoring duplicate cancel call');
+                                return;
+                            }
+                            
+                            // Clear any existing timeouts immediately
                             if (this.modalCloseTimeout) {
                                 clearTimeout(this.modalCloseTimeout);
                                 this.modalCloseTimeout = null;
                             }
                             
-                            // Complete state reset
-                            this.showConfirmDialog = false;
-                            this.confirmDialogAction = null;
-                            this.confirmDialogDestructive = false;
-                            this.modalPreventClose = false;
-                            this.modalInitialized = false;
-                            this.modalDebugInfo = {
-                                ...this.modalDebugInfo,
-                                closeReason: 'cancelled',
-                                closedAt: Date.now()
-                            };
+                            // Enhanced complete state reset with validation
+                            this.performCompleteStateCleanup('cancelled');
+                            
+                            // Additional cleanup for bulk operations if in progress
+                            if (this.bulkOperationProgress && this.bulkOperationProgress.show) {
+                                this.logModalDebugInfo('Cancelling bulk operation in progress');
+                                this.bulkOperationProgress = {
+                                    show: false,
+                                    current: 0,
+                                    total: 0,
+                                    message: '',
+                                    operation: null
+                                };
+                            }
+                            
+                            // Reset any loading states
+                            this.isLoading = false;
+                            
+                            // Clear selected files if this was a bulk operation
+                            if (this.selectedFiles && this.selectedFiles.length > 0) {
+                                this.logModalDebugInfo('Clearing selected files after cancel');
+                                this.selectedFiles = [];
+                                this.selectAll = false;
+                            }
+                            
+                            this.logModalDebugInfo('Modal cancelled and state completely reset');
                         } catch (error) {
                             this.logModalError(error, 'cancelConfirmation');
-                            // Force recovery on error
-                            this.recoverModalState();
+                            // Force recovery on error using enhanced recovery
+                            this.recoverFromStuckModal();
                         }
                     },
 
@@ -1881,6 +2084,68 @@
                     },
 
                     // Modal state recovery and debugging methods
+                    performCompleteStateCleanup(closeReason = 'unknown') {
+                        try {
+                            this.logModalDebugInfo('Performing complete state cleanup', {
+                                closeReason: closeReason,
+                                currentState: {
+                                    showConfirmDialog: this.showConfirmDialog,
+                                    modalPreventClose: this.modalPreventClose,
+                                    isLoading: this.isLoading,
+                                    hasAction: !!this.confirmDialogAction
+                                }
+                            });
+                            
+                            // Reset all modal state properties
+                            this.showConfirmDialog = false;
+                            this.modalPreventClose = false;
+                            this.modalInitialized = false;
+                            this.isLoading = false;
+                            
+                            // Clear modal content and action
+                            this.confirmDialogAction = null;
+                            this.confirmDialogTitle = '';
+                            this.confirmDialogMessage = '';
+                            this.confirmDialogType = 'info';
+                            this.confirmDialogDestructive = false;
+                            
+                            // Clear any timeouts
+                            if (this.modalCloseTimeout) {
+                                clearTimeout(this.modalCloseTimeout);
+                                this.modalCloseTimeout = null;
+                            }
+                            
+                            // Remove debug classes if debug mode is enabled
+                            if (this.debugMode) {
+                                this.removeDebugClasses();
+                            }
+                            
+                            // Update debug info with cleanup details
+                            this.modalDebugInfo = {
+                                ...this.modalDebugInfo,
+                                closeReason: closeReason,
+                                closedAt: Date.now(),
+                                cleanupPerformed: true
+                            };
+                            
+                            this.logModalDebugInfo('Complete state cleanup finished', {
+                                closeReason: closeReason,
+                                finalState: {
+                                    showConfirmDialog: this.showConfirmDialog,
+                                    modalPreventClose: this.modalPreventClose,
+                                    isLoading: this.isLoading
+                                }
+                            });
+                        } catch (error) {
+                            this.logModalError(error, 'performCompleteStateCleanup');
+                            // Fallback to basic cleanup
+                            this.showConfirmDialog = false;
+                            this.modalPreventClose = false;
+                            this.confirmDialogAction = null;
+                            this.isLoading = false;
+                        }
+                    },
+
                     recoverModalState() {
                         console.warn('Recovering modal state');
                         this.showConfirmDialog = false;
@@ -1914,9 +2179,39 @@
                     },
 
                     handleBackgroundClick(event) {
+                        // Enhanced debug logging following standardized patterns
+                        this.logModalDebugInfo('Backdrop click detected', {
+                            modalName: 'file-manager-confirm',
+                            eventTarget: event.target.tagName,
+                            currentTarget: event.currentTarget.tagName,
+                            targetMatches: event.target === event.currentTarget,
+                            modalPreventClose: this.modalPreventClose,
+                            eventType: event.type,
+                            coordinates: {
+                                clientX: event.clientX,
+                                clientY: event.clientY
+                            }
+                        });
+
                         // Only close if clicking directly on the background, not on child elements
+                        // This prevents accidental closes when clicking on modal content
                         if (event.target === event.currentTarget && !this.modalPreventClose) {
+                            // Prevent event propagation to avoid conflicts with other click handlers
+                            event.preventDefault();
+                            event.stopPropagation();
+                            
+                            this.logModalDebugInfo('Closing modal via backdrop click', {
+                                reason: 'backdrop_click',
+                                preventClose: this.modalPreventClose
+                            });
+                            
                             this.cancelConfirmation();
+                        } else {
+                            this.logModalDebugInfo('Backdrop click ignored', {
+                                reason: event.target !== event.currentTarget ? 'clicked_on_child_element' : 'modal_prevent_close_enabled',
+                                preventClose: this.modalPreventClose,
+                                targetMatches: event.target === event.currentTarget
+                            });
                         }
                     },
 
@@ -1929,6 +2224,279 @@
                             hasAction: !!this.confirmDialogAction,
                             timestamp: Date.now()
                         };
+                    },
+
+                    // Standardized modal debugger integration methods
+                    initializeModalDebugger() {
+                        try {
+                            // Check if global modal debugger is available
+                            if (window.modalDebugger) {
+                                this.modalDebugger = window.modalDebugger;
+                                console.log('🔍 Modal Debug: Connected to global modal debugger');
+                                
+                                // Enable debugging features
+                                this.modalDebugger.enableDebugging();
+                                
+                                // Start observing modal changes for file manager modals
+                                this.observeFileManagerModalChanges();
+                                
+                                // Log initial state
+                                this.logModalDebugInfo('File Manager modal debugger initialized');
+                            } else {
+                                console.warn('🔍 Modal Debug: Global modal debugger not available, using fallback debugging');
+                                this.initializeFallbackDebugger();
+                            }
+                        } catch (error) {
+                            console.error('🔍 Modal Debug: Error initializing modal debugger:', error);
+                            this.initializeFallbackDebugger();
+                        }
+                    },
+
+                    initializeFallbackDebugger() {
+                        // Fallback debugging when global debugger is not available
+                        console.log('🔍 Modal Debug: Using fallback debugging for file manager modals');
+                        
+                        // Add basic debug styles
+                        if (!document.getElementById('file-manager-modal-debug-styles')) {
+                            const style = document.createElement('style');
+                            style.id = 'file-manager-modal-debug-styles';
+                            style.textContent = `
+                                .file-manager-modal-debug {
+                                    border: 2px dashed rgba(255, 0, 0, 0.5) !important;
+                                }
+                                .file-manager-modal-debug::before {
+                                    content: "FILE MANAGER MODAL DEBUG";
+                                    position: absolute;
+                                    top: -25px;
+                                    left: 0;
+                                    background: rgba(255, 0, 0, 0.8);
+                                    color: white;
+                                    padding: 2px 6px;
+                                    font-size: 10px;
+                                    font-weight: bold;
+                                    border-radius: 3px;
+                                    z-index: 99999;
+                                }
+                            `;
+                            document.head.appendChild(style);
+                        }
+                    },
+
+                    observeFileManagerModalChanges() {
+                        // Observe changes to file manager modals specifically
+                        const observer = new MutationObserver((mutations) => {
+                            mutations.forEach((mutation) => {
+                                if (mutation.type === 'attributes' && 
+                                    (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+                                    const target = mutation.target;
+                                    
+                                    // Check if this is a file manager modal
+                                    if (target.hasAttribute('data-modal-name') && 
+                                        target.dataset.modalName.includes('file-manager')) {
+                                        
+                                        const computedStyle = getComputedStyle(target);
+                                        this.logModalDebugInfo('File Manager modal state changed', {
+                                            modalName: target.dataset.modalName,
+                                            modalType: target.dataset.modalType,
+                                            display: computedStyle.display,
+                                            visibility: computedStyle.visibility,
+                                            zIndex: computedStyle.zIndex,
+                                            opacity: computedStyle.opacity
+                                        });
+                                    }
+                                }
+                            });
+                        });
+
+                        observer.observe(document.body, {
+                            attributes: true,
+                            subtree: true,
+                            attributeFilter: ['style', 'class']
+                        });
+                    },
+
+                    logModalDebugInfo(message, data = {}) {
+                        if (this.debugMode) {
+                            console.log(`🔍 File Manager Modal Debug: ${message}`, {
+                                timestamp: new Date().toISOString(),
+                                modalState: {
+                                    showConfirmDialog: this.showConfirmDialog,
+                                    modalInitialized: this.modalInitialized,
+                                    modalPreventClose: this.modalPreventClose
+                                },
+                                debugInfo: this.modalDebugInfo,
+                                ...data
+                            });
+                        }
+                    },
+
+                    enableModalDebugMode() {
+                        // Method to enable debug mode programmatically
+                        this.debugMode = true;
+                        localStorage.setItem('modal-debug', 'true');
+                        document.body.classList.add('modal-debug-enabled');
+                        
+                        if (!this.modalDebugger) {
+                            this.initializeModalDebugger();
+                        }
+                        
+                        this.logModalDebugInfo('Debug mode enabled for file manager modals');
+                        
+                        // Apply debug classes to existing modals
+                        this.applyDebugClasses();
+                    },
+
+                    disableModalDebugMode() {
+                        // Method to disable debug mode programmatically
+                        this.debugMode = false;
+                        localStorage.setItem('modal-debug', 'false');
+                        document.body.classList.remove('modal-debug-enabled');
+                        
+                        this.logModalDebugInfo('Debug mode disabled for file manager modals');
+                        
+                        // Remove debug classes
+                        this.removeDebugClasses();
+                    },
+
+                    applyDebugClasses() {
+                        // Apply debug classes to file manager modals
+                        const fileManagerModals = document.querySelectorAll('[data-modal-name*="file-manager"]');
+                        fileManagerModals.forEach(modal => {
+                            const modalType = modal.dataset.modalType;
+                            switch (modalType) {
+                                case 'container':
+                                    modal.classList.add('z-debug-highest');
+                                    break;
+                                case 'backdrop':
+                                    modal.classList.add('z-debug-medium');
+                                    break;
+                                case 'content':
+                                    modal.classList.add('z-debug-high');
+                                    break;
+                            }
+                        });
+                        
+                        this.logModalDebugInfo('Debug classes applied to file manager modals');
+                    },
+
+                    removeDebugClasses() {
+                        // Remove debug classes from file manager modals
+                        const debugClasses = ['z-debug-highest', 'z-debug-high', 'z-debug-medium', 'z-debug-low'];
+                        const fileManagerModals = document.querySelectorAll('[data-modal-name*="file-manager"]');
+                        
+                        fileManagerModals.forEach(modal => {
+                            debugClasses.forEach(className => {
+                                modal.classList.remove(className);
+                            });
+                        });
+                        
+                        this.logModalDebugInfo('Debug classes removed from file manager modals');
+                    },
+
+                    recoverFromStuckModal() {
+                        // Enhanced error recovery method using standardized patterns
+                        this.logModalDebugInfo('Attempting modal recovery', {
+                            reason: 'stuck_modal_recovery',
+                            modalState: this.debugModal()
+                        });
+                        
+                        try {
+                            // Use standardized recovery pattern
+                            this.recoverModalState();
+                            
+                            // Additional file manager specific recovery
+                            this.isLoading = false;
+                            this.isDeleting = false;
+                            this.isDownloading = false;
+                            this.operationInProgress = '';
+                            
+                            // Hide all progress modals
+                            this.bulkOperationProgress.show = false;
+                            this.downloadProgress.show = false;
+                            
+                            this.logModalDebugInfo('Modal recovery completed successfully');
+                            
+                            // Show success notification
+                            this.showSuccess('Modal state recovered successfully');
+                            
+                        } catch (error) {
+                            console.error('🔍 Modal Debug: Error during modal recovery:', error);
+                            this.logModalError(error, 'modal_recovery');
+                            
+                            // Force page reload as last resort
+                            if (confirm('Modal recovery failed. Reload the page to reset the interface?')) {
+                                window.location.reload();
+                            }
+                        }
+                    },
+
+                    verifyZIndexHierarchy() {
+                        const modalElements = document.querySelectorAll('[data-modal-type]');
+                        const results = {
+                            compliant: true,
+                            issues: [],
+                            elements: []
+                        };
+
+                        modalElements.forEach(el => {
+                            const computedStyle = getComputedStyle(el);
+                            const zIndex = parseInt(computedStyle.zIndex) || 0;
+                            const expectedZIndex = parseInt(el.dataset.zIndex) || 0;
+                            const modalType = el.dataset.modalType;
+                            const modalName = el.dataset.modalName;
+
+                            const elementInfo = {
+                                name: modalName,
+                                type: modalType,
+                                expectedZIndex: expectedZIndex,
+                                actualZIndex: zIndex,
+                                compliant: zIndex === expectedZIndex,
+                                visible: computedStyle.display !== 'none'
+                            };
+
+                            results.elements.push(elementInfo);
+
+                            if (!elementInfo.compliant) {
+                                results.compliant = false;
+                                results.issues.push(`${modalName} ${modalType}: expected z-${expectedZIndex}, got z-${zIndex}`);
+                            }
+                        });
+
+                        if (this.debugMode) {
+                            console.group('🔍 Modal Z-Index Hierarchy Verification');
+                            console.table(results.elements);
+                            if (results.issues.length > 0) {
+                                console.warn('Z-Index Issues Found:', results.issues);
+                            } else {
+                                console.log('✅ All modal elements comply with z-index standards');
+                            }
+                            console.groupEnd();
+                        }
+
+                        return results;
+                    },
+
+                    testModalZIndex() {
+                        // Test method to verify modal z-index hierarchy
+                        console.log('🧪 Testing Modal Z-Index Hierarchy...');
+                        
+                        // Show a test confirmation modal
+                        this.showConfirmation(
+                            'Z-Index Test Modal',
+                            'This is a test modal to verify z-index hierarchy. Check the console for verification results.',
+                            () => {
+                                console.log('✅ Test modal confirmed - z-index hierarchy working correctly');
+                                this.verifyZIndexHierarchy();
+                            },
+                            'info'
+                        );
+
+                        // Verify z-index hierarchy after modal is shown
+                        this.$nextTick(() => {
+                            setTimeout(() => {
+                                this.verifyZIndexHierarchy();
+                            }, 100);
+                        });
                     },
 
                     showError(message, isRetryable = false) {
@@ -2206,6 +2774,93 @@
                         }
                     }
                 }));
+
+                // Expose debug methods to global scope for console access
+                window.fileManagerModalDebug = {
+                    enableDebug: () => {
+                        const fileManager = Alpine.$data(document.querySelector('[x-data*="fileManager"]'));
+                        if (fileManager) {
+                            fileManager.enableModalDebugMode();
+                            return 'File Manager modal debug mode enabled';
+                        }
+                        return 'File Manager component not found';
+                    },
+                    
+                    disableDebug: () => {
+                        const fileManager = Alpine.$data(document.querySelector('[x-data*="fileManager"]'));
+                        if (fileManager) {
+                            fileManager.disableModalDebugMode();
+                            return 'File Manager modal debug mode disabled';
+                        }
+                        return 'File Manager component not found';
+                    },
+                    
+                    testModal: () => {
+                        const fileManager = Alpine.$data(document.querySelector('[x-data*="fileManager"]'));
+                        if (fileManager) {
+                            fileManager.testModalZIndex();
+                            return 'Modal z-index test initiated';
+                        }
+                        return 'File Manager component not found';
+                    },
+                    
+                    verifyZIndex: () => {
+                        const fileManager = Alpine.$data(document.querySelector('[x-data*="fileManager"]'));
+                        if (fileManager) {
+                            return fileManager.verifyZIndexHierarchy();
+                        }
+                        return 'File Manager component not found';
+                    },
+                    
+                    recoverModal: () => {
+                        const fileManager = Alpine.$data(document.querySelector('[x-data*="fileManager"]'));
+                        if (fileManager) {
+                            fileManager.recoverFromStuckModal();
+                            return 'Modal recovery initiated';
+                        }
+                        return 'File Manager component not found';
+                    },
+                    
+                    getModalState: () => {
+                        const fileManager = Alpine.$data(document.querySelector('[x-data*="fileManager"]'));
+                        if (fileManager) {
+                            return fileManager.debugModal();
+                        }
+                        return 'File Manager component not found';
+                    },
+                    
+                    help: () => {
+                        console.log(`
+🔍 File Manager Modal Debug Commands:
+
+• fileManagerModalDebug.enableDebug() - Enable debug mode
+• fileManagerModalDebug.disableDebug() - Disable debug mode  
+• fileManagerModalDebug.testModal() - Test modal z-index hierarchy
+• fileManagerModalDebug.verifyZIndex() - Verify current z-index compliance
+• fileManagerModalDebug.recoverModal() - Recover from stuck modal state
+• fileManagerModalDebug.getModalState() - Get current modal state
+• fileManagerModalDebug.help() - Show this help
+
+URL Parameters:
+• ?modal-debug=true - Enable debug mode via URL
+
+Global Modal Debugger:
+• window.modalDebugger - Access global modal debugging utilities
+• modalDebugger.toggleDebugging() - Toggle global debug mode
+• modalDebugger.logZIndexHierarchy() - Log z-index hierarchy
+• modalDebugger.highlightModals() - Highlight all modals
+• modalDebugger.clearHighlights() - Clear modal highlights
+                        `);
+                        return 'Help displayed in console';
+                    }
+                };
+
+                // Log availability of debug tools
+                if (window.location.search.includes('modal-debug=true') || localStorage.getItem('modal-debug') === 'true') {
+                    console.log('🔍 File Manager Modal Debug Tools Available:');
+                    console.log('• Type fileManagerModalDebug.help() for available commands');
+                    console.log('• Global modal debugger:', window.modalDebugger ? 'Available' : 'Not loaded');
+                }
             });
         </script>
     @endpush
