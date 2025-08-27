@@ -102,16 +102,19 @@
 <body class="font-sans antialiased bg-gray-50">
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>
-    <div class="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="min-h-screen py-12 sm:px-6 lg:px-8">
+        <!-- Header -->
         <div class="sm:mx-auto sm:w-full sm:max-w-4xl">
-            <!-- Header -->
             <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Setup Instructions</h1>
+                <h1 class="text-3xl font-bold text-gray-900">Upload Drive-in Setup Instructions</h1>
                 <p class="mt-2 text-lg text-gray-600">Complete these steps to configure your application</p>
+            </div>
+        </div>
 
-                <!-- Status Refresh Section -->
-                <div
-                    class="mt-6 flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+        <!-- Status Refresh Section - Sticky -->
+        <div id="status-refresh-section" class="sticky top-0 z-40 bg-gray-50 border-b border-gray-200 py-4 mb-8">
+            <div class="sm:mx-auto sm:w-full sm:max-w-4xl px-6 sm:px-8">
+                <div class="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4">
                     <button id="refresh-status-btn"
                         class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,6 +131,10 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="sm:mx-auto sm:w-full sm:max-w-4xl">
 
             <!-- Instructions Card -->
             <div class="bg-white shadow-lg rounded-lg overflow-hidden">
@@ -941,7 +948,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         console.log('Restoring button to original state');
                         button.textContent = originalText;
                         button.className = originalClasses.join(' ');
-                    }, 15000);
+                    }, 30000);
                 } else {
                     console.error('Copy button not found in container');
                 }
