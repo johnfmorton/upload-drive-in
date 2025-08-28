@@ -42,7 +42,7 @@ class FileManagerPerformanceTest extends TestCase
         $queryCount = DB::getQueryLog();
         DB::enableQueryLog();
 
-        $files = $this->fileManagerService->getFilteredFiles([], 50);
+        $files = $this->fileManagerService->getFilteredFiles([], config('file-manager.pagination.max_items_per_page') / 2);
 
         $endTime = microtime(true);
         $queries = DB::getQueryLog();
@@ -52,7 +52,7 @@ class FileManagerPerformanceTest extends TestCase
         $executionTime = $endTime - $startTime;
         $this->assertLessThan(2.0, $executionTime, 'File listing should complete within 2 seconds');
         $this->assertLessThan(10, count($queries), 'Should use minimal database queries');
-        $this->assertEquals(50, $files->count(), 'Should return correct number of files');
+        $this->assertEquals(config('file-manager.pagination.max_items_per_page') / 2, $files->count(), 'Should return correct number of files');
     }
 
     public function test_file_statistics_caching_performance()
@@ -98,7 +98,7 @@ class FileManagerPerformanceTest extends TestCase
         DB::enableQueryLog();
         $startTime = microtime(true);
 
-        $results = $this->fileManagerService->getFilteredFiles($filters, 20);
+        $results = $this->fileManagerService->getFilteredFiles($filters, config('file-manager.pagination.items_per_page') * 2);
 
         $endTime = microtime(true);
         $queries = DB::getQueryLog();
@@ -226,7 +226,7 @@ class FileManagerPerformanceTest extends TestCase
 
         for ($i = 0; $i < 5; $i++) {
             $processes[] = function() {
-                return $this->fileManagerService->getFilteredFiles(['search' => 'test'], 20);
+                return $this->fileManagerService->getFilteredFiles(['search' => 'test'], config('file-manager.pagination.items_per_page'));
             };
         }
 
@@ -274,16 +274,17 @@ class FileManagerPerformanceTest extends TestCase
         // Test paginated loading performance
         $startTime = microtime(true);
         
-        $page1 = $this->fileManagerService->getFilteredFiles([], 50);
-        $page2 = $this->fileManagerService->getFilteredFiles([], 50);
+        $expectedPageSize = config('file-manager.pagination.max_items_per_page') / 2;
+        $page1 = $this->fileManagerService->getFilteredFiles([], $expectedPageSize);
+        $page2 = $this->fileManagerService->getFilteredFiles([], $expectedPageSize);
         
         $endTime = microtime(true);
         $totalTime = $endTime - $startTime;
 
         // Assert pagination performance
         $this->assertLessThan(2.0, $totalTime, 'Paginated loading should be fast');
-        $this->assertEquals(50, $page1->count(), 'First page should have correct count');
-        $this->assertEquals(50, $page2->count(), 'Second page should have correct count');
+        $this->assertEquals($expectedPageSize, $page1->count(), 'First page should have correct count');
+        $this->assertEquals($expectedPageSize, $page2->count(), 'Second page should have correct count');
     }
 
     public function test_database_index_effectiveness()
@@ -388,7 +389,7 @@ class FileManagerPerformanceTest extends TestCase
         FileUpload::factory()->count(2000)->create();
 
         // Simulate virtual scrolling by loading small chunks
-        $chunkSize = 20;
+        $chunkSize = config('file-manager.pagination.items_per_page') * 2;
         $totalProcessed = 0;
         $maxMemoryUsage = 0;
 
@@ -408,7 +409,76 @@ class FileManagerPerformanceTest extends TestCase
 
         // Assert memory usage remains reasonable
         $this->assertLessThan(10 * 1024 * 1024, $maxMemoryUsage, 'Memory usage per chunk should be under 10MB');
-        $this->assertEquals(200, $totalProcessed, 'Should process expected number of files');
+        $this->assertEquals($chunkSize * 10, $totalProcessed, 'Should process expected number of files');
+    }
+
+    public function test_pagination_edge_cases_very_small_page_sizes()
+    {
+        // Create test data
+        FileUpload::factory()->count(50)->create();
+
+        // Test with minimum page size
+        $minPageSize = config('file-manager.pagination.min_items_per_page');
+        $startTime = microtime(true);
+        $files = $this->fileManagerService->getFilteredFiles([], $minPageSize);
+        $endTime = microtime(true);
+
+        $executionTime = $endTime - $startTime;
+
+        // Assert performance with very small page sizes
+        $this->assertLessThan(1.0, $executionTime, 'Small page size queries should be fast');
+        $this->assertEquals($minPageSize, $files->count(), 'Should return minimum page size');
+        $this->assertEquals(50, $files->total(), 'Total count should be correct');
+    }
+
+    public function test_pagination_edge_cases_very_large_page_sizes()
+    {
+        // Create test data
+        FileUpload::factory()->count(500)->create();
+
+        // Test with maximum page size
+        $maxPageSize = config('file-manager.pagination.max_items_per_page');
+        $startTime = microtime(true);
+        $files = $this->fileManagerService->getFilteredFiles([], $maxPageSize);
+        $endTime = microtime(true);
+
+        $executionTime = $endTime - $startTime;
+
+        // Assert performance with very large page sizes
+        $this->assertLessThan(3.0, $executionTime, 'Large page size queries should complete within 3 seconds');
+        $this->assertEquals($maxPageSize, $files->count(), 'Should return maximum page size');
+        $this->assertEquals(500, $files->total(), 'Total count should be correct');
+    }
+
+    public function test_pagination_performance_with_configurable_values()
+    {
+        // Create test data
+        FileUpload::factory()->count(100)->create();
+
+        // Test with default configuration value
+        $defaultPageSize = config('file-manager.pagination.items_per_page');
+        $startTime = microtime(true);
+        $files = $this->fileManagerService->getFilteredFiles([], $defaultPageSize);
+        $endTime = microtime(true);
+
+        $executionTime = $endTime - $startTime;
+
+        // Assert performance with configured default
+        $this->assertLessThan(1.0, $executionTime, 'Default page size queries should be fast');
+        $this->assertEquals($defaultPageSize, $files->count(), 'Should return configured default page size');
+        $this->assertEquals(100, $files->total(), 'Total count should be correct');
+
+        // Test with double the default size
+        $doublePageSize = $defaultPageSize * 2;
+        $startTime = microtime(true);
+        $files = $this->fileManagerService->getFilteredFiles([], $doublePageSize);
+        $endTime = microtime(true);
+
+        $executionTime = $endTime - $startTime;
+
+        // Assert performance scales reasonably
+        $this->assertLessThan(2.0, $executionTime, 'Double page size queries should still be reasonable');
+        $this->assertEquals($doublePageSize, $files->count(), 'Should return double page size');
     }
 
     private function mockImageStorage(): void

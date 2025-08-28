@@ -27,7 +27,7 @@ class ClientManagementController extends Controller
         // Get all client users associated with this employee
         $clientUsers = $employee->clientUsers()
             ->with('companyUsers')
-            ->paginate(15);
+            ->paginate(config('file-manager.pagination.items_per_page'));
 
         // Add login URLs to each client user
         $clientUsers->getCollection()->transform(function ($client) {

@@ -61,10 +61,25 @@ class FileManagerController extends AdminController
                 'sort_direction'
             ]);
 
-            $perPage = min($request->get('per_page', 15), 100); // Limit max per page
+            // Get pagination configuration
+            $defaultPerPage = config('file-manager.pagination.items_per_page', 10);
+            $maxPerPage = config('file-manager.pagination.max_items_per_page', 100);
+            $minPerPage = config('file-manager.pagination.min_items_per_page', 1);
             
-            $files = $this->fileManagerService->getFilteredFiles($filters, $perPage, auth()->user());
-            // Admin users get global statistics, not user-specific ones
+            // Get and validate per_page parameter with configuration-based boundaries
+            $requestedPerPage = $request->get('per_page', $defaultPerPage);
+            
+            // Ensure per_page is a positive integer and within configured bounds
+            $perPage = max(
+                $minPerPage,
+                min(
+                    (int) $requestedPerPage,
+                    $maxPerPage
+                )
+            );
+            
+            // Admin users get global file access and statistics, not user-specific ones
+            $files = $this->fileManagerService->getFilteredFiles($filters, $perPage, null);
             $statistics = $this->fileManagerService->getFileStatistics(null);
             $filterOptions = $this->fileManagerService->getFilterOptions();
 

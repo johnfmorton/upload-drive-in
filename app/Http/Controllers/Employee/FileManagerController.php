@@ -156,7 +156,24 @@ class FileManagerController extends Controller
             }
         }
 
-        $files = $query->orderBy('created_at', 'desc')->paginate(20);
+        // Get pagination configuration
+        $defaultPerPage = config('file-manager.pagination.items_per_page', 10);
+        $maxPerPage = config('file-manager.pagination.max_items_per_page', 100);
+        $minPerPage = config('file-manager.pagination.min_items_per_page', 1);
+        
+        // Get and validate per_page parameter with configuration-based boundaries
+        $requestedPerPage = $request->get('per_page', $defaultPerPage);
+        
+        // Ensure per_page is a positive integer and within configured bounds
+        $perPage = max(
+            $minPerPage,
+            min(
+                (int) $requestedPerPage,
+                $maxPerPage
+            )
+        );
+
+        $files = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         // Add statistics using the service for consistency
         $statistics = $this->fileManagerService->getFileStatistics($user);

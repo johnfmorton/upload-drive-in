@@ -488,10 +488,11 @@ class FileManagerServiceTest extends TestCase
     {
         FileUpload::factory()->count(200)->create();
 
-        $result = $this->service->getFilteredFiles([], 150); // Request 150 per page
+        $requestedPerPage = config('file-manager.pagination.max_items_per_page') + 50; // Request more than max
+        $result = $this->service->getFilteredFiles([], $requestedPerPage);
 
         // Should be limited to reasonable amount
-        $this->assertLessThanOrEqual(150, $result->count());
+        $this->assertLessThanOrEqual($requestedPerPage, $result->count());
     }
 
     /** @test */

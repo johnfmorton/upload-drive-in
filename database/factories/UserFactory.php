@@ -29,6 +29,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'role' => \App\Enums\UserRole::CLIENT, // Default to CLIENT role
         ];
     }
 

@@ -18,7 +18,7 @@ class DashboardController extends AdminController
     public function index()
     {
         // Get all files, ordered by most recent
-        $files = FileUpload::orderBy('created_at', 'desc')->paginate(10);
+        $files = FileUpload::orderBy('created_at', 'desc')->paginate(config('file-manager.pagination.items_per_page'));
 
         // Check if this is a first-time login after setup completion
         $isFirstTimeLogin = $this->checkFirstTimeLogin();

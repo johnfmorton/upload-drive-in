@@ -14,7 +14,7 @@ class FileUploadController extends Controller
     {
         $uploads = FileUpload::where('email', auth()->user()->email)
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->paginate(config('file-manager.pagination.items_per_page'));
 
         return view('my-uploads', compact('uploads'));
     }

@@ -26,6 +26,9 @@ class AppServiceProvider extends ServiceProvider
         // Initialize setup state checking
         $this->initializeSetupIntegration();
         
+        // Log pagination configuration on startup
+        $this->logPaginationConfiguration();
+        
         // Merge base translations and overrides, then flatten under the 'messages' group
         $baseFile     = resource_path('lang/en/messages.php');
         $overrideFile = resource_path('lang/en/messages.override.php');
@@ -92,5 +95,19 @@ class AppServiceProvider extends ServiceProvider
     {
         // Add any global helpers or macros related to setup
         // For example, view helpers for checking setup state
+    }
+
+    /**
+     * Log pagination configuration on application startup
+     */
+    private function logPaginationConfiguration(): void
+    {
+        try {
+            \App\Helpers\PaginationConfigHelper::logPaginationConfiguration();
+        } catch (\Exception $e) {
+            // Silently handle pagination configuration logging failures
+            // This prevents breaking the application during bootstrap
+            \Log::error('Pagination configuration logging failed: ' . $e->getMessage());
+        }
     }
 }

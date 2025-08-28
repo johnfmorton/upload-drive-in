@@ -33,7 +33,7 @@ class AdminUserController extends Controller
      */
     public function index()
     {
-        $clients = User::where('role', 'client')->paginate(15);
+        $clients = User::where('role', 'client')->paginate(config('file-manager.pagination.items_per_page'));
 
         // Add the login URL and 2FA status to each client user
         $clients->getCollection()->transform(function ($client) {
@@ -97,7 +97,7 @@ class AdminUserController extends Controller
         // Get client's upload history
         $uploads = FileUpload::where('email', $client->email)
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->paginate(config('file-manager.pagination.items_per_page'));
         
         return view('admin.users.show', compact('client', 'availableTeamMembers', 'uploads'));
     }

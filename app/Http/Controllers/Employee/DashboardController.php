@@ -27,7 +27,7 @@ class DashboardController extends Controller
                   ->orWhere('uploaded_by_user_id', $user->id);
         })
         ->orderBy('created_at', 'desc')
-        ->paginate(10);
+        ->paginate(config('file-manager.pagination.items_per_page'));
 
         return view('employee.dashboard', compact('user', 'files'));
     }

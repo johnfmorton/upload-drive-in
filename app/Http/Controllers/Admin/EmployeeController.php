@@ -23,7 +23,7 @@ class EmployeeController extends Controller
     {
         $employees = User::where('role', UserRole::EMPLOYEE)
             ->where('owner_id', Auth::id())
-            ->paginate(15);
+            ->paginate(config('file-manager.pagination.items_per_page'));
 
         // Ensure login and reset URLs are included in the JSON payload
         $employees->getCollection()->transform(function ($emp) {
