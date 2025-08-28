@@ -1448,7 +1448,7 @@ document.addEventListener('alpine:init', () => {
                                 ${this.getFileExtension(file.original_filename)}
                             </div>
                         </div>
-                        <div class="ml-3">
+                        <div class="ml-3 w-full">
                             <div class="text-sm font-medium text-gray-900 truncate" title="${file.original_filename}">
                                 ${this.truncateText(file.original_filename, 40)}
                             </div>
