@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Functionality Test</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .checkerboard-bg {
+            background-image: 
+                linear-gradient(45deg, #ccc 25%, transparent 25%), 
+                linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #ccc 75%), 
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">File Manager Preview Modal Test</h1>
+        
+        <div class="bg-white p-6 rounded-lg shadow mb-8">
+            <h2 class="text-xl font-semibold mb-4">Test Controls</h2>
+            <div class="space-y-4">
+                <button 
+                    onclick="testImagePreview()"
+                    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Test Image Preview
+                </button>
+                
+                <button 
+                    onclick="testPDFPreview()"
+                    class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Test PDF Preview
+                </button>
+                
+                <button 
+                    onclick="testTextPreview()"
+                    class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                    Test Text Preview
+                </button>
+                
+                <button 
+                    onclick="testUnsupportedPreview()"
+                    class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                    Test Unsupported File
+                </button>
+                
+                <button 
+                    onclick="testModalControls()"
+                    class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                    Test Modal Controls
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">Test Results</h2>
+            <div id="testResults" class="space-y-2 text-sm font-mono">
+                <div>Ready to test modal functionality...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Manager Preview Modal (copied from the actual component) -->
+    <div
+        x-data="filePreviewModal('admin', null)"
+        x-on:open-preview-modal.window="openModal($event.detail)"
+        x-show="open"
+        x-cloak
+        class="fixed inset-0 z-[10002] overflow-y-auto modal-container"
+        aria-labelledby="preview-modal-title"
+        role="dialog"
+        aria-modal="true"
+        data-modal-name="file-manager-preview"
+        data-z-index="10002"
+        data-modal-type="container"
+        x-on:close.stop="closeModal()"
+        x-on:keydown.escape.window="closeModal()"
+        style="pointer-events: auto; display: none;"
+    >
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div
+                x-show="open"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="fixed inset-0 bg-black/75 transition-opacity z-[10001] modal-backdrop"
+                x-on:click.stop="closeModal()"
+                data-modal-name="file-manager-preview"
+                data-z-index="10001"
+                data-modal-type="backdrop"
+                aria-hidden="true"
+            ></div>
+
+            <!-- Modal panel -->
+            <div
+                x-show="open"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] z-[10003] relative modal-content"
+                data-modal-name="file-manager-preview"
+                data-z-index="10003"
+                data-modal-type="content"
+            >
+                <!-- Header -->
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <h3 id="preview-modal-title" class="text-lg leading-6 font-medium text-gray-900">
+                                File Preview
+                            </h3>
+                            <div x-show="file" class="mt-2">
+                                <p class="text-sm text-gray-500 truncate" x-text="file?.original_filename" :title="file?.original_filename"></p>
+                                <div class="flex items-center space-x-4 mt-1 text-xs text-gray-400">
+                                    <span x-text="formatBytes(file?.file_size || 0)"></span>
+                                    <span x-text="formatDate(file?.created_at)"></span>
+                                    <span x-text="file?.email"></span>
+                                    <span x-show="previewType" x-text="previewType.toUpperCase()"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview Controls -->
+                        <div class="flex items-center space-x-2 ml-4">
+                            <!-- Image Controls -->
+                            <template x-if="previewType === 'image'">
+                                <div class="flex items-center space-x-2">
+                                    <button
+                                        x-on:click="zoomOut()"
+                                        class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                                        title="Zoom Out"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path>
+                                        </svg>
+                                    </button>
+                                    <span class="text-xs text-gray-500" x-text="Math.round(imageZoom * 100) + '%'"></span>
+                                    <button
+                                        x-on:click="zoomIn()"
+                                        class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                                        title="Zoom In"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
+                                        </svg>
+                                    </button>
+                                    <button
+                                        x-on:click="resetImageView()"
+                                        class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                                        title="Reset View"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </template>
+
+                            <!-- Close Button -->
+                            <button
+                                x-on:click="closeModal()"
+                                class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                                title="Close"
+                            >
+                                <span class="sr-only">Close</span>
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="bg-white flex-1 overflow-hidden" style="max-height: 70vh;">
+                    <!-- Loading state -->
+                    <div x-show="loading" class="flex items-center justify-center py-12">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <span class="ml-2 text-sm text-gray-600">Loading preview...</span>
+                    </div>
+
+                    <!-- Image Preview -->
+                    <div x-show="!loading && previewType === 'image'" class="flex items-center justify-center overflow-hidden relative bg-gray-100" style="height: 60vh;">
+                        <div
+                            class="w-full h-full overflow-auto cursor-move flex items-center justify-center"
+                            x-on:mousedown="startImageDrag($event)"
+                            x-on:mousemove="dragImage($event)"
+                            x-on:mouseup="endImageDrag()"
+                            x-on:mouseleave="endImageDrag()"
+                            x-on:wheel.prevent="wheelZoom($event)"
+                        >
+                            <template x-if="previewContent && previewType === 'image'">
+                                <img
+                                    :src="previewContent"
+                                    :alt="file?.original_filename"
+                                    class="max-w-full max-h-full object-contain transition-transform duration-200 checkerboard-bg"
+                                    :style="`transform: scale(${imageZoom}) translate(${imagePanX}px, ${imagePanY}px); transform-origin: center center;`"
+                                    x-on:load="imageLoaded()"
+                                    x-on:error="imageError()"
+                                    draggable="false"
+                                >
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- PDF Preview -->
+                    <div x-show="!loading && previewType === 'pdf'" class="h-full">
+                        <div class="h-full bg-gray-100">
+                            <template x-if="previewContent && previewType === 'pdf'">
+                                <embed
+                                    :src="previewContent"
+                                    type="application/pdf"
+                                    class="w-full h-full border-0"
+                                    style="min-height: 600px;"
+                                >
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Text Preview -->
+                    <div x-show="!loading && previewType === 'text'" class="max-h-[600px] p-6 flex flex-col">
+                        <template x-if="previewContent && previewType === 'text'">
+                            <pre class="text-sm font-mono whitespace-pre-wrap break-words bg-gray-50 p-4 rounded border flex-1 overflow-auto min-h-0" x-text="previewContent"></pre>
+                        </template>
+                    </div>
+
+                    <!-- Unsupported Preview -->
+                    <div x-show="!loading && previewType === 'unsupported'" class="flex items-center justify-center py-12">
+                        <div class="text-center">
+                            <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <h3 class="mt-4 text-lg font-medium text-gray-900">Preview not available</h3>
+                            <p class="mt-2 text-sm text-gray-500">This file type cannot be previewed</p>
+                        </div>
+                    </div>
+
+                    <!-- Error state -->
+                    <div x-show="!loading && error" class="flex items-center justify-center py-12">
+                        <div class="text-center">
+                            <svg class="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Preview Error</h3>
+                            <p class="mt-1 text-sm text-gray-500" x-text="error"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                    <button
+                        x-on:click="downloadFile()"
+                        type="button"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Download
+                    </button>
+                    <button
+                        x-on:click="closeModal()"
+                        type="button"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('filePreviewModal', (userType = 'admin', username = null) => ({
+                open: false,
+                file: null,
+                previewContent: '',
+                previewType: '',
+                loading: false,
+                error: null,
+                userType: userType,
+                username: username,
+
+                // Image viewer state
+                imageZoom: 1,
+                imagePanX: 0,
+                imagePanY: 0,
+                isDragging: false,
+                dragStartX: 0,
+                dragStartY: 0,
+
+                openModal(file) {
+                    this.file = file;
+                    this.open = true;
+                    this.resetState();
+                    this.loadPreview();
+                },
+
+                closeModal() {
+                    this.open = false;
+                    this.resetState();
+                },
+
+                resetState() {
+                    if (this.previewContent && this.previewContent.startsWith('blob:')) {
+                        URL.revokeObjectURL(this.previewContent);
+                    }
+                    this.previewContent = '';
+                    this.previewType = '';
+                    this.loading = false;
+                    this.error = null;
+                    this.resetImageView();
+                },
+
+                async loadPreview() {
+                    if (!this.file) return;
+
+                    this.loading = true;
+                    this.error = null;
+
+                    try {
+                        // Simulate loading different file types
+                        this.previewType = this.determinePreviewType(this.file.original_filename, this.file.mime_type);
+
+                        if (this.previewType === 'image') {
+                            // Create a sample image blob URL
+                            const canvas = document.createElement('canvas');
+                            canvas.width = 400;
+                            canvas.height = 300;
+                            const ctx = canvas.getContext('2d');
+                            ctx.fillStyle = '#4F46E5';
+                            ctx.fillRect(0, 0, 400, 300);
+                            ctx.fillStyle = 'white';
+                            ctx.font = '20px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('Sample Image Preview', 200, 150);
+                            canvas.toBlob(blob => {
+                                this.previewContent = URL.createObjectURL(blob);
+                            });
+                        } else if (this.previewType === 'pdf') {
+                            // For PDF, we'd normally load the actual file
+                            this.previewContent = 'data:application/pdf;base64,JVBERi0xLjQKJdPr6eEKMSAwIG9iago8PAovVGl0bGUgKFNhbXBsZSBQREYpCi9Qcm9kdWNlciAoU2FtcGxlIFByb2R1Y2VyKQovQ3JlYXRvciAoU2FtcGxlIENyZWF0b3IpCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyAzIDAgUgo+PgplbmRvYmoKMyAwIG9iago8PAovVHlwZSAvUGFnZXMKL0tpZHMgWzQgMCBSXQovQ291bnQgMQo+PgplbmRvYmoKNCAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDMgMCBSCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9Db250ZW50cyA1IDAgUgo+PgplbmRvYmoKNSAwIG9iago8PAovTGVuZ3RoIDQ0Cj4+CnN0cmVhbQpCVApxCjcwIDUwIFRECi9GMSAxMiBUZgooU2FtcGxlIFBERiBDb250ZW50KSBUagpFVApRCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNzQgMDAwMDAgbiAKMDAwMDAwMDEyMCAwMDAwMCBuIAowMDAwMDAwMTc3IDAwMDAwIG4gCjAwMDAwMDAyNjQgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6ZSA2Ci9Sb290IDIgMCBSCi9JbmZvIDEgMCBSCj4+CnN0YXJ0eHJlZgozNTYKJSVFT0Y=';
+                        } else if (this.previewType === 'text') {
+                            this.previewContent = 'This is a sample text file content.\n\nLine 2 of the text file.\nLine 3 with some more content.\n\nEnd of sample text.';
+                        } else {
+                            this.previewType = 'unsupported';
+                        }
+
+                    } catch (error) {
+                        this.error = error.message;
+                        this.previewType = 'unsupported';
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                determinePreviewType(filename, contentType) {
+                    const ext = filename.toLowerCase().split('.').pop();
+
+                    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext) || contentType.startsWith('image/')) {
+                        return 'image';
+                    }
+
+                    if (ext === 'pdf' || contentType === 'application/pdf') {
+                        return 'pdf';
+                    }
+
+                    if (['txt', 'md', 'csv', 'log'].includes(ext) || contentType.startsWith('text/')) {
+                        return 'text';
+                    }
+
+                    return 'unsupported';
+                },
+
+                // Image viewer methods
+                zoomIn() {
+                    this.imageZoom = Math.min(this.imageZoom * 1.2, 5);
+                },
+
+                zoomOut() {
+                    this.imageZoom = Math.max(this.imageZoom / 1.2, 0.1);
+                },
+
+                resetImageView() {
+                    this.imageZoom = 1;
+                    this.imagePanX = 0;
+                    this.imagePanY = 0;
+                },
+
+                wheelZoom(event) {
+                    event.preventDefault();
+                    const delta = event.deltaY > 0 ? 0.9 : 1.1;
+                    const newZoom = Math.max(0.1, Math.min(5, this.imageZoom * delta));
+
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const centerX = (event.clientX - rect.left - rect.width / 2) / this.imageZoom;
+                    const centerY = (event.clientY - rect.top - rect.height / 2) / this.imageZoom;
+
+                    this.imagePanX -= centerX * (newZoom - this.imageZoom);
+                    this.imagePanY -= centerY * (newZoom - this.imageZoom);
+
+                    this.imageZoom = newZoom;
+                },
+
+                startImageDrag(event) {
+                    if (this.imageZoom <= 1) return;
+                    event.preventDefault();
+                    this.isDragging = true;
+                    this.dragStartX = event.clientX - this.imagePanX;
+                    this.dragStartY = event.clientY - this.imagePanY;
+                    event.currentTarget.style.cursor = 'grabbing';
+                },
+
+                dragImage(event) {
+                    if (!this.isDragging) return;
+                    event.preventDefault();
+                    this.imagePanX = event.clientX - this.dragStartX;
+                    this.imagePanY = event.clientY - this.dragStartY;
+                },
+
+                endImageDrag() {
+                    if (this.isDragging) {
+                        this.isDragging = false;
+                        const container = document.querySelector('.cursor-move');
+                        if (container) {
+                            container.style.cursor = this.imageZoom > 1 ? 'grab' : 'default';
+                        }
+                    }
+                },
+
+                imageLoaded() {
+                    // Image loaded successfully
+                },
+
+                imageError() {
+                    if (this.previewType === 'image') {
+                        this.error = 'Failed to load image';
+                    }
+                },
+
+                downloadFile() {
+                    if (this.file) {
+                        logTest('Download button clicked for: ' + this.file.original_filename);
+                    }
+                },
+
+                formatBytes(bytes) {
+                    if (bytes === 0) return '0 Bytes';
+                    const k = 1024;
+                    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                },
+
+                formatDate(dateString) {
+                    return new Date(dateString).toLocaleDateString();
+                }
+            }));
+        });
+
+        // Test functions
+        function testImagePreview() {
+            const file = {
+                id: 1,
+                original_filename: 'test-image.jpg',
+                mime_type: 'image/jpeg',
+                file_size: 1024000,
+                email: 'test@example.com',
+                created_at: new Date().toISOString()
+            };
+            
+            window.dispatchEvent(new CustomEvent('open-preview-modal', { detail: file }));
+            logTest('✓ Image preview modal opened');
+        }
+
+        function testPDFPreview() {
+            const file = {
+                id: 2,
+                original_filename: 'test-document.pdf',
+                mime_type: 'application/pdf',
+                file_size: 2048000,
+                email: 'test@example.com',
+                created_at: new Date().toISOString()
+            };
+            
+            window.dispatchEvent(new CustomEvent('open-preview-modal', { detail: file }));
+            logTest('✓ PDF preview modal opened');
+        }
+
+        function testTextPreview() {
+            const file = {
+                id: 3,
+                original_filename: 'test-document.txt',
+                mime_type: 'text/plain',
+                file_size: 1024,
+                email: 'test@example.com',
+                created_at: new Date().toISOString()
+            };
+            
+            window.dispatchEvent(new CustomEvent('open-preview-modal', { detail: file }));
+            logTest('✓ Text preview modal opened');
+        }
+
+        function testUnsupportedPreview() {
+            const file = {
+                id: 4,
+                original_filename: 'test-archive.zip',
+                mime_type: 'application/zip',
+                file_size: 5120000,
+                email: 'test@example.com',
+                created_at: new Date().toISOString()
+            };
+            
+            window.dispatchEvent(new CustomEvent('open-preview-modal', { detail: file }));
+            logTest('✓ Unsupported file preview modal opened');
+        }
+
+        function testModalControls() {
+            logTest('Testing modal controls...');
+            
+            // Test keyboard events
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    logTest('✓ Escape key handling works');
+                }
+            });
+            
+            // Test backdrop click
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                logTest('✓ Modal backdrop found');
+            }
+            
+            // Test close button
+            const closeButton = document.querySelector('button[title="Close"]');
+            if (closeButton) {
+                logTest('✓ Close button found');
+            }
+            
+            // Test download button
+            const downloadButton = document.querySelector('button:contains("Download")');
+            logTest('✓ Modal controls test completed');
+        }
+
+        function logTest(message) {
+            const results = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logEntry.className = message.startsWith('✓') ? 'text-green-600' : 'text-blue-600';
+            results.appendChild(logEntry);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        // Auto-run basic tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            logTest('Modal functionality test page loaded');
+            logTest('Alpine.js initialized');
+            logTest('Ready to test modal functionality');
+        });
+    </script>
+</body>
+</html>

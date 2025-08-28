@@ -3,7 +3,7 @@
     'username' => null
 ])
 
-<!-- Enhanced Preview Modal with Z-Index Management and Debug Mode -->
+<!-- Enhanced Preview Modal with Z-Index Management -->
 <div
     x-data="filePreviewModal('{{ $userType }}', '{{ $username }}')"
     x-on:open-preview-modal.window="openModal($event.detail)"
@@ -13,7 +13,6 @@
     aria-labelledby="preview-modal-title"
     role="dialog"
     aria-modal="true"
-    :class="{ 'z-debug-highest': debugMode }"
     data-modal-name="file-manager-preview"
     data-z-index="10002"
     data-modal-type="container"
@@ -32,8 +31,7 @@
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
             class="fixed inset-0 bg-black/75 transition-opacity z-[10001] modal-backdrop"
-            :class="{ 'z-debug-medium': debugMode }"
-            x-on:click.stop="handleBackgroundClick($event)"
+            x-on:click.stop="closeModal()"
             data-modal-name="file-manager-preview"
             data-z-index="10001"
             data-modal-type="backdrop"
@@ -50,7 +48,6 @@
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] z-[10003] relative modal-content"
-            :class="{ 'z-debug-high': debugMode }"
             data-modal-name="file-manager-preview"
             data-z-index="10003"
             data-modal-type="content"
@@ -75,20 +72,6 @@
 
                     <!-- Preview Controls -->
                     <div class="flex items-center space-x-2 ml-4">
-                        <!-- Debug Mode Toggle (only in development) -->
-                        @if(app()->environment('local'))
-                        <button
-                            x-on:click="toggleDebugMode()"
-                            class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-                            :class="{ 'text-red-500': debugMode }"
-                            title="Toggle Debug Mode"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
-                            </svg>
-                        </button>
-                        @endif
-
                         <!-- Image Controls -->
                         <template x-if="previewType === 'image'">
                             <div class="flex items-center space-x-2">
@@ -273,24 +256,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Debug Info Panel (only in development) -->
-    @if(app()->environment('local'))
-    <div x-show="debugMode" x-cloak class="modal-debug-info">
-        <h4>Preview Modal Debug Info</h4>
-        <ul>
-            <li>Container Z-Index: 10002</li>
-            <li>Content Z-Index: 10003</li>
-            <li>Backdrop Z-Index: 10001</li>
-            <li>User Type: <span x-text="userType"></span></li>
-            <li>Username: <span x-text="username || 'N/A'"></span></li>
-            <li>File ID: <span x-text="file?.id || 'N/A'"></span></li>
-            <li>Preview Type: <span x-text="previewType || 'N/A'"></span></li>
-        </ul>
-        <button x-on:click="logModalState()">Log Modal State</button>
-        <button x-on:click="toggleDebugMode()">Hide Debug</button>
-    </div>
-    @endif
 </div>
 
 <script>
@@ -304,7 +269,6 @@ document.addEventListener('alpine:init', () => {
         error: null,
         userType: userType,
         username: username,
-        debugMode: false,
 
         // Image viewer state
         imageZoom: 1,
@@ -314,39 +278,16 @@ document.addEventListener('alpine:init', () => {
         dragStartX: 0,
         dragStartY: 0,
 
-        init() {
-            // Initialize debug mode from localStorage or URL parameter
-            const urlParams = new URLSearchParams(window.location.search);
-            const debugParam = urlParams.get('modal-debug');
-            const debugStorage = localStorage.getItem('modal-debug');
-            this.debugMode = debugParam === 'true' || debugStorage === 'true';
-        },
-
         openModal(file) {
             this.file = file;
             this.open = true;
             this.resetState();
             this.loadPreview();
-            
-            // Log modal opening in debug mode
-            if (this.debugMode) {
-                console.log('🔍 Preview modal opened:', {
-                    fileId: file.id,
-                    filename: file.original_filename,
-                    userType: this.userType,
-                    username: this.username
-                });
-            }
         },
 
         closeModal() {
             this.open = false;
             this.resetState();
-            
-            // Log modal closing in debug mode
-            if (this.debugMode) {
-                console.log('🔍 Preview modal closed');
-            }
         },
 
         resetState() {
@@ -380,10 +321,6 @@ document.addEventListener('alpine:init', () => {
                     previewUrl = `/files/${this.file.id}/preview`;
                 }
 
-                if (this.debugMode) {
-                    console.log('🔍 Loading preview from:', previewUrl);
-                }
-
                 const response = await fetch(previewUrl, {
                     credentials: 'same-origin',
                     headers: {
@@ -415,22 +352,9 @@ document.addEventListener('alpine:init', () => {
                     this.previewType = 'unsupported';
                 }
 
-                if (this.debugMode) {
-                    console.log('🔍 Preview loaded:', {
-                        type: this.previewType,
-                        contentType: contentType,
-                        hasContent: !!this.previewContent
-                    });
-                }
-
             } catch (error) {
-                console.error('Preview error:', error);
                 this.error = error.message;
                 this.previewType = 'unsupported';
-                
-                if (this.debugMode) {
-                    console.log('🔍 Preview error:', error);
-                }
             } finally {
                 this.loading = false;
             }
@@ -523,18 +447,12 @@ document.addEventListener('alpine:init', () => {
 
         imageLoaded() {
             // Image loaded successfully
-            if (this.debugMode) {
-                console.log('🔍 Image loaded successfully');
-            }
         },
 
         imageError() {
             // Only set error for image previews, not PDFs
             if (this.previewType === 'image') {
                 this.error = 'Failed to load image';
-                if (this.debugMode) {
-                    console.log('🔍 Image failed to load');
-                }
             }
         },
 
@@ -552,47 +470,8 @@ document.addEventListener('alpine:init', () => {
                     downloadUrl = `/files/${this.file.id}/download`;
                 }
 
-                if (this.debugMode) {
-                    console.log('🔍 Downloading file from:', downloadUrl);
-                }
-
                 window.location.href = downloadUrl;
             }
-        },
-
-        // Debug mode methods
-        toggleDebugMode() {
-            this.debugMode = !this.debugMode;
-            localStorage.setItem('modal-debug', this.debugMode.toString());
-            
-            if (this.debugMode) {
-                console.log('🔍 Preview modal debug mode enabled');
-                this.logModalState();
-            } else {
-                console.log('🔍 Preview modal debug mode disabled');
-            }
-        },
-
-        logModalState() {
-            console.group('🔍 Preview Modal State');
-            console.log('Open:', this.open);
-            console.log('User Type:', this.userType);
-            console.log('Username:', this.username);
-            console.log('File:', this.file);
-            console.log('Preview Type:', this.previewType);
-            console.log('Loading:', this.loading);
-            console.log('Error:', this.error);
-            console.log('Image Zoom:', this.imageZoom);
-            console.log('Debug Mode:', this.debugMode);
-            console.groupEnd();
-        },
-
-        // Handle background click with debug logging
-        handleBackgroundClick(event) {
-            if (this.debugMode) {
-                console.log('🔍 Background clicked, closing modal');
-            }
-            this.closeModal();
         },
 
         // Utility methods

@@ -853,12 +853,7 @@ document.addEventListener('alpine:init', () => {
                         displayedAt: Date.now()
                     };
                     
-                    // Apply debug classes if debug mode is enabled
-                    if (this.debugMode) {
-                        this.$nextTick(() => {
-                            this.applyDebugClasses();
-                        });
-                    }
+
                     
                     // Set auto-recovery timeout (30 seconds) using standardized pattern
                     this.modalCloseTimeout = setTimeout(() => {
@@ -1046,10 +1041,7 @@ document.addEventListener('alpine:init', () => {
                     this.modalCloseTimeout = null;
                 }
                 
-                // Remove debug classes if debug mode is enabled
-                if (this.debugMode) {
-                    this.removeDebugClasses();
-                }
+
                 
                 // Update debug info with cleanup details
                 this.modalDebugInfo = {
@@ -1350,40 +1342,9 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
-        applyDebugClasses() {
-            // Apply debug classes to file manager modals
-            const fileManagerModals = document.querySelectorAll('[data-modal-name*="file-manager"]');
-            fileManagerModals.forEach(modal => {
-                const modalType = modal.dataset.modalType;
-                switch (modalType) {
-                    case 'container':
-                        modal.classList.add('z-debug-highest');
-                        break;
-                    case 'backdrop':
-                        modal.classList.add('z-debug-medium');
-                        break;
-                    case 'content':
-                        modal.classList.add('z-debug-high');
-                        break;
-                }
-            });
-            
-            this.logModalDebugInfo('Debug classes applied to file manager modals');
-        },
 
-        removeDebugClasses() {
-            // Remove debug classes from file manager modals
-            const debugClasses = ['z-debug-highest', 'z-debug-high', 'z-debug-medium', 'z-debug-low'];
-            const fileManagerModals = document.querySelectorAll('[data-modal-name*="file-manager"]');
-            
-            fileManagerModals.forEach(modal => {
-                debugClasses.forEach(className => {
-                    modal.classList.remove(className);
-                });
-            });
-            
-            this.logModalDebugInfo('Debug classes removed from file manager modals');
-        },
+
+
 
         recoverFromStuckModal() {
             // Enhanced error recovery method using standardized patterns
@@ -1473,6 +1434,124 @@ document.addEventListener('alpine:init', () => {
 
         getFileExtension(filename) {
             return filename.split('.').pop().toUpperCase();
+        },
+
+        // Table-specific methods
+        getCellContent(file, column) {
+            const value = file[column.key];
+            
+            switch (column.key) {
+                case 'original_filename':
+                    return `<div class="flex items-center">
+                        <div class="flex-shrink-0 h-8 w-8">
+                            <div class="h-8 w-8 rounded bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-600">
+                                ${this.getFileExtension(file.original_filename)}
+                            </div>
+                        </div>
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900 truncate" title="${file.original_filename}">
+                                ${this.truncateText(file.original_filename, 40)}
+                            </div>
+                        </div>
+                    </div>`;
+                    
+                case 'email':
+                    return `<div class="text-sm text-gray-900">${value || 'N/A'}</div>`;
+                    
+                case 'file_size':
+                    return `<div class="text-sm text-gray-900">${this.formatBytes(value || 0)}</div>`;
+                    
+                case 'status':
+                    const isUploaded = file.google_drive_file_id;
+                    return `<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        isUploaded 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                    }">
+                        ${isUploaded ? 'Uploaded' : 'Pending'}
+                    </span>`;
+                    
+                case 'created_at':
+                    return `<div class="text-sm text-gray-900">${this.formatDate(value)}</div>`;
+                    
+                case 'message':
+                    return `<div class="text-sm text-gray-500" title="${value || ''}">
+                        ${this.truncateText(value || 'No message', 50)}
+                    </div>`;
+                    
+                default:
+                    return `<div class="text-sm text-gray-900">${value || ''}</div>`;
+            }
+        },
+
+        getColumnHeaderClass(column) {
+            let classes = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+            
+            if (column.sortable) {
+                classes += ' cursor-pointer hover:bg-gray-100';
+            }
+            
+            return classes;
+        },
+
+        getColumnCellClass(column) {
+            return 'px-6 py-4 whitespace-nowrap text-sm text-gray-900';
+        },
+
+        getColumnStyle(columnKey) {
+            const width = this.columnWidths[columnKey] || 200;
+            return `width: ${width}px; min-width: ${width}px; max-width: ${width}px;`;
+        },
+
+        getTotalTableWidth() {
+            const visibleColumns = this.visibleColumnsList;
+            const totalWidth = visibleColumns.reduce((sum, column) => {
+                return sum + (this.columnWidths[column.key] || 200);
+            }, 0);
+            
+            // Add width for selection column (80px) and actions column (200px)
+            return totalWidth + 80 + 200;
+        },
+
+        // Column resizing methods
+        startColumnResize(event, columnKey) {
+            event.preventDefault();
+            this.isResizing = true;
+            this.resizingColumn = columnKey;
+            this.startX = event.clientX;
+            this.startWidth = this.columnWidths[columnKey] || 200;
+            
+            document.addEventListener('mousemove', this.handleColumnResize.bind(this));
+            document.addEventListener('mouseup', this.endColumnResize.bind(this));
+            document.body.style.cursor = 'col-resize';
+        },
+
+        handleColumnResize(event) {
+            if (!this.isResizing || !this.resizingColumn) return;
+            
+            const diff = event.clientX - this.startX;
+            const newWidth = Math.max(100, this.startWidth + diff); // Minimum width of 100px
+            
+            this.columnWidths[this.resizingColumn] = newWidth;
+        },
+
+        endColumnResize() {
+            if (this.isResizing) {
+                this.isResizing = false;
+                this.resizingColumn = null;
+                
+                document.removeEventListener('mousemove', this.handleColumnResize.bind(this));
+                document.removeEventListener('mouseup', this.endColumnResize.bind(this));
+                document.body.style.cursor = '';
+                
+                // Save column widths to localStorage
+                localStorage.setItem('fileManagerColumnWidths_{{ $userType }}', JSON.stringify(this.columnWidths));
+            }
+        },
+
+        setupColumnResizing() {
+            // Initialize column resizing event listeners
+            // This is called during init()
         }
     }));
 });

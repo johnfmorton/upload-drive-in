@@ -100,7 +100,6 @@ $maxWidth = [
         - Creates stacking context for child elements
     --}}
     class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-[9999] modal-container"
-    :class="{ 'z-debug-highest': debugMode }"
     data-modal-name="{{ $name }}"
     data-z-index="9999"
     data-modal-type="container"
@@ -116,7 +115,6 @@ $maxWidth = [
     <div
         x-show="show"
         class="fixed inset-0 bg-gray-500 opacity-75 z-[9998] modal-backdrop"
-        :class="{ 'z-debug-high': debugMode }"
         x-on:click="show = false"
         x-transition:enter="ease-out duration-300"
         x-transition:enter-start="opacity-0"
@@ -139,7 +137,6 @@ $maxWidth = [
     <div
         x-show="show"
         class="relative mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full {{ $maxWidth }} sm:mx-auto z-[10000] modal-content"
-        :class="{ 'z-debug-highest': debugMode, 'stacking-context-debug': debugMode }"
         x-transition:enter="ease-out duration-300"
         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
         x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
