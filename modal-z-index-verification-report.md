@@ -31,10 +31,11 @@ Task 6: Verify fix doesn't break other modal instances
 - **Bulk Delete Modal**: `resources/views/admin/file-manager/partials/bulk-delete-modal.blade.php`
   - ✅ Uses high z-index: `z-[10000]` (10000)
 
-#### 3. Employee File Manager Modals
-- **Preview Modal**: `resources/views/employee/file-manager/partials/preview-modal.blade.php`
-  - ✅ Uses standard z-index: `z-50` (50)
-  - ✅ Appropriate for employee context
+#### 3. Shared File Manager Modals
+- **Preview Modal**: `resources/views/components/file-manager/modals/preview-modal.blade.php`
+  - ✅ Uses high z-index: `z-[10002]` (10002) for container
+  - ✅ Uses high z-index: `z-[10003]` (10003) for content
+  - ✅ Shared by both admin and employee users with proper route generation
 
 #### 4. Google Drive Folder Picker
 - **Folder Picker Modal**: `resources/views/employee/google-drive/google-drive-root-folder.blade.php`
@@ -84,7 +85,7 @@ All debug features are preserved:
 All modal files exist and are readable:
 - ✅ `resources/views/components/modal.blade.php`
 - ✅ `resources/views/admin/file-manager/partials/preview-modal.blade.php`
-- ✅ `resources/views/employee/file-manager/partials/preview-modal.blade.php`
+- ✅ `resources/views/components/file-manager/modals/preview-modal.blade.php`
 - ✅ `resources/views/admin/file-manager/partials/delete-modal.blade.php`
 - ✅ `resources/views/admin/file-manager/partials/bulk-delete-modal.blade.php`
 - ✅ `resources/views/employee/google-drive/google-drive-root-folder.blade.php`

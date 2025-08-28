@@ -30,19 +30,23 @@ Route::prefix('file-manager')
         Route::delete('/', [\App\Http\Controllers\Employee\FileManagerController::class, 'bulkDestroy'])->name('bulk-destroy');
 
         // Dynamic routes next
-        Route::get('/{file}', [\App\Http\Controllers\Employee\FileManagerController::class, 'show'])->name('show');
-        Route::patch('/{file}', [\App\Http\Controllers\Employee\FileManagerController::class, 'update'])->name('update');
-        Route::delete('/{file}', [\App\Http\Controllers\Employee\FileManagerController::class, 'destroy'])->name('destroy');
+        Route::get('/{fileUpload}', [\App\Http\Controllers\Employee\FileManagerController::class, 'show'])->name('show');
+        Route::patch('/{fileUpload}', [\App\Http\Controllers\Employee\FileManagerController::class, 'update'])->name('update');
+        Route::delete('/{fileUpload}', [\App\Http\Controllers\Employee\FileManagerController::class, 'destroy'])->name('destroy');
 
         // Rate-limited download endpoints
         Route::middleware([\App\Http\Middleware\FileDownloadRateLimitMiddleware::class . ':30,1'])
             ->group(function () {
-                Route::get('/{file}/download', [\App\Http\Controllers\Employee\FileManagerController::class, 'download'])->name('download');
+                Route::get('/{fileUpload}/download', [\App\Http\Controllers\Employee\FileManagerController::class, 'download'])->name('download');
                 Route::post('/bulk-download', [\App\Http\Controllers\Employee\FileManagerController::class, 'bulkDownload'])->name('bulk-download');
             });
 
-        // Note: Preview and thumbnail routes are handled by global routes in web.php
-        // This allows consistent access control across admin and employee interfaces
+        // Preview and thumbnail routes (rate-limited)
+        Route::middleware([\App\Http\Middleware\FileDownloadRateLimitMiddleware::class . ':120,1'])
+            ->group(function () {
+                Route::get('/{fileUpload}/preview', [\App\Http\Controllers\Employee\FileManagerController::class, 'preview'])->name('preview');
+                Route::get('/{fileUpload}/thumbnail', [\App\Http\Controllers\Employee\FileManagerController::class, 'thumbnail'])->name('thumbnail');
+            });
     });
 
 // Cloud Storage Routes

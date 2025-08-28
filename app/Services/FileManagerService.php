@@ -262,7 +262,20 @@ class FileManagerService
             ];
         }
 
-        return $this->cacheService->getFileStatistics();
+        // Get global statistics from cache service and normalize field names
+        $cacheStats = $this->cacheService->getFileStatistics();
+        
+        return [
+            'total' => $cacheStats['total_files'] ?? 0,
+            'pending' => $cacheStats['pending_files'] ?? 0,
+            'completed' => $cacheStats['completed_files'] ?? 0,
+            'total_size' => $cacheStats['total_size'] ?? 0,
+            'total_size_human' => $cacheStats['total_size_formatted'] ?? '0 Bytes',
+            'average_size' => $cacheStats['total_files'] > 0 ? round($cacheStats['total_size'] / $cacheStats['total_files']) : 0,
+            'upload_rate_today' => $cacheStats['today_files'] ?? 0,
+            'upload_rate_week' => $cacheStats['week_files'] ?? 0,
+            'upload_rate_month' => $cacheStats['month_files'] ?? 0,
+        ];
     }
 
 

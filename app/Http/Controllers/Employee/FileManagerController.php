@@ -4,6 +4,11 @@ namespace App\Http\Controllers\Employee;
 
 use App\Http\Controllers\Controller;
 use App\Models\FileUpload;
+use App\Services\FileManagerService;
+use App\Services\FilePreviewService;
+use App\Services\AuditLogService;
+use App\Services\FileSecurityService;
+use App\Exceptions\FileAccessException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -16,14 +21,98 @@ use ZipArchive;
 
 class FileManagerController extends Controller
 {
+    public function __construct(
+        private FileManagerService $fileManagerService,
+        private FilePreviewService $filePreviewService,
+        private AuditLogService $auditLogService,
+        private FileSecurityService $fileSecurityService
+    ) {
+    }
+
+    /**
+     * Check authentication and employee status before actions that require employee access.
+     * This method validates that the user is authenticated, has employee role, and can access the specified file.
+     */
+    private function checkEmployeeAccess(FileUpload $file): void
+    {
+        if (!auth()->check() || !auth()->user()->isEmployee()) {
+            abort(404, 'Please visit the home page to start using the app.');
+        }
+        
+        if (!$file->canBeAccessedBy(auth()->user())) {
+            abort(403, 'Access denied to this file');
+        }
+    }
 
     /**
      * Check if the authenticated user has access to the specified file.
+     * @deprecated Use checkEmployeeAccess() instead for consistency with admin controller
      */
     private function checkFileAccess(FileUpload $file): bool
     {
         $user = Auth::user();
         return $file->company_user_id === $user->id || $file->uploaded_by_user_id === $user->id;
+    }
+
+    /**
+     * Handle security violation errors with consistent response format.
+     */
+    private function handleSecurityViolation(string $message)
+    {
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'error_type' => 'security_violation'
+            ], 403);
+        }
+        
+        return redirect()->back()->with('error', $message);
+    }
+
+    /**
+     * Handle file access exceptions with consistent error logging and response format.
+     */
+    private function handleFileAccessException(\App\Exceptions\FileAccessException $e, string $operation)
+    {
+        \Log::warning("Employee file {$operation} access denied", [
+            'user_id' => auth()->id(),
+            'error' => $e->getMessage()
+        ]);
+        
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getUserMessage(),
+                'error_type' => 'access_denied'
+            ], 403);
+        }
+
+        return redirect()->back()->with('error', $e->getUserMessage());
+    }
+
+    /**
+     * Handle general exceptions with consistent error logging and response format.
+     */
+    private function handleGeneralException(\Exception $e, string $operation, FileUpload $file)
+    {
+        \Log::error("Employee file {$operation} error", [
+            'user_id' => auth()->id(),
+            'file_id' => $file->id,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Error {$operation}ing file: " . $e->getMessage(),
+                'error_type' => "{$operation}_failed",
+                'is_retryable' => true
+            ], 500);
+        }
+
+        return redirect()->back()->with('error', "Error {$operation}ing file. Please try again.");
     }
 
     /**
@@ -69,14 +158,8 @@ class FileManagerController extends Controller
 
         $files = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        // Add statistics
-        $statistics = [
-            'total' => $files->total(),
-            'pending' => $query->where(function ($q) {
-                $q->whereNull('google_drive_file_id')->orWhere('google_drive_file_id', '');
-            })->count(),
-            'total_size' => $query->sum('file_size')
-        ];
+        // Add statistics using the service for consistency
+        $statistics = $this->fileManagerService->getFileStatistics($user);
 
         return view('employee.file-manager.index', compact('files', 'statistics'));
     }
@@ -84,8 +167,14 @@ class FileManagerController extends Controller
     /**
      * Display the specified file with detailed information.
      */
-    public function show(FileUpload $file): View|JsonResponse
+    public function show($username, $fileUpload): View|JsonResponse
     {
+        // Handle both route model binding and manual resolution
+        if (!$fileUpload instanceof FileUpload) {
+            $fileUpload = FileUpload::findOrFail($fileUpload);
+        }
+        $file = $fileUpload;
+        
         if (!$this->checkFileAccess($file)) {
             abort(403, 'Unauthorized access to file');
         }
@@ -126,8 +215,14 @@ class FileManagerController extends Controller
     /**
      * Update the specified file's metadata.
      */
-    public function update(Request $request, FileUpload $file): RedirectResponse|JsonResponse
+    public function update(Request $request, $username, $fileUpload): RedirectResponse|JsonResponse
     {
+        // Handle both route model binding and manual resolution
+        if (!$fileUpload instanceof FileUpload) {
+            $fileUpload = FileUpload::findOrFail($fileUpload);
+        }
+        $file = $fileUpload;
+        
         if (!$this->checkFileAccess($file)) {
             abort(403, 'Unauthorized access to file');
         }
@@ -193,8 +288,14 @@ class FileManagerController extends Controller
     /**
      * Remove the specified file from storage and database.
      */
-    public function destroy(FileUpload $file): RedirectResponse|JsonResponse
+    public function destroy($username, $fileUpload): RedirectResponse|JsonResponse
     {
+        // Handle both route model binding and manual resolution
+        if (!$fileUpload instanceof FileUpload) {
+            $fileUpload = FileUpload::findOrFail($fileUpload);
+        }
+        $file = $fileUpload;
+        
         if (!$this->checkFileAccess($file)) {
             abort(403, 'Unauthorized access to file');
         }
@@ -336,52 +437,50 @@ class FileManagerController extends Controller
     }
 
     /**
-     * Download a file.
+     * Download a file with streaming support and progress tracking.
      */
-    public function download(FileUpload $file)
+    public function download($username, $fileUpload)
     {
-        if (!$this->checkFileAccess($file)) {
-            abort(403, 'Unauthorized access to file');
+        // Handle both route model binding and manual resolution
+        if (!$fileUpload instanceof FileUpload) {
+            $fileUpload = FileUpload::findOrFail($fileUpload);
         }
-
+        $file = $fileUpload;
+        
+        $this->checkEmployeeAccess($file);
+        
         try {
-            Log::info('File download initiated', [
+            // Security validation
+            $securityViolations = $this->fileSecurityService->validateExistingFile($file);
+            $highSeverityViolations = array_filter($securityViolations, fn($v) => $v['severity'] === 'high');
+            
+            if (!empty($highSeverityViolations)) {
+                $this->auditLogService->logSecurityViolation('download_blocked_security', auth()->user(), request(), [
+                    'file_id' => $file->id,
+                    'violations' => $highSeverityViolations
+                ]);
+                
+                return $this->handleSecurityViolation('File download blocked due to security concerns.');
+            }
+
+            // Audit log file download
+            $this->auditLogService->logFileAccess('download', $file, auth()->user(), request());
+            
+            // Add download tracking for analytics
+            \Log::info('File download initiated', [
                 'user_id' => auth()->id(),
                 'file_id' => $file->id,
                 'file_name' => $file->original_filename,
                 'file_size' => $file->file_size
             ]);
-
-            // If file is in Google Drive, redirect to Google Drive download
-            if ($file->google_drive_file_id) {
-                $downloadUrl = "https://drive.google.com/uc?export=download&id={$file->google_drive_file_id}";
-                return redirect($downloadUrl);
-            }
-
-            // If file is still local, serve it directly
-            $path = 'public/uploads/' . $file->filename;
-            if (!Storage::exists($path)) {
-                abort(404, 'File not found');
-            }
-
-            return Storage::download($path, $file->original_filename);
+            
+            // Use FileManagerService for consistent file serving
+            return $this->fileManagerService->downloadFile($file, auth()->user());
+            
+        } catch (\App\Exceptions\FileAccessException $e) {
+            return $this->handleFileAccessException($e, 'download');
         } catch (\Exception $e) {
-            Log::error('File download error', [
-                'user_id' => auth()->id(),
-                'file_id' => $file->id,
-                'error' => $e->getMessage()
-            ]);
-
-            if (request()->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error downloading file: ' . $e->getMessage()
-                ], 500);
-            }
-
-            return redirect()
-                ->back()
-                ->with('error', 'Error downloading file: ' . $e->getMessage());
+            return $this->handleGeneralException($e, 'download', $file);
         }
     }
 
@@ -470,38 +569,53 @@ class FileManagerController extends Controller
 
     /**
      * Preview a file in the browser.
+     * Note: This method uses the same implementation as admin controller for consistency.
      */
-    public function preview(FileUpload $file): Response
+    public function preview($username, $fileUpload): Response
     {
-        if (!$this->checkFileAccess($file)) {
-            abort(403, 'Unauthorized access to file');
+        // Handle both route model binding and manual resolution
+        if (!$fileUpload instanceof FileUpload) {
+            $fileUpload = FileUpload::findOrFail($fileUpload);
+        }
+        $file = $fileUpload;
+        
+        // Ensure user is authenticated
+        if (!auth()->check()) {
+            abort(401, 'Authentication required');
+        }
+
+        // Check if the authenticated user can access this file
+        if (!$file->canBeAccessedBy(auth()->user())) {
+            abort(403, 'Access denied to this file');
         }
 
         try {
-            Log::info('File preview accessed', [
-                'user_id' => auth()->id(),
-                'file_id' => $file->id,
-                'ip' => request()->ip()
-            ]);
-
-            // If file is in Google Drive, redirect to Google Drive preview
-            if ($file->google_drive_file_id) {
-                $previewUrl = "https://drive.google.com/file/d/{$file->google_drive_file_id}/preview";
-                return redirect($previewUrl);
+            // Security validation for preview
+            if (!$this->fileSecurityService->isPreviewSafe($file->mime_type)) {
+                $this->auditLogService->logSecurityViolation('preview_blocked_unsafe_type', auth()->user(), request(), [
+                    'file_id' => $file->id,
+                    'mime_type' => $file->mime_type
+                ]);
+                
+                return response('Preview not available for this file type due to security restrictions.', 403, [
+                    'Content-Type' => 'text/plain'
+                ]);
             }
 
-            // If file is still local, serve it directly
-            $path = 'public/uploads/' . $file->filename;
-            if (!Storage::exists($path)) {
-                abort(404, 'File not found');
+            // Generate ETag for conditional requests to prevent cache mix-ups
+            $etag = md5($file->id . '_' . $file->file_size . '_' . $file->updated_at->timestamp);
+            
+            // Check if client has cached version
+            if (request()->header('If-None-Match') === '"' . $etag . '"') {
+                return response('', 304);
             }
 
-            $mimeType = $file->mime_type ?: Storage::mimeType($path);
-            return response(Storage::get($path), 200, [
-                'Content-Type' => $mimeType,
-                'Content-Disposition' => 'inline; filename="' . $file->original_filename . '"'
-            ]);
+            // Audit log file preview
+            $this->auditLogService->logFileAccess('preview', $file, auth()->user(), request());
+
+            return $this->filePreviewService->generatePreview($file, auth()->user());
         } catch (\Exception $e) {
+            // Return a simple error response for preview failures
             return response('Preview not available: ' . $e->getMessage(), 404, [
                 'Content-Type' => 'text/plain'
             ]);
@@ -511,8 +625,14 @@ class FileManagerController extends Controller
     /**
      * Generate a thumbnail for an image file.
      */
-    public function thumbnail(FileUpload $file): Response
+    public function thumbnail($username, $fileUpload)
     {
+        // Handle both route model binding and manual resolution
+        if (!$fileUpload instanceof FileUpload) {
+            $fileUpload = FileUpload::findOrFail($fileUpload);
+        }
+        $file = $fileUpload;
+        
         if (!$this->checkFileAccess($file)) {
             abort(403, 'Unauthorized access to file');
         }

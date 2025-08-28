@@ -68,12 +68,14 @@ class ModalZIndexVerificationTest extends TestCase
     }
 
     /** @test */
-    public function employee_preview_modal_uses_standard_z_index()
+    public function shared_preview_modal_has_proper_z_index()
     {
-        $previewModal = file_get_contents(resource_path('views/employee/file-manager/partials/preview-modal.blade.php'));
+        $previewModal = file_get_contents(resource_path('views/components/file-manager/modals/preview-modal.blade.php'));
         
-        // Employee preview modal should use standard z-index
-        $this->assertStringContainsString('z-50', $previewModal, 'Employee preview modal should use z-50');
+        // Shared preview modal should use high z-index values for proper layering
+        $this->assertStringContainsString('z-[10002]', $previewModal, 'Shared preview modal should use z-[10002]');
+        $this->assertStringContainsString('z-[10003]', $previewModal, 'Shared preview modal content should use z-[10003]');
+        $this->assertStringContainsString('z-[10001]', $previewModal, 'Shared preview modal backdrop should use z-[10001]');
     }
 
     /** @test */
@@ -161,7 +163,7 @@ class ModalZIndexVerificationTest extends TestCase
         $modalFiles = [
             'resources/views/components/modal.blade.php',
             'resources/views/admin/file-manager/partials/preview-modal.blade.php',
-            'resources/views/employee/file-manager/partials/preview-modal.blade.php',
+            'resources/views/components/file-manager/modals/preview-modal.blade.php',
             'resources/views/admin/file-manager/partials/delete-modal.blade.php',
             'resources/views/admin/file-manager/partials/bulk-delete-modal.blade.php',
             'resources/views/employee/google-drive/google-drive-root-folder.blade.php',

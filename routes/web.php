@@ -99,6 +99,8 @@ Route::middleware(['auth', \App\Http\Middleware\FileDownloadRateLimitMiddleware:
         ->name('files.preview');
     Route::get('/files/{file}/thumbnail', [\App\Http\Controllers\Admin\FileManagerController::class, 'thumbnail'])
         ->name('files.thumbnail');
+    Route::get('/files/{file}/download', [\App\Http\Controllers\Admin\FileManagerController::class, 'download'])
+        ->name('files.download');
 });
 
 // Health check routes

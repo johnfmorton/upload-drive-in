@@ -1,11 +1,25 @@
-<!-- Enhanced Preview Modal -->
+@props([
+    'userType' => 'admin',
+    'username' => null
+])
+
+<!-- Enhanced Preview Modal with Z-Index Management and Debug Mode -->
 <div
-    x-data="filePreviewModal"
+    x-data="filePreviewModal('{{ $userType }}', '{{ $username }}')"
     x-on:open-preview-modal.window="openModal($event.detail)"
     x-show="open"
-    class="fixed inset-0 z-50 overflow-y-auto"
-    style="display: none;"
-    x-on:keydown.escape="closeModal()"
+    x-cloak
+    class="fixed inset-0 z-[10002] overflow-y-auto modal-container"
+    aria-labelledby="preview-modal-title"
+    role="dialog"
+    aria-modal="true"
+    :class="{ 'z-debug-highest': debugMode }"
+    data-modal-name="file-manager-preview"
+    data-z-index="10002"
+    data-modal-type="container"
+    x-on:close.stop="closeModal()"
+    x-on:keydown.escape.window="closeModal()"
+    style="pointer-events: auto; display: none;"
 >
     <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <!-- Background overlay -->
@@ -17,8 +31,13 @@
             x-transition:leave="ease-in duration-200"
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
-            class="fixed inset-0 bg-black/75 transition-opacity"
-            x-on:click="closeModal()"
+            class="fixed inset-0 bg-black/75 transition-opacity z-[10001] modal-backdrop"
+            :class="{ 'z-debug-medium': debugMode }"
+            x-on:click.stop="handleBackgroundClick($event)"
+            data-modal-name="file-manager-preview"
+            data-z-index="10001"
+            data-modal-type="backdrop"
+            aria-hidden="true"
         ></div>
 
         <!-- Modal panel -->
@@ -30,14 +49,18 @@
             x-transition:leave="ease-in duration-200"
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh]"
+            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] z-[10003] relative modal-content"
+            :class="{ 'z-debug-high': debugMode }"
+            data-modal-name="file-manager-preview"
+            data-z-index="10003"
+            data-modal-type="content"
         >
             <!-- Header -->
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div class="flex-1 min-w-0">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">
-                            File Preview
+                        <h3 id="preview-modal-title" class="text-lg leading-6 font-medium text-gray-900">
+                            {{ __('messages.file_preview') }}
                         </h3>
                         <div x-show="file" class="mt-2">
                             <p class="text-sm text-gray-500 truncate" x-text="file?.original_filename" :title="file?.original_filename"></p>
@@ -52,6 +75,20 @@
 
                     <!-- Preview Controls -->
                     <div class="flex items-center space-x-2 ml-4">
+                        <!-- Debug Mode Toggle (only in development) -->
+                        @if(app()->environment('local'))
+                        <button
+                            x-on:click="toggleDebugMode()"
+                            class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                            :class="{ 'text-red-500': debugMode }"
+                            title="Toggle Debug Mode"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                            </svg>
+                        </button>
+                        @endif
+
                         <!-- Image Controls -->
                         <template x-if="previewType === 'image'">
                             <div class="flex items-center space-x-2">
@@ -102,7 +139,7 @@
                             class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                             title="Close"
                         >
-                            <span class="sr-only">Close</span>
+                            <span class="sr-only">{{ __('messages.close') }}</span>
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -116,7 +153,7 @@
                 <!-- Loading state -->
                 <div x-show="loading" class="flex items-center justify-center py-12">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <span class="ml-2 text-sm text-gray-600">Loading preview...</span>
+                    <span class="ml-2 text-sm text-gray-600">{{ __('messages.loading_preview') }}</span>
                 </div>
 
                 <!-- Image Preview -->
@@ -177,24 +214,24 @@
                         <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
-                        <h3 class="mt-4 text-lg font-medium text-gray-900">Preview not available</h3>
-                        <p class="mt-2 text-sm text-gray-500">This file type cannot be previewed in the browser.</p>
+                        <h3 class="mt-4 text-lg font-medium text-gray-900">{{ __('messages.preview_not_available') }}</h3>
+                        <p class="mt-2 text-sm text-gray-500">{{ __('messages.preview_not_available_description') }}</p>
                         <div x-show="file" class="mt-4 p-4 bg-gray-50 rounded-lg">
                             <dl class="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
                                 <div>
-                                    <dt class="text-sm font-medium text-gray-500">Filename</dt>
+                                    <dt class="text-sm font-medium text-gray-500">{{ __('messages.filename') }}</dt>
                                     <dd class="text-sm text-gray-900" x-text="file?.original_filename"></dd>
                                 </div>
                                 <div>
-                                    <dt class="text-sm font-medium text-gray-500">Size</dt>
+                                    <dt class="text-sm font-medium text-gray-500">{{ __('messages.size') }}</dt>
                                     <dd class="text-sm text-gray-900" x-text="formatBytes(file?.file_size || 0)"></dd>
                                 </div>
                                 <div>
-                                    <dt class="text-sm font-medium text-gray-500">Uploaded by</dt>
+                                    <dt class="text-sm font-medium text-gray-500">{{ __('messages.uploaded_by') }}</dt>
                                     <dd class="text-sm text-gray-900" x-text="file?.email"></dd>
                                 </div>
                                 <div>
-                                    <dt class="text-sm font-medium text-gray-500">Uploaded at</dt>
+                                    <dt class="text-sm font-medium text-gray-500">{{ __('messages.uploaded_at') }}</dt>
                                     <dd class="text-sm text-gray-900" x-text="formatDate(file?.created_at)"></dd>
                                 </div>
                             </dl>
@@ -224,29 +261,50 @@
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
-                    Download
+                    {{ __('messages.download') }}
                 </button>
                 <button
                     x-on:click="closeModal()"
                     type="button"
                     class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
-                    Close
+                    {{ __('messages.close') }}
                 </button>
             </div>
         </div>
     </div>
+
+    <!-- Debug Info Panel (only in development) -->
+    @if(app()->environment('local'))
+    <div x-show="debugMode" x-cloak class="modal-debug-info">
+        <h4>Preview Modal Debug Info</h4>
+        <ul>
+            <li>Container Z-Index: 10002</li>
+            <li>Content Z-Index: 10003</li>
+            <li>Backdrop Z-Index: 10001</li>
+            <li>User Type: <span x-text="userType"></span></li>
+            <li>Username: <span x-text="username || 'N/A'"></span></li>
+            <li>File ID: <span x-text="file?.id || 'N/A'"></span></li>
+            <li>Preview Type: <span x-text="previewType || 'N/A'"></span></li>
+        </ul>
+        <button x-on:click="logModalState()">Log Modal State</button>
+        <button x-on:click="toggleDebugMode()">Hide Debug</button>
+    </div>
+    @endif
 </div>
 
 <script>
 document.addEventListener('alpine:init', () => {
-    Alpine.data('filePreviewModal', () => ({
+    Alpine.data('filePreviewModal', (userType = 'admin', username = null) => ({
         open: false,
         file: null,
         previewContent: '',
         previewType: '',
         loading: false,
         error: null,
+        userType: userType,
+        username: username,
+        debugMode: false,
 
         // Image viewer state
         imageZoom: 1,
@@ -256,16 +314,39 @@ document.addEventListener('alpine:init', () => {
         dragStartX: 0,
         dragStartY: 0,
 
+        init() {
+            // Initialize debug mode from localStorage or URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const debugParam = urlParams.get('modal-debug');
+            const debugStorage = localStorage.getItem('modal-debug');
+            this.debugMode = debugParam === 'true' || debugStorage === 'true';
+        },
+
         openModal(file) {
             this.file = file;
             this.open = true;
             this.resetState();
             this.loadPreview();
+            
+            // Log modal opening in debug mode
+            if (this.debugMode) {
+                console.log('🔍 Preview modal opened:', {
+                    fileId: file.id,
+                    filename: file.original_filename,
+                    userType: this.userType,
+                    username: this.username
+                });
+            }
         },
 
         closeModal() {
             this.open = false;
             this.resetState();
+            
+            // Log modal closing in debug mode
+            if (this.debugMode) {
+                console.log('🔍 Preview modal closed');
+            }
         },
 
         resetState() {
@@ -288,8 +369,28 @@ document.addEventListener('alpine:init', () => {
             this.error = null;
 
             try {
-                // Use the global preview route that works for all authenticated users
-                const response = await fetch(`/files/${this.file.id}/preview`);
+                // Generate the correct preview URL based on user type
+                let previewUrl;
+                if (this.userType === 'admin') {
+                    previewUrl = `/admin/file-manager/${this.file.id}/preview`;
+                } else if (this.userType === 'employee' && this.username) {
+                    previewUrl = `/employee/${this.username}/file-manager/${this.file.id}/preview`;
+                } else {
+                    // Fallback to global preview route
+                    previewUrl = `/files/${this.file.id}/preview`;
+                }
+
+                if (this.debugMode) {
+                    console.log('🔍 Loading preview from:', previewUrl);
+                }
+
+                const response = await fetch(previewUrl, {
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                });
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -314,10 +415,22 @@ document.addEventListener('alpine:init', () => {
                     this.previewType = 'unsupported';
                 }
 
+                if (this.debugMode) {
+                    console.log('🔍 Preview loaded:', {
+                        type: this.previewType,
+                        contentType: contentType,
+                        hasContent: !!this.previewContent
+                    });
+                }
+
             } catch (error) {
                 console.error('Preview error:', error);
                 this.error = error.message;
                 this.previewType = 'unsupported';
+                
+                if (this.debugMode) {
+                    console.log('🔍 Preview error:', error);
+                }
             } finally {
                 this.loading = false;
             }
@@ -410,22 +523,76 @@ document.addEventListener('alpine:init', () => {
 
         imageLoaded() {
             // Image loaded successfully
+            if (this.debugMode) {
+                console.log('🔍 Image loaded successfully');
+            }
         },
 
         imageError() {
             // Only set error for image previews, not PDFs
             if (this.previewType === 'image') {
                 this.error = 'Failed to load image';
+                if (this.debugMode) {
+                    console.log('🔍 Image failed to load');
+                }
             }
         },
 
         // Download file
         downloadFile() {
             if (this.file) {
-                // Use the employee-specific download route
-                const url = `/employee/{{ auth()->user()->username }}/file-manager/${this.file.id}/download`;
-                window.location.href = url;
+                // Generate the correct download URL based on user type
+                let downloadUrl;
+                if (this.userType === 'admin') {
+                    downloadUrl = `/admin/file-manager/${this.file.id}/download`;
+                } else if (this.userType === 'employee' && this.username) {
+                    downloadUrl = `/employee/${this.username}/file-manager/${this.file.id}/download`;
+                } else {
+                    // Fallback to global download route
+                    downloadUrl = `/files/${this.file.id}/download`;
+                }
+
+                if (this.debugMode) {
+                    console.log('🔍 Downloading file from:', downloadUrl);
+                }
+
+                window.location.href = downloadUrl;
             }
+        },
+
+        // Debug mode methods
+        toggleDebugMode() {
+            this.debugMode = !this.debugMode;
+            localStorage.setItem('modal-debug', this.debugMode.toString());
+            
+            if (this.debugMode) {
+                console.log('🔍 Preview modal debug mode enabled');
+                this.logModalState();
+            } else {
+                console.log('🔍 Preview modal debug mode disabled');
+            }
+        },
+
+        logModalState() {
+            console.group('🔍 Preview Modal State');
+            console.log('Open:', this.open);
+            console.log('User Type:', this.userType);
+            console.log('Username:', this.username);
+            console.log('File:', this.file);
+            console.log('Preview Type:', this.previewType);
+            console.log('Loading:', this.loading);
+            console.log('Error:', this.error);
+            console.log('Image Zoom:', this.imageZoom);
+            console.log('Debug Mode:', this.debugMode);
+            console.groupEnd();
+        },
+
+        // Handle background click with debug logging
+        handleBackgroundClick(event) {
+            if (this.debugMode) {
+                console.log('🔍 Background clicked, closing modal');
+            }
+            this.closeModal();
         },
 
         // Utility methods
@@ -439,9 +606,7 @@ document.addEventListener('alpine:init', () => {
 
         formatDate(dateString) {
             return new Date(dateString).toLocaleDateString();
-        },
-
-
+        }
     }));
 });
 </script>

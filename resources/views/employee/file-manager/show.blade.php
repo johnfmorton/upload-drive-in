@@ -35,17 +35,17 @@
                             <h3 class="text-lg font-medium text-gray-900 mb-4">File Preview</h3>
                             <div class="border border-gray-300 rounded-lg p-4 bg-gray-50">
                                 @if(str_starts_with($file->mime_type, 'image/'))
-                                    <img src="{{ route('files.preview', $file) }}" 
+                                    <img src="{{ route('employee.file-manager.preview', ['username' => auth()->user()->username, 'fileUpload' => $file]) }}" 
                                          alt="{{ $file->original_filename }}" 
                                          class="max-w-full h-auto rounded">
                                 @elseif($file->mime_type === 'application/pdf')
-                                    <iframe src="{{ route('files.preview', $file) }}" 
+                                    <iframe src="{{ route('employee.file-manager.preview', ['username' => auth()->user()->username, 'fileUpload' => $file]) }}" 
                                             class="w-full h-96 rounded"></iframe>
                                 @else
                                     <div class="text-center py-8">
                                         <div class="text-4xl text-gray-400 mb-2">📄</div>
                                         <p class="text-gray-600">Preview not available for this file type</p>
-                                        <a href="{{ route('files.preview', $file) }}" 
+                                        <a href="{{ route('employee.file-manager.preview', ['username' => auth()->user()->username, 'fileUpload' => $file]) }}" 
                                            target="_blank" 
                                            class="text-blue-600 hover:text-blue-900 mt-2 inline-block">
                                             Open in new tab
@@ -106,17 +106,17 @@
                     <!-- Actions -->
                     <div class="mt-8 pt-6 border-t border-gray-200">
                         <div class="flex flex-wrap gap-4">
-                            <a href="{{ route('employee.file-manager.download', ['username' => auth()->user()->username, 'file' => $file]) }}" 
+                            <a href="{{ route('employee.file-manager.download', ['username' => auth()->user()->username, 'fileUpload' => $file]) }}" 
                                class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                 Download File
                             </a>
-                            <a href="{{ route('files.preview', $file) }}" 
+                            <a href="{{ route('employee.file-manager.preview', ['username' => auth()->user()->username, 'fileUpload' => $file]) }}" 
                                target="_blank"
                                class="inline-flex items-center px-4 py-2 bg-gray-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                 Open Preview
                             </a>
                             <form method="POST" 
-                                  action="{{ route('employee.file-manager.destroy', ['username' => auth()->user()->username, 'file' => $file]) }}" 
+                                  action="{{ route('employee.file-manager.destroy', ['username' => auth()->user()->username, 'fileUpload' => $file]) }}" 
                                   class="inline"
                                   onsubmit="return confirm('Are you sure you want to delete this file? This action cannot be undone.')">
                                 @csrf
