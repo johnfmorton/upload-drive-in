@@ -45,7 +45,7 @@ class TestQueueJob implements ShouldQueue
     }
 
     /**
-     * Execute the job.
+     * Execute the job with progressive status updates.
      */
     public function handle(): void
     {
@@ -58,11 +58,15 @@ class TestQueueJob implements ShouldQueue
                 'started_at' => Carbon::now()->toISOString(),
             ]);
 
-            // Update cache with processing status
+            // Phase 1: Job picked up by worker - update to processing status
             $this->updateJobStatus('processing', [
                 'started_at' => Carbon::now()->toISOString(),
                 'delay' => $this->testDelay,
+                'message' => 'Test job processing...',
             ]);
+
+            // Update queue worker status to processing phase
+            $this->updateQueueWorkerTestPhase('processing');
 
             // Apply configurable delay if specified
             if ($this->testDelay > 0) {
@@ -70,8 +74,23 @@ class TestQueueJob implements ShouldQueue
                     'test_job_id' => $this->testJobId,
                     'delay_seconds' => $this->testDelay,
                 ]);
+                
+                // Update status during delay
+                $this->updateJobStatus('processing', [
+                    'started_at' => Carbon::now()->toISOString(),
+                    'delay' => $this->testDelay,
+                    'message' => "Test job processing (applying {$this->testDelay}s delay)...",
+                ]);
+                
                 sleep($this->testDelay);
             }
+
+            // Phase 2: Performing test operations
+            $this->updateJobStatus('processing', [
+                'started_at' => Carbon::now()->toISOString(),
+                'delay' => $this->testDelay,
+                'message' => 'Performing test operations...',
+            ]);
 
             // Perform some basic operations to verify queue worker functionality
             $this->performTestOperations();
@@ -79,15 +98,16 @@ class TestQueueJob implements ShouldQueue
             $endTime = microtime(true);
             $processingTime = round(($endTime - $startTime), 3); // Convert to seconds with 3 decimal places
 
-            // Update cache with completion status
+            // Phase 3: Job completed successfully
             $this->updateJobStatus('completed', [
                 'completed_at' => Carbon::now()->toISOString(),
                 'processing_time_ms' => round($processingTime * 1000, 2),
                 'processing_time' => $processingTime,
                 'success' => true,
+                'message' => "Test job completed successfully in {$processingTime}s",
             ]);
 
-            // Update queue worker status cache
+            // Update queue worker status cache with completion
             $this->updateQueueWorkerStatus(true, $processingTime);
 
             Log::info('TestQueueJob completed successfully', [
@@ -209,6 +229,23 @@ class TestQueueJob implements ShouldQueue
         } catch (\Exception $e) {
             Log::error('Failed to update queue worker status from job', [
                 'test_job_id' => $this->testJobId,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update queue worker test phase for progressive status updates.
+     */
+    private function updateQueueWorkerTestPhase(string $phase): void
+    {
+        try {
+            $queueTestService = app(\App\Services\QueueTestService::class);
+            $queueTestService->updateQueueWorkerTestPhase($this->testJobId, $phase);
+        } catch (\Exception $e) {
+            Log::error('Failed to update queue worker test phase', [
+                'test_job_id' => $this->testJobId,
+                'phase' => $phase,
                 'error' => $e->getMessage()
             ]);
         }

@@ -108,9 +108,14 @@ Route::get('/health', [\App\Http\Controllers\HealthController::class, 'check'])-
 Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, 'detailed'])->name('health.detailed');
 
 // Public Queue Testing Routes (for setup instructions)
-// TODO: Re-add rate limiting middleware once container resolution is fixed
-Route::post('/setup/queue/test', [\App\Http\Controllers\SetupController::class, 'testQueue'])->name('setup.queue.test')->middleware('require.setup.enabled');
-Route::get('/setup/queue/test/status', [\App\Http\Controllers\SetupController::class, 'checkQueueTestStatus'])->name('setup.queue.test.status')->middleware('require.setup.enabled');
+// TODO: Re-enable rate limiting after testing: 'queue.worker.test.rate.limit'
+Route::post('/setup/queue/test', [\App\Http\Controllers\SetupController::class, 'testQueue'])
+    ->name('setup.queue.test')
+    // ->middleware(['require.setup.enabled', 'queue.worker.test.rate.limit'])
+    ->middleware(['require.setup.enabled']);
+Route::get('/setup/queue/test/status', [\App\Http\Controllers\SetupController::class, 'checkQueueTestStatus'])
+    ->name('setup.queue.test.status')
+    ->middleware(['require.setup.enabled']);
 
 // Temporary debug route - remove after debugging
 Route::get('/debug-setup-status', function () {

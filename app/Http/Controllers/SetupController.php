@@ -3,15 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Services\QueueTestService;
-use App\Services\SetupSecurityService;
+use App\Services\QueueWorkerTestSecurityService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 
 class SetupController extends Controller
 {
     public function __construct(
         private QueueTestService $queueTestService,
-        private SetupSecurityService $setupSecurityService
+        private QueueWorkerTestSecurityService $securityService
     ) {}
 
     /**
@@ -20,40 +21,23 @@ class SetupController extends Controller
     public function testQueue(Request $request): JsonResponse
     {
         try {
-            // Security validation
-            if ($this->setupSecurityService->shouldBlockRequest($request)) {
-                return response()->json([
-                    'success' => false,
-                    'error' => [
-                        'message' => 'Request blocked for security reasons.',
-                        'code' => 'SECURITY_BLOCK'
-                    ]
-                ], 403);
-            }
-
             // Validate and sanitize input
-            $sanitization = $this->setupSecurityService->sanitizeStatusRequest($request->all());
-            if (!$sanitization['is_valid']) {
-                return response()->json([
-                    'success' => false,
-                    'error' => [
-                        'message' => 'Invalid request parameters.',
-                        'code' => 'VALIDATION_ERROR',
-                        'details' => $sanitization['violations']
-                    ]
-                ], 422);
-            }
+            $validatedData = $this->securityService->validateTestRequest($request->all());
+            
+            $timeout = $validatedData['timeout'] ?? 30;
+            $force = $validatedData['force'] ?? false;
 
-            $delay = $sanitization['sanitized']['delay'] ?? 0;
-
-            // Log security event
-            $this->setupSecurityService->logSecurityEvent('queue_test_requested', [
+            // Record security event
+            $this->securityService->recordSecurityEvent('queue_test_requested', [
                 'route' => 'setup.queue.test',
-                'delay' => $delay
+                'timeout' => $timeout,
+                'force' => $force,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
             ]);
             
-            // Dispatch test job and cache testing status
-            $queueWorkerStatus = $this->queueTestService->dispatchTestJobWithStatus($delay);
+            // Dispatch test job and cache testing status with configurable timeout
+            $queueWorkerStatus = $this->queueTestService->dispatchTestJobWithStatus(0, $timeout);
             
             return response()->json([
                 'success' => true,
@@ -62,6 +46,15 @@ class SetupController extends Controller
                 'message' => 'Test job dispatched successfully'
             ]);
             
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'message' => 'Invalid request parameters.',
+                    'code' => 'VALIDATION_ERROR',
+                    'details' => $e->errors()
+                ]
+            ], 422);
         } catch (\Exception $e) {
             \Log::error('Failed to dispatch test job from setup', [
                 'error' => $e->getMessage(),
@@ -82,46 +75,19 @@ class SetupController extends Controller
     public function checkQueueTestStatus(Request $request): JsonResponse
     {
         try {
-            // Security validation
-            if ($this->setupSecurityService->shouldBlockRequest($request)) {
-                return response()->json([
-                    'success' => false,
-                    'error' => [
-                        'message' => 'Request blocked for security reasons.',
-                        'code' => 'SECURITY_BLOCK'
-                    ]
-                ], 403);
-            }
+            // Validate test job ID parameter
+            $request->validate([
+                'test_job_id' => 'required|string|max:100',
+            ]);
 
-            // Validate and sanitize input
-            $sanitization = $this->setupSecurityService->sanitizeStatusRequest($request->all());
-            if (!$sanitization['is_valid']) {
-                return response()->json([
-                    'success' => false,
-                    'error' => [
-                        'message' => 'Invalid request parameters.',
-                        'code' => 'VALIDATION_ERROR',
-                        'details' => $sanitization['violations']
-                    ]
-                ], 422);
-            }
+            $testJobId = $request->input('test_job_id');
 
-            if (!isset($sanitization['sanitized']['test_job_id'])) {
-                return response()->json([
-                    'success' => false,
-                    'error' => [
-                        'message' => 'Test job ID is required.',
-                        'code' => 'MISSING_JOB_ID'
-                    ]
-                ], 422);
-            }
-
-            $testJobId = $sanitization['sanitized']['test_job_id'];
-
-            // Log security event
-            $this->setupSecurityService->logSecurityEvent('queue_test_status_checked', [
+            // Record security event
+            $this->securityService->recordSecurityEvent('queue_test_status_checked', [
                 'route' => 'setup.queue.test.status',
-                'test_job_id' => $testJobId
+                'test_job_id' => $testJobId,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
             ]);
             
             // Check test job status
@@ -136,6 +102,15 @@ class SetupController extends Controller
                 'queue_worker_status' => $queueWorkerStatus->toArray()
             ]);
             
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'message' => 'Invalid request parameters.',
+                    'code' => 'VALIDATION_ERROR',
+                    'details' => $e->errors()
+                ]
+            ], 422);
         } catch (\Exception $e) {
             \Log::error('Failed to check test job status from setup', [
                 'error' => $e->getMessage(),

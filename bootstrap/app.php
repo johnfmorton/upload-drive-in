@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'setup.detection' => \App\Http\Middleware\SetupDetectionMiddleware::class,
             'require.setup.enabled' => \App\Http\Middleware\RequireSetupEnabledMiddleware::class,
             'extend.setup.session' => \App\Http\Middleware\ExtendSetupSession::class,
+            'queue.worker.test.rate.limit' => \App\Http\Middleware\QueueWorkerTestRateLimit::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

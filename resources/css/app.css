@@ -357,3 +357,151 @@ input[type='file']:focus::file-selector-button {
 .status-needs_attention {
     color: #f59e0b; /* Amber */
 }
+
+/* Queue Worker Test Specific Styles */
+.queue-test-section {
+    transition: all 0.3s ease-in-out;
+}
+
+.queue-test-progress {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.queue-test-result {
+    animation: slideInFromTop 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Enhanced Button States */
+.retry-button {
+    transition: all 0.2s ease-in-out;
+}
+
+.retry-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(245, 158, 11, 0.2);
+}
+
+.retry-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Progressive Status Updates */
+.status-progress {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Error and Success Message Animations */
+.error-message {
+    animation: shakeIn 0.5s ease-out;
+}
+
+.success-message {
+    animation: bounceIn 0.6s ease-out;
+}
+
+@keyframes shakeIn {
+    0% {
+        transform: translateX(-10px);
+        opacity: 0;
+    }
+    25% {
+        transform: translateX(10px);
+    }
+    50% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Responsive Improvements for Queue Worker Section */
+@media (max-width: 640px) {
+    .queue-test-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .queue-test-buttons button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .queue-test-section {
+        padding: 0.75rem;
+    }
+    
+    .queue-test-progress {
+        font-size: 0.875rem;
+    }
+    
+    .error-message,
+    .success-message {
+        font-size: 0.875rem;
+        padding: 0.75rem;
+    }
+}
+
+/* Troubleshooting Section Styles */
+.troubleshooting-section {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.troubleshooting-section.expanded {
+    max-height: 300px;
+}
+
+.troubleshooting-step {
+    padding: 0.25rem 0;
+    border-left: 2px solid transparent;
+    padding-left: 0.5rem;
+    transition: border-color 0.2s ease-in-out;
+}
+
+.troubleshooting-step:hover {
+    border-left-color: #ef4444;
+    background-color: rgba(254, 242, 242, 0.5);
+}

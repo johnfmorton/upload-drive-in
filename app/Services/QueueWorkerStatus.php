@@ -79,11 +79,37 @@ class QueueWorkerStatus
     /**
      * Create a status for when testing is in progress.
      */
-    public static function testing(string $testJobId, string $message = 'Testing queue worker...'): self
+    public static function testing(?string $testJobId, string $message = 'Testing queue worker...'): self
     {
         return new self(
             status: self::STATUS_TESTING,
             message: $message,
+            testJobId: $testJobId,
+            canRetry: false
+        );
+    }
+
+    /**
+     * Create a status for when test job is queued.
+     */
+    public static function queued(string $testJobId): self
+    {
+        return new self(
+            status: self::STATUS_TESTING,
+            message: 'Test job queued, waiting for worker...',
+            testJobId: $testJobId,
+            canRetry: false
+        );
+    }
+
+    /**
+     * Create a status for when test job is processing.
+     */
+    public static function processing(string $testJobId): self
+    {
+        return new self(
+            status: self::STATUS_TESTING,
+            message: 'Test job processing...',
             testJobId: $testJobId,
             canRetry: false
         );
@@ -120,6 +146,50 @@ class QueueWorkerStatus
     }
 
     /**
+     * Create a status for dispatch failures.
+     */
+    public static function dispatchFailed(string $errorMessage, ?array $troubleshooting = null): self
+    {
+        return new self(
+            status: self::STATUS_FAILED,
+            message: 'Failed to dispatch test job',
+            errorMessage: $errorMessage,
+            troubleshooting: $troubleshooting ?? self::getDispatchFailureTroubleshooting(),
+            canRetry: true
+        );
+    }
+
+    /**
+     * Create a status for job execution failures.
+     */
+    public static function jobFailed(string $errorMessage, string $testJobId, ?array $troubleshooting = null): self
+    {
+        return new self(
+            status: self::STATUS_FAILED,
+            message: 'Test job execution failed',
+            errorMessage: $errorMessage,
+            testJobId: $testJobId,
+            troubleshooting: $troubleshooting ?? self::getJobFailureTroubleshooting(),
+            canRetry: true
+        );
+    }
+
+    /**
+     * Create a status for network/communication errors.
+     */
+    public static function networkError(string $errorMessage, ?string $testJobId = null): self
+    {
+        return new self(
+            status: self::STATUS_ERROR,
+            message: 'Network error during queue test',
+            errorMessage: $errorMessage,
+            testJobId: $testJobId,
+            troubleshooting: self::getNetworkErrorTroubleshooting(),
+            canRetry: true
+        );
+    }
+
+    /**
      * Create a status for timed out tests.
      */
     public static function timeout(?string $testJobId = null): self
@@ -145,6 +215,78 @@ class QueueWorkerStatus
             errorMessage: $errorMessage,
             testJobId: $testJobId,
             troubleshooting: self::getErrorTroubleshooting(),
+            canRetry: true
+        );
+    }
+
+    /**
+     * Create a status for configuration errors.
+     */
+    public static function configurationError(string $errorMessage, ?array $troubleshooting = null): self
+    {
+        return new self(
+            status: self::STATUS_FAILED,
+            message: 'Queue configuration error',
+            errorMessage: $errorMessage,
+            troubleshooting: $troubleshooting ?? self::getConfigurationErrorTroubleshooting(),
+            canRetry: true
+        );
+    }
+
+    /**
+     * Create a status for database connection errors.
+     */
+    public static function databaseError(string $errorMessage, ?array $troubleshooting = null): self
+    {
+        return new self(
+            status: self::STATUS_FAILED,
+            message: 'Database connection error',
+            errorMessage: $errorMessage,
+            troubleshooting: $troubleshooting ?? self::getDatabaseErrorTroubleshooting(),
+            canRetry: true
+        );
+    }
+
+    /**
+     * Create a status for permission errors.
+     */
+    public static function permissionError(string $errorMessage, ?array $troubleshooting = null): self
+    {
+        return new self(
+            status: self::STATUS_FAILED,
+            message: 'Permission error',
+            errorMessage: $errorMessage,
+            troubleshooting: $troubleshooting ?? self::getPermissionErrorTroubleshooting(),
+            canRetry: true
+        );
+    }
+
+    /**
+     * Create a status for worker not running scenario.
+     */
+    public static function workerNotRunning(?string $testJobId = null): self
+    {
+        return new self(
+            status: self::STATUS_TIMEOUT,
+            message: 'Queue worker is not running',
+            errorMessage: 'Test job timed out - no worker process detected',
+            testJobId: $testJobId,
+            troubleshooting: self::getWorkerNotRunningTroubleshooting(),
+            canRetry: true
+        );
+    }
+
+    /**
+     * Create a status for worker stuck scenario.
+     */
+    public static function workerStuck(?string $testJobId = null): self
+    {
+        return new self(
+            status: self::STATUS_TIMEOUT,
+            message: 'Queue worker appears stuck',
+            errorMessage: 'Test job timed out - worker may be processing other jobs or stuck',
+            testJobId: $testJobId,
+            troubleshooting: self::getWorkerStuckTroubleshooting(),
             canRetry: true
         );
     }
@@ -266,6 +408,136 @@ class QueueWorkerStatus
             'Verify cache service is running and accessible',
             'Try refreshing the page and testing again',
             'Contact administrator if problem persists',
+        ];
+    }
+
+    /**
+     * Get troubleshooting steps for dispatch failures.
+     */
+    private static function getDispatchFailureTroubleshooting(): array
+    {
+        return [
+            'Verify queue configuration in .env file (QUEUE_CONNECTION)',
+            'Check if database tables exist: php artisan migrate',
+            'Ensure queue driver is properly configured (database, redis, etc.)',
+            'Check application logs for configuration errors',
+            'Verify file permissions for storage and cache directories',
+            'Test database connection: php artisan tinker, then DB::connection()->getPdo()',
+            'For Redis queue: ensure Redis server is running and accessible',
+        ];
+    }
+
+    /**
+     * Get troubleshooting steps for job execution failures.
+     */
+    private static function getJobFailureTroubleshooting(): array
+    {
+        return [
+            'Check failed jobs table: php artisan queue:failed',
+            'Review worker logs for specific error details',
+            'Ensure all required dependencies are installed',
+            'Check memory limits and execution time settings',
+            'Verify database connectivity from worker process',
+            'Restart queue worker: php artisan queue:restart',
+            'Clear application cache: php artisan cache:clear',
+            'Check disk space and file permissions',
+        ];
+    }
+
+    /**
+     * Get troubleshooting steps for network errors.
+     */
+    private static function getNetworkErrorTroubleshooting(): array
+    {
+        return [
+            'Check your internet connection',
+            'Verify the application server is accessible',
+            'Check for firewall or proxy issues',
+            'Try refreshing the page and testing again',
+            'Contact your network administrator if issues persist',
+        ];
+    }
+
+    /**
+     * Get troubleshooting steps for configuration errors.
+     */
+    private static function getConfigurationErrorTroubleshooting(): array
+    {
+        return [
+            'Check QUEUE_CONNECTION setting in .env file',
+            'Verify queue driver configuration matches your setup',
+            'For database queue: ensure migrations are run (php artisan migrate)',
+            'For Redis queue: verify REDIS_HOST and REDIS_PORT settings',
+            'Check if required PHP extensions are installed (redis, pdo_mysql, etc.)',
+            'Review config/queue.php for correct driver configuration',
+            'Clear configuration cache: php artisan config:clear',
+        ];
+    }
+
+    /**
+     * Get troubleshooting steps for database errors.
+     */
+    private static function getDatabaseErrorTroubleshooting(): array
+    {
+        return [
+            'Verify database connection settings in .env file',
+            'Check if database server is running and accessible',
+            'Ensure database user has proper permissions',
+            'Test database connection: php artisan tinker, then DB::connection()->getPdo()',
+            'Check if jobs and failed_jobs tables exist: php artisan migrate',
+            'Verify database disk space and memory limits',
+            'Review database server logs for connection errors',
+        ];
+    }
+
+    /**
+     * Get troubleshooting steps for permission errors.
+     */
+    private static function getPermissionErrorTroubleshooting(): array
+    {
+        return [
+            'Check file permissions on storage directory: chmod -R 755 storage',
+            'Ensure web server user owns storage directory: chown -R www-data:www-data storage',
+            'Verify bootstrap/cache directory permissions: chmod -R 755 bootstrap/cache',
+            'Check if SELinux is blocking file access (if applicable)',
+            'Ensure queue worker process has write access to log files',
+            'Verify .env file is readable by the application',
+            'Check parent directory permissions for storage and cache paths',
+        ];
+    }
+
+    /**
+     * Get troubleshooting steps for worker not running scenario.
+     */
+    private static function getWorkerNotRunningTroubleshooting(): array
+    {
+        return [
+            'Start the queue worker: php artisan queue:work',
+            'Check if worker process is running: ps aux | grep "queue:work"',
+            'For production: ensure process manager (Supervisor/systemd) is configured',
+            'Verify queue worker service is enabled and started',
+            'Check system resources (CPU, memory) for worker process',
+            'Review worker startup logs for initialization errors',
+            'Test manual job dispatch: php artisan queue:work --once',
+            'Ensure no firewall blocking internal queue communication',
+        ];
+    }
+
+    /**
+     * Get troubleshooting steps for worker stuck scenario.
+     */
+    private static function getWorkerStuckTroubleshooting(): array
+    {
+        return [
+            'Restart the queue worker: php artisan queue:restart',
+            'Check worker memory usage: ps aux | grep "queue:work"',
+            'Review worker logs for errors or infinite loops',
+            'Check for long-running jobs blocking the queue',
+            'Verify database connections are not exhausted',
+            'Increase worker timeout settings if processing large jobs',
+            'Consider using multiple worker processes for better throughput',
+            'Check for deadlocks in failed_jobs table',
+            'Monitor system resources during job processing',
         ];
     }
 }

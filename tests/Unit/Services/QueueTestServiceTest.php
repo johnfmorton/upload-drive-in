@@ -23,7 +23,10 @@ class QueueTestServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new QueueTestService();
+        
+        // Create security service dependency
+        $securityService = app(\App\Services\QueueWorkerTestSecurityService::class);
+        $this->service = new QueueTestService($securityService);
         
         // Clear cache before each test
         Cache::flush();

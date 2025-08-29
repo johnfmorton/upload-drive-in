@@ -22,6 +22,12 @@ use Illuminate\Database\QueryException;
  */
 class QueueTestService
 {
+    private QueueWorkerTestSecurityService $securityService;
+
+    public function __construct(QueueWorkerTestSecurityService $securityService)
+    {
+        $this->securityService = $securityService;
+    }
     /**
      * Cache key prefix for test job tracking.
      */
@@ -36,6 +42,14 @@ class QueueTestService
      * Default timeout for test jobs in seconds.
      */
     private const DEFAULT_TIMEOUT = 30;
+
+    /**
+     * Configurable timeout periods for different scenarios.
+     */
+    private const TIMEOUT_DISPATCH = 10;      // Timeout for job dispatch
+    private const TIMEOUT_QUICK_TEST = 15;    // Timeout for quick tests
+    private const TIMEOUT_STANDARD = 30;      // Standard timeout
+    private const TIMEOUT_EXTENDED = 60;      // Extended timeout for slow systems
 
     /**
      * TTL for test job cache entries in seconds (1 hour).
@@ -316,16 +330,17 @@ class QueueTestService
                 return QueueWorkerStatus::notTested();
             }
             
-            // Validate cached data is an array
-            if (!is_array($cachedData)) {
-                Log::warning('Cached queue worker status is not an array, clearing cache', [
+            // Security validation of cached data
+            $validatedData = $this->securityService->validateCachedStatus($cachedData);
+            if (!$validatedData) {
+                Log::warning('Cached queue worker status failed security validation, clearing cache', [
                     'cached_data_type' => gettype($cachedData)
                 ]);
                 $this->invalidateQueueWorkerStatus();
                 return QueueWorkerStatus::notTested();
             }
             
-            $status = QueueWorkerStatus::fromArray($cachedData);
+            $status = QueueWorkerStatus::fromArray($validatedData);
             
             // Check if the cached status is expired (only for completed statuses)
             if ($status->status === QueueWorkerStatus::STATUS_COMPLETED && $status->isExpired()) {
@@ -364,9 +379,13 @@ class QueueTestService
     public function cacheQueueWorkerStatus(QueueWorkerStatus $status): bool
     {
         try {
+            // Validate and sanitize the status data before caching
+            $statusArray = $status->toArray();
+            $validatedData = $this->securityService->validateStatusUpdate($statusArray);
+            
             $success = Cache::put(
                 QueueWorkerStatus::CACHE_KEY,
-                $status->toArray(),
+                $validatedData,
                 QueueWorkerStatus::CACHE_TTL
             );
             
@@ -417,24 +436,32 @@ class QueueTestService
     }
 
     /**
-     * Dispatch a test job and cache the testing status.
+     * Dispatch a test job and cache the testing status with progressive updates.
      * 
      * @param int $delay Optional delay in seconds before job processing
+     * @param int $timeout Optional timeout in seconds (uses default if not specified)
      * @return QueueWorkerStatus The testing status
      */
-    public function dispatchTestJobWithStatus(int $delay = 0): QueueWorkerStatus
+    public function dispatchTestJobWithStatus(int $delay = 0, int $timeout = null): QueueWorkerStatus
     {
+        $timeout = $timeout ?? self::DEFAULT_TIMEOUT;
+        
         try {
-            // Dispatch the test job
-            $jobId = $this->dispatchTestJob($delay);
+            // Phase 1: Initial testing status
+            $initialStatus = QueueWorkerStatus::testing(null, 'Testing queue worker...');
+            $this->cacheQueueWorkerStatus($initialStatus);
             
-            // Create and cache testing status
-            $status = QueueWorkerStatus::testing($jobId, 'Test job dispatched, waiting for processing...');
+            // Phase 2: Dispatch the test job with enhanced error handling
+            $jobId = $this->dispatchTestJobWithEnhancedErrorHandling($delay, $timeout);
+            
+            // Phase 3: Job dispatched, waiting for processing
+            $status = QueueWorkerStatus::testing($jobId, 'Test job queued...');
             $this->cacheQueueWorkerStatus($status);
             
-            Log::info('Queue worker test initiated and status cached', [
+            Log::info('Queue worker test initiated with progressive status updates', [
                 'test_job_id' => $jobId,
-                'delay' => $delay
+                'delay' => $delay,
+                'timeout' => $timeout
             ]);
             
             return $status;
@@ -442,12 +469,154 @@ class QueueTestService
         } catch (Exception $e) {
             Log::error('Failed to dispatch test job with status', [
                 'error' => $e->getMessage(),
-                'delay' => $delay
+                'error_type' => get_class($e),
+                'delay' => $delay,
+                'timeout' => $timeout
             ]);
             
-            $status = QueueWorkerStatus::failed(
-                'Failed to dispatch test job: ' . $e->getMessage()
-            );
+            // Determine specific error type and create appropriate status
+            $status = $this->createErrorStatusFromException($e);
+            $this->cacheQueueWorkerStatus($status);
+            
+            return $status;
+        }
+    }
+
+    /**
+     * Dispatch test job with enhanced error handling and specific error types.
+     * 
+     * @param int $delay Optional delay in seconds before job processing
+     * @param int $timeout Timeout in seconds
+     * @return string Unique job ID for tracking
+     * @throws Exception If job dispatch fails after all retries
+     */
+    private function dispatchTestJobWithEnhancedErrorHandling(int $delay, int $timeout): string
+    {
+        $maxAttempts = self::MAX_RETRY_ATTEMPTS;
+        $lastException = null;
+        
+        for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+            try {
+                if ($attempt > 0) {
+                    Log::debug('Retrying test job dispatch with enhanced error handling', [
+                        'attempt' => $attempt + 1,
+                        'max_attempts' => $maxAttempts,
+                        'delay' => $delay,
+                        'timeout' => $timeout
+                    ]);
+                    
+                    // Add delay between retries
+                    usleep(self::RETRY_DELAY_MS * 1000);
+                }
+                
+                // Generate unique job ID
+                $jobId = $this->generateUniqueJobId();
+                
+                // Initialize job status in cache with configurable timeout
+                $this->initializeJobStatusWithConfigurableTimeout($jobId, $delay, $timeout);
+                
+                // Add job ID to index for cleanup tracking
+                $this->addJobToIndexWithRetry($jobId);
+                
+                // Dispatch the test job with timeout handling
+                $this->dispatchJobWithTimeout($jobId, $delay);
+                
+                Log::info('Test queue job dispatched successfully with enhanced error handling', [
+                    'test_job_id' => $jobId,
+                    'delay' => $delay,
+                    'timeout' => $timeout,
+                    'attempt' => $attempt + 1,
+                    'dispatched_at' => Carbon::now()->toISOString(),
+                ]);
+                
+                return $jobId;
+                
+            } catch (Exception $e) {
+                $lastException = $e;
+                
+                Log::warning('Test job dispatch failed with enhanced error handling', [
+                    'attempt' => $attempt + 1,
+                    'max_attempts' => $maxAttempts,
+                    'delay' => $delay,
+                    'timeout' => $timeout,
+                    'error' => $e->getMessage(),
+                    'error_type' => get_class($e),
+                    'remaining_attempts' => $maxAttempts - $attempt - 1
+                ]);
+                
+                // Don't retry certain types of errors
+                if ($this->shouldNotRetryDispatch($e)) {
+                    Log::info('Dispatch error should not be retried (enhanced)', [
+                        'error_type' => get_class($e),
+                        'error_message' => $e->getMessage()
+                    ]);
+                    break;
+                }
+            } catch (Throwable $e) {
+                $lastException = $e;
+                
+                Log::critical('Critical error during test job dispatch (enhanced)', [
+                    'attempt' => $attempt + 1,
+                    'delay' => $delay,
+                    'timeout' => $timeout,
+                    'error' => $e->getMessage(),
+                    'error_type' => get_class($e),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                break;
+            }
+        }
+        
+        // All attempts failed - throw with enhanced error information
+        $errorMessage = $this->buildEnhancedErrorMessage($lastException, $maxAttempts);
+        
+        Log::error('Failed to dispatch test queue job after all retries (enhanced)', [
+            'max_attempts' => $maxAttempts,
+            'delay' => $delay,
+            'timeout' => $timeout,
+            'final_error' => $lastException ? $lastException->getMessage() : 'Unknown error',
+            'final_error_type' => $lastException ? get_class($lastException) : 'Unknown'
+        ]);
+        
+        throw new Exception($errorMessage, 0, $lastException);
+    }
+
+    /**
+     * Update queue worker status with progressive test phase messages.
+     * 
+     * @param string $jobId The test job ID
+     * @param string $phase The current test phase (dispatching, queued, processing)
+     * @return QueueWorkerStatus The updated status
+     */
+    public function updateQueueWorkerTestPhase(string $jobId, string $phase): QueueWorkerStatus
+    {
+        try {
+            $message = match ($phase) {
+                'dispatching' => 'Testing queue worker...',
+                'queued' => 'Test job queued...',
+                'processing' => 'Test job processing...',
+                default => 'Testing queue worker...'
+            };
+            
+            $status = QueueWorkerStatus::testing($jobId, $message);
+            $this->cacheQueueWorkerStatus($status);
+            
+            Log::debug('Queue worker test phase updated', [
+                'test_job_id' => $jobId,
+                'phase' => $phase,
+                'message' => $message
+            ]);
+            
+            return $status;
+            
+        } catch (Exception $e) {
+            Log::error('Failed to update queue worker test phase', [
+                'test_job_id' => $jobId,
+                'phase' => $phase,
+                'error' => $e->getMessage()
+            ]);
+            
+            $status = QueueWorkerStatus::error('Failed to update test phase: ' . $e->getMessage(), $jobId);
             $this->cacheQueueWorkerStatus($status);
             
             return $status;
@@ -526,11 +695,13 @@ class QueueTestService
             $jobStatus = $this->checkTestJobStatus($jobId);
             
             if ($jobStatus['status'] === 'timeout') {
-                $status = QueueWorkerStatus::timeout($jobId);
+                // Determine specific timeout type based on queue health
+                $status = $this->determineTimeoutType($jobId);
                 $this->cacheQueueWorkerStatus($status);
                 
                 Log::warning('Queue worker test timed out', [
-                    'test_job_id' => $jobId
+                    'test_job_id' => $jobId,
+                    'timeout_type' => $status->message
                 ]);
                 
                 return $status;
@@ -548,6 +719,42 @@ class QueueTestService
             $this->cacheQueueWorkerStatus($status);
             
             return $status;
+        }
+    }
+
+    /**
+     * Determine the specific type of timeout based on queue health metrics.
+     * 
+     * @param string $jobId The test job ID
+     * @return QueueWorkerStatus Specific timeout status
+     */
+    private function determineTimeoutType(string $jobId): QueueWorkerStatus
+    {
+        try {
+            $healthMetrics = $this->getQueueHealthMetrics();
+            
+            // Check if there are pending jobs (worker might be stuck)
+            if (isset($healthMetrics['job_statistics']['pending_jobs']) && 
+                $healthMetrics['job_statistics']['pending_jobs'] > 0) {
+                return QueueWorkerStatus::workerStuck($jobId);
+            }
+            
+            // Check for recent failed jobs (worker might be crashing)
+            if (isset($healthMetrics['job_statistics']['failed_jobs_1h']) && 
+                $healthMetrics['job_statistics']['failed_jobs_1h'] > 0) {
+                return QueueWorkerStatus::workerStuck($jobId);
+            }
+            
+            // Default to worker not running
+            return QueueWorkerStatus::workerNotRunning($jobId);
+            
+        } catch (Exception $e) {
+            Log::warning('Failed to determine timeout type, using generic timeout', [
+                'test_job_id' => $jobId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return QueueWorkerStatus::timeout($jobId);
         }
     }
 
@@ -1169,5 +1376,272 @@ class QueueTestService
         }
         
         return false;
+    }
+
+    /**
+     * Create appropriate error status from exception type.
+     * 
+     * @param Exception $exception The exception that occurred
+     * @return QueueWorkerStatus Appropriate error status
+     */
+    private function createErrorStatusFromException(Exception $exception): QueueWorkerStatus
+    {
+        $errorMessage = $exception->getMessage();
+        $exceptionClass = get_class($exception);
+        
+        // Determine error type based on exception class and message
+        if ($this->isConfigurationError($exception)) {
+            return QueueWorkerStatus::configurationError($errorMessage);
+        }
+        
+        if ($this->isDatabaseError($exception)) {
+            return QueueWorkerStatus::databaseError($errorMessage);
+        }
+        
+        if ($this->isPermissionError($exception)) {
+            return QueueWorkerStatus::permissionError($errorMessage);
+        }
+        
+        if ($this->isDispatchError($exception)) {
+            return QueueWorkerStatus::dispatchFailed($errorMessage);
+        }
+        
+        if ($this->isNetworkError($exception)) {
+            return QueueWorkerStatus::networkError($errorMessage);
+        }
+        
+        // Default to generic failed status
+        return QueueWorkerStatus::failed($errorMessage);
+    }
+
+    /**
+     * Check if exception indicates a dispatch error.
+     * 
+     * @param Exception $exception The exception to check
+     * @return bool True if it's a dispatch error
+     */
+    private function isDispatchError(Exception $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+        $dispatchErrorIndicators = [
+            'failed to dispatch',
+            'queue connection',
+            'database connection',
+            'table doesn\'t exist',
+            'jobs table',
+            'failed_jobs table'
+        ];
+        
+        foreach ($dispatchErrorIndicators as $indicator) {
+            if (strpos($message, $indicator) !== false) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if exception indicates a network error.
+     * 
+     * @param Exception $exception The exception to check
+     * @return bool True if it's a network error
+     */
+    private function isNetworkError(Exception $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+        $networkErrorIndicators = [
+            'connection refused',
+            'timeout',
+            'network unreachable',
+            'host unreachable',
+            'connection timed out',
+            'could not resolve host'
+        ];
+        
+        foreach ($networkErrorIndicators as $indicator) {
+            if (strpos($message, $indicator) !== false) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Build enhanced error message with troubleshooting context.
+     * 
+     * @param Exception|null $exception The final exception
+     * @param int $maxAttempts Number of attempts made
+     * @return string Enhanced error message
+     */
+    private function buildEnhancedErrorMessage(?Exception $exception, int $maxAttempts): string
+    {
+        if (!$exception) {
+            return "Failed to dispatch test job after {$maxAttempts} attempts: Unknown error";
+        }
+        
+        $baseMessage = "Failed to dispatch test job after {$maxAttempts} attempts";
+        $errorDetails = $exception->getMessage();
+        
+        // Add context based on error type
+        if ($this->isConfigurationError($exception)) {
+            return "{$baseMessage}: Configuration issue - {$errorDetails}";
+        }
+        
+        if ($this->isDatabaseError($exception)) {
+            return "{$baseMessage}: Database connectivity issue - {$errorDetails}";
+        }
+        
+        if ($this->isPermissionError($exception)) {
+            return "{$baseMessage}: File permission issue - {$errorDetails}";
+        }
+        
+        if ($this->isDispatchError($exception)) {
+            return "{$baseMessage}: Queue dispatch issue - {$errorDetails}";
+        }
+        
+        if ($this->isNetworkError($exception)) {
+            return "{$baseMessage}: Network connectivity issue - {$errorDetails}";
+        }
+        
+        return "{$baseMessage}: {$errorDetails}";
+    }
+
+    /**
+     * Check if exception indicates a configuration error.
+     * 
+     * @param Exception $exception The exception to check
+     * @return bool True if it's a configuration error
+     */
+    private function isConfigurationError(Exception $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+        $configErrorIndicators = [
+            'invalid configuration',
+            'configuration error',
+            'queue connection',
+            'driver not supported',
+            'invalid queue driver',
+            'queue_connection',
+            'config not found',
+            'missing configuration'
+        ];
+        
+        foreach ($configErrorIndicators as $indicator) {
+            if (strpos($message, $indicator) !== false) {
+                return true;
+            }
+        }
+        
+        // Check exception types
+        $exceptionClass = get_class($exception);
+        return strpos($exceptionClass, 'InvalidArgumentException') !== false ||
+               strpos($exceptionClass, 'ConfigurationException') !== false;
+    }
+
+    /**
+     * Check if exception indicates a database error.
+     * 
+     * @param Exception $exception The exception to check
+     * @return bool True if it's a database error
+     */
+    private function isDatabaseError(Exception $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+        $dbErrorIndicators = [
+            'database connection',
+            'connection refused',
+            'access denied',
+            'unknown database',
+            'table doesn\'t exist',
+            'jobs table',
+            'failed_jobs table',
+            'sqlstate',
+            'pdo exception',
+            'mysql',
+            'postgresql',
+            'sqlite'
+        ];
+        
+        foreach ($dbErrorIndicators as $indicator) {
+            if (strpos($message, $indicator) !== false) {
+                return true;
+            }
+        }
+        
+        // Check exception types
+        $exceptionClass = get_class($exception);
+        return $exception instanceof PDOException ||
+               $exception instanceof QueryException ||
+               strpos($exceptionClass, 'DatabaseException') !== false;
+    }
+
+    /**
+     * Check if exception indicates a permission error.
+     * 
+     * @param Exception $exception The exception to check
+     * @return bool True if it's a permission error
+     */
+    private function isPermissionError(Exception $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+        $permissionErrorIndicators = [
+            'permission denied',
+            'access denied',
+            'forbidden',
+            'not writable',
+            'cannot write',
+            'file not found',
+            'directory not found',
+            'failed to open stream',
+            'no such file or directory'
+        ];
+        
+        foreach ($permissionErrorIndicators as $indicator) {
+            if (strpos($message, $indicator) !== false) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Initialize job status in cache with configurable timeout.
+     * 
+     * @param string $jobId The job ID
+     * @param int $delay The delay in seconds
+     * @param int $timeout The timeout in seconds
+     * @return void
+     * @throws Exception If cache operation fails
+     */
+    private function initializeJobStatusWithConfigurableTimeout(string $jobId, int $delay, int $timeout): void
+    {
+        $cacheKey = self::CACHE_PREFIX . $jobId;
+        
+        $initialStatus = [
+            'test_job_id' => $jobId,
+            'status' => 'pending',
+            'message' => 'Test job dispatched and waiting for processing',
+            'delay' => $delay,
+            'timeout_seconds' => $timeout,
+            'dispatched_at' => Carbon::now()->toISOString(),
+            'timeout_at' => Carbon::now()->addSeconds($timeout)->toISOString(),
+            'fallback' => false
+        ];
+        
+        $this->executeWithTimeout(function () use ($cacheKey, $initialStatus) {
+            if (!Cache::put($cacheKey, $initialStatus, self::CACHE_TTL)) {
+                throw new Exception('Failed to store job status in cache');
+            }
+        }, 5);
+        
+        Log::debug('Job status initialized in cache with configurable timeout', [
+            'test_job_id' => $jobId,
+            'cache_key' => $cacheKey,
+            'timeout_seconds' => $timeout,
+            'timeout_at' => $initialStatus['timeout_at']
+        ]);
     }
 }

@@ -199,4 +199,27 @@ return [
         'node_environment_check' => false,
         'build_instructions_enabled' => true,
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queue Worker Test Security
+    |--------------------------------------------------------------------------
+    |
+    | Security configuration for queue worker testing functionality.
+    | These settings control rate limiting and cooldown periods.
+    |
+    */
+    'queue_worker_test' => [
+        'rate_limit' => [
+            'max_attempts' => env('SETUP_QUEUE_TEST_MAX_ATTEMPTS', 5),
+            'decay_minutes' => env('SETUP_QUEUE_TEST_DECAY_MINUTES', 15),
+        ],
+        'cooldown' => [
+            'seconds' => env('SETUP_QUEUE_TEST_COOLDOWN_SECONDS', 30),
+        ],
+        'cache_keys' => [
+            'rate_limit' => 'setup:queue_test:rate_limit:',
+            'cooldown' => 'setup:queue_test:cooldown:',
+        ],
+    ],
 ];

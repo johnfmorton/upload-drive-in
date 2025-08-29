@@ -412,21 +412,32 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
 
                         <!-- Queue Worker Test Section -->
                         <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div class="flex items-center justify-between mb-3">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 space-y-2 sm:space-y-0">
                                 <h3 class="text-md font-medium text-blue-900">Test Queue Worker</h3>
-                                <button id="test-queue-worker-btn"
-                                    class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
-                                        viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                    </svg>
-                                    <span id="test-queue-worker-btn-text">Test Queue Worker</span>
-                                </button>
+                                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                                    <button id="test-queue-worker-btn"
+                                        class="inline-flex items-center justify-center px-3 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                        <span id="test-queue-worker-btn-text">Test Queue Worker</span>
+                                        <div id="test-queue-worker-spinner" class="loading-spinner hidden ml-2"></div>
+                                    </button>
+                                    <button id="retry-queue-worker-btn"
+                                        class="hidden inline-flex items-center justify-center px-3 py-2 bg-amber-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-amber-700 focus:bg-amber-700 active:bg-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                        </svg>
+                                        <span>Retry Test</span>
+                                    </button>
+                                </div>
                             </div>
                             <p class="text-sm text-blue-700 mb-3">
                                 Click the button above to test if your queue worker is running and processing jobs
-                                correctly.
+                                correctly. The test will dispatch a job and verify it completes successfully.
                             </p>
 
                             <!-- Test Results -->
@@ -434,6 +445,126 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                 <div class="mt-3 p-3 bg-white border border-blue-200 rounded">
                                     <div id="queue-test-status" class="text-sm"></div>
                                 </div>
+                            </div>
+
+                            <!-- Progressive Status Display -->
+                            <div id="queue-test-progress" class="hidden mt-3">
+                                <div class="bg-white border border-blue-200 rounded-lg p-3">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="loading-spinner w-4 h-4"></div>
+                                        <span id="queue-test-progress-text" class="text-sm text-blue-700">Testing queue worker...</span>
+                                    </div>
+                                    <div id="queue-test-progress-details" class="mt-2 text-xs text-gray-600 hidden"></div>
+                                </div>
+                            </div>
+
+                            <!-- Error Details and Troubleshooting -->
+                            <div id="queue-test-error-details" class="hidden mt-3">
+                                <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                    <div class="flex items-start">
+                                        <svg class="h-5 w-5 text-red-400 mt-0.5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                        </svg>
+                                        <div class="flex-1">
+                                            <h4 class="text-sm font-medium text-red-800 mb-1">Test Failed</h4>
+                                            <p id="queue-test-error-message" class="text-sm text-red-700 mb-2"></p>
+                                            <div id="queue-test-troubleshooting" class="text-xs text-red-600">
+                                                <details class="mt-2">
+                                                    <summary class="cursor-pointer font-medium hover:text-red-800">Troubleshooting Steps</summary>
+                                                    <div id="queue-test-troubleshooting-content" class="mt-2 space-y-1 pl-4">
+                                                        <!-- Troubleshooting content will be populated by JavaScript -->
+                                                    </div>
+                                                </details>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Success Details -->
+                            <div id="queue-test-success-details" class="hidden mt-3">
+                                <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <div class="flex items-start">
+                                        <svg class="h-5 w-5 text-green-400 mt-0.5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                        </svg>
+                                        <div class="flex-1">
+                                            <h4 class="text-sm font-medium text-green-800 mb-1">Test Successful</h4>
+                                            <p id="queue-test-success-message" class="text-sm text-green-700"></p>
+                                            <p id="queue-test-processing-time" class="text-xs text-green-600 mt-1"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Enhanced Error Handling Information -->
+                            <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded">
+                                <div class="flex items-start">
+                                    <svg class="h-5 w-5 text-amber-400 mt-0.5 mr-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                    </svg>
+                                    <div class="text-sm text-amber-700">
+                                        <p class="font-medium mb-1">Test Failure Scenarios:</p>
+                                        <ul class="space-y-1 text-xs">
+                                            <li><strong>Configuration Error:</strong> Queue driver or database configuration issues</li>
+                                            <li><strong>Database Error:</strong> Database connection or table issues</li>
+                                            <li><strong>Permission Error:</strong> File or directory permission problems</li>
+                                            <li><strong>Worker Not Running:</strong> Queue worker process not started</li>
+                                            <li><strong>Worker Stuck:</strong> Queue worker processing other jobs or crashed</li>
+                                            <li><strong>Network Error:</strong> Connection issues during status check</li>
+                                        </ul>
+                                        <p class="mt-2 text-xs">Each error type provides specific troubleshooting guidance and retry options with expandable details.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Manual Verification Guide -->
+                            <div class="mt-4">
+                                <details class="bg-gray-50 border border-gray-200 rounded-lg">
+                                    <summary class="cursor-pointer p-4 font-medium text-gray-900 hover:bg-gray-100 transition-colors">
+                                        🔍 Manual Queue Worker Verification
+                                    </summary>
+                                    <div class="p-4 pt-0 border-t border-gray-200">
+                                        <div class="space-y-4 text-sm pt-3">
+                                            <div>
+                                                <h4 class="font-semibold text-gray-900 mb-2">Check if Queue Worker is Running</h4>
+                                                <div class="bg-gray-100 p-3 rounded font-mono text-xs">
+                                                    # Check for running queue worker processes<br>
+                                                    ps aux | grep "queue:work"<br><br>
+                                                    # Check queue status<br>
+                                                    php artisan queue:work --once
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-semibold text-gray-900 mb-2">Check Failed Jobs</h4>
+                                                <div class="bg-gray-100 p-3 rounded font-mono text-xs">
+                                                    # List failed jobs<br>
+                                                    php artisan queue:failed<br><br>
+                                                    # Retry all failed jobs<br>
+                                                    php artisan queue:retry all
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-semibold text-gray-900 mb-2">Test Database Connection</h4>
+                                                <div class="bg-gray-100 p-3 rounded font-mono text-xs">
+                                                    # Test database connection<br>
+                                                    php artisan tinker<br>
+                                                    >>> DB::connection()->getPdo();<br>
+                                                    >>> DB::table('jobs')->count();
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h4 class="font-semibold text-gray-900 mb-2">Check Application Logs</h4>
+                                                <div class="bg-gray-100 p-3 rounded font-mono text-xs">
+                                                    # View recent logs<br>
+                                                    tail -f storage/logs/laravel.log<br><br>
+                                                    # Or use Laravel Pail for real-time logs<br>
+                                                    php artisan pail
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </details>
                             </div>
                         </div>
 

@@ -40,6 +40,12 @@ class SetupStatusManager {
         this.autoRefreshEnabled = false;
         this.autoInit = options.autoInit !== false; // Default to true unless explicitly disabled
 
+        // Debouncing properties
+        this.lastRefreshTime = 0;
+        this.lastQueueTestTime = 0;
+        this.debounceDelay = 1000; // 1 second debounce
+        this.clickTimeouts = new Map(); // Track timeouts for different buttons
+
         // Bind methods to maintain context
         this.refreshAllStatuses = this.refreshAllStatuses.bind(this);
         this.refreshGeneralStatuses = this.refreshGeneralStatuses.bind(this);
@@ -84,10 +90,12 @@ class SetupStatusManager {
      * Bind event listeners
      */
     bindEventListeners() {
-        // Main refresh button
+        // Main refresh button with debouncing
         const refreshButton = document.getElementById("refresh-status-btn");
         if (refreshButton) {
-            refreshButton.addEventListener("click", this.refreshAllStatuses);
+            refreshButton.addEventListener("click", (e) => {
+                this.debouncedRefreshAllStatuses(e);
+            });
         }
 
 
@@ -125,14 +133,24 @@ class SetupStatusManager {
             }
         });
 
-        // Queue worker test button
+        // Queue worker test button with debouncing
         const testQueueWorkerBtn = document.getElementById(
             "test-queue-worker-btn"
         );
         if (testQueueWorkerBtn) {
-            testQueueWorkerBtn.addEventListener("click", () =>
-                this.testQueueWorker()
-            );
+            testQueueWorkerBtn.addEventListener("click", (e) => {
+                this.debouncedTestQueueWorker(e);
+            });
+        }
+
+        // Queue worker retry button with debouncing
+        const retryQueueWorkerBtn = document.getElementById(
+            "retry-queue-worker-btn"
+        );
+        if (retryQueueWorkerBtn) {
+            retryQueueWorkerBtn.addEventListener("click", (e) => {
+                this.debouncedRetryQueueWorkerTest(e);
+            });
         }
     }
 
@@ -164,6 +182,114 @@ class SetupStatusManager {
             console.warn("CSRF token not found");
         }
         return token;
+    }
+
+    /**
+     * Debounced refresh all statuses to prevent rapid clicking
+     */
+    debouncedRefreshAllStatuses(event) {
+        event.preventDefault();
+        
+        const now = Date.now();
+        const timeSinceLastRefresh = now - this.lastRefreshTime;
+        
+        // If already in progress or too soon since last refresh, ignore
+        if (this.refreshInProgress || this.queueWorkerTestInProgress) {
+            console.log("Operation already in progress, ignoring click");
+            return;
+        }
+        
+        if (timeSinceLastRefresh < this.debounceDelay) {
+            console.log("Debouncing refresh request");
+            // Clear any existing timeout for this button
+            if (this.clickTimeouts.has('refresh')) {
+                clearTimeout(this.clickTimeouts.get('refresh'));
+            }
+            
+            // Set new timeout
+            const timeoutId = setTimeout(() => {
+                this.refreshAllStatuses();
+                this.clickTimeouts.delete('refresh');
+            }, this.debounceDelay - timeSinceLastRefresh);
+            
+            this.clickTimeouts.set('refresh', timeoutId);
+            return;
+        }
+        
+        this.lastRefreshTime = now;
+        this.refreshAllStatuses();
+    }
+
+    /**
+     * Debounced test queue worker to prevent rapid clicking
+     */
+    debouncedTestQueueWorker(event) {
+        event.preventDefault();
+        
+        const now = Date.now();
+        const timeSinceLastTest = now - this.lastQueueTestTime;
+        
+        // If already in progress or too soon since last test, ignore
+        if (this.queueWorkerTestInProgress || this.refreshInProgress) {
+            console.log("Operation already in progress, ignoring click");
+            return;
+        }
+        
+        if (timeSinceLastTest < this.debounceDelay) {
+            console.log("Debouncing queue test request");
+            // Clear any existing timeout for this button
+            if (this.clickTimeouts.has('queueTest')) {
+                clearTimeout(this.clickTimeouts.get('queueTest'));
+            }
+            
+            // Set new timeout
+            const timeoutId = setTimeout(() => {
+                this.testQueueWorker();
+                this.clickTimeouts.delete('queueTest');
+            }, this.debounceDelay - timeSinceLastTest);
+            
+            this.clickTimeouts.set('queueTest', timeoutId);
+            return;
+        }
+        
+        this.lastQueueTestTime = now;
+        this.testQueueWorker();
+    }
+
+    /**
+     * Debounced retry queue worker test to prevent rapid clicking
+     */
+    debouncedRetryQueueWorkerTest(event) {
+        event.preventDefault();
+        
+        const now = Date.now();
+        const timeSinceLastTest = now - this.lastQueueTestTime;
+        
+        // If already in progress or too soon since last test, ignore
+        if (this.queueWorkerTestInProgress || this.refreshInProgress) {
+            console.log("Operation already in progress, ignoring click");
+            return;
+        }
+        
+        if (timeSinceLastTest < this.debounceDelay) {
+            console.log("Debouncing retry request");
+            // Clear any existing timeout for this button
+            if (this.clickTimeouts.has('retry')) {
+                clearTimeout(this.clickTimeouts.get('retry'));
+            }
+            
+            // Set new timeout
+            const timeoutId = setTimeout(() => {
+                this.retryQueueWorkerTest();
+                this.clickTimeouts.delete('retry');
+            }, this.debounceDelay - timeSinceLastTest);
+            
+            this.clickTimeouts.set('retry', timeoutId);
+            return;
+        }
+        
+        this.lastQueueTestTime = now;
+        this.retryQueueWorkerTest();
     }
 
     /**
@@ -208,6 +334,11 @@ class SetupStatusManager {
             this.handleRefreshError(error, "all");
         } finally {
             this.setLoadingState(false);
+            
+            // Ensure queue worker button is also properly re-enabled
+            if (!this.queueWorkerTestInProgress) {
+                this.setQueueWorkerTestButtonState(false);
+            }
         }
     }
 
@@ -276,11 +407,14 @@ class SetupStatusManager {
             }
 
             // Update the specific step status
+            const details = response.data.status.details;
+            const detailsToPass = typeof details === 'object' ? JSON.stringify(details) : (details || response.data.status.message);
+            
             this.updateStatusIndicator(
                 stepName,
                 response.data.status.status,
                 response.data.status.message,
-                response.data.status.details || response.data.status.message
+                detailsToPass
             );
 
             this.updateLastChecked();
@@ -339,11 +473,14 @@ class SetupStatusManager {
         this.statusSteps.forEach((step) => {
             if (statuses && statuses[step]) {
                 const stepData = statuses[step];
+                const details = stepData.details;
+                const detailsToPass = typeof details === 'object' ? JSON.stringify(details) : (details || stepData.message);
+                
                 this.updateStatusIndicator(
                     step,
                     stepData.status,
                     stepData.message,
-                    stepData.details || stepData.message
+                    detailsToPass
                 );
             } else {
                 console.warn(`No status data found for step: ${step}`);
@@ -364,11 +501,14 @@ class SetupStatusManager {
         this.generalStatusSteps.forEach((step) => {
             if (statuses && statuses[step]) {
                 const stepData = statuses[step];
+                const details = stepData.details;
+                const detailsToPass = typeof details === 'object' ? JSON.stringify(details) : (details || stepData.message);
+                
                 this.updateStatusIndicator(
                     step,
                     stepData.status,
                     stepData.message,
-                    stepData.details || stepData.message
+                    detailsToPass
                 );
             } else {
                 console.warn(`No status data found for step: ${step}`);
@@ -506,26 +646,10 @@ class SetupStatusManager {
         this.refreshInProgress = isLoading;
 
         // Handle main refresh button
-        const button = document.getElementById("refresh-status-btn");
-        const buttonText = document.getElementById("refresh-btn-text");
-        const spinner = document.getElementById("refresh-spinner");
-
-        if (button && buttonText && spinner) {
-            button.disabled = isLoading;
-            buttonText.textContent = isLoading ? "Checking..." : "Check Status";
-
-            if (isLoading) {
-                spinner.classList.remove("hidden");
-            } else {
-                spinner.classList.add("hidden");
-            }
-        }
+        this.setRefreshButtonState(isLoading);
 
         // Disable queue worker test button during general refresh
-        const testQueueWorkerBtn = document.getElementById("test-queue-worker-btn");
-        if (testQueueWorkerBtn) {
-            testQueueWorkerBtn.disabled = isLoading || this.queueWorkerTestInProgress;
-        }
+        this.setQueueWorkerTestButtonState(this.queueWorkerTestInProgress || isLoading);
 
         // Set only general steps to checking state if loading
         if (isLoading) {
@@ -537,6 +661,37 @@ class SetupStatusManager {
                     "Verifying configuration..."
                 );
             });
+        }
+    }
+
+    /**
+     * Set refresh button state with loading spinner and debouncing
+     */
+    setRefreshButtonState(isLoading) {
+        const button = document.getElementById("refresh-status-btn");
+        const buttonText = document.getElementById("refresh-btn-text");
+        const spinner = document.getElementById("refresh-spinner");
+
+        if (button && buttonText && spinner) {
+            button.disabled = isLoading || this.queueWorkerTestInProgress;
+            buttonText.textContent = isLoading ? "Checking..." : "Check Status";
+
+            if (isLoading) {
+                spinner.classList.remove("hidden");
+                button.classList.add("cursor-not-allowed", "opacity-75");
+            } else {
+                spinner.classList.add("hidden");
+                button.classList.remove("cursor-not-allowed", "opacity-75");
+            }
+
+            // Add visual feedback for disabled state
+            if (button.disabled) {
+                button.setAttribute("aria-disabled", "true");
+                button.setAttribute("title", "Please wait for current operation to complete");
+            } else {
+                button.removeAttribute("aria-disabled");
+                button.setAttribute("title", "Check all setup statuses");
+            }
         }
     }
 
@@ -697,6 +852,183 @@ class SetupStatusManager {
 
 
     /**
+     * Show retry button for failed queue worker tests
+     */
+    showRetryButton() {
+        const retryBtn = document.getElementById("retry-queue-worker-btn");
+        if (retryBtn) {
+            retryBtn.classList.remove("hidden");
+            retryBtn.disabled = false;
+            retryBtn.classList.remove("cursor-not-allowed", "opacity-75");
+        }
+    }
+
+    /**
+     * Hide retry button
+     */
+    hideRetryButton() {
+        const retryBtn = document.querySelector(".retry-queue-test-btn");
+        if (retryBtn) {
+            retryBtn.remove();
+        }
+    }
+
+    /**
+     * Show queue worker error details with troubleshooting guidance
+     */
+    showQueueWorkerErrorDetails(status) {
+        const errorDetailsContainer = document.getElementById("queue-test-error-details");
+        const errorMessage = document.getElementById("queue-test-error-message");
+        const troubleshootingContent = document.getElementById("queue-test-troubleshooting-content");
+
+        if (errorDetailsContainer && errorMessage) {
+            // Set error message
+            errorMessage.textContent = status.error_message || 'Test failed with unknown error';
+
+            // Populate troubleshooting steps if available
+            if (troubleshootingContent && status.troubleshooting && Array.isArray(status.troubleshooting)) {
+                troubleshootingContent.innerHTML = '';
+                status.troubleshooting.forEach(step => {
+                    const stepElement = document.createElement('div');
+                    stepElement.className = 'text-xs text-red-600 mb-1';
+                    stepElement.innerHTML = `• ${this.escapeHtml(step)}`;
+                    troubleshootingContent.appendChild(stepElement);
+                });
+            }
+
+            // Show the error details container
+            errorDetailsContainer.classList.remove("hidden");
+        }
+    }
+
+    /**
+     * Hide queue worker error details
+     */
+    hideQueueWorkerErrorDetails() {
+        const errorDetailsContainer = document.getElementById("queue-test-error-details");
+        if (errorDetailsContainer) {
+            errorDetailsContainer.classList.add("hidden");
+        }
+    }
+
+    /**
+     * Show queue worker success details
+     */
+    showQueueWorkerSuccessDetails(status) {
+        const successDetailsContainer = document.getElementById("queue-test-success-details");
+        const successMessage = document.getElementById("queue-test-success-message");
+        const processingTime = document.getElementById("queue-test-processing-time");
+
+        if (successDetailsContainer && successMessage) {
+            // Set success message
+            successMessage.textContent = status.message || 'Queue worker is functioning properly';
+
+            // Set processing time if available
+            if (processingTime && status.processing_time) {
+                processingTime.textContent = `Processing time: ${status.processing_time.toFixed(2)} seconds`;
+            }
+
+            // Show the success details container
+            successDetailsContainer.classList.remove("hidden");
+        }
+    }
+
+    /**
+     * Hide queue worker success details
+     */
+    hideQueueWorkerSuccessDetails() {
+        const successDetailsContainer = document.getElementById("queue-test-success-details");
+        if (successDetailsContainer) {
+            successDetailsContainer.classList.add("hidden");
+        }
+    }
+
+    /**
+     * Show queue worker progress details
+     */
+    showQueueWorkerProgressDetails(status) {
+        const progressContainer = document.getElementById("queue-test-progress");
+        const progressText = document.getElementById("queue-test-progress-text");
+
+        if (progressContainer && progressText) {
+            progressText.textContent = status.message || 'Testing queue worker...';
+            progressContainer.classList.remove("hidden");
+        }
+    }
+
+    /**
+     * Hide queue worker progress details
+     */
+    hideQueueWorkerProgressDetails() {
+        const progressContainer = document.getElementById("queue-test-progress");
+        if (progressContainer) {
+            progressContainer.classList.add("hidden");
+        }
+    }
+
+    /**
+     * Escape HTML to prevent XSS in troubleshooting content
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Get troubleshooting steps based on error type
+     */
+    getTroubleshootingSteps(errorType) {
+        const troubleshootingSteps = {
+            'dispatch_failed': [
+                'Verify queue configuration in .env file (QUEUE_CONNECTION)',
+                'Check if database tables exist: php artisan migrate',
+                'Ensure queue driver is properly configured (database, redis, etc.)',
+                'Check application logs for configuration errors',
+                'Verify file permissions for storage and cache directories',
+                'Test database connection: php artisan tinker, then DB::connection()->getPdo()',
+                'For Redis queue: ensure Redis server is running and accessible'
+            ],
+            'timeout': [
+                'Ensure queue worker is running: php artisan queue:work',
+                'Check if worker process is stuck or crashed',
+                'Verify queue driver configuration (database, redis, etc.)',
+                'Check system resources (CPU, memory, disk space)',
+                'Review worker logs for errors or warnings',
+                'Restart the queue worker: php artisan queue:restart',
+                'Check for long-running jobs blocking the queue'
+            ],
+            'network_error': [
+                'Check your internet connection',
+                'Verify the application server is accessible',
+                'Check for firewall or proxy issues',
+                'Try refreshing the page and testing again',
+                'Contact your network administrator if issues persist'
+            ],
+            'general': [
+                'Check if queue worker is running: php artisan queue:work',
+                'Verify queue configuration in .env file',
+                'Check for failed jobs: php artisan queue:failed',
+                'Review application logs for errors',
+                'Restart the queue worker if needed',
+                'Check system resources and permissions'
+            ]
+        };
+
+        return troubleshootingSteps[errorType] || troubleshootingSteps['general'];
+    }
+
+    /**
+     * Clear all pending click timeouts
+     */
+    clearAllTimeouts() {
+        this.clickTimeouts.forEach((timeoutId) => {
+            clearTimeout(timeoutId);
+        });
+        this.clickTimeouts.clear();
+    }
+
+    /**
      * Get Shoelace icon name for message type
      */
     getIconName(type) {
@@ -831,21 +1163,50 @@ class SetupStatusManager {
                 if (cachedStatus.processing_time) {
                     details += ` (${cachedStatus.processing_time.toFixed(2)}s)`;
                 }
+                this.hideRetryButton();
+                this.hideQueueWorkerErrorDetails();
+                this.showQueueWorkerSuccessDetails(cachedStatus);
                 break;
             case 'failed':
                 statusClass = 'error';
-                message = 'Queue worker test failed';
+                message = cachedStatus.message || 'Queue worker test failed';
                 details = cachedStatus.error_message || 'Test failed with unknown error';
+                this.showRetryButton();
+                this.hideQueueWorkerSuccessDetails();
+                this.showQueueWorkerErrorDetails(cachedStatus);
                 break;
             case 'timeout':
+                statusClass = 'timeout';
+                message = cachedStatus.message || 'Queue worker test timed out';
+                details = cachedStatus.error_message || 'The queue worker may not be running';
+                this.showRetryButton();
+                this.hideQueueWorkerSuccessDetails();
+                this.showQueueWorkerErrorDetails(cachedStatus);
+                break;
+            case 'error':
                 statusClass = 'error';
-                message = 'Queue worker test timed out';
-                details = 'The queue worker may not be running';
+                message = cachedStatus.message || 'Error checking queue worker status';
+                details = cachedStatus.error_message || 'System error occurred';
+                this.showRetryButton();
+                this.hideQueueWorkerSuccessDetails();
+                this.showQueueWorkerErrorDetails(cachedStatus);
+                break;
+            case 'testing':
+                statusClass = 'checking';
+                message = cachedStatus.message || 'Testing queue worker...';
+                details = 'Test in progress...';
+                this.hideRetryButton();
+                this.hideQueueWorkerErrorDetails();
+                this.hideQueueWorkerSuccessDetails();
+                this.showQueueWorkerProgressDetails(cachedStatus);
                 break;
             default:
                 statusClass = 'not_tested';
                 message = 'Click the Test Queue Worker button below';
                 details = 'No recent test results available';
+                this.hideRetryButton();
+                this.hideQueueWorkerErrorDetails();
+                this.hideQueueWorkerSuccessDetails();
         }
 
         this.updateStatusIndicator("queue_worker", statusClass, message, details);
@@ -862,7 +1223,10 @@ class SetupStatusManager {
 
         try {
             this.queueWorkerTestInProgress = true;
+            
+            // Update both button states
             this.setQueueWorkerTestButtonState(true);
+            this.setRefreshButtonState(this.refreshInProgress);
             
             // Update queue worker status to testing
             this.updateStatusIndicator(
@@ -883,48 +1247,642 @@ class SetupStatusManager {
                 "Test failed",
                 error.message || "Unknown error occurred"
             );
+            
+            // Show retry button on error
+            this.showRetryButton();
         } finally {
             this.queueWorkerTestInProgress = false;
+            
+            // Re-enable buttons
             this.setQueueWorkerTestButtonState(false);
+            this.setRefreshButtonState(this.refreshInProgress);
         }
     }
 
     /**
-     * Set queue worker test button state
+     * Set queue worker test button state with enhanced visual feedback
      */
     setQueueWorkerTestButtonState(isLoading) {
         const testBtn = document.getElementById("test-queue-worker-btn");
         const testBtnText = document.getElementById("test-queue-worker-btn-text");
+        const testSpinner = document.getElementById("test-queue-worker-spinner");
+        const retryBtn = document.getElementById("retry-queue-worker-btn");
 
         if (testBtn && testBtnText) {
             testBtn.disabled = isLoading || this.refreshInProgress;
             testBtnText.textContent = isLoading ? "Testing..." : "Test Queue Worker";
+
+            // Handle spinner visibility
+            if (testSpinner) {
+                if (isLoading) {
+                    testSpinner.classList.remove("hidden");
+                } else {
+                    testSpinner.classList.add("hidden");
+                }
+            }
+
+            // Add visual feedback for disabled state
+            if (testBtn.disabled) {
+                testBtn.classList.add("cursor-not-allowed", "opacity-75");
+                testBtn.setAttribute("aria-disabled", "true");
+                testBtn.setAttribute("title", "Please wait for current operation to complete");
+            } else {
+                testBtn.classList.remove("cursor-not-allowed", "opacity-75");
+                testBtn.removeAttribute("aria-disabled");
+                testBtn.setAttribute("title", "Test queue worker functionality");
+            }
+        }
+
+        // Also disable retry button during testing
+        if (retryBtn) {
+            retryBtn.disabled = isLoading || this.refreshInProgress;
+            if (retryBtn.disabled) {
+                retryBtn.classList.add("cursor-not-allowed", "opacity-75");
+                retryBtn.setAttribute("aria-disabled", "true");
+            } else {
+                retryBtn.classList.remove("cursor-not-allowed", "opacity-75");
+                retryBtn.removeAttribute("aria-disabled");
+            }
         }
     }
 
     /**
-     * Perform the actual queue worker test
+     * Perform the actual queue worker test with progressive status updates and enhanced error handling
      */
     async performQueueWorkerTest() {
-        // Dispatch test job
-        const response = await this.makeAjaxRequest("/setup/queue/test", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": this.getCSRFToken(),
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: JSON.stringify({
-                delay: 0,
-            }),
-        });
+        try {
+            // Phase 1: Dispatching test job
+            this.updateStatusIndicator(
+                "queue_worker",
+                "checking",
+                "Testing queue worker...",
+                "Dispatching test job..."
+            );
 
-        if (!response.success || !response.test_job_id) {
-            throw new Error(response.message || "Failed to dispatch test job");
+            // Dispatch test job with enhanced error handling
+            const response = await this.makeAjaxRequest("/setup/queue/test", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": this.getCSRFToken(),
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: JSON.stringify({
+                    delay: 0,
+                    timeout: 30 // Configurable timeout
+                }),
+            });
+
+            if (!response.success) {
+                throw new Error(response.error?.message || response.message || "Failed to dispatch test job");
+            }
+
+            if (!response.test_job_id) {
+                throw new Error("No test job ID returned from server");
+            }
+
+            // Phase 2: Job dispatched successfully, start polling
+            this.updateStatusIndicator(
+                "queue_worker",
+                "checking",
+                "Test job queued...",
+                "Waiting for queue worker to pick up job..."
+            );
+
+            // Poll for results with enhanced error handling
+            await this.pollQueueTestResultWithEnhancedErrorHandling(response.test_job_id);
+
+        } catch (error) {
+            console.error("Queue worker test failed:", error);
+            this.handleQueueWorkerTestError(error);
+        }
+    }
+
+    /**
+     * Handle queue worker test errors with specific error types and retry options
+     */
+    handleQueueWorkerTestError(error) {
+        let statusClass = "error";
+        let message = "Test failed";
+        let details = error.message || "Unknown error occurred";
+        let showRetryButton = true;
+
+        // Determine error type and provide specific guidance
+        if (this.isDispatchError(error)) {
+            statusClass = "error";
+            message = "Failed to dispatch test job";
+            details = this.getDispatchErrorDetails(error);
+        } else if (this.isNetworkError(error)) {
+            statusClass = "error";
+            message = "Network error during test";
+            details = this.getNetworkErrorDetails(error);
+        } else if (this.isTimeoutError(error)) {
+            statusClass = "timeout";
+            message = "Queue worker test timed out";
+            details = this.getTimeoutErrorDetails(error);
+        } else {
+            // Generic error
+            details = `${error.message}. Check the application logs for more details.`;
         }
 
-        // Poll for results
-        await this.pollQueueTestResultForStatus(response.test_job_id);
+        // Update status indicator with error information
+        this.updateStatusIndicator("queue_worker", statusClass, message, details);
+
+        // Show retry button in the details section
+        if (showRetryButton) {
+            this.addRetryButtonToQueueWorkerStatus();
+        }
+    }
+
+    /**
+     * Check if error is a dispatch-related error
+     */
+    isDispatchError(error) {
+        const message = error.message.toLowerCase();
+        return message.includes('dispatch') || 
+               message.includes('queue connection') || 
+               message.includes('database connection') ||
+               message.includes('table') ||
+               message.includes('configuration');
+    }
+
+    /**
+     * Check if error is network-related
+     */
+    isNetworkError(error) {
+        const message = error.message.toLowerCase();
+        return message.includes('network') || 
+               message.includes('connection refused') || 
+               message.includes('timeout') ||
+               message.includes('unreachable') ||
+               message.includes('fetch');
+    }
+
+    /**
+     * Check if error is timeout-related
+     */
+    isTimeoutError(error) {
+        const message = error.message.toLowerCase();
+        return message.includes('timeout') || message.includes('timed out');
+    }
+
+    /**
+     * Get detailed error information for dispatch errors
+     */
+    getDispatchErrorDetails(error) {
+        return `
+            <div class="space-y-2">
+                <p class="text-sm text-red-700">${error.message}</p>
+                <div class="bg-red-50 p-3 rounded border border-red-200">
+                    <h4 class="font-medium text-red-800 mb-2">Troubleshooting Steps:</h4>
+                    <ul class="text-sm text-red-700 space-y-1 list-disc list-inside">
+                        <li>Verify queue configuration in .env file (QUEUE_CONNECTION)</li>
+                        <li>Check if database tables exist: php artisan migrate</li>
+                        <li>Ensure queue driver is properly configured</li>
+                        <li>Check application logs for configuration errors</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Get detailed error information for network errors
+     */
+    getNetworkErrorDetails(error) {
+        return `
+            <div class="space-y-2">
+                <p class="text-sm text-red-700">${error.message}</p>
+                <div class="bg-red-50 p-3 rounded border border-red-200">
+                    <h4 class="font-medium text-red-800 mb-2">Troubleshooting Steps:</h4>
+                    <ul class="text-sm text-red-700 space-y-1 list-disc list-inside">
+                        <li>Check your internet connection</li>
+                        <li>Verify the application server is accessible</li>
+                        <li>Check for firewall or proxy issues</li>
+                        <li>Try refreshing the page and testing again</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Get detailed error information for timeout errors
+     */
+    getTimeoutErrorDetails(error) {
+        return `
+            <div class="space-y-2">
+                <p class="text-sm text-yellow-700">${error.message}</p>
+                <div class="bg-yellow-50 p-3 rounded border border-yellow-200">
+                    <h4 class="font-medium text-yellow-800 mb-2">Troubleshooting Steps:</h4>
+                    <ul class="text-sm text-yellow-700 space-y-1 list-disc list-inside">
+                        <li>Ensure queue worker is running: php artisan queue:work</li>
+                        <li>Check if worker process is stuck or crashed</li>
+                        <li>Verify queue driver configuration</li>
+                        <li>Check system resources (CPU, memory, disk space)</li>
+                        <li>Review worker logs for errors or warnings</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Add retry button to queue worker status details
+     */
+    addRetryButtonToQueueWorkerStatus() {
+        const detailsElement = document.getElementById("details-queue_worker-text");
+        if (detailsElement) {
+            // Check if retry button already exists
+            if (!detailsElement.querySelector('.retry-queue-test-btn')) {
+                const retryButton = document.createElement('button');
+                retryButton.className = 'retry-queue-test-btn mt-3 inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150';
+                retryButton.innerHTML = `
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Retry Test
+                `;
+                retryButton.addEventListener('click', () => {
+                    this.retryQueueWorkerTest();
+                });
+                
+                detailsElement.appendChild(retryButton);
+            }
+        }
+    }
+
+    /**
+     * Retry queue worker test
+     */
+    async retryQueueWorkerTest() {
+        console.log("Retrying queue worker test...");
+
+        // Hide error details and retry button
+        this.hideQueueWorkerErrorDetails();
+        this.hideRetryButton();
+
+        // Remove any existing retry buttons (legacy)
+        const existingRetryBtn = document.querySelector('.retry-queue-test-btn');
+        if (existingRetryBtn) {
+            existingRetryBtn.remove();
+        }
+
+        // Clear any error messages
+        this.clearErrorMessages();
+
+        // Reset any previous test state
+        this.queueWorkerTestInProgress = false;
+
+        // Restart the test
+        await this.testQueueWorker();
+    }
+
+    /**
+     * Show retry button for failed queue worker tests
+     */
+    showRetryButton() {
+        const retryBtn = document.getElementById("retry-queue-worker-btn");
+        if (retryBtn) {
+            retryBtn.classList.remove("hidden");
+        }
+    }
+
+    /**
+     * Show queue worker error details with troubleshooting
+     */
+    showQueueWorkerErrorDetails(errorMessage, errorType = 'general') {
+        const errorDetails = document.getElementById("queue-test-error-details");
+        const errorMessageEl = document.getElementById("queue-test-error-message");
+        const troubleshootingContent = document.getElementById("queue-test-troubleshooting-content");
+        
+        if (errorDetails && errorMessageEl) {
+            errorMessageEl.textContent = errorMessage;
+            
+            // Add troubleshooting steps based on error type
+            if (troubleshootingContent) {
+                troubleshootingContent.innerHTML = this.getTroubleshootingSteps(errorType);
+            }
+            
+            errorDetails.classList.remove("hidden");
+            errorDetails.classList.add("error-message");
+            
+            // Show retry button
+            this.showRetryButton();
+        }
+    }
+
+    /**
+     * Hide queue worker error details
+     */
+    hideQueueWorkerErrorDetails() {
+        const errorDetails = document.getElementById("queue-test-error-details");
+        if (errorDetails) {
+            errorDetails.classList.add("hidden");
+            errorDetails.classList.remove("error-message");
+        }
+    }
+
+    /**
+     * Show queue worker success details
+     */
+    showQueueWorkerSuccessDetails(message, processingTime = null) {
+        const successDetails = document.getElementById("queue-test-success-details");
+        const successMessage = document.getElementById("queue-test-success-message");
+        const processingTimeEl = document.getElementById("queue-test-processing-time");
+        
+        if (successDetails && successMessage) {
+            successMessage.textContent = message;
+            
+            if (processingTime && processingTimeEl) {
+                processingTimeEl.textContent = `Processing time: ${processingTime}s`;
+            }
+            
+            successDetails.classList.remove("hidden");
+            successDetails.classList.add("success-message");
+            
+            // Hide retry button on success
+            this.hideRetryButton();
+        }
+    }
+
+    /**
+     * Hide queue worker success details
+     */
+    hideQueueWorkerSuccessDetails() {
+        const successDetails = document.getElementById("queue-test-success-details");
+        if (successDetails) {
+            successDetails.classList.add("hidden");
+            successDetails.classList.remove("success-message");
+        }
+    }
+
+    /**
+     * Show progressive queue worker test status
+     */
+    showQueueWorkerProgress(message, details = null) {
+        const progressEl = document.getElementById("queue-test-progress");
+        const progressText = document.getElementById("queue-test-progress-text");
+        const progressDetails = document.getElementById("queue-test-progress-details");
+        
+        if (progressEl && progressText) {
+            progressText.textContent = message;
+            
+            if (details && progressDetails) {
+                progressDetails.textContent = details;
+                progressDetails.classList.remove("hidden");
+            } else if (progressDetails) {
+                progressDetails.classList.add("hidden");
+            }
+            
+            progressEl.classList.remove("hidden");
+            progressEl.classList.add("queue-test-progress");
+        }
+    }
+
+    /**
+     * Hide queue worker progress
+     */
+    hideQueueWorkerProgress() {
+        const progressEl = document.getElementById("queue-test-progress");
+        if (progressEl) {
+            progressEl.classList.add("hidden");
+            progressEl.classList.remove("queue-test-progress");
+        }
+    }
+
+    /**
+     * Get troubleshooting steps based on error type
+     */
+    getTroubleshootingSteps(errorType) {
+        const steps = {
+            'dispatch_failed': [
+                'Check that your database connection is working properly',
+                'Verify that the jobs table exists (run migrations if needed)',
+                'Ensure your queue configuration in .env is correct',
+                'Check Laravel logs for detailed error information'
+            ],
+            'timeout': [
+                'Verify that a queue worker is running (php artisan queue:work)',
+                'Check if the worker process is stuck or crashed',
+                'Restart the queue worker process',
+                'Check system resources (CPU, memory) on your server',
+                'Review worker logs for any error messages'
+            ],
+            'job_failed': [
+                'Check Laravel logs for the specific job failure reason',
+                'Verify file permissions in storage directories',
+                'Ensure all required dependencies are installed',
+                'Check if there are any configuration issues',
+                'Try running the queue worker with --tries=1 for debugging'
+            ],
+            'network_error': [
+                'Check your internet connection',
+                'Verify that the application server is running',
+                'Check for any firewall or proxy issues',
+                'Try refreshing the page and testing again'
+            ],
+            'general': [
+                'Check Laravel logs in storage/logs/laravel.log',
+                'Verify that the queue worker is running',
+                'Ensure database connection is working',
+                'Check system resources and server status',
+                'Try running: php artisan queue:work --tries=1'
+            ]
+        };
+        
+        const errorSteps = steps[errorType] || steps['general'];
+        return errorSteps.map(step => `<div class="troubleshooting-step">• ${step}</div>`).join('');
+    }
+
+    /**
+     * Poll for queue test results with enhanced error handling and recovery
+     */
+    async pollQueueTestResultWithEnhancedErrorHandling(testJobId) {
+        const maxAttempts = 30; // 30 seconds
+        const maxNetworkRetries = 3;
+        let attempts = 0;
+        let networkRetries = 0;
+        const startTime = Date.now();
+
+        const poll = async () => {
+            attempts++;
+
+            try {
+                const response = await this.makeAjaxRequest(
+                    `/setup/queue/test/status?test_job_id=${testJobId}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "X-CSRF-TOKEN": this.getCSRFToken(),
+                            "X-Requested-With": "XMLHttpRequest",
+                        },
+                    }
+                );
+
+                // Reset network retry counter on successful request
+                networkRetries = 0;
+
+                if (!response.success || !response.status) {
+                    throw new Error(response.error?.message || "Invalid response from server");
+                }
+
+                const status = response.status;
+                const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                // Handle different status states
+                switch (status.status) {
+                    case "completed":
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "completed",
+                            "Queue worker is functioning properly",
+                            `Test completed successfully in ${(status.processing_time || 0).toFixed(2)}s (total: ${elapsedTime}s)`
+                        );
+                        return;
+
+                    case "failed":
+                        const errorMessage = status.error_message || "Test job failed without specific error";
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "error",
+                            "Test job execution failed",
+                            this.getJobFailureDetails(errorMessage, elapsedTime)
+                        );
+                        this.addRetryButtonToQueueWorkerStatus();
+                        return;
+
+                    case "timeout":
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "timeout",
+                            "Queue worker test timed out",
+                            this.getTimeoutErrorDetails({ message: `Test timed out after ${elapsedTime}s. The queue worker may not be running.` })
+                        );
+                        this.addRetryButtonToQueueWorkerStatus();
+                        return;
+
+                    case "processing":
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "checking",
+                            "Test job processing...",
+                            `Job is being processed by queue worker (${elapsedTime}s elapsed)`
+                        );
+                        break;
+
+                    case "pending":
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "checking",
+                            "Test job queued...",
+                            `Waiting for queue worker to pick up job (${elapsedTime}s elapsed)`
+                        );
+                        break;
+
+                    default:
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "checking",
+                            "Testing queue worker...",
+                            `Checking test job status (${elapsedTime}s elapsed)`
+                        );
+                        break;
+                }
+
+                // Continue polling if not completed or failed
+                if (status.status === "processing" || status.status === "pending") {
+                    if (attempts < maxAttempts) {
+                        setTimeout(poll, 1000);
+                    } else {
+                        // Final timeout
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "timeout",
+                            "Queue worker test timed out",
+                            this.getTimeoutErrorDetails({ message: `Test timed out after ${elapsedTime}s. The queue worker may not be running.` })
+                        );
+                        this.addRetryButtonToQueueWorkerStatus();
+                    }
+                }
+
+            } catch (error) {
+                console.error("Polling error:", error);
+                
+                // Handle network errors with retry logic
+                if (this.isNetworkError(error) && networkRetries < maxNetworkRetries) {
+                    networkRetries++;
+                    console.log(`Network error during polling, retrying... (${networkRetries}/${maxNetworkRetries})`);
+                    
+                    // Show temporary network error message
+                    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                    this.updateStatusIndicator(
+                        "queue_worker",
+                        "checking",
+                        "Network error, retrying...",
+                        `Connection issue during status check (${elapsedTime}s elapsed, retry ${networkRetries}/${maxNetworkRetries})`
+                    );
+                    
+                    // Retry after a short delay
+                    setTimeout(poll, 2000);
+                    return;
+                }
+                
+                // Final error - no more retries
+                const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                this.updateStatusIndicator(
+                    "queue_worker",
+                    "error",
+                    "Error checking test status",
+                    this.getPollingErrorDetails(error, elapsedTime)
+                );
+                this.addRetryButtonToQueueWorkerStatus();
+            }
+        };
+
+        // Start polling
+        poll();
+    }
+
+    /**
+     * Get detailed error information for job execution failures
+     */
+    getJobFailureDetails(errorMessage, elapsedTime) {
+        return `
+            <div class="space-y-2">
+                <p class="text-sm text-red-700">Job failed after ${elapsedTime}s: ${errorMessage}</p>
+                <div class="bg-red-50 p-3 rounded border border-red-200">
+                    <h4 class="font-medium text-red-800 mb-2">Troubleshooting Steps:</h4>
+                    <ul class="text-sm text-red-700 space-y-1 list-disc list-inside">
+                        <li>Check failed jobs table: php artisan queue:failed</li>
+                        <li>Review worker logs for specific error details</li>
+                        <li>Ensure all required dependencies are installed</li>
+                        <li>Check memory limits and execution time settings</li>
+                        <li>Verify database connectivity from worker process</li>
+                    </ul>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Get detailed error information for polling errors
+     */
+    getPollingErrorDetails(error, elapsedTime) {
+        return `
+            <div class="space-y-2">
+                <p class="text-sm text-red-700">Status check failed after ${elapsedTime}s: ${error.message}</p>
+                <div class="bg-red-50 p-3 rounded border border-red-200">
+                    <h4 class="font-medium text-red-800 mb-2">Troubleshooting Steps:</h4>
+                    <ul class="text-sm text-red-700 space-y-1 list-disc list-inside">
+                        <li>Check your internet connection</li>
+                        <li>Verify the application server is accessible</li>
+                        <li>Try refreshing the page and testing again</li>
+                        <li>Check application logs for server errors</li>
+                    </ul>
+                </div>
+            </div>
+        `;
     }
 
     /**
@@ -960,8 +1918,8 @@ class SetupStatusManager {
                         this.updateStatusIndicator(
                             "queue_worker",
                             "completed",
-                            "Queue worker is functioning properly",
-                            `Job completed in ${(status.processing_time || 0).toFixed(2)}s`
+                            `Queue worker is functioning properly (${(status.processing_time || 0).toFixed(2)}s)`,
+                            `Test completed successfully at ${new Date().toLocaleTimeString()}`
                         );
                         return;
 
@@ -969,8 +1927,17 @@ class SetupStatusManager {
                         this.updateStatusIndicator(
                             "queue_worker",
                             "error",
-                            "Queue test failed",
-                            status.error_message || "Unknown error"
+                            "Queue worker test failed",
+                            status.error_message || "Test job failed with unknown error"
+                        );
+                        return;
+
+                    case "timeout":
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "error",
+                            "Queue worker test timed out",
+                            "The queue worker may not be running"
                         );
                         return;
 
@@ -978,8 +1945,8 @@ class SetupStatusManager {
                         this.updateStatusIndicator(
                             "queue_worker",
                             "checking",
-                            "Test job is being processed...",
-                            `Processing for ${attempts}s`
+                            "Test job processing...",
+                            `Job is being processed by worker (${attempts}s elapsed)`
                         );
                         break;
 
@@ -987,8 +1954,17 @@ class SetupStatusManager {
                         this.updateStatusIndicator(
                             "queue_worker",
                             "checking",
-                            "Test job queued, waiting for worker...",
-                            `Waiting for ${attempts}s`
+                            "Test job queued...",
+                            `Waiting for queue worker to pick up job (${attempts}s elapsed)`
+                        );
+                        break;
+
+                    default:
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "checking",
+                            "Testing queue worker...",
+                            `Checking test job status (${attempts}s elapsed)`
                         );
                         break;
                 }
@@ -1000,9 +1976,9 @@ class SetupStatusManager {
                     } else {
                         this.updateStatusIndicator(
                             "queue_worker",
-                            "error",
-                            "Test timed out after 30 seconds",
-                            "The queue worker may not be running"
+                            "timeout",
+                            "Queue worker test timed out (30s)",
+                            "The queue worker may not be running. Check if 'php artisan queue:work' is active."
                         );
                     }
                 }
@@ -1027,29 +2003,54 @@ class SetupStatusManager {
     async testQueueWorker() {
         const testResults = document.getElementById("queue-test-results");
         const testStatus = document.getElementById("queue-test-status");
+        const testBtn = document.getElementById("test-queue-worker-btn");
+        const testBtnText = document.getElementById("test-queue-worker-btn-text");
+        const testSpinner = document.getElementById("test-queue-worker-spinner");
+        const refreshBtn = document.getElementById("refresh-status-btn");
 
         if (!testResults || !testStatus) {
             console.error("Queue test elements not found");
             return;
         }
 
+        // Set test in progress flag
+        this.queueWorkerTestInProgress = true;
+
+        // Disable buttons and show loading state
+        if (testBtn) {
+            testBtn.disabled = true;
+            if (testBtnText) testBtnText.textContent = "Testing...";
+            if (testSpinner) testSpinner.classList.remove("hidden");
+        }
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+        }
+
+        // Hide previous results
+        this.hideQueueWorkerErrorDetails();
+        this.hideQueueWorkerSuccessDetails();
+        this.hideQueueWorkerProgress();
+        this.hideRetryButton();
+
         try {
             // Show test results section
             testResults.classList.remove("hidden");
+            
+            // Phase 1: Initial testing message
             testStatus.innerHTML = `
                 <div class="flex items-center">
                     <svg class="animate-spin h-4 w-4 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span class="text-blue-700">Dispatching test job...</span>
+                    <span class="text-blue-700">Testing queue worker...</span>
                 </div>
             `;
 
-            // Use the new separated queue worker test logic
+            // Use the enhanced queue worker test logic
             await this.triggerQueueWorkerTest();
 
-            // Poll for results and update the test results section
+            // Dispatch test job with progressive status updates
             const response = await this.makeAjaxRequest("/setup/queue/test", {
                 method: "POST",
                 headers: {
@@ -1063,8 +2064,18 @@ class SetupStatusManager {
             });
 
             if (response.success && response.test_job_id) {
-                // Poll for results in the test results section
-                await this.pollQueueTestResult(
+                // Phase 2: Job dispatched successfully
+                testStatus.innerHTML = `
+                    <div class="flex items-center">
+                        <svg class="animate-pulse h-4 w-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-yellow-700">Test job queued...</span>
+                    </div>
+                `;
+
+                // Poll for results in the test results section with enhanced status updates
+                await this.pollQueueTestResultWithProgressiveUpdates(
                     response.test_job_id,
                     testStatus
                 );
@@ -1075,6 +2086,41 @@ class SetupStatusManager {
             }
         } catch (error) {
             console.error("Queue test failed:", error);
+            
+            // Hide progress and success details
+            this.hideQueueWorkerProgressDetails();
+            this.hideQueueWorkerSuccessDetails();
+            
+            // Determine error type for better troubleshooting
+            let errorType = 'general';
+            if (error.message.includes('dispatch')) {
+                errorType = 'dispatch_failed';
+            } else if (error.message.includes('timeout')) {
+                errorType = 'timeout';
+            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                errorType = 'network_error';
+            }
+            
+            // Create enhanced error status object
+            const errorStatus = {
+                status: 'failed',
+                message: 'Queue worker test failed',
+                error_message: error.message,
+                troubleshooting: this.getTroubleshootingSteps(errorType)
+            };
+            
+            // Show enhanced error details
+            this.showQueueWorkerErrorDetails(errorStatus);
+            
+            // Update the main status indicator
+            this.updateStatusIndicator(
+                "queue_worker",
+                "failed",
+                "Queue worker test failed",
+                `Test failed: ${error.message}`
+            );
+            
+            // Update test status in results section
             testStatus.innerHTML = `
                 <div class="flex items-center">
                     <svg class="h-4 w-4 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1083,11 +2129,226 @@ class SetupStatusManager {
                     <span class="text-red-700">Test failed: ${error.message}</span>
                 </div>
             `;
+        } finally {
+            // Reset button states
+            this.queueWorkerTestInProgress = false;
+            
+            if (testBtn) {
+                testBtn.disabled = false;
+                if (testBtnText) testBtnText.textContent = "Test Queue Worker";
+                if (testSpinner) testSpinner.classList.add("hidden");
+            }
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+            }
         }
     }
 
     /**
-     * Poll for queue test result
+     * Poll for queue test result with progressive status updates for test results section
+     */
+    async pollQueueTestResultWithProgressiveUpdates(testJobId, statusElement) {
+        const maxAttempts = 30; // 30 seconds
+        let attempts = 0;
+        const startTime = Date.now();
+
+        const poll = async () => {
+            attempts++;
+
+            try {
+                const response = await this.makeAjaxRequest(
+                    `/setup/queue/test/status?test_job_id=${testJobId}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "X-CSRF-TOKEN": this.getCSRFToken(),
+                            "X-Requested-With": "XMLHttpRequest",
+                        },
+                    }
+                );
+
+                if (response.success && response.status) {
+                    const status = response.status;
+                    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                    switch (status.status) {
+                        case "completed":
+                            // Hide progress
+                            this.hideQueueWorkerProgress();
+                            
+                            // Show success details
+                            const processingTime = (status.processing_time || 0).toFixed(2);
+                            this.showQueueWorkerSuccessDetails(
+                                `Queue worker is functioning properly! Job completed in ${processingTime}s (total test time: ${elapsedTime}s)`,
+                                processingTime
+                            );
+                            
+                            // Update main status indicator
+                            this.updateStatusIndicator(
+                                "queue_worker",
+                                "completed",
+                                "Queue worker is functioning properly",
+                                `Last tested: just now (${processingTime}s)`
+                            );
+                            
+                            // Update test results section
+                            statusElement.innerHTML = `
+                                <div class="flex items-center">
+                                    <svg class="h-4 w-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="text-green-700">Queue worker is functioning properly! Job completed in ${processingTime}s (total test time: ${elapsedTime}s)</span>
+                                </div>
+                            `;
+                            return;
+
+                        case "failed":
+                            // Hide progress
+                            this.hideQueueWorkerProgress();
+                            
+                            // Show error details
+                            const errorMessage = status.error_message || "Unknown error";
+                            this.showQueueWorkerErrorDetails(errorMessage, 'job_failed');
+                            
+                            // Update main status indicator
+                            this.updateStatusIndicator(
+                                "queue_worker",
+                                "failed",
+                                "Queue worker test failed",
+                                `Test failed: ${errorMessage}`
+                            );
+                            
+                            // Update test results section
+                            statusElement.innerHTML = `
+                                <div class="flex items-center">
+                                    <svg class="h-4 w-4 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="text-red-700">Queue test failed: ${errorMessage} (after ${elapsedTime}s)</span>
+                                </div>
+                            `;
+                            return;
+
+                        case "timeout":
+                            // Hide progress
+                            this.hideQueueWorkerProgress();
+                            
+                            // Show error details for timeout
+                            this.showQueueWorkerErrorDetails(
+                                `Test timed out after ${elapsedTime}s. The queue worker may not be running.`,
+                                'timeout'
+                            );
+                            
+                            // Update main status indicator
+                            this.updateStatusIndicator(
+                                "queue_worker",
+                                "timeout",
+                                "Queue worker test timed out",
+                                "The queue worker may not be running"
+                            );
+                            
+                            // Update test results section
+                            statusElement.innerHTML = `
+                                <div class="flex items-center">
+                                    <svg class="h-4 w-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="text-yellow-700">Test timed out after ${elapsedTime}s. The queue worker may not be running.</span>
+                                </div>
+                            `;
+                            return;
+
+                        case "processing":
+                            // Show progress
+                            this.showQueueWorkerProgress(
+                                "Test job is being processed...",
+                                `${elapsedTime}s elapsed`
+                            );
+                            
+                            // Update test results section
+                            statusElement.innerHTML = `
+                                <div class="flex items-center">
+                                    <svg class="animate-spin h-4 w-4 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="text-blue-700">Test job is being processed... (${elapsedTime}s elapsed)</span>
+                                </div>
+                            `;
+                            break;
+
+                        case "pending":
+                            // Show progress
+                            this.showQueueWorkerProgress(
+                                "Test job is queued, waiting for worker...",
+                                `${elapsedTime}s elapsed`
+                            );
+                            
+                            // Update test results section
+                            statusElement.innerHTML = `
+                                <div class="flex items-center">
+                                    <svg class="animate-pulse h-4 w-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="text-yellow-700">Test job is queued, waiting for worker... (${elapsedTime}s elapsed)</span>
+                                </div>
+                            `;
+                            break;
+
+                        default:
+                            statusElement.innerHTML = `
+                                <div class="flex items-center">
+                                    <svg class="animate-spin h-4 w-4 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span class="text-blue-700">Testing queue worker... (${elapsedTime}s elapsed)</span>
+                                </div>
+                            `;
+                            break;
+                    }
+
+                    // Continue polling if not completed or failed
+                    if (
+                        status.status === "processing" ||
+                        status.status === "pending"
+                    ) {
+                        if (attempts < maxAttempts) {
+                            setTimeout(poll, 1000);
+                        } else {
+                            statusElement.innerHTML = `
+                                <div class="flex items-center">
+                                    <svg class="h-4 w-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="text-yellow-700">Test timed out after ${elapsedTime}s. The queue worker may not be running.</span>
+                                </div>
+                            `;
+                        }
+                    }
+                } else {
+                    throw new Error("Invalid response from server");
+                }
+            } catch (error) {
+                console.error("Polling error:", error);
+                const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                statusElement.innerHTML = `
+                    <div class="flex items-center">
+                        <svg class="h-4 w-4 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-red-700">Error checking test status: ${error.message} (after ${elapsedTime}s)</span>
+                    </div>
+                `;
+            }
+        };
+
+        // Start polling
+        poll();
+    }
+
+    /**
+     * Poll for queue test result (legacy method for backward compatibility)
      */
     async pollQueueTestResult(testJobId, statusElement) {
         const maxAttempts = 30; // 30 seconds
