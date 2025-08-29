@@ -8,7 +8,7 @@ use App\Http\Controllers\StaticPageController;
 use Illuminate\Support\Facades\Route;
 
 // Test route for middleware
-Route::get('/test-middleware', function() {
+Route::get('/test-middleware', function () {
     return 'Middleware test - you should not see this if setup is incomplete';
 })->middleware(\App\Http\Middleware\SetupDetectionMiddleware::class);
 
@@ -108,11 +108,11 @@ Route::get('/health', [\App\Http\Controllers\HealthController::class, 'check'])-
 Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, 'detailed'])->name('health.detailed');
 
 // Public Queue Testing Routes (for setup instructions)
-// TODO: Re-enable rate limiting after testing: 'queue.worker.test.rate.limit'
 Route::post('/setup/queue/test', [\App\Http\Controllers\SetupController::class, 'testQueue'])
     ->name('setup.queue.test')
+    ->middleware(['require.setup.enabled'])
     // ->middleware(['require.setup.enabled', 'queue.worker.test.rate.limit'])
-    ->middleware(['require.setup.enabled']);
+    ;
 Route::get('/setup/queue/test/status', [\App\Http\Controllers\SetupController::class, 'checkQueueTestStatus'])
     ->name('setup.queue.test.status')
     ->middleware(['require.setup.enabled']);
@@ -120,23 +120,23 @@ Route::get('/setup/queue/test/status', [\App\Http\Controllers\SetupController::c
 // Temporary debug route - remove after debugging
 Route::get('/debug-setup-status', function () {
     $setupService = app(\App\Services\SetupService::class);
-    
+
     // Get setup checks configuration
     $checks = config('setup.checks', []);
-    
+
     // Manually check each condition
     $adminExists = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->exists();
     $usersTableExists = \Illuminate\Support\Facades\Schema::hasTable('users');
-    
+
     // Check assets
     $assetService = app(\App\Services\AssetValidationService::class);
     $assetsValid = $assetService->areAssetRequirementsMet();
-    
+
     // Check cloud storage
     $googleClientId = config('services.google.client_id');
     $googleClientSecret = config('services.google.client_secret');
     $cloudStorageConfigured = !empty($googleClientId) && !empty($googleClientSecret);
-    
+
     return response()->json([
         'setup_required' => $setupService->isSetupRequired(),
         'setup_complete' => $setupService->isSetupComplete(),
@@ -167,7 +167,7 @@ Route::get('/force-reset-setup', function () {
         } else {
             $stateFileRemoved = false;
         }
-        
+
         // Remove backup files
         $backupDir = storage_path('app/setup/backups');
         if (is_dir($backupDir)) {
@@ -181,15 +181,15 @@ Route::get('/force-reset-setup', function () {
         } else {
             $backupsRemoved = 0;
         }
-        
+
         // Clear caches
         \Illuminate\Support\Facades\Artisan::call('config:clear');
         \Illuminate\Support\Facades\Artisan::call('cache:clear');
-        
+
         // Clear setup cache specifically
         \Illuminate\Support\Facades\Cache::forget('setup_state_required');
         \Illuminate\Support\Facades\Cache::forget('setup_state_complete');
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Setup state reset successfully',
@@ -197,7 +197,6 @@ Route::get('/force-reset-setup', function () {
             'backups_removed' => $backupsRemoved,
             'next_step' => 'Visit home page - should redirect to setup'
         ]);
-        
     } catch (Exception $e) {
         return response()->json([
             'success' => false,
@@ -210,14 +209,14 @@ Route::get('/force-reset-setup', function () {
 Route::get('/test-setup-checks', function () {
     try {
         $setupService = app(\App\Services\SetupService::class);
-        
+
         // Call performSetupChecks directly
         $reflection = new ReflectionClass($setupService);
         $method = $reflection->getMethod('performSetupChecks');
         $method->setAccessible(true);
-        
+
         $result = $method->invoke($setupService);
-        
+
         return response()->json([
             'performSetupChecks_result' => $result,
             'result_meaning' => $result ? 'Setup IS required' : 'Setup NOT required',
@@ -226,7 +225,6 @@ Route::get('/test-setup-checks', function () {
                 'isSetupComplete' => $setupService->isSetupComplete(),
             ]
         ]);
-        
     } catch (Exception $e) {
         return response()->json([
             'error' => $e->getMessage(),
@@ -240,39 +238,39 @@ Route::get('/debug-setup-logic', function () {
     try {
         // Get setup service
         $setupService = app(\App\Services\SetupService::class);
-        
+
         // Check each condition step by step
         $checks = config('setup.checks', []);
-        
+
         // Admin user check
         $adminCheckEnabled = $checks['admin_user_exists'] ?? true;
         $adminExists = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->exists();
         $adminCheckPasses = !$adminCheckEnabled || $adminExists;
-        
+
         // Cloud storage check
         $cloudCheckEnabled = $checks['cloud_storage_configured'] ?? true;
         $googleClientId = config('services.google.client_id');
         $googleClientSecret = config('services.google.client_secret');
         $cloudStorageConfigured = !empty($googleClientId) && !empty($googleClientSecret);
         $cloudCheckPasses = !$cloudCheckEnabled || $cloudStorageConfigured;
-        
+
         // Assets check
         $assetCheckEnabled = $checks['asset_validation'] ?? true;
         $assetService = app(\App\Services\AssetValidationService::class);
         $assetsValid = $assetService->areAssetRequirementsMet();
         $assetCheckPasses = !$assetCheckEnabled || $assetsValid;
-        
+
         // Database checks
         $dbConnectivityEnabled = $checks['database_connectivity'] ?? true;
         $migrationsEnabled = $checks['migrations_run'] ?? true;
         $usersTableExists = \Illuminate\Support\Facades\Schema::hasTable('users');
-        
+
         $dbConnectivityPasses = true; // If we got here, DB is connected
         $migrationsPass = !$migrationsEnabled || $usersTableExists;
-        
+
         // Overall logic
         $allChecksPassed = $adminCheckPasses && $cloudCheckPasses && $assetCheckPasses && $dbConnectivityPasses && $migrationsPass;
-        
+
         return response()->json([
             'setup_checks_config' => $checks,
             'detailed_checks' => [
@@ -310,7 +308,6 @@ Route::get('/debug-setup-logic', function () {
                 'actual_setup_required' => $setupService->isSetupRequired()
             ]
         ]);
-        
     } catch (Exception $e) {
         return response()->json([
             'success' => false,
@@ -324,19 +321,19 @@ Route::get('/debug-setup-logic', function () {
 Route::get('/debug-session-validation', function () {
     try {
         $setupService = app(\App\Services\SetupService::class);
-        
+
         // Get current session data
         $sessionData = session('setup_session', []);
-        
+
         // Test session validation
         $validation = $setupService->validateSetupSession();
-        
+
         // Create a new session if needed
         if (!$validation['valid']) {
             $newSession = $setupService->createSecureSetupSession();
             $newValidation = $setupService->validateSetupSession();
         }
-        
+
         return response()->json([
             'current_session_data' => $sessionData,
             'current_session_keys' => array_keys($sessionData),
@@ -345,7 +342,6 @@ Route::get('/debug-session-validation', function () {
             'new_session_data' => $newSession ?? null,
             'new_validation' => $newValidation ?? null,
         ]);
-        
     } catch (Exception $e) {
         return response()->json([
             'success' => false,
@@ -360,17 +356,17 @@ Route::post('/debug-storage-config', function (Illuminate\Http\Request $request)
     try {
         $setupService = app(\App\Services\SetupService::class);
         $securityService = app(\App\Services\SetupSecurityService::class);
-        
+
         // Get the input data
         $inputData = [
             'client_id' => $request->input('google_client_id'),
             'client_secret' => $request->input('google_client_secret'),
             'redirect_uri' => $request->input('google_redirect_uri', route('google-drive.unified-callback')),
         ];
-        
+
         // Test sanitization
         $sanitizationResult = $securityService->sanitizeStorageConfig($inputData);
-        
+
         // Test environment variable validation
         $envValidation = [];
         if (!empty($sanitizationResult['sanitized']['client_id'])) {
@@ -379,15 +375,17 @@ Route::post('/debug-storage-config', function (Illuminate\Http\Request $request)
         if (!empty($sanitizationResult['sanitized']['client_secret'])) {
             $envValidation['client_secret'] = $securityService->validateEnvironmentVariable('GOOGLE_DRIVE_CLIENT_SECRET', $sanitizationResult['sanitized']['client_secret']);
         }
-        
+
         // Test the full update process
         $updateResult = null;
-        if (empty($sanitizationResult['violations']) && 
-            ($envValidation['client_id']['valid'] ?? true) && 
-            ($envValidation['client_secret']['valid'] ?? true)) {
+        if (
+            empty($sanitizationResult['violations']) &&
+            ($envValidation['client_id']['valid'] ?? true) &&
+            ($envValidation['client_secret']['valid'] ?? true)
+        ) {
             $updateResult = $setupService->updateStorageEnvironment($inputData);
         }
-        
+
         return response()->json([
             'input_data' => $inputData,
             'sanitization_result' => $sanitizationResult,
@@ -395,7 +393,6 @@ Route::post('/debug-storage-config', function (Illuminate\Http\Request $request)
             'update_result' => $updateResult,
             'current_cloud_storage_configured' => $setupService->isCloudStorageConfigured(),
         ]);
-        
     } catch (Exception $e) {
         return response()->json([
             'success' => false,
@@ -409,7 +406,7 @@ Route::post('/debug-storage-config', function (Illuminate\Http\Request $request)
 Route::get('/debug-config-values', function () {
     try {
         $setupService = app(\App\Services\SetupService::class);
-        
+
         return response()->json([
             'env_values' => [
                 'GOOGLE_DRIVE_CLIENT_ID' => env('GOOGLE_DRIVE_CLIENT_ID'),
@@ -423,7 +420,6 @@ Route::get('/debug-config-values', function () {
             'setup_step' => $setupService->getSetupStep(),
             'setup_required' => $setupService->isSetupRequired(),
         ]);
-        
     } catch (Exception $e) {
         return response()->json([
             'success' => false,
@@ -443,14 +439,14 @@ Route::post('/test-csrf', function (\Illuminate\Http\Request $request) {
 })->name('test.csrf');
 
 // Temporary admin creation route outside setup middleware
-Route::post('/create-admin-user', function(\Illuminate\Http\Request $request) {
+Route::post('/create-admin-user', function (\Illuminate\Http\Request $request) {
     // Simple validation
     $request->validate([
         'name' => 'required|string|max:255',
         'email' => 'required|email|unique:users,email',
         'password' => 'required|string|min:8|confirmed',
     ]);
-    
+
     // Create the admin user
     $user = \App\Models\User::create([
         'name' => $request->name,
@@ -459,14 +455,12 @@ Route::post('/create-admin-user', function(\Illuminate\Http\Request $request) {
         'role' => \App\Enums\UserRole::ADMIN,
         'email_verified_at' => now(),
     ]);
-    
+
     \Illuminate\Support\Facades\Log::info('Admin user created successfully', [
         'user_id' => $user->id,
         'email' => $user->email,
     ]);
-    
+
     // Redirect to next setup step
     return redirect()->route('setup.storage')->with('success', 'Administrator account created successfully!');
 })->name('create.admin.user');
-
-

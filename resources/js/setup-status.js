@@ -561,7 +561,20 @@ class SetupStatusManager {
 
         // Update details if provided
         if (detailsText && details) {
-            this.updateStatusDetails(stepName, status, details);
+            // Ensure details is properly formatted for display
+            let processedDetails = details;
+            if (typeof details === 'object' && details !== null) {
+                // If it's an object, try to extract meaningful information
+                if (details.message) {
+                    processedDetails = details.message;
+                } else if (details.error_message) {
+                    processedDetails = details.error_message;
+                } else {
+                    // Convert object to JSON string as fallback
+                    processedDetails = JSON.stringify(details);
+                }
+            }
+            this.updateStatusDetails(stepName, status, processedDetails);
         }
 
         // Add accessibility attributes
@@ -1241,11 +1254,20 @@ class SetupStatusManager {
             
         } catch (error) {
             console.error("Queue worker test failed:", error);
+            
+            // Ensure we pass a proper string for the error details
+            let errorDetails = "Unknown error occurred";
+            if (error && typeof error === 'object') {
+                errorDetails = error.message || error.toString() || "Unknown error occurred";
+            } else if (typeof error === 'string') {
+                errorDetails = error;
+            }
+            
             this.updateStatusIndicator(
                 "queue_worker",
                 "error",
                 "Test failed",
-                error.message || "Unknown error occurred"
+                errorDetails
             );
             
             // Show retry button on error
@@ -1364,7 +1386,15 @@ class SetupStatusManager {
     handleQueueWorkerTestError(error) {
         let statusClass = "error";
         let message = "Test failed";
-        let details = error.message || "Unknown error occurred";
+        
+        // Ensure we extract a proper string from the error
+        let details = "Unknown error occurred";
+        if (error && typeof error === 'object') {
+            details = error.message || error.toString() || "Unknown error occurred";
+        } else if (typeof error === 'string') {
+            details = error;
+        }
+        
         let showRetryButton = true;
 
         // Determine error type and provide specific guidance
@@ -2117,7 +2147,7 @@ class SetupStatusManager {
                 "queue_worker",
                 "failed",
                 "Queue worker test failed",
-                `Test failed: ${error.message}`
+                `Test failed: ${error.message || error.toString() || "Unknown error"}`
             );
             
             // Update test status in results section
@@ -2126,7 +2156,7 @@ class SetupStatusManager {
                     <svg class="h-4 w-4 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <span class="text-red-700">Test failed: ${error.message}</span>
+                    <span class="text-red-700">Test failed: ${error.message || error.toString() || "Unknown error"}</span>
                 </div>
             `;
         } finally {
@@ -2523,9 +2553,22 @@ class SetupStatusManager {
         let detailsHtml = "";
 
         // Handle different types of details
-        if (typeof details === "object") {
-            if (details.checked_at) {
-                const checkedAt = new Date(details.checked_at);
+        if (typeof details === "object" && details !== null) {
+            // Try to parse as JSON string first (in case it was stringified)
+            let parsedDetails = details;
+            if (typeof details === "string") {
+                try {
+                    parsedDetails = JSON.parse(details);
+                } catch (e) {
+                    // If parsing fails, treat as regular string
+                    detailsHtml = `<div>${details}</div>`;
+                    detailsText.innerHTML = detailsHtml;
+                    return;
+                }
+            }
+
+            if (parsedDetails.checked_at) {
+                const checkedAt = new Date(parsedDetails.checked_at);
                 const timeAgo = this.getTimeAgo(checkedAt);
                 detailsHtml += `<div class="mb-2"><strong>Last checked:</strong> ${timeAgo}</div>`;
             }
@@ -2534,7 +2577,7 @@ class SetupStatusManager {
             detailsHtml += this.getStatusSpecificDetails(
                 stepName,
                 status,
-                details
+                parsedDetails
             );
 
             // Add troubleshooting guidance for incomplete/error states
@@ -2546,15 +2589,26 @@ class SetupStatusManager {
                 detailsHtml += this.getTroubleshootingGuidance(
                     stepName,
                     status,
-                    details
+                    parsedDetails
                 );
             }
         } else if (typeof details === "string") {
-            detailsHtml = `<div>${details}</div>`;
+            // Handle string details - check if it's a JSON string
+            try {
+                const parsedDetails = JSON.parse(details);
+                // If successful, recursively call with parsed object
+                this.updateStatusDetails(stepName, status, parsedDetails);
+                return;
+            } catch (e) {
+                // Not JSON, treat as regular string
+                detailsHtml = `<div>${details}</div>`;
+            }
+        } else {
+            // Handle null, undefined, or other types
+            detailsHtml = `<div>${String(details || "No additional details available.")}</div>`;
         }
 
-        detailsText.innerHTML =
-            detailsHtml || "No additional details available.";
+        detailsText.innerHTML = detailsHtml || "No additional details available.";
     }
 
     /**
