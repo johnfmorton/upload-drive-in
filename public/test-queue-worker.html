@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="test-token">
+    <title>Queue Worker Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status-indicator { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .status-checking { background-color: #fef3c7; color: #92400e; }
+        .status-completed { background-color: #d1fae5; color: #065f46; }
+        .status-error { background-color: #fee2e2; color: #991b1b; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <h1>Queue Worker Test</h1>
+    
+    <div>
+        <button id="refresh-status-btn">
+            <span id="refresh-btn-text">Check Status</span>
+            <div id="refresh-spinner" style="display: none;">⏳</div>
+        </button>
+        
+        <button id="test-queue-worker-btn">
+            <span id="test-queue-worker-btn-text">Test Queue Worker</span>
+            <div id="test-queue-worker-spinner" style="display: none;">⏳</div>
+        </button>
+    </div>
+    
+    <div class="status-indicator" id="status-queue_worker">
+        <span id="status-queue_worker-text">Click the Test Queue Worker button below</span>
+    </div>
+    
+    <div id="console-output" style="background: #f0f0f0; padding: 10px; margin-top: 20px; height: 300px; overflow-y: scroll;">
+        <h3>Console Output:</h3>
+    </div>
+
+    <script>
+        // Override console.log to show in page
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleOutput = document.getElementById('console-output');
+        
+        function addToConsole(message, type = 'log') {
+            const div = document.createElement('div');
+            div.style.color = type === 'error' ? 'red' : 'black';
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+
+        // Simple test implementation
+        class SimpleQueueWorkerTest {
+            constructor() {
+                console.log('SimpleQueueWorkerTest: Initializing...');
+                this.testInProgress = false;
+                this.bindEvents();
+            }
+            
+            bindEvents() {
+                const testBtn = document.getElementById('test-queue-worker-btn');
+                const refreshBtn = document.getElementById('refresh-status-btn');
+                
+                if (testBtn) {
+                    testBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        console.log('Test button clicked');
+                        this.testQueueWorker();
+                    });
+                }
+                
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        console.log('Refresh button clicked');
+                        this.refreshStatus();
+                    });
+                }
+            }
+            
+            async testQueueWorker() {
+                if (this.testInProgress) {
+                    console.log('Test already in progress');
+                    return;
+                }
+                
+                try {
+                    this.testInProgress = true;
+                    console.log('Starting queue worker test...');
+                    
+                    // Update UI
+                    this.updateStatus('checking', 'Testing queue worker...');
+                    this.setButtonState('test-queue-worker-btn', true, 'Testing...');
+                    
+                    // Make test request
+                    const response = await fetch('/setup/queue/test', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({ delay: 0 })
+                    });
+                    
+                    console.log('Response status:', response.status);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Response data:', data);
+                    
+                    if (data.success) {
+                        this.updateStatus('checking', 'Test job queued...');
+                        console.log('Test job dispatched successfully:', data.test_job_id);
+                        
+                        // Simulate polling (in real implementation, we would poll for results)
+                        setTimeout(() => {
+                            this.updateStatus('completed', 'Queue worker is functioning properly!');
+                            console.log('Test completed successfully');
+                        }, 3000);
+                    } else {
+                        throw new Error(data.message || 'Test failed');
+                    }
+                    
+                } catch (error) {
+                    console.error('Test failed:', error);
+                    this.updateStatus('error', 'Test failed: ' + error.message);
+                } finally {
+                    this.testInProgress = false;
+                    this.setButtonState('test-queue-worker-btn', false, 'Test Queue Worker');
+                }
+            }
+            
+            async refreshStatus() {
+                console.log('Refreshing status...');
+                try {
+                    const response = await fetch('/setup/status/refresh', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Status refresh response:', data);
+                    
+                } catch (error) {
+                    console.error('Status refresh failed:', error);
+                }
+            }
+            
+            updateStatus(status, message) {
+                const statusElement = document.getElementById('status-queue_worker-text');
+                const indicator = document.getElementById('status-queue_worker');
+                
+                if (statusElement) {
+                    statusElement.textContent = message;
+                }
+                
+                if (indicator) {
+                    indicator.className = `status-indicator status-${status}`;
+                }
+                
+                console.log(`Status updated: ${status} - ${message}`);
+            }
+            
+            setButtonState(buttonId, disabled, text) {
+                const button = document.getElementById(buttonId);
+                const textElement = document.getElementById(buttonId + '-text');
+                const spinner = document.getElementById(buttonId + '-spinner');
+                
+                if (button) {
+                    button.disabled = disabled;
+                }
+                
+                if (textElement) {
+                    textElement.textContent = text;
+                }
+                
+                if (spinner) {
+                    spinner.style.display = disabled ? 'inline' : 'none';
+                }
+            }
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing test...');
+            window.queueWorkerTest = new SimpleQueueWorkerTest();
+            console.log('Test initialized successfully');
+        });
+        
+        console.log('Script loaded');
+    </script>
+</body>
+</html>

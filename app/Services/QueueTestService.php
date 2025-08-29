@@ -23,10 +23,14 @@ use Illuminate\Database\QueryException;
 class QueueTestService
 {
     private QueueWorkerTestSecurityService $securityService;
+    private QueueWorkerPerformanceService $performanceService;
 
-    public function __construct(QueueWorkerTestSecurityService $securityService)
-    {
+    public function __construct(
+        QueueWorkerTestSecurityService $securityService,
+        QueueWorkerPerformanceService $performanceService
+    ) {
         $this->securityService = $securityService;
+        $this->performanceService = $performanceService;
     }
     /**
      * Cache key prefix for test job tracking.
@@ -323,7 +327,8 @@ class QueueTestService
     public function getCachedQueueWorkerStatus(): QueueWorkerStatus
     {
         try {
-            $cachedData = Cache::get(QueueWorkerStatus::CACHE_KEY);
+            // Use performance service for optimized cache retrieval
+            $cachedData = $this->performanceService->getCachedData(QueueWorkerStatus::CACHE_KEY);
             
             if (!$cachedData) {
                 Log::debug('No cached queue worker status found');
@@ -371,7 +376,7 @@ class QueueTestService
     }
 
     /**
-     * Cache queue worker status with appropriate TTL.
+     * Cache queue worker status with appropriate TTL using performance service.
      * 
      * @param QueueWorkerStatus $status The status to cache
      * @return bool True if caching was successful
@@ -383,16 +388,17 @@ class QueueTestService
             $statusArray = $status->toArray();
             $validatedData = $this->securityService->validateStatusUpdate($statusArray);
             
-            $success = Cache::put(
+            // Use performance service for optimized caching
+            $success = $this->performanceService->cacheWithOptimizedTTL(
                 QueueWorkerStatus::CACHE_KEY,
                 $validatedData,
-                QueueWorkerStatus::CACHE_TTL
+                $status->status
             );
             
             if ($success) {
-                Log::debug('Queue worker status cached successfully', [
+                Log::debug('Queue worker status cached successfully with optimized TTL', [
                     'status' => $status->status,
-                    'ttl' => QueueWorkerStatus::CACHE_TTL
+                    'cache_key' => QueueWorkerStatus::CACHE_KEY
                 ]);
             } else {
                 Log::warning('Failed to cache queue worker status');
@@ -767,6 +773,33 @@ class QueueTestService
     public function cleanupOldTestJobs(int $olderThanHours = 24): int
     {
         try {
+            // Use performance service for comprehensive cleanup
+            $cleanupStats = $this->performanceService->performComprehensiveCleanup();
+            
+            Log::info('Automated cleanup completed via performance service', $cleanupStats);
+            
+            return $cleanupStats['test_jobs_cleaned'] ?? 0;
+            
+        } catch (Exception $e) {
+            Log::error('Failed to perform automated cleanup', [
+                'error' => $e->getMessage(),
+                'older_than_hours' => $olderThanHours,
+            ]);
+            
+            // Fallback to legacy cleanup method
+            return $this->legacyCleanupOldTestJobs($olderThanHours);
+        }
+    }
+    
+    /**
+     * Legacy cleanup method for fallback.
+     * 
+     * @param int $olderThanHours Remove test jobs older than this many hours
+     * @return int Number of test jobs cleaned up
+     */
+    private function legacyCleanupOldTestJobs(int $olderThanHours): int
+    {
+        try {
             $cutoffTime = Carbon::now()->subHours($olderThanHours);
             $cleaned = 0;
             
@@ -783,7 +816,7 @@ class QueueTestService
                     $cacheKey = self::CACHE_PREFIX . $jobId;
                     if (Cache::forget($cacheKey)) {
                         $cleaned++;
-                        Log::debug('Cleaned up old test job', [
+                        Log::debug('Cleaned up old test job (legacy)', [
                             'test_job_id' => $jobId,
                             'created_at' => $createdAt->toISOString(),
                         ]);

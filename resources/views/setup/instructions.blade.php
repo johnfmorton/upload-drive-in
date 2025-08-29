@@ -21,8 +21,8 @@
     <div class="min-h-screen py-12 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="sm:mx-auto sm:w-full sm:max-w-4xl">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Upload Drive-in Setup Instructions</h1>
+            <div class="text-center mb-2">
+                <h1 class="text-3xl font-bold text-gray-900">Upload Drive-In Setup Instructions</h1>
                 <p class="mt-2 text-lg text-gray-600">Complete these steps to configure your application</p>
             </div>
         </div>
@@ -425,14 +425,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                         <span id="test-queue-worker-btn-text">Test Queue Worker</span>
                                         <div id="test-queue-worker-spinner" class="loading-spinner hidden ml-2"></div>
                                     </button>
-                                    <button id="retry-queue-worker-btn"
-                                        class="hidden inline-flex items-center justify-center px-3 py-2 bg-amber-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-amber-700 focus:bg-amber-700 active:bg-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
-                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                        </svg>
-                                        <span>Retry Test</span>
-                                    </button>
+
                                 </div>
                             </div>
                             <p class="text-sm text-blue-700 mb-3">
@@ -1128,6 +1121,28 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                 buttonText.textContent = 'Disable the set-up process';
             }
         }
+
+        // Initialize Setup Status Manager
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing Setup Status Manager...');
+            
+            // Check if SetupStatusManager is available
+            if (typeof window.SetupStatusManager !== 'undefined') {
+                window.setupStatusManager = new window.SetupStatusManager();
+                console.log('Setup Status Manager initialized successfully');
+            } else {
+                console.error('SetupStatusManager class not found. Make sure setup-status.js is loaded properly.');
+                
+                // Fallback: Add basic click handlers
+                const testBtn = document.getElementById('test-queue-worker-btn');
+                if (testBtn) {
+                    testBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        alert('Setup Status Manager not loaded. Please refresh the page and try again.');
+                    });
+                }
+            }
+        });
     </script>
 </body>
 

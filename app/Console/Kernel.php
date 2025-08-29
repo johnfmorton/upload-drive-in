@@ -22,6 +22,7 @@ class Kernel extends ConsoleKernel
         Commands\RefreshGoogleDriveTokens::class,
         Commands\WarmUpCaches::class,
         Commands\OptimizePerformance::class,
+        Commands\QueueWorkerCleanupCommand::class,
         // User Management Commands
         Commands\CreateUser::class,
         Commands\ShowUser::class,
@@ -78,6 +79,13 @@ class Kernel extends ConsoleKernel
                  ->withoutOverlapping()
                  ->runInBackground()
                  ->appendOutputTo(storage_path('logs/performance-optimization.log'));
+
+        // Clean up queue worker test data daily at 3 AM
+        $schedule->command('queue-worker:cleanup --force')
+                 ->dailyAt('03:00')
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/queue-worker-cleanup.log'));
     }
 
     /**
