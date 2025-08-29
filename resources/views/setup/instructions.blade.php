@@ -389,9 +389,9 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                 <h2 class="ml-3 text-xl font-semibold text-gray-900">Setup Queue Worker</h2>
                             </div>
                             <div class="flex items-center space-x-2">
-                                <div class="status-indicator status-checking" id="status-queue_worker">
-                                    <span class="status-emoji w-4 h-4 mr-1.5">🔄</span>
-                                    <span id="status-queue_worker-text">Click the Check Status button</span>
+                                <div class="status-indicator status-not-tested" id="status-queue_worker">
+                                    <span class="status-emoji w-4 h-4 mr-1.5">❓</span>
+                                    <span id="status-queue_worker-text">Click the Test Queue Worker button below</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
                                     onclick="toggleStatusDetails('queue_worker')" title="Show details">
@@ -401,8 +401,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         </div>
                         <div class="step-status-details" id="details-queue_worker">
                             <div class="p-3 bg-gray-50 rounded-md">
-                                <p class="text-sm text-gray-600" id="details-queue_worker-text">Click "Check Status"
-                                    to verify queue worker status.</p>
+                                <p class="text-sm text-gray-600" id="details-queue_worker-text">Use the Test Queue Worker button below to verify queue functionality.</p>
                             </div>
                         </div>
 
@@ -772,12 +771,17 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                             </div> --}}
                             <div class="ml-3">
                                 <h3 class="text-lg font-medium text-green-800">
-                                   Disable access to the set-up instruction process.
+                                    Disable access to the set-up instruction process.
                                 </h3>
                                 <div class="mt-2 text-sm text-green-700">
                                     <p>
-                                        To secure your app, once you've completed all the steps above, you disable the set-up process by
-                                        setting the <code class="bg-gray-100 px-2 py-1 rounded text-sm">APP_SETUP_ENABLED</code> to <code class="bg-gray-100 px-2 py-1 rounded text-sm">false</code> in the <code class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code> file. You can also
+                                        To secure your app, once you've completed all the steps above, you disable the
+                                        set-up process by
+                                        setting the <code
+                                            class="bg-gray-100 px-2 py-1 rounded text-sm">APP_SETUP_ENABLED</code> to
+                                        <code class="bg-gray-100 px-2 py-1 rounded text-sm">false</code> in the <code
+                                            class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code> file. You can
+                                        also
                                         do that by clicking the button below.
                                     </p>
                                 </div>
@@ -785,7 +789,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                     <button id="disable-setup-btn" onclick="disableSetup()"
                                         class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                         <span id="disable-setup-text">Disable the set-up process</span>
-                                      
+
                                     </button>
                                 </div>
                             </div>
@@ -864,7 +868,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                         console.log('Restoring button to original state');
                         button.textContent = originalText;
                         button.className = originalClasses.join(' ');
-                    }, 30000);
+                    }, 2000);
                 } else {
                     console.error('Copy button not found in container');
                 }
@@ -968,7 +972,8 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
 
                     // Show success message
                     alert(
-                        'Setup process has been disabled successfully! The page will now redirect to the main application.');
+                        'Setup process has been disabled successfully! The page will now redirect to the main application.'
+                        );
 
                     // Redirect to home page after a short delay
                     setTimeout(() => {

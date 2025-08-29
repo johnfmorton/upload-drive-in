@@ -23,11 +23,17 @@ class SetupStatusService
     private const MAX_RETRY_ATTEMPTS = 3;
     private const RETRY_DELAY_MS = 1000; // 1 second
     
+    // Queue worker status cache constants
+    private const QUEUE_WORKER_CACHE_KEY = 'setup_queue_worker_status';
+    private const QUEUE_WORKER_CACHE_TTL = 3600; // 1 hour TTL for queue worker status
+    
     private SetupDetectionService $setupDetectionService;
+    private QueueTestService $queueTestService;
 
-    public function __construct(SetupDetectionService $setupDetectionService)
+    public function __construct(SetupDetectionService $setupDetectionService, QueueTestService $queueTestService)
     {
         $this->setupDetectionService = $setupDetectionService;
+        $this->queueTestService = $queueTestService;
     }
 
     /**
@@ -120,10 +126,10 @@ class SetupStatusService
     }
 
     /**
-     * Refresh all status checks and update cache.
+     * Refresh all status checks and update cache (excluding queue worker).
      * 
      * @param bool $forceFresh Force fresh data even if service fails
-     * @return array<string, array> Fresh status data for all setup steps
+     * @return array<string, array> Fresh status data for all setup steps except queue_worker
      * @throws Exception If refresh fails and no fallback is available
      */
     public function refreshAllStatuses(bool $forceFresh = false): array
@@ -138,13 +144,18 @@ class SetupStatusService
             $this->clearConfigurationCacheIfNeeded();
             
             // Get fresh status data (bypassing cache) with retry logic
-            $statuses = $this->getDetailedStepStatuses(false);
+            $allStatuses = $this->getDetailedStepStatuses(false);
+            
+            // Remove queue_worker from the response as it should be handled separately
+            $statuses = $allStatuses;
+            unset($statuses['queue_worker']);
             
             $duration = round((microtime(true) - $startTime) * 1000, 2);
             
-            Log::info('Setup statuses refreshed successfully', [
+            Log::info('Setup statuses refreshed successfully (excluding queue_worker)', [
                 'timestamp' => Carbon::now()->toISOString(),
                 'status_count' => count($statuses),
+                'excluded_steps' => ['queue_worker'],
                 'duration_ms' => $duration,
                 'force_fresh' => $forceFresh
             ]);
@@ -166,7 +177,9 @@ class SetupStatusService
                 $fallbackCacheKey = self::CACHE_KEY_PREFIX . '_detailed_statuses_fallback';
                 if (Cache::has($fallbackCacheKey)) {
                     $fallbackData = Cache::get($fallbackCacheKey);
-                    Log::info('Returning fallback data after refresh failure', [
+                    // Remove queue_worker from fallback data as well
+                    unset($fallbackData['queue_worker']);
+                    Log::info('Returning fallback data after refresh failure (excluding queue_worker)', [
                         'fallback_cache_key' => $fallbackCacheKey,
                         'status_count' => count($fallbackData)
                     ]);
@@ -187,6 +200,98 @@ class SetupStatusService
             
             throw new Exception('Critical error during status refresh: ' . $e->getMessage(), 0, $e);
         }
+    }
+
+    /**
+     * Get queue worker status from cached test results.
+     * 
+     * @param bool $useCache Whether to use cached results (default: true)
+     * @return array Queue worker status information
+     */
+    public function getQueueWorkerStatus(bool $useCache = true): array
+    {
+        try {
+            // Use QueueTestService to get cached status
+            $queueWorkerStatus = $this->queueTestService->getCachedQueueWorkerStatus();
+            
+            // Convert QueueWorkerStatus object to array format expected by the API
+            $statusArray = [
+                'status' => $queueWorkerStatus->status,
+                'message' => $queueWorkerStatus->message,
+                'details' => $this->buildQueueWorkerDetails($queueWorkerStatus),
+                'checked_at' => Carbon::now()->toISOString(),
+                'step_name' => 'Queue Worker',
+                'priority' => 6,
+                'can_retry' => $queueWorkerStatus->canRetry
+            ];
+            
+            // Add optional fields if they exist (for backward compatibility)
+            if ($queueWorkerStatus->testCompletedAt) {
+                $statusArray['test_completed_at'] = $queueWorkerStatus->testCompletedAt->toISOString();
+            }
+            
+            Log::debug('Queue worker status retrieved from QueueTestService', [
+                'status' => $queueWorkerStatus->status,
+                'is_expired' => $queueWorkerStatus->isExpired()
+            ]);
+            
+            return $statusArray;
+            
+        } catch (Exception $e) {
+            Log::error('Failed to get queue worker status', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return [
+                'status' => 'cannot_verify',
+                'message' => 'Unable to check queue worker status',
+                'details' => [
+                    'error' => $e->getMessage(),
+                    'fallback' => true
+                ],
+                'checked_at' => Carbon::now()->toISOString(),
+                'step_name' => 'Queue Worker',
+                'priority' => 6,
+                'can_retry' => true
+            ];
+        }
+    }
+
+    /**
+     * Build details array for queue worker status.
+     * 
+     * @param QueueWorkerStatus $queueWorkerStatus
+     * @return array
+     */
+    private function buildQueueWorkerDetails(QueueWorkerStatus $queueWorkerStatus): array
+    {
+        $details = [];
+        
+        // Add processing time if available
+        if ($queueWorkerStatus->processingTime !== null) {
+            $details['processing_time'] = $queueWorkerStatus->processingTime;
+        }
+        
+        // Add error message if available
+        if ($queueWorkerStatus->errorMessage) {
+            $details['error'] = $queueWorkerStatus->errorMessage;
+        }
+        
+        // Add test job ID if available
+        if ($queueWorkerStatus->testJobId) {
+            $details['test_job_id'] = $queueWorkerStatus->testJobId;
+        }
+        
+        // Add troubleshooting information if available
+        if ($queueWorkerStatus->troubleshooting) {
+            $details['troubleshooting'] = $queueWorkerStatus->troubleshooting;
+        }
+        
+        // Add expiration status for debugging
+        $details['is_expired'] = $queueWorkerStatus->isExpired();
+        
+        return $details;
     }
 
     /**
@@ -275,6 +380,17 @@ class SetupStatusService
         }
         
         Log::debug('Setup status cache cleared');
+    }
+
+    /**
+     * Clear queue worker status cache.
+     * 
+     * @return void
+     */
+    public function clearQueueWorkerStatusCache(): void
+    {
+        Cache::forget(self::QUEUE_WORKER_CACHE_KEY);
+        Log::debug('Queue worker status cache cleared');
     }
 
     /**
@@ -451,6 +567,7 @@ class SetupStatusService
         $errorMessage = 'Service temporarily unavailable';
         $timestamp = Carbon::now()->toISOString();
         
+        // Include all steps in fallback data (queue_worker exclusion happens in refreshAllStatuses)
         $fallbackSteps = [
             'database', 'mail', 'google_drive', 'migrations', 'admin_user', 'queue_worker'
         ];
@@ -593,7 +710,7 @@ class SetupStatusService
             'overall_status' => 'error',
             'completion_percentage' => 0,
             'completed_steps' => 0,
-            'total_steps' => 6, // Known number of setup steps
+            'total_steps' => 6, // Known number of setup steps (including queue_worker)
             'incomplete_steps' => ['database', 'mail', 'google_drive', 'migrations', 'admin_user', 'queue_worker'],
             'error_steps' => ['database', 'mail', 'google_drive', 'migrations', 'admin_user', 'queue_worker'],
             'last_updated' => Carbon::now()->toISOString(),
@@ -615,7 +732,8 @@ class SetupStatusService
             self::CACHE_KEY_PREFIX . '_detailed_statuses',
             self::CACHE_KEY_PREFIX . '_detailed_statuses_fallback',
             self::CACHE_KEY_PREFIX . '_summary',
-            self::CACHE_KEY_PREFIX . '_summary_fallback'
+            self::CACHE_KEY_PREFIX . '_summary_fallback',
+            self::QUEUE_WORKER_CACHE_KEY
         ];
         
         foreach ($cacheKeys as $key) {
@@ -638,12 +756,14 @@ class SetupStatusService
             'detailed_statuses' => self::CACHE_KEY_PREFIX . '_detailed_statuses',
             'detailed_statuses_fallback' => self::CACHE_KEY_PREFIX . '_detailed_statuses_fallback',
             'summary' => self::CACHE_KEY_PREFIX . '_summary',
-            'summary_fallback' => self::CACHE_KEY_PREFIX . '_summary_fallback'
+            'summary_fallback' => self::CACHE_KEY_PREFIX . '_summary_fallback',
+            'queue_worker_status' => self::QUEUE_WORKER_CACHE_KEY
         ];
         
         $stats = [
             'cache_ttl' => self::CACHE_TTL,
             'fallback_cache_ttl' => self::FALLBACK_CACHE_TTL,
+            'queue_worker_cache_ttl' => self::QUEUE_WORKER_CACHE_TTL,
             'keys' => []
         ];
         
@@ -657,6 +777,14 @@ class SetupStatusService
         
         return $stats;
     }
+
+    /**
+     * Check if cached queue worker status is still valid.
+     * 
+     * @param array $cachedStatus Cached status data
+     * @return bool True if status is valid and not expired
+     */
+
 
     /**
      * Clear configuration cache if we're in a setup context.

@@ -77,18 +77,23 @@ class TestQueueJob implements ShouldQueue
             $this->performTestOperations();
 
             $endTime = microtime(true);
-            $processingTime = round(($endTime - $startTime) * 1000, 2); // Convert to milliseconds
+            $processingTime = round(($endTime - $startTime), 3); // Convert to seconds with 3 decimal places
 
             // Update cache with completion status
             $this->updateJobStatus('completed', [
                 'completed_at' => Carbon::now()->toISOString(),
-                'processing_time_ms' => $processingTime,
+                'processing_time_ms' => round($processingTime * 1000, 2),
+                'processing_time' => $processingTime,
                 'success' => true,
             ]);
 
+            // Update queue worker status cache
+            $this->updateQueueWorkerStatus(true, $processingTime);
+
             Log::info('TestQueueJob completed successfully', [
                 'test_job_id' => $this->testJobId,
-                'processing_time_ms' => $processingTime,
+                'processing_time_ms' => round($processingTime * 1000, 2),
+                'processing_time' => $processingTime,
                 'completed_at' => Carbon::now()->toISOString(),
             ]);
 
@@ -178,11 +183,35 @@ class TestQueueJob implements ShouldQueue
 
         $this->updateJobStatus('failed', $errorData);
 
+        // Update queue worker status cache with failure
+        $this->updateQueueWorkerStatus(false, null, $exception->getMessage());
+
         Log::error('TestQueueJob failed', array_merge([
             'test_job_id' => $this->testJobId,
             'exception' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString(),
         ], $errorData));
+    }
+
+    /**
+     * Update queue worker status cache based on job completion.
+     */
+    private function updateQueueWorkerStatus(bool $success, ?float $processingTime = null, ?string $errorMessage = null): void
+    {
+        try {
+            $queueTestService = app(\App\Services\QueueTestService::class);
+            $queueTestService->updateQueueWorkerStatusFromJob(
+                $this->testJobId,
+                $success,
+                $processingTime,
+                $errorMessage
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to update queue worker status from job', [
+                'test_job_id' => $this->testJobId,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**

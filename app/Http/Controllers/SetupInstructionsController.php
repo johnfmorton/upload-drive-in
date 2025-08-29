@@ -101,7 +101,7 @@ class SetupInstructionsController extends Controller
                 'sanitized_input' => $sanitization['sanitized']
             ]);
             
-            // Get fresh status data with fallback handling
+            // Get fresh status data with fallback handling (excluding queue_worker)
             $statuses = $this->refreshStatusesWithFallback($requestId);
             $summary = $this->getSummaryWithFallback($requestId);
             
@@ -490,6 +490,121 @@ class SetupInstructionsController extends Controller
         }
 
         return response()->json($errorData, $statusCode);
+    }
+
+    /**
+     * Get queue worker status from cached test results.
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getQueueWorkerStatus(Request $request): JsonResponse
+    {
+        $startTime = microtime(true);
+        $requestId = uniqid('queue_status_', true);
+        
+        try {
+            Log::info('Queue worker status requested', [
+                'request_id' => $requestId,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            // Security validation with timeout
+            if ($this->setupSecurityService->shouldBlockRequest($request)) {
+                Log::warning('Queue worker status blocked by security service', [
+                    'request_id' => $requestId,
+                    'ip' => $request->ip()
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Request blocked for security reasons.',
+                        'code' => 'SECURITY_BLOCK',
+                        'request_id' => $requestId
+                    ]
+                ], 403);
+            }
+
+            // Validate and sanitize input with error handling
+            $sanitization = $this->setupSecurityService->sanitizeStatusRequest($request->all());
+            if (!$sanitization['is_valid']) {
+                Log::warning('Queue worker status validation failed', [
+                    'request_id' => $requestId,
+                    'violations' => $sanitization['violations']
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'message' => 'Invalid request parameters.',
+                        'code' => 'VALIDATION_ERROR',
+                        'details' => $sanitization['violations'],
+                        'request_id' => $requestId
+                    ]
+                ], 422);
+            }
+
+            // Log security event
+            $this->setupSecurityService->logSecurityEvent('queue_worker_status_requested', [
+                'route' => 'setup.queue-worker.status',
+                'request_id' => $requestId,
+                'sanitized_input' => $sanitization['sanitized']
+            ]);
+            
+            // Get queue worker status from cache or default state
+            $queueWorkerStatus = $this->setupStatusService->getQueueWorkerStatus();
+            
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
+            Log::info('Queue worker status retrieved successfully', [
+                'request_id' => $requestId,
+                'status' => $queueWorkerStatus['status'] ?? 'unknown',
+                'duration_ms' => $duration
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'queue_worker' => $queueWorkerStatus,
+                    'retrieved_at' => now()->toISOString(),
+                    'request_id' => $requestId,
+                    'duration_ms' => $duration
+                ],
+                'message' => 'Queue worker status retrieved successfully'
+            ]);
+            
+        } catch (Exception $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
+            Log::error('Failed to get queue worker status', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+                'duration_ms' => $duration,
+                'trace' => $e->getTraceAsString(),
+                'request_ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+            
+            return $this->getErrorResponse($e, $requestId, 'QUEUE_STATUS_FAILED', 
+                'Failed to get queue worker status. Please try again.');
+                
+        } catch (Throwable $e) {
+            $duration = round((microtime(true) - $startTime) * 1000, 2);
+            
+            Log::critical('Critical error during queue worker status retrieval', [
+                'request_id' => $requestId,
+                'error' => $e->getMessage(),
+                'duration_ms' => $duration,
+                'trace' => $e->getTraceAsString(),
+                'request_ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+            
+            return $this->getErrorResponse($e, $requestId, 'CRITICAL_ERROR', 
+                'A critical error occurred. Please try again.');
+        }
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\TestQueueJob;
+use App\Services\QueueWorkerStatus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -297,6 +298,256 @@ class QueueTestService
                 'message' => 'Error retrieving queue health metrics',
                 'error' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Get cached queue worker status or return default not tested status.
+     * 
+     * @return QueueWorkerStatus The current queue worker status
+     */
+    public function getCachedQueueWorkerStatus(): QueueWorkerStatus
+    {
+        try {
+            $cachedData = Cache::get(QueueWorkerStatus::CACHE_KEY);
+            
+            if (!$cachedData) {
+                Log::debug('No cached queue worker status found');
+                return QueueWorkerStatus::notTested();
+            }
+            
+            // Validate cached data is an array
+            if (!is_array($cachedData)) {
+                Log::warning('Cached queue worker status is not an array, clearing cache', [
+                    'cached_data_type' => gettype($cachedData)
+                ]);
+                $this->invalidateQueueWorkerStatus();
+                return QueueWorkerStatus::notTested();
+            }
+            
+            $status = QueueWorkerStatus::fromArray($cachedData);
+            
+            // Check if the cached status is expired (only for completed statuses)
+            if ($status->status === QueueWorkerStatus::STATUS_COMPLETED && $status->isExpired()) {
+                Log::debug('Cached queue worker status is expired', [
+                    'test_completed_at' => $status->testCompletedAt?->toISOString(),
+                    'cache_ttl' => QueueWorkerStatus::CACHE_TTL
+                ]);
+                
+                // Clear expired cache and return not tested status
+                $this->invalidateQueueWorkerStatus();
+                return QueueWorkerStatus::notTested();
+            }
+            
+            Log::debug('Retrieved valid cached queue worker status', [
+                'status' => $status->status,
+                'test_completed_at' => $status->testCompletedAt?->toISOString()
+            ]);
+            
+            return $status;
+            
+        } catch (Exception $e) {
+            Log::error('Failed to retrieve cached queue worker status', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return QueueWorkerStatus::error('Failed to retrieve cached status: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cache queue worker status with appropriate TTL.
+     * 
+     * @param QueueWorkerStatus $status The status to cache
+     * @return bool True if caching was successful
+     */
+    public function cacheQueueWorkerStatus(QueueWorkerStatus $status): bool
+    {
+        try {
+            $success = Cache::put(
+                QueueWorkerStatus::CACHE_KEY,
+                $status->toArray(),
+                QueueWorkerStatus::CACHE_TTL
+            );
+            
+            if ($success) {
+                Log::debug('Queue worker status cached successfully', [
+                    'status' => $status->status,
+                    'ttl' => QueueWorkerStatus::CACHE_TTL
+                ]);
+            } else {
+                Log::warning('Failed to cache queue worker status');
+            }
+            
+            return $success;
+            
+        } catch (Exception $e) {
+            Log::error('Error caching queue worker status', [
+                'error' => $e->getMessage(),
+                'status' => $status->status
+            ]);
+            
+            return false;
+        }
+    }
+
+    /**
+     * Invalidate cached queue worker status.
+     * 
+     * @return bool True if invalidation was successful
+     */
+    public function invalidateQueueWorkerStatus(): bool
+    {
+        try {
+            $success = Cache::forget(QueueWorkerStatus::CACHE_KEY);
+            
+            Log::debug('Queue worker status cache invalidated', [
+                'success' => $success
+            ]);
+            
+            return $success;
+            
+        } catch (Exception $e) {
+            Log::error('Error invalidating queue worker status cache', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return false;
+        }
+    }
+
+    /**
+     * Dispatch a test job and cache the testing status.
+     * 
+     * @param int $delay Optional delay in seconds before job processing
+     * @return QueueWorkerStatus The testing status
+     */
+    public function dispatchTestJobWithStatus(int $delay = 0): QueueWorkerStatus
+    {
+        try {
+            // Dispatch the test job
+            $jobId = $this->dispatchTestJob($delay);
+            
+            // Create and cache testing status
+            $status = QueueWorkerStatus::testing($jobId, 'Test job dispatched, waiting for processing...');
+            $this->cacheQueueWorkerStatus($status);
+            
+            Log::info('Queue worker test initiated and status cached', [
+                'test_job_id' => $jobId,
+                'delay' => $delay
+            ]);
+            
+            return $status;
+            
+        } catch (Exception $e) {
+            Log::error('Failed to dispatch test job with status', [
+                'error' => $e->getMessage(),
+                'delay' => $delay
+            ]);
+            
+            $status = QueueWorkerStatus::failed(
+                'Failed to dispatch test job: ' . $e->getMessage()
+            );
+            $this->cacheQueueWorkerStatus($status);
+            
+            return $status;
+        }
+    }
+
+    /**
+     * Update queue worker status based on test job completion.
+     * 
+     * @param string $jobId The test job ID
+     * @param bool $success Whether the job completed successfully
+     * @param float|null $processingTime Processing time in seconds
+     * @param string|null $errorMessage Error message if job failed
+     * @return QueueWorkerStatus The updated status
+     */
+    public function updateQueueWorkerStatusFromJob(
+        string $jobId,
+        bool $success,
+        ?float $processingTime = null,
+        ?string $errorMessage = null
+    ): QueueWorkerStatus {
+        try {
+            if ($success && $processingTime !== null) {
+                $status = QueueWorkerStatus::completed($processingTime, $jobId);
+                
+                Log::info('Queue worker test completed successfully', [
+                    'test_job_id' => $jobId,
+                    'processing_time' => $processingTime
+                ]);
+            } else {
+                $status = QueueWorkerStatus::failed(
+                    $errorMessage ?? 'Test job failed without specific error',
+                    $jobId
+                );
+                
+                Log::warning('Queue worker test failed', [
+                    'test_job_id' => $jobId,
+                    'error_message' => $errorMessage
+                ]);
+            }
+            
+            $this->cacheQueueWorkerStatus($status);
+            return $status;
+            
+        } catch (Exception $e) {
+            Log::error('Failed to update queue worker status from job', [
+                'test_job_id' => $jobId,
+                'error' => $e->getMessage()
+            ]);
+            
+            $status = QueueWorkerStatus::error('Failed to update status: ' . $e->getMessage(), $jobId);
+            $this->cacheQueueWorkerStatus($status);
+            
+            return $status;
+        }
+    }
+
+    /**
+     * Check for timeout and update queue worker status if needed.
+     * 
+     * @param string $jobId The test job ID to check
+     * @return QueueWorkerStatus The current or updated status
+     */
+    public function checkQueueWorkerTimeout(string $jobId): QueueWorkerStatus
+    {
+        try {
+            $cachedStatus = $this->getCachedQueueWorkerStatus();
+            
+            // Only check timeout for testing status with matching job ID
+            if ($cachedStatus->status !== QueueWorkerStatus::STATUS_TESTING || 
+                $cachedStatus->testJobId !== $jobId) {
+                return $cachedStatus;
+            }
+            
+            // Check the underlying test job status for timeout
+            $jobStatus = $this->checkTestJobStatus($jobId);
+            
+            if ($jobStatus['status'] === 'timeout') {
+                $status = QueueWorkerStatus::timeout($jobId);
+                $this->cacheQueueWorkerStatus($status);
+                
+                Log::warning('Queue worker test timed out', [
+                    'test_job_id' => $jobId
+                ]);
+                
+                return $status;
+            }
+            
+            return $cachedStatus;
+            
+        } catch (Exception $e) {
+            Log::error('Failed to check queue worker timeout', [
+                'test_job_id' => $jobId,
+                'error' => $e->getMessage()
+            ]);
+            
+            $status = QueueWorkerStatus::error('Failed to check timeout: ' . $e->getMessage(), $jobId);
+            $this->cacheQueueWorkerStatus($status);
+            
+            return $status;
         }
     }
 

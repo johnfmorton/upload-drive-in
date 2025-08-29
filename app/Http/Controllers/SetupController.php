@@ -52,11 +52,13 @@ class SetupController extends Controller
                 'delay' => $delay
             ]);
             
-            $testJobId = $this->queueTestService->dispatchTestJob($delay);
+            // Dispatch test job and cache testing status
+            $queueWorkerStatus = $this->queueTestService->dispatchTestJobWithStatus($delay);
             
             return response()->json([
                 'success' => true,
-                'test_job_id' => $testJobId,
+                'test_job_id' => $queueWorkerStatus->testJobId,
+                'queue_worker_status' => $queueWorkerStatus->toArray(),
                 'message' => 'Test job dispatched successfully'
             ]);
             
@@ -122,11 +124,16 @@ class SetupController extends Controller
                 'test_job_id' => $testJobId
             ]);
             
-            $status = $this->queueTestService->checkTestJobStatus($testJobId);
+            // Check test job status
+            $jobStatus = $this->queueTestService->checkTestJobStatus($testJobId);
+            
+            // Check for timeout and update queue worker status if needed
+            $queueWorkerStatus = $this->queueTestService->checkQueueWorkerTimeout($testJobId);
             
             return response()->json([
                 'success' => true,
-                'status' => $status
+                'status' => $jobStatus,
+                'queue_worker_status' => $queueWorkerStatus->toArray()
             ]);
             
         } catch (\Exception $e) {

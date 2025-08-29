@@ -24,6 +24,7 @@ Route::middleware(['web', 'require.setup.enabled'])->prefix('setup')->name('setu
     // TODO: Re-add rate limiting middleware once container resolution is fixed
     Route::post('/status/refresh', [\App\Http\Controllers\SetupInstructionsController::class, 'refreshStatus'])->name('status.refresh');
     Route::post('/status/refresh-step', [\App\Http\Controllers\SetupInstructionsController::class, 'refreshSingleStep'])->name('status.refresh-step');
+    Route::get('/queue-worker/status', [\App\Http\Controllers\SetupInstructionsController::class, 'getQueueWorkerStatus'])->name('queue-worker.status');
     
     // Setup disable endpoint
     Route::post('/disable', [\App\Http\Controllers\SetupInstructionsController::class, 'disableSetup'])->name('disable');

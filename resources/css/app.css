@@ -308,3 +308,52 @@ input[type='file']:focus::file-selector-button {
 }
 
 
+
+/* Setup Status Indicator Styles */
+.status-not-tested {
+    color: #6b7280; /* Gray */
+}
+
+.status-testing {
+    color: #3b82f6; /* Blue */
+}
+
+.status-completed {
+    color: #10b981; /* Green */
+}
+
+.status-working {
+    color: #10b981; /* Green */
+}
+
+.status-idle {
+    color: #10b981; /* Green */
+}
+
+.status-incomplete {
+    color: #f59e0b; /* Amber */
+}
+
+.status-error {
+    color: #ef4444; /* Red */
+}
+
+.status-failed {
+    color: #ef4444; /* Red */
+}
+
+.status-timeout {
+    color: #f59e0b; /* Amber */
+}
+
+.status-checking {
+    color: #3b82f6; /* Blue */
+}
+
+.status-cannot-verify {
+    color: #6b7280; /* Gray */
+}
+
+.status-needs_attention {
+    color: #f59e0b; /* Amber */
+}

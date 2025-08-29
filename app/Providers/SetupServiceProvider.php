@@ -28,7 +28,10 @@ class SetupServiceProvider extends ServiceProvider
         });
         
         $this->app->singleton(SetupStatusService::class, function ($app) {
-            return new SetupStatusService($app->make(SetupDetectionService::class));
+            return new SetupStatusService(
+                $app->make(SetupDetectionService::class),
+                $app->make(\App\Services\QueueTestService::class)
+            );
         });
         
         $this->app->singleton(SetupService::class, function ($app) {

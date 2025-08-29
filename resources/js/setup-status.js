@@ -12,6 +12,16 @@ import '@shoelace-style/shoelace/dist/components/button/button.js';
 
 class SetupStatusManager {
     constructor(options = {}) {
+        // Separate general status steps from queue worker
+        this.generalStatusSteps = [
+            "database",
+            "mail",
+            "google_drive",
+            "migrations",
+            "admin_user",
+        ];
+        
+        // Keep statusSteps for backward compatibility
         this.statusSteps = [
             "database",
             "mail",
@@ -20,7 +30,9 @@ class SetupStatusManager {
             "admin_user",
             "queue_worker",
         ];
+        
         this.refreshInProgress = false;
+        this.queueWorkerTestInProgress = false;
         this.retryAttempts = 0;
         this.maxRetryAttempts = 3;
         this.retryDelay = 2000; // 2 seconds
@@ -30,9 +42,12 @@ class SetupStatusManager {
 
         // Bind methods to maintain context
         this.refreshAllStatuses = this.refreshAllStatuses.bind(this);
+        this.refreshGeneralStatuses = this.refreshGeneralStatuses.bind(this);
         this.refreshSingleStep = this.refreshSingleStep.bind(this);
         this.handleRefreshError = this.handleRefreshError.bind(this);
         this.retryRefresh = this.retryRefresh.bind(this);
+        this.getCachedQueueWorkerStatus = this.getCachedQueueWorkerStatus.bind(this);
+        this.triggerQueueWorkerTest = this.triggerQueueWorkerTest.bind(this);
 
         if (this.autoInit) {
             this.init();
@@ -46,6 +61,7 @@ class SetupStatusManager {
         this.setupCSRFToken();
         this.bindEventListeners();
         this.setupKeyboardNavigation();
+        this.loadCachedQueueWorkerStatus();
     }
 
     /**
@@ -83,7 +99,11 @@ class SetupStatusManager {
             );
             if (stepRefreshBtn) {
                 stepRefreshBtn.addEventListener("click", () => {
-                    this.refreshSingleStep(step);
+                    if (step === "queue_worker") {
+                        this.triggerQueueWorkerTest();
+                    } else {
+                        this.refreshSingleStep(step);
+                    }
                 });
             }
         });
@@ -147,7 +167,7 @@ class SetupStatusManager {
     }
 
     /**
-     * Refresh all step statuses via AJAX
+     * Refresh all step statuses via AJAX (now includes queue worker test)
      */
     async refreshAllStatuses() {
         if (this.refreshInProgress) {
@@ -159,37 +179,63 @@ class SetupStatusManager {
             this.setLoadingState(true);
             this.clearErrorMessages();
 
-            const response = await this.makeAjaxRequest(
-                "/setup/status/refresh",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": this.getCSRFToken(),
-                        "X-Requested-With": "XMLHttpRequest",
-                    },
-                }
-            );
+            // Run general status refresh and queue worker test in parallel
+            const [generalStatusResult, queueWorkerResult] = await Promise.allSettled([
+                this.refreshGeneralStatuses(),
+                this.triggerQueueWorkerTest()
+            ]);
 
-            if (!response.success) {
-                throw new Error(
-                    response.error?.message || "Failed to refresh status"
-                );
+            // Handle general status results
+            if (generalStatusResult.status === 'fulfilled') {
+                this.updateLastChecked();
+                this.resetRetryAttempts();
+            } else {
+                console.error("General status refresh failed:", generalStatusResult.reason);
+                this.handleRefreshError(generalStatusResult.reason, "general");
             }
 
-            // Update all step statuses
-            this.updateAllStepStatuses(response.data.statuses);
-            this.updateLastChecked();
-            this.resetRetryAttempts();
+            // Queue worker test result is handled by triggerQueueWorkerTest method
+            if (queueWorkerResult.status === 'rejected') {
+                console.error("Queue worker test failed:", queueWorkerResult.reason);
+            }
 
-            // Show success feedback
-            this.showSuccessMessage("Status refreshed successfully");
+            // Show success feedback if at least general status succeeded
+            if (generalStatusResult.status === 'fulfilled') {
+                this.showSuccessMessage("Status refreshed successfully");
+            }
         } catch (error) {
             console.error("Error refreshing all statuses:", error);
             this.handleRefreshError(error, "all");
         } finally {
             this.setLoadingState(false);
         }
+    }
+
+    /**
+     * Refresh only general status steps (excluding queue worker)
+     */
+    async refreshGeneralStatuses() {
+        const response = await this.makeAjaxRequest(
+            "/setup/status/refresh",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": this.getCSRFToken(),
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            }
+        );
+
+        if (!response.success) {
+            throw new Error(
+                response.error?.message || "Failed to refresh status"
+            );
+        }
+
+        // Update only general step statuses (excluding queue_worker)
+        this.updateGeneralStepStatuses(response.data.statuses);
+        return response;
     }
 
     /**
@@ -312,6 +358,31 @@ class SetupStatusManager {
     }
 
     /**
+     * Update only general step status indicators (excluding queue worker)
+     */
+    updateGeneralStepStatuses(statuses) {
+        this.generalStatusSteps.forEach((step) => {
+            if (statuses && statuses[step]) {
+                const stepData = statuses[step];
+                this.updateStatusIndicator(
+                    step,
+                    stepData.status,
+                    stepData.message,
+                    stepData.details || stepData.message
+                );
+            } else {
+                console.warn(`No status data found for step: ${step}`);
+                this.updateStatusIndicator(
+                    step,
+                    "error",
+                    "No Data",
+                    "Status information not available"
+                );
+            }
+        });
+    }
+
+    /**
      * Update a single status indicator
      */
     updateStatusIndicator(stepName, status, message, details = null) {
@@ -395,9 +466,12 @@ class SetupStatusManager {
             idle: "✅",         // Queue worker is idle but functioning properly
             incomplete: "❌",
             error: "🚫",
+            failed: "🚫",       // Queue worker test failed
+            timeout: "⏰",      // Queue worker test timed out
             "cannot-verify": "❓",
             needs_attention: "⚠️",
             checking: "🔄",
+            not_tested: "❓",   // Queue worker not tested yet
         };
 
         const emoji = statusEmojis[status] || statusEmojis.checking;
@@ -447,11 +521,15 @@ class SetupStatusManager {
             }
         }
 
+        // Disable queue worker test button during general refresh
+        const testQueueWorkerBtn = document.getElementById("test-queue-worker-btn");
+        if (testQueueWorkerBtn) {
+            testQueueWorkerBtn.disabled = isLoading || this.queueWorkerTestInProgress;
+        }
 
-
-        // Set all steps to checking state if loading
+        // Set only general steps to checking state if loading
         if (isLoading) {
-            this.statusSteps.forEach((step) => {
+            this.generalStatusSteps.forEach((step) => {
                 this.updateStatusIndicator(
                     step,
                     "checking",
@@ -672,37 +750,306 @@ class SetupStatusManager {
     }
 
     /**
-     * Test queue worker functionality
+     * Load cached queue worker status on page load
+     */
+    async loadCachedQueueWorkerStatus() {
+        try {
+            const cachedStatus = await this.getCachedQueueWorkerStatus();
+            if (cachedStatus && !this.isStatusExpired(cachedStatus)) {
+                this.updateQueueWorkerStatusFromCache(cachedStatus);
+            } else {
+                this.updateStatusIndicator(
+                    "queue_worker",
+                    "not_tested",
+                    "Click the Test Queue Worker button below",
+                    "No recent test results available"
+                );
+            }
+        } catch (error) {
+            console.error("Error loading cached queue worker status:", error);
+            this.updateStatusIndicator(
+                "queue_worker",
+                "not_tested",
+                "Click the Test Queue Worker button below",
+                "Unable to load cached status"
+            );
+        }
+    }
+
+    /**
+     * Get cached queue worker status from server
+     */
+    async getCachedQueueWorkerStatus() {
+        try {
+            const response = await this.makeAjaxRequest(
+                "/setup/queue-worker/status",
+                {
+                    method: "GET",
+                    headers: {
+                        "X-CSRF-TOKEN": this.getCSRFToken(),
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                }
+            );
+
+            if (response.success && response.data && response.data.queue_worker) {
+                return response.data.queue_worker;
+            }
+            return null;
+        } catch (error) {
+            console.error("Error fetching cached queue worker status:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Check if cached status is expired (older than 1 hour)
+     */
+    isStatusExpired(status) {
+        if (!status.test_completed_at) {
+            return true;
+        }
+
+        const testTime = new Date(status.test_completed_at);
+        const now = new Date();
+        const hourInMs = 60 * 60 * 1000; // 1 hour in milliseconds
+        
+        return (now - testTime) > hourInMs;
+    }
+
+    /**
+     * Update queue worker status from cached data
+     */
+    updateQueueWorkerStatusFromCache(cachedStatus) {
+        let statusClass, message, details;
+
+        switch (cachedStatus.status) {
+            case 'completed':
+                statusClass = 'completed';
+                message = 'Queue worker is functioning properly';
+                details = `Last tested: ${this.getTimeAgo(new Date(cachedStatus.test_completed_at))}`;
+                if (cachedStatus.processing_time) {
+                    details += ` (${cachedStatus.processing_time.toFixed(2)}s)`;
+                }
+                break;
+            case 'failed':
+                statusClass = 'error';
+                message = 'Queue worker test failed';
+                details = cachedStatus.error_message || 'Test failed with unknown error';
+                break;
+            case 'timeout':
+                statusClass = 'error';
+                message = 'Queue worker test timed out';
+                details = 'The queue worker may not be running';
+                break;
+            default:
+                statusClass = 'not_tested';
+                message = 'Click the Test Queue Worker button below';
+                details = 'No recent test results available';
+        }
+
+        this.updateStatusIndicator("queue_worker", statusClass, message, details);
+    }
+
+    /**
+     * Trigger queue worker test (used by both refresh all and test button)
+     */
+    async triggerQueueWorkerTest() {
+        if (this.queueWorkerTestInProgress) {
+            console.log("Queue worker test already in progress, skipping...");
+            return;
+        }
+
+        try {
+            this.queueWorkerTestInProgress = true;
+            this.setQueueWorkerTestButtonState(true);
+            
+            // Update queue worker status to testing
+            this.updateStatusIndicator(
+                "queue_worker",
+                "checking",
+                "Testing queue worker...",
+                "Dispatching test job..."
+            );
+
+            // Call the existing testQueueWorker logic but without UI button management
+            await this.performQueueWorkerTest();
+            
+        } catch (error) {
+            console.error("Queue worker test failed:", error);
+            this.updateStatusIndicator(
+                "queue_worker",
+                "error",
+                "Test failed",
+                error.message || "Unknown error occurred"
+            );
+        } finally {
+            this.queueWorkerTestInProgress = false;
+            this.setQueueWorkerTestButtonState(false);
+        }
+    }
+
+    /**
+     * Set queue worker test button state
+     */
+    setQueueWorkerTestButtonState(isLoading) {
+        const testBtn = document.getElementById("test-queue-worker-btn");
+        const testBtnText = document.getElementById("test-queue-worker-btn-text");
+
+        if (testBtn && testBtnText) {
+            testBtn.disabled = isLoading || this.refreshInProgress;
+            testBtnText.textContent = isLoading ? "Testing..." : "Test Queue Worker";
+        }
+    }
+
+    /**
+     * Perform the actual queue worker test
+     */
+    async performQueueWorkerTest() {
+        // Dispatch test job
+        const response = await this.makeAjaxRequest("/setup/queue/test", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": this.getCSRFToken(),
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({
+                delay: 0,
+            }),
+        });
+
+        if (!response.success || !response.test_job_id) {
+            throw new Error(response.message || "Failed to dispatch test job");
+        }
+
+        // Poll for results
+        await this.pollQueueTestResultForStatus(response.test_job_id);
+    }
+
+    /**
+     * Poll for queue test result and update status indicator
+     */
+    async pollQueueTestResultForStatus(testJobId) {
+        const maxAttempts = 30; // 30 seconds
+        let attempts = 0;
+
+        const poll = async () => {
+            attempts++;
+
+            try {
+                const response = await this.makeAjaxRequest(
+                    `/setup/queue/test/status?test_job_id=${testJobId}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "X-CSRF-TOKEN": this.getCSRFToken(),
+                            "X-Requested-With": "XMLHttpRequest",
+                        },
+                    }
+                );
+
+                if (!response.success || !response.status) {
+                    throw new Error("Invalid response from server");
+                }
+
+                const status = response.status;
+
+                switch (status.status) {
+                    case "completed":
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "completed",
+                            "Queue worker is functioning properly",
+                            `Job completed in ${(status.processing_time || 0).toFixed(2)}s`
+                        );
+                        return;
+
+                    case "failed":
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "error",
+                            "Queue test failed",
+                            status.error_message || "Unknown error"
+                        );
+                        return;
+
+                    case "processing":
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "checking",
+                            "Test job is being processed...",
+                            `Processing for ${attempts}s`
+                        );
+                        break;
+
+                    case "pending":
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "checking",
+                            "Test job queued, waiting for worker...",
+                            `Waiting for ${attempts}s`
+                        );
+                        break;
+                }
+
+                // Continue polling if not completed or failed
+                if (status.status === "processing" || status.status === "pending") {
+                    if (attempts < maxAttempts) {
+                        setTimeout(poll, 1000);
+                    } else {
+                        this.updateStatusIndicator(
+                            "queue_worker",
+                            "error",
+                            "Test timed out after 30 seconds",
+                            "The queue worker may not be running"
+                        );
+                    }
+                }
+            } catch (error) {
+                console.error("Polling error:", error);
+                this.updateStatusIndicator(
+                    "queue_worker",
+                    "error",
+                    "Error checking test status",
+                    error.message || "Unknown error"
+                );
+            }
+        };
+
+        // Start polling
+        poll();
+    }
+
+    /**
+     * Test queue worker functionality (called by test button)
      */
     async testQueueWorker() {
-        const testBtn = document.getElementById("test-queue-worker-btn");
-        const testBtnText = document.getElementById(
-            "test-queue-worker-btn-text"
-        );
         const testResults = document.getElementById("queue-test-results");
         const testStatus = document.getElementById("queue-test-status");
 
-        if (!testBtn || !testBtnText || !testResults || !testStatus) {
+        if (!testResults || !testStatus) {
             console.error("Queue test elements not found");
             return;
         }
 
         try {
-            // Set loading state
-            testBtn.disabled = true;
-            testBtnText.textContent = "Testing...";
+            // Show test results section
             testResults.classList.remove("hidden");
             testStatus.innerHTML = `
                 <div class="flex items-center">
                     <svg class="animate-spin h-4 w-4 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     <span class="text-blue-700">Dispatching test job...</span>
                 </div>
             `;
 
-            // Dispatch test job
+            // Use the new separated queue worker test logic
+            await this.triggerQueueWorkerTest();
+
+            // Poll for results and update the test results section
             const response = await this.makeAjaxRequest("/setup/queue/test", {
                 method: "POST",
                 headers: {
@@ -716,7 +1063,7 @@ class SetupStatusManager {
             });
 
             if (response.success && response.test_job_id) {
-                // Poll for results
+                // Poll for results in the test results section
                 await this.pollQueueTestResult(
                     response.test_job_id,
                     testStatus
@@ -736,10 +1083,6 @@ class SetupStatusManager {
                     <span class="text-red-700">Test failed: ${error.message}</span>
                 </div>
             `;
-        } finally {
-            // Reset button state
-            testBtn.disabled = false;
-            testBtnText.textContent = "Test Queue Worker";
         }
     }
 

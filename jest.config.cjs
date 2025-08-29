@@ -8,6 +8,7 @@ module.exports = {
   collectCoverageFrom: [
     'resources/js/**/*.js',
     '!resources/js/app.js', // Exclude main app file
+    '!resources/js/bootstrap.js',
     '!**/node_modules/**',
     '!**/vendor/**'
   ],

@@ -164,6 +164,169 @@ class SetupStatusServiceTest extends TestCase
         $this->assertNotEquals($cachedData, $result);
     }
 
+    public function test_refresh_all_statuses_excludes_queue_worker_from_response(): void
+    {
+        // Arrange
+        $freshData = [
+            'database' => [
+                'status' => 'completed',
+                'message' => 'Database working',
+                'checked_at' => '2025-01-01T12:00:00Z'
+            ],
+            'mail' => [
+                'status' => 'completed',
+                'message' => 'Mail working',
+                'checked_at' => '2025-01-01T12:00:00Z'
+            ],
+            'queue_worker' => [
+                'status' => 'completed',
+                'message' => 'Queue worker working',
+                'checked_at' => '2025-01-01T12:00:00Z'
+            ]
+        ];
+
+        $this->mockSetupDetectionService
+            ->shouldReceive('getAllStepStatuses')
+            ->once()
+            ->andReturn($freshData);
+
+        // Act
+        $result = $this->setupStatusService->refreshAllStatuses();
+
+        // Assert
+        $this->assertArrayHasKey('database', $result);
+        $this->assertArrayHasKey('mail', $result);
+        $this->assertArrayNotHasKey('queue_worker', $result); // Should be excluded
+        $this->assertCount(2, $result); // Only 2 steps returned
+    }
+
+    public function test_get_queue_worker_status_returns_not_tested_when_no_cache(): void
+    {
+        // Arrange - No cached data
+
+        // Act
+        $result = $this->setupStatusService->getQueueWorkerStatus(false);
+
+        // Assert
+        $this->assertEquals('not_tested', $result['status']);
+        $this->assertEquals('Click the Test Queue Worker button below', $result['message']);
+        $this->assertEquals('Queue Worker', $result['step_name']);
+        $this->assertEquals(6, $result['priority']);
+        $this->assertTrue($result['can_retry']);
+        $this->assertArrayHasKey('details', $result);
+        $this->assertTrue($result['details']['requires_test']);
+        $this->assertTrue($result['details']['test_available']);
+    }
+
+    public function test_get_queue_worker_status_returns_cached_valid_status(): void
+    {
+        // Arrange
+        $validCachedStatus = [
+            'status' => 'completed',
+            'message' => 'Queue worker is functioning properly',
+            'test_completed_at' => Carbon::now()->subMinutes(30)->toISOString(),
+            'processing_time' => 1.23,
+            'step_name' => 'Queue Worker',
+            'priority' => 6,
+            'can_retry' => true
+        ];
+        
+        Cache::put('setup_queue_worker_status', $validCachedStatus, 3600);
+
+        // Act
+        $result = $this->setupStatusService->getQueueWorkerStatus(true);
+
+        // Assert
+        $this->assertEquals('completed', $result['status']);
+        $this->assertEquals('Queue worker is functioning properly', $result['message']);
+        $this->assertEquals(1.23, $result['processing_time']);
+    }
+
+    public function test_get_queue_worker_status_returns_not_tested_when_cache_expired(): void
+    {
+        // Arrange
+        $expiredCachedStatus = [
+            'status' => 'completed',
+            'message' => 'Queue worker is functioning properly',
+            'test_completed_at' => Carbon::now()->subHours(2)->toISOString(), // Expired (older than 1 hour)
+            'processing_time' => 1.23
+        ];
+        
+        Cache::put('setup_queue_worker_status', $expiredCachedStatus, 3600);
+
+        // Act
+        $result = $this->setupStatusService->getQueueWorkerStatus(false);
+
+        // Assert
+        $this->assertEquals('not_tested', $result['status']);
+        $this->assertEquals('Click the Test Queue Worker button below', $result['message']);
+    }
+
+    public function test_get_queue_worker_status_returns_not_tested_when_status_not_completed(): void
+    {
+        // Arrange
+        $failedCachedStatus = [
+            'status' => 'failed',
+            'message' => 'Queue worker test failed',
+            'test_completed_at' => Carbon::now()->subMinutes(30)->toISOString(),
+            'error_message' => 'Test job timed out'
+        ];
+        
+        Cache::put('setup_queue_worker_status', $failedCachedStatus, 3600);
+
+        // Act
+        $result = $this->setupStatusService->getQueueWorkerStatus(false);
+
+        // Assert
+        $this->assertEquals('not_tested', $result['status']);
+        $this->assertEquals('Click the Test Queue Worker button below', $result['message']);
+    }
+
+    public function test_clear_queue_worker_status_cache_removes_cache(): void
+    {
+        // Arrange
+        Cache::put('setup_queue_worker_status', ['test' => 'data'], 3600);
+        $this->assertTrue(Cache::has('setup_queue_worker_status'));
+
+        // Act
+        $this->setupStatusService->clearQueueWorkerStatusCache();
+
+        // Assert
+        $this->assertFalse(Cache::has('setup_queue_worker_status'));
+    }
+
+    public function test_clear_all_caches_includes_queue_worker_cache(): void
+    {
+        // Arrange
+        Cache::put('setup_status_detailed_statuses', ['data'], 30);
+        Cache::put('setup_status_summary', ['data'], 30);
+        Cache::put('setup_queue_worker_status', ['data'], 3600);
+
+        // Act
+        $this->setupStatusService->clearAllCaches();
+
+        // Assert
+        $this->assertFalse(Cache::has('setup_status_detailed_statuses'));
+        $this->assertFalse(Cache::has('setup_status_summary'));
+        $this->assertFalse(Cache::has('setup_queue_worker_status'));
+    }
+
+    public function test_get_cache_statistics_includes_queue_worker_cache(): void
+    {
+        // Arrange
+        Cache::put('setup_queue_worker_status', ['test' => 'data'], 3600);
+
+        // Act
+        $result = $this->setupStatusService->getCacheStatistics();
+
+        // Assert
+        $this->assertArrayHasKey('queue_worker_cache_ttl', $result);
+        $this->assertEquals(3600, $result['queue_worker_cache_ttl']);
+        $this->assertArrayHasKey('queue_worker_status', $result['keys']);
+        $this->assertTrue($result['keys']['queue_worker_status']['exists']);
+        $this->assertGreaterThan(0, $result['keys']['queue_worker_status']['size_bytes']);
+    }
+
     public function test_get_status_summary_calculates_correct_statistics(): void
     {
         // Arrange
@@ -326,7 +489,7 @@ class SetupStatusServiceTest extends TestCase
         // Assert
         $this->assertIsArray($result);
         
-        // Should return fallback data for all steps
+        // Should return fallback data for all steps (including queue_worker in getDetailedStepStatuses)
         $expectedSteps = ['database', 'mail', 'google_drive', 'migrations', 'admin_user', 'queue_worker'];
         foreach ($expectedSteps as $step) {
             $this->assertArrayHasKey($step, $result);
@@ -353,7 +516,10 @@ class SetupStatusServiceTest extends TestCase
 
         // Assert - Should return fallback data, not throw exception
         $this->assertIsArray($result);
-        $this->assertCount(6, $result); // 6 fallback steps
+        $this->assertCount(5, $result); // 5 fallback steps (excluding queue_worker)
+        
+        // Should not contain queue_worker
+        $this->assertArrayNotHasKey('queue_worker', $result);
         
         // All steps should be in cannot_verify status
         foreach ($result as $step => $status) {
@@ -380,7 +546,7 @@ class SetupStatusServiceTest extends TestCase
         $this->assertEquals('incomplete', $result['overall_status']);
         $this->assertEquals(0, $result['completion_percentage']);
         $this->assertEquals(0, $result['completed_steps']);
-        $this->assertEquals(6, $result['total_steps']); // 6 fallback steps
+        $this->assertEquals(6, $result['total_steps']); // 6 fallback steps (getDetailedStepStatuses still includes queue_worker)
         $this->assertCount(6, $result['incomplete_steps']); // All steps are incomplete
     }
 
