@@ -1,6 +1,6 @@
 {{-- Employee Google Drive Root Folder Selection Form --}}
 <div x-data="employeeGoogleDriveFolderPicker()" x-init="init()">
-    <form action="{{ route('employee.google-drive.folder.update', ['username' => $user->username]) }}" method="POST" class="space-y-4">
+    <form id="employee-google-drive-folder-form" action="{{ route('employee.google-drive.folder.update', ['username' => $user->username]) }}" method="POST" class="space-y-4">
         @csrf
         @method('PUT')
         <x-label for="google_drive_root_folder_id" :value="__('Root Folder')" />
@@ -76,8 +76,8 @@
             </div>
         </div>
 
-        <div class="flex justify-end">
-            <x-button type="submit" x-bind:class="folderChanged ? 'animate-wiggle' : ''">Save Root Folder</x-button>
+        <div class="text-sm text-gray-600 text-center mt-4">
+            <p>💡 Your folder selection is automatically saved when you click "Confirm" in the folder picker.</p>
         </div>
     </form>
 </div>
@@ -180,6 +180,32 @@
                 }
                 this.folderChanged = (this.currentFolderId !== this.initialFolderId);
                 this.showModal = false;
+                
+                // Auto-save the selection to the database
+                this.saveFolder();
+            },
+            
+            saveFolder() {
+                // Submit the form to save the folder selection
+                // Use nextTick to ensure Alpine.js has updated the form data
+                this.$nextTick(() => {
+                    const form = document.getElementById('employee-google-drive-folder-form');
+                    if (form) {
+                        // Double-check that the hidden input has the correct value
+                        const hiddenInput = form.querySelector('input[name="google_drive_root_folder_id"]');
+                        if (hiddenInput) {
+                            hiddenInput.value = this.currentFolderId;
+                            console.log('Auto-saving employee folder selection:', {
+                                folderId: this.currentFolderId,
+                                folderName: this.currentFolderName,
+                                inputValue: hiddenInput.value
+                            });
+                        }
+                        form.submit();
+                    } else {
+                        console.error('Employee Google Drive folder form not found for auto-save');
+                    }
+                });
             },
 
             useGoogleDriveRoot() {
@@ -187,6 +213,9 @@
                 this.currentFolderName = '';
                 this.folderChanged = (this.currentFolderId !== this.initialFolderId);
                 this.showModal = false;
+                
+                // Auto-save the selection to the database
+                this.saveFolder();
             }
         };
     }

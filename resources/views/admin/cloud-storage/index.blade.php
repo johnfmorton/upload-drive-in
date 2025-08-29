@@ -301,12 +301,40 @@
                 }
                 this.folderChanged = (this.currentFolderId !== this.initialFolderId);
                 this.showModal = false;
+                
+                // Auto-save the selection to the database
+                this.saveFolder();
+            },
+            saveFolder() {
+                // Submit the form to save the folder selection
+                // Use nextTick to ensure Alpine.js has updated the form data
+                this.$nextTick(() => {
+                    const form = document.getElementById('google-drive-folder-form');
+                    if (form) {
+                        // Double-check that the hidden input has the correct value
+                        const hiddenInput = form.querySelector('input[name="google_drive_root_folder_id"]');
+                        if (hiddenInput) {
+                            hiddenInput.value = this.currentFolderId;
+                            console.log('Auto-saving folder selection:', {
+                                folderId: this.currentFolderId,
+                                folderName: this.currentFolderName,
+                                inputValue: hiddenInput.value
+                            });
+                        }
+                        form.submit();
+                    } else {
+                        console.error('Google Drive folder form not found for auto-save');
+                    }
+                });
             },
             useGoogleDriveRoot() {
                 this.currentFolderId = '';
                 this.currentFolderName = '';
                 this.folderChanged = (this.currentFolderId !== this.initialFolderId);
                 this.showModal = false;
+                
+                // Auto-save the selection to the database
+                this.saveFolder();
             },
         };
     }

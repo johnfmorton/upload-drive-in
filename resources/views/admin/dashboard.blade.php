@@ -75,11 +75,14 @@
                     </div>
                 </div>
             @endif
+            
+            <!-- Google Drive Connection -->
+            <x-dashboard.google-drive-connection :user="Auth::user()" :is-admin="true" />
+            
             <!-- Client-Company User Relationships -->
             <x-dashboard.client-relationships :user="Auth::user()" :is-admin="true" />
 
-            <!-- Google Drive Connection -->
-            <x-dashboard.google-drive-connection :user="Auth::user()" :is-admin="true" />
+            
 
             <!-- Queue Worker Testing Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
