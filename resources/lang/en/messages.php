@@ -76,6 +76,10 @@
     'label_name' => 'Name',
     'label_email' => 'Email Address',
     'button_create_user' => 'Create User',
+    'button_create_user_tooltip' => 'Create user account without sending invitation email',
+    'button_create_and_invite' => 'Create & Send Invitation',
+    'button_create_and_invite_tooltip' => 'Create user account and automatically send invitation email',
+    'dual_action_help_text' => 'Choose "Create User" to create an account without sending an email, or "Create & Send Invitation" to create and automatically email the login link.',
     'users_list_title' => 'Client Users',
     'user_created_success' => 'Client user created successfully.',
     'user_deleted_success' => 'Client user deleted successfully.',
@@ -171,7 +175,20 @@
     'email_domain_not_allowed' => 'This email domain is not allowed to register. Please use an approved email domain.',
 
     // User Management Messages
-    'client_created' => 'Client user created successfully. An invitation email has been sent.',
+    'client_created' => 'Client user created successfully. You can provide them with their login link manually.',
+    'client_created_and_invited' => 'Client user created and invitation sent successfully.',
+    
+    // Admin User Creation Messages
+    'admin_user_created' => 'Client user created successfully. You can provide them with their login link manually.',
+    'admin_user_created_and_invited' => 'Client user created and invitation sent successfully.',
+    'admin_user_created_email_failed' => 'Client user created successfully, but invitation email failed to send. You can provide them with their login link manually.',
+    'admin_user_creation_failed' => 'Failed to create client user. Please try again.',
+    
+    // Employee Client Creation Messages
+    'employee_client_created' => 'Client user created successfully. You can provide them with their login link manually.',
+    'employee_client_created_and_invited' => 'Client user created and invitation sent successfully.',
+    'employee_client_created_email_failed' => 'Client user created successfully, but invitation email failed to send. You can provide them with their login link manually.',
+    'employee_client_creation_failed' => 'Failed to create client user. Please try again.',
 
     // Email Common Elements
     'email_signature' => 'Thanks',
@@ -465,4 +482,22 @@
     'bulk_delete_warning' => 'This action cannot be undone. All selected files will be removed from both local storage and Google Drive.',
     'delete_all' => 'Delete All',
     'bulk_delete_error' => 'An error occurred during bulk deletion.',
+
+    // Enhanced Validation Messages
+    'validation_name_required' => 'The name field is required.',
+    'validation_name_string' => 'The name must be a valid text string.',
+    'validation_name_max' => 'The name may not be greater than 255 characters.',
+    'validation_email_required' => 'The email field is required.',
+    'validation_email_format' => 'The email must be a valid email address.',
+    'validation_action_required' => 'Please select an action (Create User or Create & Send Invitation).',
+    'validation_action_invalid' => 'The selected action is invalid.',
+
+    // Dual Action Button Labels and Tooltips
+    'button_create_user_loading' => 'Creating...',
+    'button_create_and_invite_loading' => 'Creating & Inviting...',
+
+    // Status Messages for Employee Client Creation (using status keys)
+    'employee-client-created' => 'Client user created successfully. You can provide them with their login link manually.',
+    'employee-client-created-and-invited' => 'Client user created and invitation sent successfully.',
+    'employee-client-created-email-failed' => 'Client user created successfully, but invitation email failed to send. You can provide them with their login link manually.',
 ];

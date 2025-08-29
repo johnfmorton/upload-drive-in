@@ -48,33 +48,139 @@ class ClientManagementController extends Controller
      */
     public function store(Request $request, ClientUserService $clientUserService)
     {
+        // Enhanced server-side validation with custom error messages
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
+            'action' => ['required', 'in:create,create_and_invite']
+        ], [
+            'name.required' => __('messages.validation_name_required'),
+            'name.string' => __('messages.validation_name_string'),
+            'name.max' => __('messages.validation_name_max'),
+            'email.required' => __('messages.validation_email_required'),
+            'email.email' => __('messages.validation_email_format'),
+            'action.required' => __('messages.validation_action_required'),
+            'action.in' => __('messages.validation_action_invalid'),
+        ]);
+
+        // Log the user creation attempt for audit purposes
+        Log::info('Employee client creation attempt', [
+            'employee_id' => Auth::id(),
+            'employee_email' => Auth::user()->email,
+            'client_name' => $validated['name'],
+            'client_email' => $validated['email'],
+            'action' => $validated['action'],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         try {
             // Create or find client user and associate with current employee
             $clientUser = $clientUserService->findOrCreateClientUser($validated, Auth::user());
 
-            // Generate a signed URL for the user to log in
+            if ($validated['action'] === 'create_and_invite') {
+                try {
+                    $this->sendInvitationEmail($clientUser);
+                    
+                    // Log successful creation with invitation
+                    Log::info('Employee client created with invitation sent', [
+                        'employee_id' => Auth::id(),
+                        'client_id' => $clientUser->id,
+                        'client_email' => $clientUser->email,
+                    ]);
+                    
+                    return back()->with('status', 'employee-client-created-and-invited');
+                } catch (Exception $e) {
+                    // Log email sending failure with detailed context
+                    Log::error('Failed to send invitation email during employee client creation', [
+                        'employee_id' => Auth::id(),
+                        'client_id' => $clientUser->id,
+                        'client_email' => $clientUser->email,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    
+                    return back()->with('status', 'employee-client-created-email-failed');
+                }
+            } else {
+                // Log successful creation without invitation
+                Log::info('Employee client created without invitation', [
+                    'employee_id' => Auth::id(),
+                    'client_id' => $clientUser->id,
+                    'client_email' => $clientUser->email,
+                ]);
+                
+                return back()->with('status', 'employee-client-created');
+            }
+        } catch (Exception $e) {
+            // Log user creation failure with detailed context
+            Log::error('Failed to create client user via employee', [
+                'employee_id' => Auth::id(),
+                'client_name' => $validated['name'],
+                'client_email' => $validated['email'],
+                'action' => $validated['action'],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'ip_address' => $request->ip(),
+            ]);
+            
+            return back()->withErrors(['general' => __('messages.employee_client_creation_failed')])->withInput();
+        }
+    }
+
+    /**
+     * Send invitation email to a client user.
+     *
+     * @param User $clientUser
+     * @return void
+     * @throws Exception
+     */
+    private function sendInvitationEmail(User $clientUser): void
+    {
+        try {
+            // Validate email address format before attempting to send
+            if (!filter_var($clientUser->email, FILTER_VALIDATE_EMAIL)) {
+                throw new Exception("Invalid email address format: {$clientUser->email}");
+            }
+
             $loginUrl = URL::temporarySignedRoute(
                 'login.via.token',
                 now()->addDays(7),
                 ['user' => $clientUser->id]
             );
 
-            // Send invitation email
-            Mail::to($clientUser->email)->send(new LoginVerificationMail($loginUrl));
-
-            return back()->with('status', 'client-created');
-        } catch (Exception $e) {
-            Log::error('Failed to create client user', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'employee_id' => Auth::id()
+            // Log email sending attempt
+            Log::info('Attempting to send invitation email', [
+                'client_id' => $clientUser->id,
+                'client_email' => $clientUser->email,
+                'employee_id' => Auth::id(),
             ]);
-            return back()->withErrors(['email' => 'Failed to create client user.'])->withInput();
+
+            Mail::to($clientUser->email)->send(new LoginVerificationMail($loginUrl));
+            
+            // Log successful email sending
+            Log::info('Invitation email sent successfully', [
+                'client_id' => $clientUser->id,
+                'client_email' => $clientUser->email,
+                'employee_id' => Auth::id(),
+            ]);
+            
+        } catch (Exception $e) {
+            // Enhanced error logging with more context
+            Log::error('Failed to send invitation email', [
+                'client_id' => $clientUser->id,
+                'client_email' => $clientUser->email,
+                'employee_id' => Auth::id(),
+                'error_message' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'trace' => $e->getTraceAsString(),
+                'mail_config' => [
+                    'driver' => config('mail.default'),
+                    'host' => config('mail.mailers.smtp.host'),
+                ],
+            ]);
+            
+            throw new Exception("Failed to send invitation email to {$clientUser->email}: " . $e->getMessage(), $e->getCode(), $e);
         }
     }
 }

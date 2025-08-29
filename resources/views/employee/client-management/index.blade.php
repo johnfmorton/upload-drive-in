@@ -25,25 +25,166 @@
                     </div>
                 @endif
 
-                @if (session('status') === 'client-created')
-                    <div class="mb-4 p-4 bg-green-100 border border-green-200 text-green-700 rounded">
-                        {{ __('messages.client_created_success') }}
+                @if (session('error'))
+                    <div class="mb-4 p-4 bg-red-100 border border-red-200 text-red-700 rounded">
+                        {{ session('error') }}
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('employee.clients.store', ['username' => auth()->user()->username]) }}" class="space-y-4">
+                @if (session('status') === 'employee-client-created')
+                    <div class="mb-4 p-4 bg-green-100 border border-green-200 text-green-700 rounded">
+                        {{ __('messages.employee_client_created') }}
+                    </div>
+                @endif
+
+                @if (session('status') === 'employee-client-created-and-invited')
+                    <div class="mb-4 p-4 bg-green-100 border border-green-200 text-green-700 rounded">
+                        {{ __('messages.employee_client_created_and_invited') }}
+                    </div>
+                @endif
+
+                @if (session('status') === 'employee-client-created-email-failed')
+                    <div class="mb-4 p-4 bg-yellow-100 border border-yellow-200 text-yellow-700 rounded">
+                        {{ __('messages.employee_client_created_email_failed') }}
+                    </div>
+                @endif
+
+                @if (session('warning'))
+                    <div class="mb-4 p-4 bg-yellow-100 border border-yellow-200 text-yellow-700 rounded">
+                        {{ session('warning') }}
+                    </div>
+                @endif
+
+                @if (session('status') === 'client-created')
+                    <div class="mb-4 p-4 bg-green-100 border border-green-200 text-green-700 rounded">
+                        {{ __('messages.client_created') }}
+                    </div>
+                @endif
+
+                @if (session('status') === 'client-created-and-invited')
+                    <div class="mb-4 p-4 bg-green-100 border border-green-200 text-green-700 rounded">
+                        {{ __('messages.client_created_and_invited') }}
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('employee.clients.store', ['username' => auth()->user()->username]) }}" class="space-y-4" x-data="{ 
+                    submitting: false,
+                    formErrors: {},
+                    
+                    validateForm() {
+                        this.formErrors = {};
+                        let isValid = true;
+                        
+                        // Validate name field
+                        const nameField = $el.querySelector('input[name=name]');
+                        if (!nameField.value.trim()) {
+                            this.formErrors.name = '{{ __('messages.validation_name_required') }}';
+                            isValid = false;
+                        } else if (nameField.value.length > 255) {
+                            this.formErrors.name = '{{ __('messages.validation_name_max') }}';
+                            isValid = false;
+                        }
+                        
+                        // Validate email field
+                        const emailField = $el.querySelector('input[name=email]');
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailField.value.trim()) {
+                            this.formErrors.email = '{{ __('messages.validation_email_required') }}';
+                            isValid = false;
+                        } else if (!emailRegex.test(emailField.value)) {
+                            this.formErrors.email = '{{ __('messages.validation_email_format') }}';
+                            isValid = false;
+                        }
+                        
+                        return isValid;
+                    },
+                    
+                    submitForm(action) {
+                        if (this.submitting) return;
+                        
+                        // Validate form before submission
+                        if (!this.validateForm()) {
+                            return;
+                        }
+                        
+                        // Validate action parameter
+                        if (!action || !['create', 'create_and_invite'].includes(action)) {
+                            this.formErrors.action = '{{ __('messages.validation_action_required') }}';
+                            return;
+                        }
+                        
+                        this.submitting = true;
+                        
+                        // Set the action parameter
+                        const actionInput = document.createElement('input');
+                        actionInput.type = 'hidden';
+                        actionInput.name = 'action';
+                        actionInput.value = action;
+                        $el.appendChild(actionInput);
+                        
+                        // Submit the form
+                        $el.submit();
+                    }
+                }">
                     @csrf
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700">{{ __('messages.label_name') }}</label>
-                        <input type="text" name="name" id="name" value="{{ old('name') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm">
+                        <input type="text" name="name" id="name" value="{{ old('name') }}" required 
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm"
+                               :class="{ 'border-red-300 focus:border-red-500 focus:ring-red-500': formErrors.name }"
+                               @input="formErrors.name = ''">
+                        <p x-show="formErrors.name" x-text="formErrors.name" class="mt-1 text-sm text-red-600"></p>
                     </div>
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700">{{ __('messages.label_email') }}</label>
-                        <input type="email" name="email" id="email" value="{{ old('email') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm">
+                        <input type="email" name="email" id="email" value="{{ old('email') }}" required 
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm"
+                               :class="{ 'border-red-300 focus:border-red-500 focus:ring-red-500': formErrors.email }"
+                               @input="formErrors.email = ''">
+                        <p x-show="formErrors.email" x-text="formErrors.email" class="mt-1 text-sm text-red-600"></p>
                     </div>
-                    <div>
-                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[var(--brand-color)] hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)]">
-                            {{ __('messages.create_and_invite_button') }}
+                    <div class="mb-3">
+                        <p class="text-sm text-gray-600">{{ __('messages.dual_action_help_text') }}</p>
+                        <p x-show="formErrors.action" x-text="formErrors.action" class="mt-1 text-sm text-red-600"></p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button 
+                            type="button" 
+                            @click="submitForm('create')"
+                            :disabled="submitting"
+                            class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                            title="{{ __('messages.button_create_user_tooltip') }}"
+                        >
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            <span x-show="!submitting">{{ __('messages.button_create_user') }}</span>
+                            <span x-show="submitting" class="flex items-center">
+                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                {{ __('messages.button_create_user_loading') }}
+                            </span>
+                        </button>
+                        <button 
+                            type="button" 
+                            @click="submitForm('create_and_invite')"
+                            :disabled="submitting"
+                            class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[var(--brand-color)] hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                            title="{{ __('messages.button_create_and_invite_tooltip') }}"
+                        >
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            <span x-show="!submitting">{{ __('messages.button_create_and_invite') }}</span>
+                            <span x-show="submitting" class="flex items-center">
+                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                {{ __('messages.button_create_and_invite_loading') }}
+                            </span>
                         </button>
                     </div>
                 </form>

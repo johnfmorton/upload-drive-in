@@ -13,6 +13,9 @@ use Illuminate\Support\Str; // Added for random password
 use Illuminate\Support\Facades\Hash; // Added for hashing password
 use App\Services\ClientUserService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
+use App\Mail\LoginVerificationMail;
 // Remove Google Drive dependencies - they are now in the service
 // use Google\Client;
 // use Google\Service\Drive;
@@ -59,20 +62,143 @@ class AdminUserController extends Controller
      */
     public function store(Request $request)
     {
+        // Enhanced server-side validation with custom error messages
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255',
+            'action' => 'required|in:create,create_and_invite',
+        ], [
+            'name.required' => __('messages.validation_name_required'),
+            'name.string' => __('messages.validation_name_string'),
+            'name.max' => __('messages.validation_name_max'),
+            'email.required' => __('messages.validation_email_required'),
+            'email.email' => __('messages.validation_email_format'),
+            'action.required' => __('messages.validation_action_required'),
+            'action.in' => __('messages.validation_action_invalid'),
+        ]);
+
+        // Log the user creation attempt for audit purposes
+        Log::info('Admin user creation attempt', [
+            'admin_id' => Auth::id(),
+            'admin_email' => Auth::user()->email,
+            'client_name' => $validated['name'],
+            'client_email' => $validated['email'],
+            'action' => $validated['action'],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         try {
             $clientUser = $this->clientUserService->findOrCreateClientUser($validated, Auth::user());
 
-            return redirect()->route('admin.users.index')
-                ->with('success', 'Client user created successfully. You can now provide them with their login link.');
+            if ($validated['action'] === 'create_and_invite') {
+                try {
+                    $this->sendInvitationEmail($clientUser);
+                    
+                    // Log successful creation with invitation
+                    Log::info('Admin user created with invitation sent', [
+                        'admin_id' => Auth::id(),
+                        'client_id' => $clientUser->id,
+                        'client_email' => $clientUser->email,
+                    ]);
+                    
+                    return redirect()->route('admin.users.index')
+                        ->with('success', __('messages.admin_user_created_and_invited'));
+                } catch (Exception $e) {
+                    // Log email sending failure with detailed context
+                    Log::error('Failed to send invitation email during admin user creation', [
+                        'admin_id' => Auth::id(),
+                        'client_id' => $clientUser->id,
+                        'client_email' => $clientUser->email,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    
+                    return redirect()->route('admin.users.index')
+                        ->with('warning', __('messages.admin_user_created_email_failed'));
+                }
+            } else {
+                // Log successful creation without invitation
+                Log::info('Admin user created without invitation', [
+                    'admin_id' => Auth::id(),
+                    'client_id' => $clientUser->id,
+                    'client_email' => $clientUser->email,
+                ]);
+                
+                return redirect()->route('admin.users.index')
+                    ->with('success', __('messages.admin_user_created'));
+            }
         } catch (Exception $e) {
-            Log::error("Error creating client user: " . $e->getMessage());
+            // Log user creation failure with detailed context
+            Log::error('Failed to create client user via admin', [
+                'admin_id' => Auth::id(),
+                'client_name' => $validated['name'],
+                'client_email' => $validated['email'],
+                'action' => $validated['action'],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'ip_address' => $request->ip(),
+            ]);
+            
             return redirect()->route('admin.users.index')
-                ->with('error', 'Failed to create client user. Please check the logs.');
+                ->withErrors(['general' => __('messages.admin_user_creation_failed')])
+                ->withInput();
+        }
+    }
+
+    /**
+     * Send invitation email to a client user.
+     *
+     * @param User $clientUser
+     * @return void
+     * @throws Exception
+     */
+    private function sendInvitationEmail(User $clientUser): void
+    {
+        try {
+            // Validate email address format before attempting to send
+            if (!filter_var($clientUser->email, FILTER_VALIDATE_EMAIL)) {
+                throw new Exception("Invalid email address format: {$clientUser->email}");
+            }
+
+            $loginUrl = URL::temporarySignedRoute(
+                'login.via.token',
+                now()->addDays(7),
+                ['user' => $clientUser->id]
+            );
+
+            // Log email sending attempt
+            Log::info('Attempting to send invitation email', [
+                'client_id' => $clientUser->id,
+                'client_email' => $clientUser->email,
+                'admin_id' => Auth::id(),
+            ]);
+
+            Mail::to($clientUser->email)->send(new LoginVerificationMail($loginUrl));
+            
+            // Log successful email sending
+            Log::info('Invitation email sent successfully', [
+                'client_id' => $clientUser->id,
+                'client_email' => $clientUser->email,
+                'admin_id' => Auth::id(),
+            ]);
+            
+        } catch (Exception $e) {
+            // Enhanced error logging with more context
+            Log::error('Failed to send invitation email', [
+                'client_id' => $clientUser->id,
+                'client_email' => $clientUser->email,
+                'admin_id' => Auth::id(),
+                'error_message' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'trace' => $e->getTraceAsString(),
+                'mail_config' => [
+                    'driver' => config('mail.default'),
+                    'host' => config('mail.mailers.smtp.host'),
+                ],
+            ]);
+            
+            throw new Exception("Failed to send invitation email to {$clientUser->email}: " . $e->getMessage(), $e->getCode(), $e);
         }
     }
 
@@ -94,8 +220,13 @@ class AdminUserController extends Controller
             ->orWhere('id', Auth::id())
             ->get();
         
-        // Get client's upload history
+        // Get client's upload history - only files related to the current admin user
+        $currentUser = Auth::user();
         $uploads = FileUpload::where('email', $client->email)
+            ->where(function($query) use ($currentUser) {
+                $query->where('company_user_id', $currentUser->id)
+                      ->orWhere('uploaded_by_user_id', $currentUser->id);
+            })
             ->orderBy('created_at', 'desc')
             ->paginate(config('file-manager.pagination.items_per_page'));
         
@@ -162,7 +293,13 @@ class AdminUserController extends Controller
             // 1. Delete local files (from public/uploads)
             Log::info("Step 1: Attempting to delete local files for user {$id} ({$clientEmail}).");
             try {
-                $fileUploads = FileUpload::where('email', $clientEmail)->get();
+                $currentUser = Auth::user();
+                $fileUploads = FileUpload::where('email', $clientEmail)
+                    ->where(function($query) use ($currentUser) {
+                        $query->where('company_user_id', $currentUser->id)
+                              ->orWhere('uploaded_by_user_id', $currentUser->id);
+                    })
+                    ->get();
                 $localFilesProcessedCount = $fileUploads->count();
 
                 if ($localFilesProcessedCount > 0) {
@@ -230,8 +367,13 @@ class AdminUserController extends Controller
                  Log::info("Step 3: Deleting FileUpload database records for user {$id} ({$clientEmail}).");
                 try {
                     // Use the IDs from the collection fetched earlier for efficiency if possible
-                    // Or just re-query - using email is simpler here.
-                    $deletedDbRecords = FileUpload::where('email', $clientEmail)->delete();
+                    // Or just re-query - using email is simpler here, but filter by user access
+                    $deletedDbRecords = FileUpload::where('email', $clientEmail)
+                        ->where(function($query) use ($currentUser) {
+                            $query->where('company_user_id', $currentUser->id)
+                                  ->orWhere('uploaded_by_user_id', $currentUser->id);
+                        })
+                        ->delete();
                     Log::info("Deleted {$deletedDbRecords} FileUpload database records.");
                 } catch (Exception $e) {
                     Log::error("Error deleting FileUpload database records for user {$id} ({$clientEmail}): " . $e->getMessage());

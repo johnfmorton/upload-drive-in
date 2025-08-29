@@ -17,8 +17,15 @@ class DashboardController extends AdminController
 {
     public function index()
     {
-        // Get all files, ordered by most recent
-        $files = FileUpload::orderBy('created_at', 'desc')->paginate(config('file-manager.pagination.items_per_page'));
+        $user = auth()->user();
+        
+        // Get files related to the current user (uploaded for them or by them), ordered by most recent
+        $files = FileUpload::where(function($query) use ($user) {
+                $query->where('company_user_id', $user->id)
+                      ->orWhere('uploaded_by_user_id', $user->id);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(config('file-manager.pagination.items_per_page'));
 
         // Check if this is a first-time login after setup completion
         $isFirstTimeLogin = $this->checkFirstTimeLogin();
@@ -109,9 +116,17 @@ class DashboardController extends AdminController
     public function processPendingUploads()
     {
         try {
-            // Get pending uploads count
-            $pendingCount = FileUpload::whereNull('google_drive_file_id')
-                ->orWhere('google_drive_file_id', '')
+            $user = auth()->user();
+            
+            // Get pending uploads count for the current user
+            $pendingCount = FileUpload::where(function($query) use ($user) {
+                    $query->where('company_user_id', $user->id)
+                          ->orWhere('uploaded_by_user_id', $user->id);
+                })
+                ->where(function($query) {
+                    $query->whereNull('google_drive_file_id')
+                          ->orWhere('google_drive_file_id', '');
+                })
                 ->count();
 
             if ($pendingCount === 0) {

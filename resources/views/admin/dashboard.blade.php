@@ -182,8 +182,16 @@
                     </div>
                     <div class="flex items-center space-x-3">
                         @php
-                            $pendingCount = \App\Models\FileUpload::pending()->count();
-                            $totalFiles = \App\Models\FileUpload::count();
+                            $user = Auth::user();
+                            $totalFiles = \App\Models\FileUpload::where(function($query) use ($user) {
+                                $query->where('company_user_id', $user->id)
+                                      ->orWhere('uploaded_by_user_id', $user->id);
+                            })->count();
+                            
+                            $pendingCount = \App\Models\FileUpload::where(function($query) use ($user) {
+                                $query->where('company_user_id', $user->id)
+                                      ->orWhere('uploaded_by_user_id', $user->id);
+                            })->pending()->count();
                         @endphp
 
                         <div class="text-sm text-gray-500">

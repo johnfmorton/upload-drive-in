@@ -41,6 +41,23 @@ class FileManagerController extends AdminController
     }
 
     /**
+     * Check if the current user has access to the specified file.
+     */
+    protected function checkFileAccess(FileUpload $file)
+    {
+        $user = auth()->user();
+        
+        if (!$user) {
+            abort(404, 'Please visit the home page to start using the app.');
+        }
+
+        // Check if user has access to this file
+        if (!$file->canBeAccessedBy($user)) {
+            abort(404, 'File not found.');
+        }
+    }
+
+    /**
      * Display a listing of files with enhanced filtering and pagination.
      */
     public function index(Request $request): View|JsonResponse
@@ -78,9 +95,9 @@ class FileManagerController extends AdminController
                 )
             );
             
-            // Admin users get global file access and statistics, not user-specific ones
-            $files = $this->fileManagerService->getFilteredFiles($filters, $perPage, null);
-            $statistics = $this->fileManagerService->getFileStatistics(null);
+            // Admin users get files related to them (uploaded for them or by them)
+            $files = $this->fileManagerService->getFilteredFiles($filters, $perPage, auth()->user());
+            $statistics = $this->fileManagerService->getFileStatistics(auth()->user());
             $filterOptions = $this->fileManagerService->getFilterOptions();
 
             if ($request->expectsJson()) {
@@ -135,6 +152,7 @@ class FileManagerController extends AdminController
     {
         try {
             $this->checkAdminAccess();
+            $this->checkFileAccess($file);
             
             // Audit log file view
             $this->auditLogService->logFileAccess('view', $file, auth()->user(), request());
@@ -210,6 +228,7 @@ class FileManagerController extends AdminController
     {
         try {
             $this->checkAdminAccess();
+            $this->checkFileAccess($file);
             
             $request->validate([
                 'message' => 'nullable|string|max:1000',
@@ -299,6 +318,7 @@ class FileManagerController extends AdminController
     {
         try {
             $this->checkAdminAccess();
+            $this->checkFileAccess($file);
             
             // Audit log file deletion
             $this->auditLogService->logFileAccess('delete', $file, auth()->user(), request());
@@ -501,6 +521,7 @@ class FileManagerController extends AdminController
     public function download(FileUpload $file)
     {
         $this->checkAdminAccess();
+        $this->checkFileAccess($file);
         
         try {
             // Security validation
@@ -594,8 +615,15 @@ class FileManagerController extends AdminController
         ]);
 
         try {
-            // Security validation for all files
-            $files = FileUpload::whereIn('id', $request->file_ids)->get();
+            $user = auth()->user();
+            
+            // Security validation for all files - only get files the user has access to
+            $files = FileUpload::whereIn('id', $request->file_ids)
+                ->where(function($query) use ($user) {
+                    $query->where('company_user_id', $user->id)
+                          ->orWhere('uploaded_by_user_id', $user->id);
+                })
+                ->get();
             $blockedFiles = [];
             
             foreach ($files as $file) {
@@ -635,8 +663,13 @@ class FileManagerController extends AdminController
                 'file_ids' => $request->file_ids
             ]);
             
-            // Get file information for progress tracking
-            $totalSize = FileUpload::whereIn('id', $request->file_ids)->sum('file_size');
+            // Get file information for progress tracking - only for files the user has access to
+            $totalSize = FileUpload::whereIn('id', $request->file_ids)
+                ->where(function($query) use ($user) {
+                    $query->where('company_user_id', $user->id)
+                          ->orWhere('uploaded_by_user_id', $user->id);
+                })
+                ->sum('file_size');
             
             // Add headers for download progress tracking
             $response = $this->fileManagerService->bulkDownloadFiles($request->file_ids);
@@ -748,6 +781,11 @@ class FileManagerController extends AdminController
         // The FilePreviewService will handle proper access control based on user roles
         if (!auth()->check()) {
             abort(401, 'Authentication required');
+        }
+
+        // Check if the authenticated user can access this file
+        if (!$file->canBeAccessedBy(auth()->user())) {
+            abort(403, 'Access denied to this file');
         }
 
         try {
