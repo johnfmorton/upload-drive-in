@@ -279,11 +279,7 @@ input[type='file']:focus::file-selector-button {
 }
 
 .step-status-details {
-  @apply mt-2 text-sm text-gray-600 hidden;
-}
-
-.step-status-details.show {
-  @apply block;
+  @apply mt-2 text-sm text-gray-600;
 }
 
 /* Toast Container Styles */

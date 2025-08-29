@@ -11,7 +11,43 @@ The JavaScript error was occurring because:
 
 ## Fixes Applied
 
-### 1. Simplified testQueueWorker Method
+### 1. Fixed CSS Conflicts for Status Details Animation
+**File**: `resources/css/app.css`
+
+**Issue**: There were conflicting CSS rules for `.step-status-details` that prevented smooth animations:
+- One set used `max-height: 0` with transitions for smooth animations  
+- Another set used Tailwind's `@apply hidden` and `@apply block` which overrode the animations
+
+**Fix**: Removed the conflicting Tailwind approach and kept the animation-based approach:
+
+```css
+/* REMOVED conflicting rules */
+.step-status-details {
+  @apply mt-2 text-sm text-gray-600 hidden;  /* ❌ REMOVED */
+}
+
+.step-status-details.show {
+  @apply block;  /* ❌ REMOVED */
+}
+
+/* KEPT the working animation rules */
+.step-status-details {
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.3s ease-out;
+  margin-top: 0;
+  opacity: 0;
+}
+
+.step-status-details.show {
+  max-height: 500px;
+  margin-top: 0.75rem;
+  opacity: 1;
+  transition: all 0.3s ease-in;
+}
+```
+
+### 2. Simplified testQueueWorker Method
 **File**: `resources/js/setup-status.js`
 
 **Before**:
@@ -135,6 +171,9 @@ A simple test page has been created at `public/test-queue-worker.html` that you 
 - [ ] Error scenarios show appropriate messages
 - [ ] Page refresh preserves status (if cached)
 - [ ] "Check Status" button works independently
+- [ ] **Info buttons (ℹ️) work**: Clicking the info button next to each status step should toggle the details section
+- [ ] **Smooth animations**: Status details should expand/collapse with smooth transitions (not instant show/hide)
+- [ ] **CSS animations working**: Details sections should use opacity and max-height transitions
 
 ## Rollback Plan
 

@@ -2797,11 +2797,11 @@ class SetupStatusManager {
 }
 
 // Global functions for backward compatibility
-let setupStatusManager;
-
 function toggleStatusDetails(stepName) {
-    if (setupStatusManager) {
-        setupStatusManager.toggleStatusDetails(stepName);
+    if (window.setupStatusManager) {
+        window.setupStatusManager.toggleStatusDetails(stepName);
+    } else {
+        console.error('SetupStatusManager not initialized yet');
     }
 }
 

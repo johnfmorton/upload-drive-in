@@ -32,6 +32,15 @@
     
     <div class="status-indicator" id="status-queue_worker">
         <span id="status-queue_worker-text">Click the Test Queue Worker button below</span>
+        <button class="text-gray-400 hover:text-gray-600" onclick="toggleStatusDetails('database')" title="Show details" style="margin-left: 10px;">
+            <span class="w-4 h-4 text-base">ℹ️</span>
+        </button>
+    </div>
+    
+    <div id="details-database" class="step-status-details" style="background: #e5e7eb; padding: 10px; margin: 10px 0; border-radius: 5px; max-height: 0; overflow: hidden; transition: all 0.3s ease-out; opacity: 0;">
+        <h4>Database Details</h4>
+        <p>This is a test of the toggleStatusDetails function.</p>
+        <p>If you can see this, the function is working!</p>
     </div>
     
     <div id="console-output" style="background: #f0f0f0; padding: 10px; margin-top: 20px; height: 300px; overflow-y: scroll;">
@@ -211,6 +220,27 @@
             window.queueWorkerTest = new SimpleQueueWorkerTest();
             console.log('Test initialized successfully');
         });
+        
+        // Add toggleStatusDetails function for testing
+        window.toggleStatusDetails = function(stepName) {
+            console.log(`toggleStatusDetails called for: ${stepName}`);
+            const detailsElement = document.getElementById(`details-${stepName}`);
+            if (detailsElement) {
+                const isVisible = detailsElement.classList.contains('show');
+                console.log(`Element details-${stepName} found, currently visible: ${isVisible}`);
+                if (isVisible) {
+                    detailsElement.classList.remove('show');
+                    detailsElement.style.maxHeight = '0';
+                    detailsElement.style.opacity = '0';
+                } else {
+                    detailsElement.classList.add('show');
+                    detailsElement.style.maxHeight = '500px';
+                    detailsElement.style.opacity = '1';
+                }
+            } else {
+                console.warn(`Details element not found: details-${stepName}`);
+            }
+        };
         
         console.log('Script loaded');
     </script>
