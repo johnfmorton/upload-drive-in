@@ -12,6 +12,19 @@
         {{ __('messages.google_drive_connection') }}
     </h2>
     
+    @if($isGoogleDriveAppConfigured && $user->googleDriveToken && $user->upload_url)
+        <div class="my-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 class="text-sm font-medium text-blue-800 mb-2">{{ __('messages.your_upload_page') }}</h3>
+            <div class="flex items-center justify-between">
+                <code class="text-sm bg-white px-2 py-1 rounded border flex-1 mr-2 truncate">{{ $user->upload_url }}</code>
+                <button onclick="copyUploadUrl('{{ $user->upload_url }}')" class="inline-flex items-center px-3 py-1 border border-blue-300 shadow-sm text-xs font-medium rounded text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap">
+                    <span class="copy-text">{{ __('messages.copy_url') }}</span>
+                </button>
+            </div>
+            <p class="text-xs text-blue-600 mt-2">{{ __('messages.share_this_url_with_clients') }}</p>
+        </div>
+    @endif
+
     @if(!$isGoogleDriveAppConfigured)
         {{-- Google Drive app not configured --}}
         <div class="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -101,18 +114,7 @@
         </div>
     @endif
 
-    @if($isGoogleDriveAppConfigured && $user->googleDriveToken && $user->upload_url)
-        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 class="text-sm font-medium text-blue-800 mb-2">{{ __('messages.your_upload_page') }}</h3>
-            <div class="flex items-center justify-between">
-                <code class="text-sm bg-white px-2 py-1 rounded border flex-1 mr-2 truncate">{{ $user->upload_url }}</code>
-                <button onclick="copyUploadUrl('{{ $user->upload_url }}')" class="inline-flex items-center px-3 py-1 border border-blue-300 shadow-sm text-xs font-medium rounded text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap">
-                    <span class="copy-text">{{ __('messages.copy_url') }}</span>
-                </button>
-            </div>
-            <p class="text-xs text-blue-600 mt-2">{{ __('messages.share_this_url_with_clients') }}</p>
-        </div>
-    @endif
+
 </div>
 
 @push('scripts')
