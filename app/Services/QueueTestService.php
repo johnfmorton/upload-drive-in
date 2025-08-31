@@ -87,7 +87,7 @@ class QueueTestService
     {
         $maxAttempts = self::MAX_RETRY_ATTEMPTS;
         $lastException = null;
-        
+
         for ($attempt = $retryAttempt; $attempt < $maxAttempts; $attempt++) {
             try {
                 if ($attempt > 0) {
@@ -96,35 +96,34 @@ class QueueTestService
                         'max_attempts' => $maxAttempts,
                         'delay' => $delay
                     ]);
-                    
+
                     // Add delay between retries
                     usleep(self::RETRY_DELAY_MS * 1000);
                 }
-                
+
                 // Generate unique job ID
                 $jobId = $this->generateUniqueJobId();
-                
+
                 // Initialize job status in cache with timeout handling
                 $this->initializeJobStatusWithTimeout($jobId, $delay);
-                
+
                 // Add job ID to index for cleanup tracking
                 $this->addJobToIndexWithRetry($jobId);
-                
+
                 // Dispatch the test job with error handling
                 $this->dispatchJobWithTimeout($jobId, $delay);
-                
+
                 Log::info('Test queue job dispatched successfully', [
                     'test_job_id' => $jobId,
                     'delay' => $delay,
                     'attempt' => $attempt + 1,
                     'dispatched_at' => Carbon::now()->toISOString(),
                 ]);
-                
+
                 return $jobId;
-                
             } catch (Exception $e) {
                 $lastException = $e;
-                
+
                 Log::warning('Test job dispatch failed, will retry if attempts remain', [
                     'attempt' => $attempt + 1,
                     'max_attempts' => $maxAttempts,
@@ -132,7 +131,7 @@ class QueueTestService
                     'error' => $e->getMessage(),
                     'remaining_attempts' => $maxAttempts - $attempt - 1
                 ]);
-                
+
                 // Don't retry certain types of errors
                 if ($this->shouldNotRetryDispatch($e)) {
                     Log::info('Dispatch error should not be retried', [
@@ -143,7 +142,7 @@ class QueueTestService
                 }
             } catch (Throwable $e) {
                 $lastException = $e;
-                
+
                 Log::critical('Critical error during test job dispatch', [
                     'attempt' => $attempt + 1,
                     'delay' => $delay,
@@ -153,17 +152,17 @@ class QueueTestService
                 break;
             }
         }
-        
+
         // All attempts failed
         Log::error('Failed to dispatch test queue job after all retries', [
             'max_attempts' => $maxAttempts,
             'delay' => $delay,
             'final_error' => $lastException ? $lastException->getMessage() : 'Unknown error'
         ]);
-        
+
         throw new Exception(
-            'Failed to dispatch test job after ' . $maxAttempts . ' attempts: ' . 
-            ($lastException ? $lastException->getMessage() : 'Unknown error'),
+            'Failed to dispatch test job after ' . $maxAttempts . ' attempts: ' .
+                ($lastException ? $lastException->getMessage() : 'Unknown error'),
             0,
             $lastException
         );
@@ -183,7 +182,7 @@ class QueueTestService
                 Log::warning('Invalid job ID format provided', [
                     'job_id' => $jobId
                 ]);
-                
+
                 return [
                     'test_job_id' => $jobId,
                     'status' => 'invalid',
@@ -192,20 +191,20 @@ class QueueTestService
                     'checked_at' => Carbon::now()->toISOString(),
                 ];
             }
-            
+
             $cacheKey = self::CACHE_PREFIX . $jobId;
-            
+
             // Execute with timeout to prevent hanging
             $status = $this->executeWithTimeout(function () use ($cacheKey) {
                 return Cache::get($cacheKey);
             }, 5); // 5 second timeout for cache operations
-            
+
             if (!$status) {
                 Log::debug('Test job not found in cache', [
                     'test_job_id' => $jobId,
                     'cache_key' => $cacheKey
                 ]);
-                
+
                 return [
                     'test_job_id' => $jobId,
                     'status' => 'not_found',
@@ -221,34 +220,32 @@ class QueueTestService
                     'checked_at' => Carbon::now()->toISOString(),
                 ];
             }
-            
+
             // Check for timeout if job is still pending or processing
             if (in_array($status['status'], ['pending', 'processing'])) {
                 $status = $this->checkForTimeoutWithFallback($jobId, $status);
             }
-            
+
             // Add additional metadata
             $status['checked_at'] = Carbon::now()->toISOString();
             $status['cache_hit'] = true;
-            
+
             return $status;
-            
         } catch (Exception $e) {
             Log::error('Failed to check test job status', [
                 'test_job_id' => $jobId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return $this->getErrorJobStatus($jobId, $e);
-            
         } catch (Throwable $e) {
             Log::critical('Critical error checking test job status', [
                 'test_job_id' => $jobId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return $this->getErrorJobStatus($jobId, $e);
         }
     }
@@ -264,19 +261,19 @@ class QueueTestService
             $now = Carbon::now();
             $last24Hours = $now->copy()->subHours(24);
             $lastHour = $now->copy()->subHour();
-            
+
             // Get basic queue statistics
             $metrics = [
                 'timestamp' => $now->toISOString(),
                 'queue_tables_exist' => $this->checkQueueTablesExist(),
             ];
-            
+
             if (!$metrics['queue_tables_exist']) {
                 $metrics['status'] = 'error';
                 $metrics['message'] = 'Queue tables not found - migrations may not be complete';
                 return $metrics;
             }
-            
+
             // Job statistics
             $metrics['job_statistics'] = [
                 'pending_jobs' => DB::table('jobs')->count(),
@@ -288,28 +285,28 @@ class QueueTestService
                     ->where('failed_at', '>=', $lastHour)
                     ->count(),
             ];
-            
+
             // Check for stalled jobs
             $metrics['stalled_jobs'] = DB::table('jobs')
                 ->whereNotNull('reserved_at')
                 ->where('reserved_at', '<', $now->subHour()->timestamp)
                 ->count();
-            
+
             // Test job statistics
             $metrics['test_job_statistics'] = $this->getTestJobStatistics();
-            
+
             // Recent failed job details (for admin context)
             $metrics['recent_failed_jobs'] = $this->getRecentFailedJobDetails($last24Hours);
-            
+
             // Overall health assessment
             $metrics = array_merge($metrics, $this->assessQueueHealth($metrics));
-            
+
             return $metrics;
         } catch (Exception $e) {
             Log::error('Failed to get queue health metrics', [
                 'error' => $e->getMessage(),
             ]);
-            
+
             return [
                 'timestamp' => Carbon::now()->toISOString(),
                 'status' => 'error',
@@ -329,12 +326,12 @@ class QueueTestService
         try {
             // Use performance service for optimized cache retrieval
             $cachedData = $this->performanceService->getCachedData(QueueWorkerStatus::CACHE_KEY);
-            
+
             if (!$cachedData) {
                 Log::debug('No cached queue worker status found');
                 return QueueWorkerStatus::notTested();
             }
-            
+
             // Security validation of cached data
             $validatedData = $this->securityService->validateCachedStatus($cachedData);
             if (!$validatedData) {
@@ -344,33 +341,32 @@ class QueueTestService
                 $this->invalidateQueueWorkerStatus();
                 return QueueWorkerStatus::notTested();
             }
-            
+
             $status = QueueWorkerStatus::fromArray($validatedData);
-            
+
             // Check if the cached status is expired (only for completed statuses)
             if ($status->status === QueueWorkerStatus::STATUS_COMPLETED && $status->isExpired()) {
                 Log::debug('Cached queue worker status is expired', [
                     'test_completed_at' => $status->testCompletedAt?->toISOString(),
                     'cache_ttl' => QueueWorkerStatus::CACHE_TTL
                 ]);
-                
+
                 // Clear expired cache and return not tested status
                 $this->invalidateQueueWorkerStatus();
                 return QueueWorkerStatus::notTested();
             }
-            
+
             Log::debug('Retrieved valid cached queue worker status', [
                 'status' => $status->status,
                 'test_completed_at' => $status->testCompletedAt?->toISOString()
             ]);
-            
+
             return $status;
-            
         } catch (Exception $e) {
             Log::error('Failed to retrieve cached queue worker status', [
                 'error' => $e->getMessage()
             ]);
-            
+
             return QueueWorkerStatus::error('Failed to retrieve cached status: ' . $e->getMessage());
         }
     }
@@ -387,14 +383,14 @@ class QueueTestService
             // Validate and sanitize the status data before caching
             $statusArray = $status->toArray();
             $validatedData = $this->securityService->validateStatusUpdate($statusArray);
-            
+
             // Use performance service for optimized caching
             $success = $this->performanceService->cacheWithOptimizedTTL(
                 QueueWorkerStatus::CACHE_KEY,
                 $validatedData,
                 $status->status
             );
-            
+
             if ($success) {
                 Log::debug('Queue worker status cached successfully with optimized TTL', [
                     'status' => $status->status,
@@ -403,15 +399,14 @@ class QueueTestService
             } else {
                 Log::warning('Failed to cache queue worker status');
             }
-            
+
             return $success;
-            
         } catch (Exception $e) {
             Log::error('Error caching queue worker status', [
                 'error' => $e->getMessage(),
                 'status' => $status->status
             ]);
-            
+
             return false;
         }
     }
@@ -425,18 +420,17 @@ class QueueTestService
     {
         try {
             $success = Cache::forget(QueueWorkerStatus::CACHE_KEY);
-            
+
             Log::debug('Queue worker status cache invalidated', [
                 'success' => $success
             ]);
-            
+
             return $success;
-            
         } catch (Exception $e) {
             Log::error('Error invalidating queue worker status cache', [
                 'error' => $e->getMessage()
             ]);
-            
+
             return false;
         }
     }
@@ -451,27 +445,26 @@ class QueueTestService
     public function dispatchTestJobWithStatus(int $delay = 0, int $timeout = null): QueueWorkerStatus
     {
         $timeout = $timeout ?? self::DEFAULT_TIMEOUT;
-        
+
         try {
             // Phase 1: Initial testing status
             $initialStatus = QueueWorkerStatus::testing(null, 'Testing queue worker...');
             $this->cacheQueueWorkerStatus($initialStatus);
-            
+
             // Phase 2: Dispatch the test job with enhanced error handling
             $jobId = $this->dispatchTestJobWithEnhancedErrorHandling($delay, $timeout);
-            
+
             // Phase 3: Job dispatched, waiting for processing
             $status = QueueWorkerStatus::testing($jobId, 'Test job queued...');
             $this->cacheQueueWorkerStatus($status);
-            
+
             Log::info('Queue worker test initiated with progressive status updates', [
                 'test_job_id' => $jobId,
                 'delay' => $delay,
                 'timeout' => $timeout
             ]);
-            
+
             return $status;
-            
         } catch (Exception $e) {
             Log::error('Failed to dispatch test job with status', [
                 'error' => $e->getMessage(),
@@ -479,11 +472,11 @@ class QueueTestService
                 'delay' => $delay,
                 'timeout' => $timeout
             ]);
-            
+
             // Determine specific error type and create appropriate status
             $status = $this->createErrorStatusFromException($e);
             $this->cacheQueueWorkerStatus($status);
-            
+
             return $status;
         }
     }
@@ -500,7 +493,7 @@ class QueueTestService
     {
         $maxAttempts = self::MAX_RETRY_ATTEMPTS;
         $lastException = null;
-        
+
         for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
             try {
                 if ($attempt > 0) {
@@ -510,23 +503,23 @@ class QueueTestService
                         'delay' => $delay,
                         'timeout' => $timeout
                     ]);
-                    
+
                     // Add delay between retries
                     usleep(self::RETRY_DELAY_MS * 1000);
                 }
-                
+
                 // Generate unique job ID
                 $jobId = $this->generateUniqueJobId();
-                
+
                 // Initialize job status in cache with configurable timeout
                 $this->initializeJobStatusWithConfigurableTimeout($jobId, $delay, $timeout);
-                
+
                 // Add job ID to index for cleanup tracking
                 $this->addJobToIndexWithRetry($jobId);
-                
+
                 // Dispatch the test job with timeout handling
                 $this->dispatchJobWithTimeout($jobId, $delay);
-                
+
                 Log::info('Test queue job dispatched successfully with enhanced error handling', [
                     'test_job_id' => $jobId,
                     'delay' => $delay,
@@ -534,12 +527,11 @@ class QueueTestService
                     'attempt' => $attempt + 1,
                     'dispatched_at' => Carbon::now()->toISOString(),
                 ]);
-                
+
                 return $jobId;
-                
             } catch (Exception $e) {
                 $lastException = $e;
-                
+
                 Log::warning('Test job dispatch failed with enhanced error handling', [
                     'attempt' => $attempt + 1,
                     'max_attempts' => $maxAttempts,
@@ -549,7 +541,7 @@ class QueueTestService
                     'error_type' => get_class($e),
                     'remaining_attempts' => $maxAttempts - $attempt - 1
                 ]);
-                
+
                 // Don't retry certain types of errors
                 if ($this->shouldNotRetryDispatch($e)) {
                     Log::info('Dispatch error should not be retried (enhanced)', [
@@ -560,7 +552,7 @@ class QueueTestService
                 }
             } catch (Throwable $e) {
                 $lastException = $e;
-                
+
                 Log::critical('Critical error during test job dispatch (enhanced)', [
                     'attempt' => $attempt + 1,
                     'delay' => $delay,
@@ -572,10 +564,10 @@ class QueueTestService
                 break;
             }
         }
-        
+
         // All attempts failed - throw with enhanced error information
         $errorMessage = $this->buildEnhancedErrorMessage($lastException, $maxAttempts);
-        
+
         Log::error('Failed to dispatch test queue job after all retries (enhanced)', [
             'max_attempts' => $maxAttempts,
             'delay' => $delay,
@@ -583,7 +575,7 @@ class QueueTestService
             'final_error' => $lastException ? $lastException->getMessage() : 'Unknown error',
             'final_error_type' => $lastException ? get_class($lastException) : 'Unknown'
         ]);
-        
+
         throw new Exception($errorMessage, 0, $lastException);
     }
 
@@ -603,28 +595,27 @@ class QueueTestService
                 'processing' => 'Test job processing...',
                 default => 'Testing queue worker...'
             };
-            
+
             $status = QueueWorkerStatus::testing($jobId, $message);
             $this->cacheQueueWorkerStatus($status);
-            
+
             Log::debug('Queue worker test phase updated', [
                 'test_job_id' => $jobId,
                 'phase' => $phase,
                 'message' => $message
             ]);
-            
+
             return $status;
-            
         } catch (Exception $e) {
             Log::error('Failed to update queue worker test phase', [
                 'test_job_id' => $jobId,
                 'phase' => $phase,
                 'error' => $e->getMessage()
             ]);
-            
+
             $status = QueueWorkerStatus::error('Failed to update test phase: ' . $e->getMessage(), $jobId);
             $this->cacheQueueWorkerStatus($status);
-            
+
             return $status;
         }
     }
@@ -647,7 +638,7 @@ class QueueTestService
         try {
             if ($success && $processingTime !== null) {
                 $status = QueueWorkerStatus::completed($processingTime, $jobId);
-                
+
                 Log::info('Queue worker test completed successfully', [
                     'test_job_id' => $jobId,
                     'processing_time' => $processingTime
@@ -657,25 +648,24 @@ class QueueTestService
                     $errorMessage ?? 'Test job failed without specific error',
                     $jobId
                 );
-                
+
                 Log::warning('Queue worker test failed', [
                     'test_job_id' => $jobId,
                     'error_message' => $errorMessage
                 ]);
             }
-            
+
             $this->cacheQueueWorkerStatus($status);
             return $status;
-            
         } catch (Exception $e) {
             Log::error('Failed to update queue worker status from job', [
                 'test_job_id' => $jobId,
                 'error' => $e->getMessage()
             ]);
-            
+
             $status = QueueWorkerStatus::error('Failed to update status: ' . $e->getMessage(), $jobId);
             $this->cacheQueueWorkerStatus($status);
-            
+
             return $status;
         }
     }
@@ -690,40 +680,41 @@ class QueueTestService
     {
         try {
             $cachedStatus = $this->getCachedQueueWorkerStatus();
-            
+
             // Only check timeout for testing status with matching job ID
-            if ($cachedStatus->status !== QueueWorkerStatus::STATUS_TESTING || 
-                $cachedStatus->testJobId !== $jobId) {
+            if (
+                $cachedStatus->status !== QueueWorkerStatus::STATUS_TESTING ||
+                $cachedStatus->testJobId !== $jobId
+            ) {
                 return $cachedStatus;
             }
-            
+
             // Check the underlying test job status for timeout
             $jobStatus = $this->checkTestJobStatus($jobId);
-            
+
             if ($jobStatus['status'] === 'timeout') {
                 // Determine specific timeout type based on queue health
                 $status = $this->determineTimeoutType($jobId);
                 $this->cacheQueueWorkerStatus($status);
-                
+
                 Log::warning('Queue worker test timed out', [
                     'test_job_id' => $jobId,
                     'timeout_type' => $status->message
                 ]);
-                
+
                 return $status;
             }
-            
+
             return $cachedStatus;
-            
         } catch (Exception $e) {
             Log::error('Failed to check queue worker timeout', [
                 'test_job_id' => $jobId,
                 'error' => $e->getMessage()
             ]);
-            
+
             $status = QueueWorkerStatus::error('Failed to check timeout: ' . $e->getMessage(), $jobId);
             $this->cacheQueueWorkerStatus($status);
-            
+
             return $status;
         }
     }
@@ -738,28 +729,31 @@ class QueueTestService
     {
         try {
             $healthMetrics = $this->getQueueHealthMetrics();
-            
+
             // Check if there are pending jobs (worker might be stuck)
-            if (isset($healthMetrics['job_statistics']['pending_jobs']) && 
-                $healthMetrics['job_statistics']['pending_jobs'] > 0) {
+            if (
+                isset($healthMetrics['job_statistics']['pending_jobs']) &&
+                $healthMetrics['job_statistics']['pending_jobs'] > 0
+            ) {
                 return QueueWorkerStatus::workerStuck($jobId);
             }
-            
+
             // Check for recent failed jobs (worker might be crashing)
-            if (isset($healthMetrics['job_statistics']['failed_jobs_1h']) && 
-                $healthMetrics['job_statistics']['failed_jobs_1h'] > 0) {
+            if (
+                isset($healthMetrics['job_statistics']['failed_jobs_1h']) &&
+                $healthMetrics['job_statistics']['failed_jobs_1h'] > 0
+            ) {
                 return QueueWorkerStatus::workerStuck($jobId);
             }
-            
+
             // Default to worker not running
             return QueueWorkerStatus::workerNotRunning($jobId);
-            
         } catch (Exception $e) {
             Log::warning('Failed to determine timeout type, using generic timeout', [
                 'test_job_id' => $jobId,
                 'error' => $e->getMessage()
             ]);
-            
+
             return QueueWorkerStatus::timeout($jobId);
         }
     }
@@ -775,22 +769,21 @@ class QueueTestService
         try {
             // Use performance service for comprehensive cleanup
             $cleanupStats = $this->performanceService->performComprehensiveCleanup();
-            
+
             Log::info('Automated cleanup completed via performance service', $cleanupStats);
-            
+
             return $cleanupStats['test_jobs_cleaned'] ?? 0;
-            
         } catch (Exception $e) {
             Log::error('Failed to perform automated cleanup', [
                 'error' => $e->getMessage(),
                 'older_than_hours' => $olderThanHours,
             ]);
-            
+
             // Fallback to legacy cleanup method
             return $this->legacyCleanupOldTestJobs($olderThanHours);
         }
     }
-    
+
     /**
      * Legacy cleanup method for fallback.
      * 
@@ -802,15 +795,15 @@ class QueueTestService
         try {
             $cutoffTime = Carbon::now()->subHours($olderThanHours);
             $cleaned = 0;
-            
+
             // Get job index from cache
             $jobIndex = Cache::get(self::INDEX_CACHE_KEY, []);
             $remainingJobs = [];
-            
+
             foreach ($jobIndex as $jobData) {
                 $jobId = $jobData['job_id'];
                 $createdAt = Carbon::parse($jobData['created_at']);
-                
+
                 if ($createdAt->lt($cutoffTime)) {
                     // Remove old job from cache
                     $cacheKey = self::CACHE_PREFIX . $jobId;
@@ -826,25 +819,25 @@ class QueueTestService
                     $remainingJobs[] = $jobData;
                 }
             }
-            
+
             // Update job index with remaining jobs
             if (count($remainingJobs) !== count($jobIndex)) {
                 Cache::put(self::INDEX_CACHE_KEY, $remainingJobs, self::CACHE_TTL * 24); // 24 hour TTL for index
             }
-            
+
             Log::info('Test job cleanup completed', [
                 'cleaned_count' => $cleaned,
                 'remaining_count' => count($remainingJobs),
                 'cutoff_time' => $cutoffTime->toISOString(),
             ]);
-            
+
             return $cleaned;
         } catch (Exception $e) {
             Log::error('Failed to cleanup old test jobs', [
                 'error' => $e->getMessage(),
                 'older_than_hours' => $olderThanHours,
             ]);
-            
+
             return 0;
         }
     }
@@ -869,7 +862,7 @@ class QueueTestService
     private function initializeJobStatus(string $jobId, int $delay): void
     {
         $cacheKey = self::CACHE_PREFIX . $jobId;
-        
+
         $initialStatus = [
             'test_job_id' => $jobId,
             'status' => 'pending',
@@ -878,7 +871,7 @@ class QueueTestService
             'dispatched_at' => Carbon::now()->toISOString(),
             'timeout_at' => Carbon::now()->addSeconds(self::DEFAULT_TIMEOUT)->toISOString(),
         ];
-        
+
         Cache::put($cacheKey, $initialStatus, self::CACHE_TTL);
     }
 
@@ -891,17 +884,17 @@ class QueueTestService
     private function addJobToIndex(string $jobId): void
     {
         $jobIndex = Cache::get(self::INDEX_CACHE_KEY, []);
-        
+
         $jobIndex[] = [
             'job_id' => $jobId,
             'created_at' => Carbon::now()->toISOString(),
         ];
-        
+
         // Keep only last 100 jobs in index to prevent unlimited growth
         if (count($jobIndex) > 100) {
             $jobIndex = array_slice($jobIndex, -100);
         }
-        
+
         Cache::put(self::INDEX_CACHE_KEY, $jobIndex, self::CACHE_TTL * 24);
     }
 
@@ -915,23 +908,23 @@ class QueueTestService
     private function checkForTimeout(string $jobId, array $status): array
     {
         $timeoutAt = Carbon::parse($status['timeout_at']);
-        
+
         if (Carbon::now()->gt($timeoutAt)) {
             $status['status'] = 'timeout';
             $status['message'] = 'Test job timed out - queue worker may not be running';
             $status['timed_out_at'] = Carbon::now()->toISOString();
-            
+
             // Update cache with timeout status
             $cacheKey = self::CACHE_PREFIX . $jobId;
             Cache::put($cacheKey, $status, self::CACHE_TTL);
-            
+
             Log::warning('Test job timed out', [
                 'test_job_id' => $jobId,
                 'timeout_at' => $timeoutAt->toISOString(),
                 'current_time' => Carbon::now()->toISOString(),
             ]);
         }
-        
+
         return $status;
     }
 
@@ -943,8 +936,8 @@ class QueueTestService
     private function checkQueueTablesExist(): bool
     {
         try {
-            return DB::getSchemaBuilder()->hasTable('jobs') && 
-                   DB::getSchemaBuilder()->hasTable('failed_jobs');
+            return DB::getSchemaBuilder()->hasTable('jobs') &&
+                DB::getSchemaBuilder()->hasTable('failed_jobs');
         } catch (Exception $e) {
             return false;
         }
@@ -962,25 +955,25 @@ class QueueTestService
             $now = Carbon::now();
             $lastHour = $now->copy()->subHour();
             $last24Hours = $now->copy()->subHours(24);
-            
+
             $stats = [
                 'total_test_jobs' => count($jobIndex),
                 'test_jobs_1h' => 0,
                 'test_jobs_24h' => 0,
             ];
-            
+
             foreach ($jobIndex as $jobData) {
                 $createdAt = Carbon::parse($jobData['created_at']);
-                
+
                 if ($createdAt->gte($lastHour)) {
                     $stats['test_jobs_1h']++;
                 }
-                
+
                 if ($createdAt->gte($last24Hours)) {
                     $stats['test_jobs_24h']++;
                 }
             }
-            
+
             return $stats;
         } catch (Exception $e) {
             return [
@@ -1006,22 +999,22 @@ class QueueTestService
                 ->orderBy('failed_at', 'desc')
                 ->limit(5) // Only get the 5 most recent
                 ->get(['id', 'queue', 'payload', 'exception', 'failed_at']);
-            
+
             $details = [];
             foreach ($failedJobs as $job) {
                 $payload = json_decode($job->payload, true);
                 $jobClass = $payload['displayName'] ?? 'Unknown Job';
-                
+
                 // Extract the main error message (first line of exception)
                 $exceptionLines = explode("\n", $job->exception);
                 $mainError = $exceptionLines[0] ?? 'Unknown error';
-                
+
                 // Clean up the error message
                 if (strpos($mainError, ':') !== false) {
                     $parts = explode(':', $mainError, 2);
                     $mainError = trim($parts[1] ?? $parts[0]);
                 }
-                
+
                 $details[] = [
                     'id' => $job->id,
                     'job_class' => $jobClass,
@@ -1030,13 +1023,13 @@ class QueueTestService
                     'failed_at' => $job->failed_at,
                 ];
             }
-            
+
             return $details;
         } catch (Exception $e) {
             Log::warning('Failed to get recent failed job details', [
                 'error' => $e->getMessage()
             ]);
-            
+
             return [];
         }
     }
@@ -1051,7 +1044,7 @@ class QueueTestService
     {
         $jobStats = $metrics['job_statistics'];
         $stalledJobs = $metrics['stalled_jobs'];
-        
+
         // Determine overall health status
         if ($jobStats['failed_jobs_1h'] > 5 || $stalledJobs > 3) {
             $status = 'critical';
@@ -1066,7 +1059,7 @@ class QueueTestService
             $status = 'idle';
             $message = 'Queue worker is idle - no recent activity detected';
         }
-        
+
         return [
             'overall_status' => $status,
             'health_message' => $message,
@@ -1084,14 +1077,14 @@ class QueueTestService
     private function getHealthRecommendations(string $status, array $metrics): array
     {
         $recommendations = [];
-        
+
         switch ($status) {
             case 'critical':
                 $recommendations[] = 'Check if queue worker is running: php artisan queue:work';
                 $recommendations[] = 'Review failed jobs: php artisan queue:failed';
                 $recommendations[] = 'Consider restarting queue workers';
                 break;
-                
+
             case 'warning':
                 $recommendations[] = 'Monitor queue worker performance';
                 $recommendations[] = 'Check recent failed jobs for patterns';
@@ -1099,18 +1092,18 @@ class QueueTestService
                     $recommendations[] = 'Restart queue workers to clear stalled jobs';
                 }
                 break;
-                
+
             case 'idle':
                 $recommendations[] = 'Queue worker appears idle - this may be normal';
                 $recommendations[] = 'Dispatch a test job to verify worker functionality';
                 break;
-                
+
             case 'healthy':
             default:
                 $recommendations[] = 'Queue worker is functioning normally';
                 break;
         }
-        
+
         return $recommendations;
     }
 
@@ -1125,38 +1118,37 @@ class QueueTestService
     private function executeWithTimeout(callable $callback, int $timeout)
     {
         $startTime = microtime(true);
-        
+
         try {
             // Set a reasonable timeout for the operation
             $originalTimeout = ini_get('default_socket_timeout');
             ini_set('default_socket_timeout', $timeout);
-            
+
             $result = $callback();
-            
+
             // Restore original timeout
             ini_set('default_socket_timeout', $originalTimeout);
-            
+
             $duration = round((microtime(true) - $startTime) * 1000, 2);
             Log::debug('Operation completed within timeout', [
                 'duration_ms' => $duration,
                 'timeout_seconds' => $timeout
             ]);
-            
+
             return $result;
-            
         } catch (Exception $e) {
             // Restore original timeout on error
             if (isset($originalTimeout)) {
                 ini_set('default_socket_timeout', $originalTimeout);
             }
-            
+
             $duration = round((microtime(true) - $startTime) * 1000, 2);
             Log::warning('Operation failed within timeout period', [
                 'duration_ms' => $duration,
                 'timeout_seconds' => $timeout,
                 'error' => $e->getMessage()
             ]);
-            
+
             throw $e;
         }
     }
@@ -1172,7 +1164,7 @@ class QueueTestService
     private function initializeJobStatusWithTimeout(string $jobId, int $delay): void
     {
         $cacheKey = self::CACHE_PREFIX . $jobId;
-        
+
         $initialStatus = [
             'test_job_id' => $jobId,
             'status' => 'pending',
@@ -1182,13 +1174,13 @@ class QueueTestService
             'timeout_at' => Carbon::now()->addSeconds(self::DEFAULT_TIMEOUT)->toISOString(),
             'fallback' => false
         ];
-        
+
         $this->executeWithTimeout(function () use ($cacheKey, $initialStatus) {
             if (!Cache::put($cacheKey, $initialStatus, self::CACHE_TTL)) {
                 throw new Exception('Failed to store job status in cache');
             }
         }, 5);
-        
+
         Log::debug('Job status initialized in cache', [
             'test_job_id' => $jobId,
             'cache_key' => $cacheKey,
@@ -1207,41 +1199,41 @@ class QueueTestService
     {
         $maxAttempts = 3;
         $lastException = null;
-        
+
         for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
             try {
                 if ($attempt > 0) {
                     usleep(500000); // 500ms delay between retries
                 }
-                
+
                 $this->executeWithTimeout(function () use ($jobId) {
                     $jobIndex = Cache::get(self::INDEX_CACHE_KEY, []);
-                    
+
                     $jobIndex[] = [
                         'job_id' => $jobId,
                         'created_at' => Carbon::now()->toISOString(),
                     ];
-                    
+
                     // Keep only last 100 jobs in index to prevent unlimited growth
                     if (count($jobIndex) > 100) {
                         $jobIndex = array_slice($jobIndex, -100);
                     }
-                    
+
                     if (!Cache::put(self::INDEX_CACHE_KEY, $jobIndex, self::CACHE_TTL * 24)) {
                         throw new Exception('Failed to update job index in cache');
                     }
                 }, 5);
-                
+
                 Log::debug('Job added to index successfully', [
                     'test_job_id' => $jobId,
                     'attempt' => $attempt + 1
                 ]);
-                
+
                 return; // Success
-                
+
             } catch (Exception $e) {
                 $lastException = $e;
-                
+
                 Log::warning('Failed to add job to index, will retry', [
                     'test_job_id' => $jobId,
                     'attempt' => $attempt + 1,
@@ -1250,7 +1242,7 @@ class QueueTestService
                 ]);
             }
         }
-        
+
         // All attempts failed - log but don't throw (index is not critical)
         Log::error('Failed to add job to index after all retries', [
             'test_job_id' => $jobId,
@@ -1272,7 +1264,7 @@ class QueueTestService
         $this->executeWithTimeout(function () use ($jobId, $delay) {
             TestQueueJob::dispatch($jobId, $delay);
         }, 10); // 10 second timeout for job dispatch
-        
+
         Log::debug('Test job dispatched to queue', [
             'test_job_id' => $jobId,
             'delay' => $delay
@@ -1301,7 +1293,7 @@ class QueueTestService
     {
         try {
             $timeoutAt = Carbon::parse($status['timeout_at']);
-            
+
             if (Carbon::now()->gt($timeoutAt)) {
                 $status['status'] = 'timeout';
                 $status['message'] = 'Test job timed out - queue worker may not be running';
@@ -1312,7 +1304,7 @@ class QueueTestService
                     'Check for failed jobs: php artisan queue:failed',
                     'Review application logs for errors'
                 ];
-                
+
                 // Update cache with timeout status
                 $cacheKey = self::CACHE_PREFIX . $jobId;
                 try {
@@ -1323,22 +1315,21 @@ class QueueTestService
                         'error' => $e->getMessage()
                     ]);
                 }
-                
+
                 Log::warning('Test job timed out', [
                     'test_job_id' => $jobId,
                     'timeout_at' => $timeoutAt->toISOString(),
                     'current_time' => Carbon::now()->toISOString(),
                 ]);
             }
-            
+
             return $status;
-            
         } catch (Exception $e) {
             Log::error('Error checking for job timeout', [
                 'test_job_id' => $jobId,
                 'error' => $e->getMessage()
             ]);
-            
+
             // Return status as-is if we can't check timeout
             return $status;
         }
@@ -1384,15 +1375,15 @@ class QueueTestService
             'BadMethodCallException',
             'LogicException'
         ];
-        
+
         $exceptionClass = get_class($exception);
-        
+
         foreach ($nonRetryableErrors as $errorClass) {
             if (strpos($exceptionClass, $errorClass) !== false) {
                 return true;
             }
         }
-        
+
         // Don't retry if error message indicates a permanent issue
         $message = strtolower($exception->getMessage());
         $permanentErrorIndicators = [
@@ -1401,13 +1392,13 @@ class QueueTestService
             'invalid configuration',
             'permission denied'
         ];
-        
+
         foreach ($permanentErrorIndicators as $indicator) {
             if (strpos($message, $indicator) !== false) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -1421,28 +1412,28 @@ class QueueTestService
     {
         $errorMessage = $exception->getMessage();
         $exceptionClass = get_class($exception);
-        
+
         // Determine error type based on exception class and message
         if ($this->isConfigurationError($exception)) {
             return QueueWorkerStatus::configurationError($errorMessage);
         }
-        
+
         if ($this->isDatabaseError($exception)) {
             return QueueWorkerStatus::databaseError($errorMessage);
         }
-        
+
         if ($this->isPermissionError($exception)) {
             return QueueWorkerStatus::permissionError($errorMessage);
         }
-        
+
         if ($this->isDispatchError($exception)) {
             return QueueWorkerStatus::dispatchFailed($errorMessage);
         }
-        
+
         if ($this->isNetworkError($exception)) {
             return QueueWorkerStatus::networkError($errorMessage);
         }
-        
+
         // Default to generic failed status
         return QueueWorkerStatus::failed($errorMessage);
     }
@@ -1464,13 +1455,13 @@ class QueueTestService
             'jobs table',
             'failed_jobs table'
         ];
-        
+
         foreach ($dispatchErrorIndicators as $indicator) {
             if (strpos($message, $indicator) !== false) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -1491,13 +1482,13 @@ class QueueTestService
             'connection timed out',
             'could not resolve host'
         ];
-        
+
         foreach ($networkErrorIndicators as $indicator) {
             if (strpos($message, $indicator) !== false) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -1513,31 +1504,31 @@ class QueueTestService
         if (!$exception) {
             return "Failed to dispatch test job after {$maxAttempts} attempts: Unknown error";
         }
-        
+
         $baseMessage = "Failed to dispatch test job after {$maxAttempts} attempts";
         $errorDetails = $exception->getMessage();
-        
+
         // Add context based on error type
         if ($this->isConfigurationError($exception)) {
             return "{$baseMessage}: Configuration issue - {$errorDetails}";
         }
-        
+
         if ($this->isDatabaseError($exception)) {
             return "{$baseMessage}: Database connectivity issue - {$errorDetails}";
         }
-        
+
         if ($this->isPermissionError($exception)) {
             return "{$baseMessage}: File permission issue - {$errorDetails}";
         }
-        
+
         if ($this->isDispatchError($exception)) {
             return "{$baseMessage}: Queue dispatch issue - {$errorDetails}";
         }
-        
+
         if ($this->isNetworkError($exception)) {
             return "{$baseMessage}: Network connectivity issue - {$errorDetails}";
         }
-        
+
         return "{$baseMessage}: {$errorDetails}";
     }
 
@@ -1560,17 +1551,17 @@ class QueueTestService
             'config not found',
             'missing configuration'
         ];
-        
+
         foreach ($configErrorIndicators as $indicator) {
             if (strpos($message, $indicator) !== false) {
                 return true;
             }
         }
-        
+
         // Check exception types
         $exceptionClass = get_class($exception);
         return strpos($exceptionClass, 'InvalidArgumentException') !== false ||
-               strpos($exceptionClass, 'ConfigurationException') !== false;
+            strpos($exceptionClass, 'ConfigurationException') !== false;
     }
 
     /**
@@ -1596,18 +1587,18 @@ class QueueTestService
             'postgresql',
             'sqlite'
         ];
-        
+
         foreach ($dbErrorIndicators as $indicator) {
             if (strpos($message, $indicator) !== false) {
                 return true;
             }
         }
-        
+
         // Check exception types
         $exceptionClass = get_class($exception);
         return $exception instanceof PDOException ||
-               $exception instanceof QueryException ||
-               strpos($exceptionClass, 'DatabaseException') !== false;
+            $exception instanceof QueryException ||
+            strpos($exceptionClass, 'DatabaseException') !== false;
     }
 
     /**
@@ -1630,13 +1621,13 @@ class QueueTestService
             'failed to open stream',
             'no such file or directory'
         ];
-        
+
         foreach ($permissionErrorIndicators as $indicator) {
             if (strpos($message, $indicator) !== false) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -1652,7 +1643,7 @@ class QueueTestService
     private function initializeJobStatusWithConfigurableTimeout(string $jobId, int $delay, int $timeout): void
     {
         $cacheKey = self::CACHE_PREFIX . $jobId;
-        
+
         $initialStatus = [
             'test_job_id' => $jobId,
             'status' => 'pending',
@@ -1663,13 +1654,13 @@ class QueueTestService
             'timeout_at' => Carbon::now()->addSeconds($timeout)->toISOString(),
             'fallback' => false
         ];
-        
+
         $this->executeWithTimeout(function () use ($cacheKey, $initialStatus) {
             if (!Cache::put($cacheKey, $initialStatus, self::CACHE_TTL)) {
                 throw new Exception('Failed to store job status in cache');
             }
         }, 5);
-        
+
         Log::debug('Job status initialized in cache with configurable timeout', [
             'test_job_id' => $jobId,
             'cache_key' => $cacheKey,
