@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('messages.user_management_settings') }}
+            {{ __('messages.security_and_access_settings') }}
         </h2>
     </x-slot>
 
@@ -20,7 +20,7 @@
                             </p>
                         </header>
 
-                        <form method="post" action="{{ route('admin.user-management.update-registration') }}" class="mt-6">
+                        <form method="post" action="{{ route('admin.security.update-registration') }}" class="mt-6">
                             @csrf
                             @method('put')
 
@@ -43,6 +43,16 @@
 
                             <div class="flex items-center gap-4 mt-4">
                                 <x-primary-button>{{ __('messages.save_button') }}</x-primary-button>
+
+                                @if (session('status') && str_contains(session('status'), 'registration'))
+                                    <p
+                                        x-data="{ show: true }"
+                                        x-show="show"
+                                        x-transition
+                                        x-init="setTimeout(() => show = false, 4000)"
+                                        class="text-sm font-medium text-green-600"
+                                    >{{ session('status') }}</p>
+                                @endif
                             </div>
                         </form>
                     </section>
@@ -62,7 +72,7 @@
                             </p>
                         </header>
 
-                        <form method="post" action="{{ route('admin.user-management.update-domain-rules') }}" class="mt-6">
+                        <form method="post" action="{{ route('admin.security.update-domain-rules') }}" class="mt-6">
                             @csrf
                             @method('put')
 
@@ -101,46 +111,22 @@
                                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm
                                                  focus:border-[var(--brand-color)] focus:ring-[var(--brand-color)] sm:text-sm"
                                           placeholder="*.example.com&#10;user@domain.com&#10;*.co.uk">{{ implode("\n", $settings['rules'] ?? []) }}</textarea>
+                                <x-input-error class="mt-2" :messages="$errors->get('domain_rules')" />
+                                <x-input-error class="mt-2" :messages="$errors->get('access_control_mode')" />
                             </div>
 
                             <div class="flex items-center gap-4 mt-4">
                                 <x-primary-button>{{ __('messages.save_button') }}</x-primary-button>
-                            </div>
-                        </form>
-                    </section>
-                </div>
-            </div>
 
-            <!-- Manual User Creation -->
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    <section>
-                        <header>
-                            <h2 class="text-lg font-medium text-gray-900">
-                                {{ __('messages.create_client_user') }}
-                            </h2>
-                            <p class="mt-1 text-sm text-gray-600">
-                                {{ __('messages.create_client_description') }}
-                            </p>
-                        </header>
-
-                        <form method="post" action="{{ route('admin.user-management.create-client') }}" class="mt-6">
-                            @csrf
-
-                            <div>
-                                <x-input-label for="client_email" :value="__('messages.email')" />
-                                <x-text-input id="client_email" name="email" type="email" class="mt-1 block w-full" required />
-                                <x-input-error class="mt-2" :messages="$errors->get('email')" />
-                            </div>
-
-                            <div class="mt-4">
-                                <x-input-label for="client_name" :value="__('messages.name')" />
-                                <x-text-input id="client_name" name="name" type="text" class="mt-1 block w-full" required />
-                                <x-input-error class="mt-2" :messages="$errors->get('name')" />
-                            </div>
-
-                            <div class="flex items-center gap-4 mt-4">
-                                <x-primary-button>{{ __('messages.create_and_invite_button') }}</x-primary-button>
+                                @if (session('status') && str_contains(session('status'), 'access control'))
+                                    <p
+                                        x-data="{ show: true }"
+                                        x-show="show"
+                                        x-transition
+                                        x-init="setTimeout(() => show = false, 4000)"
+                                        class="text-sm font-medium text-green-600"
+                                    >{{ session('status') }}</p>
+                                @endif
                             </div>
                         </form>
                     </section>

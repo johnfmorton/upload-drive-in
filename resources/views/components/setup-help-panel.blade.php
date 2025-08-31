@@ -60,7 +60,7 @@ $helpContent = match($step) {
             'You can create additional admin accounts later'
         ],
         'links' => [
-            ['title' => 'User Management Guide', 'url' => '/docs/user-management'],
+            ['title' => 'Security Settings Guide', 'url' => '/docs/security-settings'],
             ['title' => 'Security Best Practices', 'url' => '/docs/security']
         ]
     ],

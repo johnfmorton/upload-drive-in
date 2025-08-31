@@ -246,7 +246,7 @@ class DualUserCreationEndToEndAdminTest extends TestCase
     }
 
     /** @test */
-    public function admin_can_access_user_management_with_proper_authorization()
+    public function admin_can_access_users_page_with_proper_authorization()
     {
         // Test admin access
         $response = $this->actingAs($this->adminUser)

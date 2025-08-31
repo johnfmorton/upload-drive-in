@@ -14,7 +14,9 @@
     'nav_client_users' => 'Client Management',
     'nav_cloud_storage' => 'Cloud Storage',
     'nav_employee_users' => 'Employee Users',
-    'nav_user_management' => 'User Management',
+    'nav_security_settings' => 'Security Settings',
+    'nav_access_control' => 'Access Control',
+    'nav_security_policies' => 'Security Policies',
     'nav_your_files' => 'Your Files',
     'nav_upload_files' => 'Upload Files',
 
@@ -69,8 +71,8 @@
     'delete_modal_confirm_button' => 'Confirm Delete',
     'delete_modal_cancel_button' => 'Cancel',
 
-    // Admin User Management Page
-    'user_management_title' => 'Client User Management',
+    // Admin Client Management Page
+    'client_management_title' => 'Client User Management',
     'create_user_title' => 'Create New Client User',
     'create_user_error_intro' => 'Please correct the following errors:',
     'label_name' => 'Name',
@@ -152,27 +154,45 @@
     '2fa_verify_code_label' => 'Authentication Code',
     '2fa_verify_button' => 'Verify',
 
-    // User Management Settings
-    'user_management_settings' => 'User Management Settings',
-    'public_registration_settings' => 'Public Registration',
-    'public_registration_description' => 'Control whether new users can register accounts through the public registration process.',
-    'allow_public_registration' => 'Allow Public Registration',
-    'domain_access_control' => 'Domain Access Control',
-    'domain_access_description' => 'Manage which email domains are allowed or blocked from registering on the platform. These rules only apply when public registration is enabled.',
-    'access_control_mode' => 'Access Control Mode',
-    'blacklist_mode' => 'Blacklist Mode (block specified domains)',
-    'whitelist_mode' => 'Whitelist Mode (allow only specified domains)',
-    'domain_rules' => 'Domain Rules',
+    // Security and Access Settings
+    'security_and_access_settings' => 'Security and Access Settings',
+    'security_settings' => 'Security Settings',
+    'access_control_settings' => 'Access Control Settings',
+    'public_registration_settings' => 'Public Registration Security',
+    'public_registration_description' => 'Control whether new users can register accounts through the public registration process. This setting affects the overall security posture of your application.',
+    'allow_public_registration' => 'Enable Public Registration',
+    'domain_access_control' => 'Email Domain Access Control',
+    'domain_access_description' => 'Manage which email domains are allowed or blocked from registering on the platform. These security rules only apply when public registration is enabled.',
+    'access_control_mode' => 'Security Access Control Mode',
+    'blacklist_mode' => 'Blacklist Mode (block specified domains for security)',
+    'whitelist_mode' => 'Whitelist Mode (allow only approved domains)',
+    'domain_rules' => 'Security Domain Rules',
     'domain_rules_hint' => 'Enter one rule per line. Use * as a wildcard. Examples: *.example.com, user@domain.com, *.co.uk',
-    'create_client_user' => 'Create Client User',
-    'create_client_description' => 'Manually create a new client user and send them an invitation link.',
-    'create_and_invite_button' => 'Create & Send Invitation',
-    'email' => 'Email Address',
-    'name' => 'Name',
+    
+    // Security Settings Page Specific
+    'security_settings_title' => 'Security and Access Settings',
+    'security_settings_description' => 'Manage security policies and access control settings for your application.',
+    'registration_security_title' => 'Registration Security',
+    'registration_security_description' => 'Control how new users can register and access your application.',
+    'domain_security_title' => 'Domain Security',
+    'domain_security_description' => 'Manage email domain restrictions for enhanced security.',
+    'security_policy_updated' => 'Security policy updated successfully.',
+    'access_control_updated' => 'Access control settings updated successfully.',
+    'security_configuration' => 'Security Configuration',
+    'access_management' => 'Access Management',
+    'breadcrumb_security_settings' => 'Security Settings',
+    'breadcrumb_access_control' => 'Access Control',
+    'breadcrumb_admin' => 'Admin',
 
-    // Registration Validation Messages
-    'public_registration_disabled' => 'Public registration is currently disabled. Please contact the administrator for access.',
-    'email_domain_not_allowed' => 'This email domain is not allowed to register. Please use an approved email domain.',
+    // Security and Registration Validation Messages
+    'public_registration_disabled' => 'Public registration is currently disabled for security reasons. Please contact the administrator for access.',
+    'email_domain_not_allowed' => 'This email domain is not allowed to register due to security policies. Please use an approved email domain.',
+    'security_settings_saved' => 'Security settings have been updated successfully.',
+    'access_control_rules_updated' => 'Access control rules have been updated successfully.',
+    'registration_security_updated' => 'Registration security settings have been updated successfully.',
+    'domain_rules_validation_error' => 'Please check your domain rules format. Each rule should be on a separate line.',
+    'security_mode_required' => 'Please select a security access control mode.',
+    'invalid_domain_rule' => 'Invalid domain rule format. Use patterns like *.example.com or user@domain.com',
 
     // User Management Messages
     'client_created' => 'Client user created successfully. You can provide them with their login link manually.',

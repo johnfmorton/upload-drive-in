@@ -89,8 +89,8 @@
                             <x-dropdown-link :href="route('admin.settings.edit')">
                                 {{ __('messages.app_settings') }}
                             </x-dropdown-link>
-                            <x-dropdown-link :href="route('admin.user-management.settings')">
-                                {{ __('messages.user_management_settings') }}
+                            <x-dropdown-link :href="route('admin.security.settings')">
+                                {{ __('messages.security_and_access_settings') }}
                             </x-dropdown-link>
                             <x-dropdown-link :href="route('admin.employees.index')">
                                 {{ __('messages.employee_management') }}

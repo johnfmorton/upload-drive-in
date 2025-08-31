@@ -5,7 +5,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminSettingsController;
-use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\SecuritySettingsController;
 use App\Http\Controllers\CloudStorage\DropboxAuthController;
 use App\Http\Controllers\CloudStorage\MicrosoftTeamsAuthController;
 use App\Http\Controllers\Admin\GoogleDriveFolderController;
@@ -88,15 +88,13 @@ Route::patch('/settings', [AdminSettingsController::class, 'update'])
 Route::delete('/settings/icon', [AdminSettingsController::class, 'destroyIcon'])
     ->name('settings.icon.destroy');
 
-// User Management Settings
-Route::get('/user-management', [UserManagementController::class, 'settings'])
-    ->name('user-management.settings');
-Route::put('/user-management/registration', [UserManagementController::class, 'updateRegistration'])
-    ->name('user-management.update-registration');
-Route::put('/user-management/domain-rules', [UserManagementController::class, 'updateDomainRules'])
-    ->name('user-management.update-domain-rules');
-Route::post('/user-management/clients', [UserManagementController::class, 'createClient'])
-    ->name('user-management.create-client');
+// Security Settings
+Route::get('/security-settings', [SecuritySettingsController::class, 'index'])
+    ->name('security.settings');
+Route::put('/security-settings/registration', [SecuritySettingsController::class, 'updateRegistration'])
+    ->name('security.update-registration');
+Route::put('/security-settings/domain-rules', [SecuritySettingsController::class, 'updateDomainRules'])
+    ->name('security.update-domain-rules');
 
 // Cloud Storage Configuration
 Route::prefix('cloud-storage')
