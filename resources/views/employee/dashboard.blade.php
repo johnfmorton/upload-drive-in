@@ -11,8 +11,16 @@
             <!-- Google Drive Connection -->
             <x-dashboard.google-drive-connection :user="$user" :is-admin="false" />
 
-            <!-- Client Relationships -->
-            <x-dashboard.client-relationships :user="$user" :is-admin="false" />
+            <!-- Dashboard Statistics Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Primary Contact Statistics -->
+                <x-dashboard.primary-contact-stats :user="$user" :is-admin="false" />
+                
+                <!-- Client Relationships -->
+                <div class="lg:col-span-1">
+                    <x-dashboard.client-relationships :user="$user" :is-admin="false" />
+                </div>
+            </div>
 
             <!-- File Management Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">

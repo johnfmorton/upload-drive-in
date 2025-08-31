@@ -79,8 +79,16 @@
             <!-- Google Drive Connection -->
             <x-dashboard.google-drive-connection :user="Auth::user()" :is-admin="true" />
             
-            <!-- Client-Company User Relationships -->
-            <x-dashboard.client-relationships :user="Auth::user()" :is-admin="true" />
+            <!-- Dashboard Statistics Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Primary Contact Statistics -->
+                <x-dashboard.primary-contact-stats :user="Auth::user()" :is-admin="true" />
+                
+                <!-- Client Relationships -->
+                <div class="lg:col-span-1">
+                    <x-dashboard.client-relationships :user="Auth::user()" :is-admin="true" />
+                </div>
+            </div>
 
 
             <!-- File Management Section -->

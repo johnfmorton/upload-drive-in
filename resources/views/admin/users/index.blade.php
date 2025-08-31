@@ -150,146 +150,8 @@
 
             <!-- Users Table Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div x-data="{
-                        clientsData: {{ json_encode($clients->items()) }},
-                        filterQuery: '',
-                        sortColumn: 'created_at', // Default sort column
-                        sortDirection: 'desc', // Default sort direction ('asc' or 'desc')
-                        columns: $persist({
-                            name: true,
-                            email: true,
-                            createdAt: true,
-                            loginUrl: true, // Added Login URL column
-                            actions: true
-                        }).as('adminUserColumns'),
-                        showDeleteModal: false,
-                        userToDeleteId: null,
-                        deleteFilesCheckbox: false,
-                        copiedUrlId: null, // Track which URL was just copied
-
-                        // Add loginUrl property to each client object
-                        init() {
-                            this.clientsData = this.clientsData.map(client => {
-                                client.loginUrl = client.login_url; // Assuming 'login_url' is passed from controller
-                                return client;
-                            });
-                            // Reset copied state on init
-                            this.copiedUrlId = null;
-                        },
-
-                        get filteredAndSortedClients() {
-                            let filtered = this.clientsData;
-
-                            // Apply filter
-                            if (this.filterQuery.trim() !== '') {
-                                const query = this.filterQuery.trim().toLowerCase();
-                                filtered = filtered.filter(client => {
-                                    return (client.name && client.name.toLowerCase().includes(query)) ||
-                                           (client.email && client.email.toLowerCase().includes(query));
-                                });
-                            }
-
-                            // Apply sort
-                            if (this.sortColumn) {
-                                filtered.sort((a, b) => {
-                                    let valA = a[this.sortColumn];
-                                    let valB = b[this.sortColumn];
-
-                                    // Handle specific types if needed
-                                     if (this.sortColumn === 'created_at') {
-                                        valA = new Date(valA);
-                                        valB = new Date(valB);
-                                    } else if (valA && typeof valA === 'string') {
-                                        valA = valA.toLowerCase();
-                                        valB = valB.toLowerCase();
-                                    }
-
-                                    let comparison = 0;
-                                    if (valA > valB) {
-                                        comparison = 1;
-                                    } else if (valA < valB) {
-                                        comparison = -1;
-                                    }
-                                    return this.sortDirection === 'asc' ? comparison : -comparison;
-                                });
-                            }
-
-                            return filtered;
-                        },
-
-                        sortBy(column) {
-                            if (this.sortColumn === column) {
-                                this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-                            } else {
-                                this.sortColumn = column;
-                                this.sortDirection = 'asc'; // Default to ascending when changing column
-                            }
-                        },
-
-                        // Helper to format date
-                         formatDate(dateString) {
-                            const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }; // removed  `second: '2-digit'`
-                            return new Date(dateString).toLocaleString(undefined, options);
-                        },
-
-                        // Copy login URL to clipboard using Alpine.clipboard()
-                        copyLoginUrl(client) {
-                            // Use the globally available Alpine object to access clipboard
-                            navigator.clipboard.writeText(client.loginUrl);
-                            this.copiedUrlId = client.id;
-                            // Hide 'Copied!' message after 2 seconds
-                            setTimeout(() => {
-                                if (this.copiedUrlId === client.id) {
-                                     this.copiedUrlId = null;
-                                }
-                            }, 2000);
-                        },
-
-                        // Initiate User Deletion - Show Modal
-                        deleteUser(userId) {
-                             this.userToDeleteId = userId;
-                             this.deleteFilesCheckbox = false; // Reset checkbox state
-                             this.showDeleteModal = true;
-                        },
-
-                        // Confirm and Submit Deletion
-                        confirmDeleteUser() {
-                            if (!this.userToDeleteId) return;
-
-                            let form = document.createElement('form');
-                            form.method = 'POST';
-                            // Construct the action URL manually
-                            form.action = '/admin/users/' + this.userToDeleteId;
-                            form.style.display = 'none';
-
-                            let csrfInput = document.createElement('input');
-                            csrfInput.type = 'hidden';
-                            csrfInput.name = '_token';
-                            csrfInput.value = '{{ csrf_token() }}'; // Get CSRF token
-                            form.appendChild(csrfInput);
-
-                            let methodInput = document.createElement('input');
-                            methodInput.type = 'hidden';
-                            methodInput.name = '_method';
-                            methodInput.value = 'DELETE';
-                            form.appendChild(methodInput);
-
-                            // Add the delete_files input
-                            let deleteFilesInput = document.createElement('input');
-                            deleteFilesInput.type = 'hidden';
-                            deleteFilesInput.name = 'delete_files';
-                            deleteFilesInput.value = this.deleteFilesCheckbox ? '1' : '0';
-                            form.appendChild(deleteFilesInput);
-
-                            document.body.appendChild(form);
-                            form.submit();
-
-                            // Hide modal after submission attempt
-                            this.showDeleteModal = false;
-                            this.userToDeleteId = null;
-                        }
-
-                    }" x-init="init()" class="max-w-full">
+                <div x-data="adminUsersData()" x-init="initData()"
+ class="max-w-full">
                     <h2 class="text-lg font-medium text-gray-900 mb-4">
                         {{ __('messages.users_list_title') }}
                     </h2>
@@ -364,10 +226,38 @@
                         </div>
                     </div>
 
-                    <!-- Filter Input -->
-                    <div class="mb-4">
-                        <label for="userFilter" class="sr-only">{{ __('messages.filter_users_label') }}</label>
-                        <input type="text" id="userFilter" x-model.debounce.300ms="filterQuery" placeholder="{{ __('messages.filter_users_placeholder') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm">
+                    <!-- Filter Controls -->
+                    <div class="mb-4 space-y-4">
+                        <!-- Primary Contact Filter -->
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div class="flex items-center space-x-4">
+                                <label class="text-sm font-medium text-gray-700">{{ __('messages.filter_by_primary_contact') }}:</label>
+                                <div class="flex items-center space-x-2">
+                                    <a href="{{ route('admin.users.index') }}" 
+                                       class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)] {{ !request('filter') ? 'bg-gray-100 border-gray-400' : '' }}">
+                                        {{ __('messages.filter_all_clients') }}
+                                    </a>
+                                    <a href="{{ route('admin.users.index', ['filter' => 'primary_contact']) }}" 
+                                       class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)] {{ request('filter') === 'primary_contact' ? 'bg-blue-100 border-blue-400 text-blue-700' : '' }}">
+                                        <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                        {{ __('messages.filter_primary_contact_only') }}
+                                    </a>
+                                </div>
+                            </div>
+                            @if(request('filter') === 'primary_contact')
+                                <div class="text-sm text-blue-600 bg-blue-50 px-3 py-1.5 rounded-md">
+                                    {{ __('messages.showing_primary_contact_clients_only') }}
+                                </div>
+                            @endif
+                        </div>
+                        
+                        <!-- Search Input -->
+                        <div>
+                            <label for="userFilter" class="sr-only">{{ __('messages.filter_users_label') }}</label>
+                            <input type="text" id="userFilter" x-model.debounce.300ms="filterQuery" placeholder="{{ __('messages.filter_users_placeholder') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[var(--brand-color)] focus:ring focus:ring-[var(--brand-color)]/50 sm:text-sm">
+                        </div>
                     </div>
 
                     {{-- Mobile Card View --}}
@@ -377,7 +267,17 @@
                                 {{-- Card Header --}}
                                 <div class="border-b border-gray-200 pb-3 mb-3">
                                     <div class="flex justify-between items-start gap-2">
-                                        <div class="font-medium text-gray-900 break-words" x-text="client.name"></div>
+                                        <div class="flex items-center space-x-2">
+                                            <div class="font-medium text-gray-900 break-words" x-text="client.name"></div>
+                                            <template x-if="client.is_primary_contact_for_current_user">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    {{ __('messages.primary_contact_badge') }}
+                                                </span>
+                                            </template>
+                                        </div>
                                         <div class="flex shrink-0 space-x-2">
                                             {{-- Manage Button --}}
                                             <a :href="`/admin/users/${client.id}`" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-[var(--brand-color)] bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)]">
@@ -457,7 +357,21 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <template x-for="client in filteredAndSortedClients" :key="client.id">
                                         <tr>
-                                            <template x-if="columns.name"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="client.name"></td></template>
+                                            <template x-if="columns.name">
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    <div class="flex items-center space-x-2">
+                                                        <span x-text="client.name"></span>
+                                                        <template x-if="client.is_primary_contact_for_current_user">
+                                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                                </svg>
+                                                                {{ __('messages.primary_contact_badge') }}
+                                                            </span>
+                                                        </template>
+                                                    </div>
+                                                </td>
+                                            </template>
                                             <template x-if="columns.email"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="client.email"></td></template>
                                             <template x-if="columns.createdAt"><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(client.created_at)"></td></template>
                                             <template x-if="columns.loginUrl">
@@ -503,4 +417,136 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function adminUsersData() {
+            return {
+                clientsData: [],
+                filterQuery: '',
+                sortColumn: 'created_at',
+                sortDirection: 'desc',
+                columns: Alpine.$persist({
+                    name: true,
+                    email: true,
+                    createdAt: true,
+                    loginUrl: true,
+                    actions: true
+                }).as('adminUserColumns'),
+                showDeleteModal: false,
+                userToDeleteId: null,
+                deleteFilesCheckbox: false,
+                copiedUrlId: null,
+
+                get filteredAndSortedClients() {
+                    let filtered = this.clientsData;
+
+                    if (this.filterQuery.trim() !== '') {
+                        const query = this.filterQuery.trim().toLowerCase();
+                        filtered = filtered.filter(client => {
+                            return (client.name && client.name.toLowerCase().includes(query)) ||
+                                   (client.email && client.email.toLowerCase().includes(query));
+                        });
+                    }
+
+                    if (this.sortColumn) {
+                        filtered.sort((a, b) => {
+                            let valA = a[this.sortColumn];
+                            let valB = b[this.sortColumn];
+
+                            if (this.sortColumn === 'created_at') {
+                                valA = new Date(valA);
+                                valB = new Date(valB);
+                            } else if (valA && typeof valA === 'string') {
+                                valA = valA.toLowerCase();
+                                valB = valB.toLowerCase();
+                            }
+
+                            let comparison = 0;
+                            if (valA > valB) {
+                                comparison = 1;
+                            } else if (valA < valB) {
+                                comparison = -1;
+                            }
+                            return this.sortDirection === 'asc' ? comparison : -comparison;
+                        });
+                    }
+
+                    return filtered;
+                },
+
+                sortBy(column) {
+                    if (this.sortColumn === column) {
+                        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.sortColumn = column;
+                        this.sortDirection = 'asc';
+                    }
+                },
+
+                formatDate(dateString) {
+                    const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
+                    return new Date(dateString).toLocaleString(undefined, options);
+                },
+
+                copyLoginUrl(client) {
+                    navigator.clipboard.writeText(client.loginUrl);
+                    this.copiedUrlId = client.id;
+                    setTimeout(() => {
+                        if (this.copiedUrlId === client.id) {
+                             this.copiedUrlId = null;
+                        }
+                    }, 2000);
+                },
+
+                deleteUser(userId) {
+                     this.userToDeleteId = userId;
+                     this.deleteFilesCheckbox = false;
+                     this.showDeleteModal = true;
+                },
+
+                confirmDeleteUser() {
+                    if (!this.userToDeleteId) return;
+
+                    let form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/admin/users/' + this.userToDeleteId;
+                    form.style.display = 'none';
+
+                    let csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = '_token';
+                    csrfInput.value = '{{ csrf_token() }}';
+                    form.appendChild(csrfInput);
+
+                    let methodInput = document.createElement('input');
+                    methodInput.type = 'hidden';
+                    methodInput.name = '_method';
+                    methodInput.value = 'DELETE';
+                    form.appendChild(methodInput);
+
+                    let deleteFilesInput = document.createElement('input');
+                    deleteFilesInput.type = 'hidden';
+                    deleteFilesInput.name = 'delete_files';
+                    deleteFilesInput.value = this.deleteFilesCheckbox ? '1' : '0';
+                    form.appendChild(deleteFilesInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
+
+                    this.showDeleteModal = false;
+                    this.userToDeleteId = null;
+                },
+
+                initData() {
+                    this.clientsData = {!! json_encode($clients->items(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
+                    this.clientsData = this.clientsData.map(client => {
+                        client.loginUrl = client.login_url;
+                        client.is_primary_contact_for_current_user = client.is_primary_contact_for_current_user || false;
+                        return client;
+                    });
+                    this.copiedUrlId = null;
+                }
+            }
+        }
+    </script>
 </x-app-layout>

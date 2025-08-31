@@ -243,4 +243,29 @@ class User extends Authenticatable
     {
         return $this->getUploadUrl();
     }
+
+    /**
+     * Get clients where this user is the primary contact.
+     *
+     * @return BelongsToMany
+     */
+    public function primaryContactClients(): BelongsToMany
+    {
+        return $this->clientUsers()
+            ->wherePivot('is_primary', true);
+    }
+
+    /**
+     * Check if this user is the primary contact for a specific client.
+     *
+     * @param User $client
+     * @return bool
+     */
+    public function isPrimaryContactFor(User $client): bool
+    {
+        return $this->clientUsers()
+            ->wherePivot('is_primary', true)
+            ->where('users.id', $client->id)
+            ->exists();
+    }
 }

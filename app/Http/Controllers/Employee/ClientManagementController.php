@@ -20,19 +20,28 @@ class ClientManagementController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index()
+    public function index(Request $request)
     {
         $employee = Auth::user();
         
         // Get all client users associated with this employee
-        $clientUsers = $employee->clientUsers()
-            ->with('companyUsers')
-            ->paginate(config('file-manager.pagination.items_per_page'));
+        $query = $employee->clientUsers()->with('companyUsers');
+        
+        // Handle primary contact filtering
+        if ($request->has('filter') && $request->get('filter') === 'primary_contact') {
+            $query->wherePivot('is_primary', true);
+        }
+        
+        $clientUsers = $query->paginate(config('file-manager.pagination.items_per_page'));
 
-        // Add login URLs to each client user
-        $clientUsers->getCollection()->transform(function ($client) {
+        // Add login URLs and primary contact status to each client user
+        $clientUsers->getCollection()->transform(function ($client) use ($employee) {
             $client->login_url = $client->login_url;
             $client->reset_url = $client->reset_url;
+            
+            // Add primary contact status for current employee
+            $client->is_primary_contact_for_current_user = $employee->isPrimaryContactFor($client);
+            
             return $client;
         });
 

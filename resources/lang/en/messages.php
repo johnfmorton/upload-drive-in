@@ -512,6 +512,126 @@
     'validation_action_required' => 'Please select an action (Create User or Create & Send Invitation).',
     'validation_action_invalid' => 'The selected action is invalid.',
 
+    // Team Assignment Validation Messages
+    'validation_team_members_required' => 'At least one team member must be assigned to this client.',
+    'validation_team_members_min' => 'At least one team member must be assigned to this client.',
+    'validation_team_member_invalid' => 'One or more selected team members are invalid.',
+    'validation_primary_contact_required' => 'A primary contact must be selected.',
+    'validation_primary_contact_invalid' => 'The primary contact must be one of the selected team members.',
+    'validation_primary_contact_not_in_team' => 'The primary contact must be one of the selected team members.',
+    'validation_primary_contact_unauthorized' => 'You are not authorized to assign this user as primary contact.',
+
+    // Primary Contact Management
+    'primary_contact_explanation_title' => 'About Primary Contact',
+    'primary_contact_explanation_text' => 'The primary contact receives file uploads and notifications when clients don\'t select a specific recipient. Only one team member can be the primary contact.',
+    'current_primary_contact_title' => 'Current Primary Contact',
+    'primary_contact_badge' => 'Primary Contact',
+    'make_primary_button' => 'Make Primary',
+    'change_primary_contact_title' => 'Change Primary Contact',
+    'change_primary_contact_confirmation' => 'Are you sure you want to make :name the primary contact for this client? This person will receive all file uploads and notifications when no specific recipient is selected.',
+    'confirm_primary_contact_change' => 'Yes, Change Primary Contact',
+    'primary_contact_changed_success' => 'Primary contact updated successfully.',
+    'primary_contact_change_failed' => 'Failed to update primary contact. Please try again.',
+
+    // Dashboard Primary Contact Statistics
+    'primary_contact_stats_title' => 'Primary Contact For',
+    'primary_contact_stats_client' => 'Client',
+    'primary_contact_stats_clients' => 'Clients',
+    'primary_contact_stats_view_clients' => 'View clients',
+    'primary_contact_stats_description' => 'Number of clients where you are the primary contact',
+
+    // Primary Contact Management
+    'primary_contact_explanation_title' => 'About Primary Contact',
+    'primary_contact_explanation_text' => 'The primary contact receives file uploads and notifications when clients don\'t select a specific recipient. Only one team member can be the primary contact.',
+    'current_primary_contact_title' => 'Current Primary Contact',
+    'primary_contact_badge' => 'Primary Contact',
+    'make_primary_button' => 'Make Primary',
+    'change_primary_contact_title' => 'Change Primary Contact',
+    'change_primary_contact_confirmation' => 'Are you sure you want to make :name the primary contact for this client? This person will receive all file uploads and notifications when no specific recipient is selected.',
+    'confirm_primary_contact_change' => 'Yes, Change Primary Contact',
+    'primary_contact_changed_success' => 'Primary contact updated successfully.',
+    'primary_contact_change_failed' => 'Failed to update primary contact. Please try again.',
+
+    // Dashboard Primary Contact Statistics
+    'primary_contact_stats_title' => 'Primary Contact For',
+    'primary_contact_stats_client' => 'Client',
+    'primary_contact_stats_clients' => 'Clients',
+    'primary_contact_stats_view_clients' => 'View clients',
+    'primary_contact_stats_description' => 'Number of clients where you are the primary contact',
+
+    // Client List Filtering
+    'filter_by_primary_contact' => 'Filter by Primary Contact',
+    'filter_all_clients' => 'All Clients',
+    'filter_primary_contact_only' => 'Primary Contact Only',
+    'showing_primary_contact_clients_only' => 'Showing clients where you are the primary contact',
+    'no_primary_contact_clients' => 'You are not the primary contact for any clients.',
+
+    // Primary Contact UI Elements
+    'primary_contact_for' => 'Primary Contact For',
+    'view_primary_contact_clients' => 'View clients',
+    'no_primary_contact_assignments' => 'No primary contact assignments',
+    'current_primary_contact' => 'Current Primary Contact',
+    'primary_contact' => 'Primary Contact',
+    'primary_contact_responsibility_uploads' => 'Receives file uploads when no specific recipient is selected',
+    'primary_contact_responsibility_notifications' => 'Gets email notifications for client uploads',
+    'primary_contact_responsibility_unique' => 'Only one team member can be the primary contact per client',
+
+    // Primary Contact Modal Text
+    'change_primary_contact_modal_title' => 'Change Primary Contact',
+    'change_primary_contact_modal_text' => 'Are you sure you want to make :name the primary contact for this client?',
+    'yes_change_primary_contact' => 'Yes, Change Primary Contact',
+
+    // Primary Contact Tooltips and Help Text
+    'primary_contact_tooltip' => 'Primary contacts receive file uploads and notifications when no specific recipient is selected',
+    'primary_contact_selection_help' => 'Select which team member should be the primary contact for this client',
+    'primary_contact_required_help' => 'Every client must have a primary contact assigned',
+    'primary_contact_impact_help' => 'Changing the primary contact will affect where future uploads and notifications are sent',
+    'validation_primary_contact_required' => 'A primary contact must be selected.',
+    'validation_primary_contact_in_team' => 'The primary contact must be one of the selected team members.',
+    'validation_primary_contact_invalid' => 'The selected primary contact is invalid.',
+    'validation_primary_contact_not_in_team' => 'The primary contact must be one of the selected team members.',
+    'validation_primary_contact_unauthorized' => 'You are not authorized to assign this user as a primary contact.',
+
+    // Primary Contact Management
+    'primary_contact' => 'Primary Contact',
+    'primary_contact_for' => 'Primary Contact For',
+    'primary_contact_explanation_title' => 'About Primary Contact',
+    'primary_contact_explanation_text' => 'The primary contact receives file uploads and notifications when clients don\'t select a specific recipient. Only one team member can be the primary contact.',
+    'current_primary_contact' => 'Current Primary Contact',
+    'change_primary_contact' => 'Change Primary Contact',
+    'change_primary_contact_modal_title' => 'Change Primary Contact',
+    'change_primary_contact_modal_text' => 'Are you sure you want to make <strong>:name</strong> the primary contact for this client?',
+    'primary_contact_responsibilities' => 'Primary Contact Responsibilities:',
+    'primary_contact_responsibility_uploads' => 'This person will receive all file uploads when no specific recipient is selected',
+    'primary_contact_responsibility_notifications' => 'They will get email notifications for new uploads to this client',
+    'primary_contact_responsibility_unique' => 'Only one team member can be the primary contact at a time',
+    'yes_change_primary_contact' => 'Yes, Change Primary Contact',
+    'view_primary_contact_clients' => 'View primary contact clients',
+    'no_primary_contact_assignments' => 'No primary contact assignments yet',
+    'primary_contact_filter' => 'Primary Contact Filter',
+    'filter_by_primary_contact' => 'Filter by Primary Contact Status',
+    'all_clients' => 'All Clients',
+    'primary_contact_only' => 'Primary Contact Only',
+    'non_primary_contact' => 'Non-Primary Contact',
+    'filter_all_clients' => 'All Clients',
+    'filter_primary_contact_only' => 'Primary Contact Only',
+    'showing_primary_contact_clients_only' => 'Showing clients where you are the primary contact',
+
+    // Dashboard Statistics
+    'dashboard_statistics' => 'Dashboard Statistics',
+    'primary_contact_statistics' => 'Primary Contact Statistics',
+    'client_singular' => 'client',
+    'clients_plural' => 'clients',
+    'validation_team_members_unauthorized' => 'You can only assign team members from your organization.',
+    'validation_primary_contact_required' => 'A primary contact must be selected.',
+    'validation_primary_contact_invalid' => 'The selected primary contact is invalid.',
+    'validation_primary_contact_not_in_team' => 'The primary contact must be one of the selected team members.',
+    'validation_primary_contact_unauthorized' => 'You can only assign primary contact from your organization.',
+
+    // Team Assignment Success/Error Messages
+    'team_assignments_updated_success' => 'Team assignments and primary contact updated successfully.',
+    'team_assignments_update_failed' => 'Failed to update team assignments. Please try again or contact support if the problem persists.',
+
     // Dual Action Button Labels and Tooltips
     'button_create_user_loading' => 'Creating...',
     'button_create_and_invite_loading' => 'Creating & Inviting...',
@@ -526,4 +646,11 @@
     'copy_url_to_clipboard' => 'Copy URL to clipboard',
     'url_copied_to_clipboard' => 'URL copied to clipboard',
     'copy_failed' => 'Failed to copy URL',
+    
+    // Primary Contact Filtering
+    'filter_by_primary_contact' => 'Filter by Primary Contact',
+    'filter_all_clients' => 'All Clients',
+    'filter_primary_contact_only' => 'Primary Contact Only',
+    'showing_primary_contact_clients_only' => 'Showing only clients where you are the primary contact',
+    'primary_contact_badge' => 'Primary',
 ];

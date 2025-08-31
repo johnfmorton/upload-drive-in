@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use App\Mail\LoginVerificationMail;
+use App\Enums\UserRole;
 // Remove Google Drive dependencies - they are now in the service
 // use Google\Client;
 // use Google\Service\Drive;
@@ -34,15 +35,31 @@ class AdminUserController extends Controller
     /**
      * Display a listing of the client users.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $clients = User::where('role', 'client')->paginate(config('file-manager.pagination.items_per_page'));
+        $query = User::where('role', 'client');
+        
+        // Handle primary contact filtering
+        if ($request->has('filter') && $request->get('filter') === 'primary_contact') {
+            $currentUser = Auth::user();
+            $query->whereHas('companyUsers', function ($q) use ($currentUser) {
+                $q->where('company_user_id', $currentUser->id)
+                  ->where('is_primary', true);
+            });
+        }
+        
+        $clients = $query->paginate(config('file-manager.pagination.items_per_page'));
 
         // Add the login URL and 2FA status to each client user
         $clients->getCollection()->transform(function ($client) {
             $client->login_url = $client->getLoginUrl();
             $client->two_factor_enabled = (bool) $client->two_factor_enabled;
             $client->two_factor_confirmed_at = $client->two_factor_confirmed_at;
+            
+            // Add primary contact status for current user
+            $currentUser = Auth::user();
+            $client->is_primary_contact_for_current_user = $currentUser->isPrimaryContactFor($client);
+            
             return $client;
         });
 
@@ -444,34 +461,112 @@ class AdminUserController extends Controller
         
         $client = $user;
         
+        // Enhanced validation with custom error messages
         $validated = $request->validate([
-            'team_members' => 'array',
+            'team_members' => 'required|array|min:1',
             'team_members.*' => 'exists:users,id',
-            'primary_contact' => 'nullable|exists:users,id',
+            'primary_contact' => 'required|exists:users,id|in:' . implode(',', $request->input('team_members', [])),
+        ], [
+            'team_members.required' => __('messages.validation_team_members_required'),
+            'team_members.min' => __('messages.validation_team_members_min'),
+            'team_members.*.exists' => __('messages.validation_team_member_invalid'),
+            'primary_contact.required' => __('messages.validation_primary_contact_required'),
+            'primary_contact.exists' => __('messages.validation_primary_contact_invalid'),
+            'primary_contact.in' => __('messages.validation_primary_contact_not_in_team'),
+        ]);
+
+        // Log the team assignment update attempt for audit purposes
+        Log::info('Team assignment update attempt', [
+            'admin_id' => Auth::id(),
+            'admin_email' => Auth::user()->email,
+            'client_id' => $client->id,
+            'client_email' => $client->email,
+            'team_members' => $validated['team_members'],
+            'primary_contact' => $validated['primary_contact'],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         try {
+            // Validate that all team members belong to the current admin's organization
+            $currentUser = Auth::user();
+            $validTeamMembers = User::whereIn('id', $validated['team_members'])
+                ->where(function($query) use ($currentUser) {
+                    $query->where('owner_id', $currentUser->id)
+                          ->orWhere('id', $currentUser->id);
+                })
+                ->whereIn('role', [UserRole::ADMIN, UserRole::EMPLOYEE])
+                ->pluck('id')
+                ->toArray();
+            
+            if (count($validTeamMembers) !== count($validated['team_members'])) {
+                Log::warning('Invalid team members detected in assignment', [
+                    'admin_id' => Auth::id(),
+                    'client_id' => $client->id,
+                    'requested_members' => $validated['team_members'],
+                    'valid_members' => $validTeamMembers,
+                ]);
+                
+                return redirect()->route('admin.users.show', $client->id)
+                    ->withErrors(['team_members' => __('messages.validation_team_members_unauthorized')])
+                    ->withInput();
+            }
+            
+            // Validate that primary contact is among valid team members
+            if (!in_array($validated['primary_contact'], $validTeamMembers)) {
+                Log::warning('Invalid primary contact detected in assignment', [
+                    'admin_id' => Auth::id(),
+                    'client_id' => $client->id,
+                    'primary_contact' => $validated['primary_contact'],
+                    'valid_members' => $validTeamMembers,
+                ]);
+                
+                return redirect()->route('admin.users.show', $client->id)
+                    ->withErrors(['primary_contact' => __('messages.validation_primary_contact_unauthorized')])
+                    ->withInput();
+            }
+            
             // Remove existing relationships
             $client->companyUsers()->detach();
             
-            // Add new relationships
-            if (!empty($validated['team_members'])) {
-                $teamData = [];
-                foreach ($validated['team_members'] as $memberId) {
-                    $teamData[$memberId] = [
-                        'is_primary' => $memberId == $validated['primary_contact']
-                    ];
-                }
-                $client->companyUsers()->attach($teamData);
+            // Add new relationships with proper primary contact assignment
+            $teamData = [];
+            foreach ($validated['team_members'] as $memberId) {
+                $teamData[$memberId] = [
+                    'is_primary' => $memberId == $validated['primary_contact']
+                ];
             }
+            $client->companyUsers()->attach($teamData);
+            
+            // Log successful team assignment update
+            Log::info('Team assignment updated successfully', [
+                'admin_id' => Auth::id(),
+                'client_id' => $client->id,
+                'client_email' => $client->email,
+                'team_members_count' => count($validated['team_members']),
+                'primary_contact' => $validated['primary_contact'],
+            ]);
             
             return redirect()->route('admin.users.show', $client->id)
-                ->with('success', 'Team assignments updated successfully.');
+                ->with('success', __('messages.team_assignments_updated_success'));
                 
         } catch (Exception $e) {
-            Log::error("Error updating team assignments for client {$id}: " . $e->getMessage());
+            // Enhanced error logging with more context
+            Log::error('Failed to update team assignments', [
+                'admin_id' => Auth::id(),
+                'client_id' => $client->id,
+                'client_email' => $client->email,
+                'team_members' => $validated['team_members'] ?? null,
+                'primary_contact' => $validated['primary_contact'] ?? null,
+                'error_message' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'trace' => $e->getTraceAsString(),
+                'ip_address' => $request->ip(),
+            ]);
+            
             return redirect()->route('admin.users.show', $client->id)
-                ->with('error', 'Failed to update team assignments.');
+                ->withErrors(['general' => __('messages.team_assignments_update_failed')])
+                ->withInput();
         }
     }
 }

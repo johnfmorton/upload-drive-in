@@ -507,6 +507,15 @@ input[type='file']:focus::file-selector-button {
     background-color: rgba(254, 242, 242, 0.5);
 }
 
+/* Modal Backdrop Styles */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    transition: opacity 300ms ease-out;
+}
+
 /* Accessibility Utilities */
 .sr-only {
     position: absolute;
