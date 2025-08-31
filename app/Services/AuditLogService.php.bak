@@ -43,7 +43,7 @@ class AuditLogService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toISOString(),
-            'session_id' => $this->getSessionId($request),
+            'session_id' => $request->session()->getId(),
             'request_id' => $request->header('X-Request-ID') ?? uniqid(),
         ];
 
@@ -84,7 +84,7 @@ class AuditLogService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toISOString(),
-            'session_id' => $this->getSessionId($request),
+            'session_id' => $request->session()->getId(),
             'request_id' => $request->header('X-Request-ID') ?? uniqid(),
         ];
 
@@ -122,7 +122,7 @@ class AuditLogService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toISOString(),
-            'session_id' => $this->getSessionId($request),
+            'session_id' => $request->session()->getId(),
             'request_id' => $request->header('X-Request-ID') ?? uniqid(),
             'context' => $context,
         ];
@@ -157,7 +157,7 @@ class AuditLogService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toISOString(),
-            'session_id' => $this->getSessionId($request),
+            'session_id' => $request->session()->getId(),
             'request_id' => $request->header('X-Request-ID') ?? uniqid(),
         ];
 
@@ -189,7 +189,7 @@ class AuditLogService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toISOString(),
-            'session_id' => $this->getSessionId($request),
+            'session_id' => $request->session()->getId(),
             'request_id' => $request->header('X-Request-ID') ?? uniqid(),
         ];
 
@@ -222,7 +222,7 @@ class AuditLogService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toISOString(),
-            'session_id' => $this->getSessionId($request),
+            'session_id' => $request->session()->getId(),
             'request_id' => $request->header('X-Request-ID') ?? uniqid(),
         ];
 
@@ -252,7 +252,7 @@ class AuditLogService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toISOString(),
-            'session_id' => $this->getSessionId($request),
+            'session_id' => $request->session()->getId(),
             'request_id' => $request->header('X-Request-ID') ?? uniqid(),
         ];
 
@@ -285,7 +285,7 @@ class AuditLogService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toISOString(),
-            'session_id' => $this->getSessionId($request),
+            'session_id' => $request->session()->getId(),
             'request_id' => $request->header('X-Request-ID') ?? uniqid(),
         ];
 
@@ -318,7 +318,7 @@ class AuditLogService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toISOString(),
-            'session_id' => $this->getSessionId($request),
+            'session_id' => $request->session()->getId(),
             'request_id' => $request->header('X-Request-ID') ?? uniqid(),
         ];
 
@@ -350,7 +350,7 @@ class AuditLogService
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'timestamp' => now()->toISOString(),
-            'session_id' => $this->getSessionId($request),
+            'session_id' => $request->session()->getId(),
             'request_id' => $request->header('X-Request-ID') ?? uniqid(),
         ];
 
