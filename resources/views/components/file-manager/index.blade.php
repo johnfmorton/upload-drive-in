@@ -111,7 +111,7 @@
             :userType="$userType" 
             :username="$username" />
 
-        <x-file-manager.modals.confirmation-modal />
+        <x-file-manager.modals.simple-delete-modal />
 
         <x-file-manager.modals.progress-modal />
 

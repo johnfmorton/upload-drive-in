@@ -253,6 +253,8 @@ document.addEventListener('alpine:init', () => {
         },
 
         openModal(config) {
+            console.log('🔍 Modal: openModal called with config:', config);
+            
             // Reset state
             this.processing = false;
             
@@ -269,35 +271,23 @@ document.addEventListener('alpine:init', () => {
             this.fileCount = config.fileCount || 0;
             this.iconType = config.iconType || 'warning';
 
+            console.log('🔍 Modal: Setting open to true');
             this.open = true;
-
-            // Log modal opening in debug mode
-            if (this.debugMode) {
-                console.log('🔍 Confirmation modal opened:', {
-                    title: this.title,
-                    actionType: this.actionType,
-                    fileCount: this.fileCount,
-                    userType: this.userType,
-                    username: this.username
-                });
-            }
+            console.log('🔍 Modal: Modal opened, open is now:', this.open);
         },
 
         closeModal() {
+            console.log('🔍 Modal: closeModal called, processing:', this.processing);
+            
             if (this.processing) {
-                if (this.debugMode) {
-                    console.log('🔍 Cannot close modal while processing');
-                }
+                console.log('🔍 Modal: Cannot close modal while processing');
                 return;
             }
 
+            console.log('🔍 Modal: Setting open to false');
             this.open = false;
             this.resetState();
-
-            // Log modal closing in debug mode
-            if (this.debugMode) {
-                console.log('🔍 Confirmation modal closed');
-            }
+            console.log('🔍 Modal: Modal state reset, open is now:', this.open);
         },
 
         resetState() {
@@ -316,21 +306,21 @@ document.addEventListener('alpine:init', () => {
         },
 
         async confirmAction() {
-            if (this.processing) return;
+            if (this.processing) {
+                console.warn('Confirmation already in progress, ignoring duplicate call');
+                return;
+            }
 
             this.processing = true;
-
-            if (this.debugMode) {
-                console.log('🔍 Confirming action:', {
-                    actionType: this.actionType,
-                    actionData: this.actionData
-                });
-            }
+            console.log('🔍 Modal: Starting confirmation action');
 
             try {
                 if (this.onConfirm && typeof this.onConfirm === 'function') {
+                    console.log('🔍 Modal: Calling onConfirm callback');
                     await this.onConfirm(this.actionData);
+                    console.log('🔍 Modal: onConfirm callback completed successfully');
                 } else {
+                    console.log('🔍 Modal: No onConfirm callback, dispatching event');
                     // Dispatch event for parent component to handle
                     this.$dispatch('confirmation-confirmed', {
                         actionType: this.actionType,
@@ -339,15 +329,13 @@ document.addEventListener('alpine:init', () => {
                 }
 
                 // Close modal after successful action
+                console.log('🔍 Modal: Closing modal after successful action');
                 this.closeModal();
+                console.log('🔍 Modal: Modal closed successfully');
 
             } catch (error) {
-                console.error('Confirmation action failed:', error);
+                console.error('🔍 Modal: Confirmation action failed:', error);
                 
-                if (this.debugMode) {
-                    console.log('🔍 Confirmation action failed:', error);
-                }
-
                 // Show error notification
                 this.$dispatch('show-error-notification', {
                     message: error.message || '{{ __("messages.action_failed") }}'
@@ -355,6 +343,7 @@ document.addEventListener('alpine:init', () => {
 
             } finally {
                 this.processing = false;
+                console.log('🔍 Modal: Processing flag reset to false');
             }
         },
 
