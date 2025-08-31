@@ -95,6 +95,19 @@
                             Test and monitor your background job processing system to ensure files are uploaded
                             properly.
                         </p>
+                        <details class="mt-2">
+                            <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                                What do the test results mean?
+                            </summary>
+                            <div class="mt-2 text-xs text-gray-600 bg-gray-50 p-3 rounded border-l-2 border-gray-300">
+                                <div class="space-y-2">
+                                    <div><span class="font-medium text-green-600">Success:</span> Test job completed successfully - your queue worker is functioning properly</div>
+                                    <div><span class="font-medium text-red-600">Failed:</span> Test job failed to complete - check your queue configuration and worker status</div>
+                                    <div><span class="font-medium text-yellow-600">Timeout:</span> Test job took too long to complete - worker may be slow or overloaded</div>
+                                    <div><span class="font-medium text-blue-600">Processing:</span> Test job is currently running - please wait for completion</div>
+                                </div>
+                            </div>
+                        </details>
                     </div>
                     <div class="flex items-center">
                         <button id="test-queue-btn" type="button"
@@ -108,25 +121,6 @@
                     </div>
                 </div>
 
-                <!-- Queue Health Overview -->
-                <div id="queue-health-overview" class="mb-6">
-                    <div class="bg-gray-50 rounded-lg p-4 max-w-sm">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-4">
-                                <div class="text-sm font-medium text-gray-500">Queue Status</div>
-                                <div id="queue-status" class="text-2xl font-bold text-gray-900">Loading...</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                </div>
 
 
                 <!-- Test Results Section -->

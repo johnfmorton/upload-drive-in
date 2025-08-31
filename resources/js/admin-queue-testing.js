@@ -17,7 +17,6 @@ class AdminQueueTesting {
         
         this.initializeElements();
         this.bindEvents();
-        this.loadQueueHealth();
     }
 
     initializeElements() {
@@ -25,18 +24,12 @@ class AdminQueueTesting {
         this.testQueueBtn = document.getElementById('test-queue-btn');
         this.testQueueBtnText = document.getElementById('test-queue-btn-text');
         
-        // Queue health overview
-        this.queueStatus = document.getElementById('queue-status');
-        
         // Test results sections
         this.testResultsSection = document.getElementById('test-results-section');
         this.currentTestProgress = document.getElementById('current-test-progress');
         this.testProgressMessage = document.getElementById('test-progress-message');
         this.testElapsedTime = document.getElementById('test-elapsed-time');
         this.testResultsDisplay = document.getElementById('test-results-display');
-        
-
-
     }
 
     bindEvents() {
@@ -179,9 +172,6 @@ class AdminQueueTesting {
         
         // Show success notification
         this.showSuccessNotification(`Queue worker completed test in ${processingTime.toFixed(2)}s`);
-        
-        // Automatically refresh queue health after successful test
-        this.loadQueueHealth();
     }
 
     handleTestFailure(status) {
@@ -199,9 +189,6 @@ class AdminQueueTesting {
         };
         
         this.displayTestResult(result);
-        
-        // Automatically refresh queue health after failed test
-        this.loadQueueHealth();
     }
 
     handleTestTimeout() {
@@ -219,9 +206,6 @@ class AdminQueueTesting {
         };
         
         this.displayTestResult(result);
-        
-        // Automatically refresh queue health after timeout
-        this.loadQueueHealth();
     }
 
     handleTestError(message) {
@@ -241,9 +225,6 @@ class AdminQueueTesting {
         
         // Show detailed error notification
         this.showDetailedError(new Error(message), 'Queue test execution');
-        
-        // Automatically refresh queue health after error
-        this.loadQueueHealth();
     }
 
     stopTest() {
@@ -402,69 +383,13 @@ class AdminQueueTesting {
         return div;
     }
 
-    async loadQueueHealth() {
-        try {
-            const response = await fetch('/admin/queue/health', {
-                method: 'GET',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-                }
-            });
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
 
-            const data = await response.json();
-            
-            if (data.success && data.data && data.data.metrics) {
-                this.updateQueueHealthDisplay(data.data.metrics);
-            }
-            
-        } catch (error) {
-            console.error('Failed to load queue health:', error);
-            this.updateQueueHealthDisplay({
-                overall_status: 'error',
-                job_statistics: {
-                    pending_jobs: 0,
-                    failed_jobs_total: 0
-                }
-            });
-        }
-    }
 
-    updateQueueHealthDisplay(metrics) {
-        if (this.queueStatus) {
-            let statusText = 'Unknown';
-            let statusClass = 'text-gray-900';
-            
-            // Use overall_status from the API response
-            const status = metrics.overall_status || metrics.status;
-            
-            switch (status) {
-                case 'healthy':
-                    statusText = 'Healthy';
-                    statusClass = 'text-green-600';
-                    break;
-                case 'warning':
-                    statusText = 'Warning';
-                    statusClass = 'text-yellow-600';
-                    break;
-                case 'critical':
-                case 'error':
-                    statusText = 'Error';
-                    statusClass = 'text-red-600';
-                    break;
-                case 'idle':
-                    statusText = 'Idle';
-                    statusClass = 'text-blue-600';
-                    break;
-            }
-            
-            this.queueStatus.textContent = statusText;
-            this.queueStatus.className = `text-2xl font-bold ${statusClass}`;
-        }
-    }
+
+
+
+
 
 
 
