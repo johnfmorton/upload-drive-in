@@ -1052,10 +1052,20 @@ class QueueTestService
         } elseif ($jobStats['failed_jobs_1h'] > 2 || $stalledJobs > 1) {
             $status = 'warning';
             $message = 'Queue worker may have issues - monitoring recommended';
-        } elseif ($jobStats['pending_jobs'] > 0 || $jobStats['failed_jobs_24h'] === 0) {
+        } elseif ($jobStats['failed_jobs_24h'] > 0 && $jobStats['pending_jobs'] === 0) {
+            // Some failures in 24h but no current activity
+            $status = 'idle';
+            $message = 'Queue worker is idle - no recent activity detected';
+        } elseif ($jobStats['pending_jobs'] > 0) {
+            // Has pending jobs - actively working
+            $status = 'healthy';
+            $message = 'Queue worker is processing jobs normally';
+        } elseif ($jobStats['failed_jobs_24h'] === 0) {
+            // No failures and no pending jobs - clean system
             $status = 'healthy';
             $message = 'Queue worker appears to be functioning normally';
         } else {
+            // Fallback case
             $status = 'idle';
             $message = 'Queue worker is idle - no recent activity detected';
         }
