@@ -38,7 +38,7 @@
     'google_drive_disconnect_button' => 'Disconnect Google Drive',
     'google_drive_not_connected' => 'Google Drive is not connected',
     'google_drive_connect_button' => 'Connect Google Drive',
-    'google_drive_disconnected_success' => 'Google Drive disconnected successfully.*',
+    'google_drive_disconnected_success' => 'Google Drive disconnected successfully.',
     'uploaded_files_title' => 'Uploaded Files',
     'toggle_columns_title' => 'Show/Hide Columns:',
     'column_file_name' => 'File Name',
@@ -122,7 +122,7 @@
     'client_batch_upload_subject' => 'File Upload Batch Confirmation - :app_name',
     'client_batch_upload_heading' => 'File Upload Batch Successful',
     'client_batch_upload_body' => '{1} Your file has been successfully uploaded.|[2,*] Your :count files have been successfully uploaded.',
-    'upload_recipient_line' => 'Recipient: :names*',
+    'upload_recipient_line' => 'Recipient: :names',
     'uploaded_files_list' => 'Uploaded Files',
     'upload_thank_you' => 'Thank you for using our service.',
     'unsubscribe_link_text' => "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:*",
@@ -330,7 +330,7 @@
     'provider_root_folder' => 'Root Folder Settings',
 
     // Folder Selection UI
-    'select_folder_prompt' => 'No folder selected*',
+    'select_folder_prompt' => 'No folder selected',
     'select_folder' => 'Select Folder',
     'change_folder' => 'Select Different Folder',
     'no_folders_found' => 'No folders found',
@@ -340,35 +340,35 @@
     'cancel' => 'Cancel',
     'confirm' => 'Confirm',
 
-    'employee_upload_page_title' => 'Employee File Drop Page*',
-    'employee_select_folder_prompt' => 'Select your Google Drive folder*',
+    'employee_upload_page_title' => 'Employee File Drop Page',
+    'employee_select_folder_prompt' => 'Select your Google Drive folder',
 
     // Employee Management
-    'nav_employee_management' => 'Employee Management*',
-    'employee_management_title' => 'Employee Management*',
-    'create_employee_title' => 'Create New Employee*',
-    'employees_list_title' => 'Employee Users*',
-    'button_create_employee' => 'Create Employee*',
-    'no_employees_match_filter' => 'No employees match your filter criteria*',
-    'no_employees_found' => 'No employees found*',
-    'column_reset_url' => 'Reset URL*',
-    'button_copy_reset_url' => 'Copy Reset URL*',
+    'nav_employee_management' => 'Employee Management',
+    'employee_management_title' => 'Employee Management',
+    'create_employee_title' => 'Create New Employee',
+    'employees_list_title' => 'Employee Users',
+    'button_create_employee' => 'Create Employee',
+    'no_employees_match_filter' => 'No employees match your filter criteria',
+    'no_employees_found' => 'No employees found',
+    'column_reset_url' => 'Reset URL',
+    'button_copy_reset_url' => 'Copy Reset URL',
 
     // Public Employee Upload Page
-    'drop_files_for' => 'Drop files for :name*',
-    'choose_files' => 'Choose files*',
-    'optional_message' => 'Message (Optional)*',
-    'optional_message_placeholder' => 'Enter an optional message to associate with your files...*',
-    'upload' => 'Upload*',
+    'drop_files_for' => 'Drop files for :name',
+    'choose_files' => 'Choose files',
+    'optional_message' => 'Message (Optional)',
+    'optional_message_placeholder' => 'Enter an optional message to associate with your files...',
+    'upload' => 'Upload',
 
     // Profile Status Messages
-    'profile_update_success' => 'Profile updated successfully.*',
+    'profile_update_success' => 'Profile updated successfully.',
 
     // Client Dashboard
-    'client_dashboard_title' => 'My Dashboard*',
+    'client_dashboard_title' => 'My Dashboard',
 
     // Employee Dashboard
-    'employee_dashboard_title' => 'Employee Dashboard*',
+    'employee_dashboard_title' => 'Employee Dashboard',
     'employee_management' => 'Employee Management',
 
     // Client Upload Page
@@ -500,4 +500,10 @@
     'employee-client-created' => 'Client user created successfully. You can provide them with their login link manually.',
     'employee-client-created-and-invited' => 'Client user created and invitation sent successfully.',
     'employee-client-created-email-failed' => 'Client user created successfully, but invitation email failed to send. You can provide them with their login link manually.',
+
+    // Accessibility Messages for Copy URL Functionality
+    'upload_url_label' => 'Upload URL for sharing with clients',
+    'copy_url_to_clipboard' => 'Copy URL to clipboard',
+    'url_copied_to_clipboard' => 'URL copied to clipboard',
+    'copy_failed' => 'Failed to copy URL',
 ];

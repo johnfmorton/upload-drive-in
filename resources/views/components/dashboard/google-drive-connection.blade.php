@@ -7,7 +7,36 @@
     $isGoogleDriveAppConfigured = !empty($clientId) && !empty($clientSecret);
 @endphp
 
-<div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+<div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg" x-data="{
+    copiedUploadUrl: false,
+    copyUploadUrl(url) {
+        navigator.clipboard.writeText(url)
+            .then(() => {
+                this.copiedUploadUrl = true;
+                // Announce to screen readers
+                this.$refs.copyStatus.textContent = '{{ __('messages.copied') }}';
+                setTimeout(() => {
+                    this.copiedUploadUrl = false;
+                    this.$refs.copyStatus.textContent = '';
+                }, 2000);
+            })
+            .catch((error) => {
+                console.error('Failed to copy URL to clipboard:', error);
+                // Announce error to screen readers
+                this.$refs.copyStatus.textContent = '{{ __('messages.copy_failed') }}';
+                setTimeout(() => {
+                    this.$refs.copyStatus.textContent = '';
+                }, 3000);
+            });
+    },
+    handleKeydown(event, url) {
+        // Handle Enter and Space key presses for accessibility
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            this.copyUploadUrl(url);
+        }
+    }
+}">
     <h2 class="text-lg font-medium text-gray-900 mb-4">
         {{ __('messages.google_drive_connection') }}
     </h2>
@@ -16,11 +45,26 @@
         <div class="my-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h3 class="text-sm font-medium text-blue-800 mb-2">{{ __('messages.your_upload_page') }}</h3>
             <div class="flex items-center justify-between">
-                <code class="text-sm bg-white px-2 py-1 rounded border flex-1 mr-2 truncate">{{ $user->upload_url }}</code>
-                <button onclick="copyUploadUrl('{{ $user->upload_url }}')" class="inline-flex items-center px-3 py-1 border border-blue-300 shadow-sm text-xs font-medium rounded text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap">
-                    <span class="copy-text">{{ __('messages.copy_url') }}</span>
+                <code class="text-sm bg-white px-2 py-1 rounded border flex-1 mr-2 truncate" 
+                      role="textbox" 
+                      aria-readonly="true" 
+                      aria-label="{{ __('messages.upload_url_label') }}">{{ $user->upload_url }}</code>
+                <button @click="copyUploadUrl('{{ $user->upload_url }}')" 
+                        @keydown="handleKeydown($event, '{{ $user->upload_url }}')"
+                        class="inline-flex items-center px-3 py-1 border border-blue-300 shadow-sm text-xs font-medium rounded text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap"
+                        :aria-label="copiedUploadUrl ? '{{ __('messages.url_copied_to_clipboard') }}' : '{{ __('messages.copy_url_to_clipboard') }}'"
+                        :aria-pressed="copiedUploadUrl"
+                        role="button"
+                        tabindex="0">
+                    <span x-show="!copiedUploadUrl" aria-hidden="true">{{ __('messages.copy_url') }}</span>
+                    <span x-show="copiedUploadUrl" class="text-green-600" aria-hidden="true">{{ __('messages.copied') }}</span>
                 </button>
             </div>
+            <!-- Screen reader announcement area -->
+            <div x-ref="copyStatus" 
+                 aria-live="polite" 
+                 aria-atomic="true" 
+                 class="sr-only"></div>
             <p class="text-xs text-blue-600 mt-2">{{ __('messages.share_this_url_with_clients') }}</p>
         </div>
     @endif
@@ -117,25 +161,3 @@
 
 </div>
 
-@push('scripts')
-<script>
-    function copyUploadUrl(url) {
-        navigator.clipboard.writeText(url).then(function() {
-            // Find the button that was clicked
-            const button = event.target.closest('button');
-            const copyText = button.querySelector('.copy-text');
-            const originalText = copyText.textContent;
-            
-            copyText.textContent = '{{ __('messages.copied') }}';
-            copyText.classList.add('text-green-600');
-            
-            setTimeout(function() {
-                copyText.textContent = originalText;
-                copyText.classList.remove('text-green-600');
-            }, 2000);
-        }).catch(function(err) {
-            console.error('Failed to copy text: ', err);
-        });
-    }
-</script>
-@endpush

@@ -82,86 +82,6 @@
             <!-- Client-Company User Relationships -->
             <x-dashboard.client-relationships :user="Auth::user()" :is-admin="true" />
 
-            
-
-            <!-- Queue Worker Testing Section -->
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                    <div>
-                        <h2 class="text-lg font-medium text-gray-900">
-                            Queue Worker Status
-                        </h2>
-                        <p class="mt-1 text-sm text-gray-600">
-                            Test and monitor your background job processing system to ensure files are uploaded
-                            properly.
-                        </p>
-                        <details class="mt-2">
-                            <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
-                                What do the test results mean?
-                            </summary>
-                            <div class="mt-2 text-xs text-gray-600 bg-gray-50 p-3 rounded border-l-2 border-gray-300">
-                                <div class="space-y-2">
-                                    <div><span class="font-medium text-green-600">Success:</span> Test job completed successfully - your queue worker is functioning properly</div>
-                                    <div><span class="font-medium text-red-600">Failed:</span> Test job failed to complete - check your queue configuration and worker status</div>
-                                    <div><span class="font-medium text-yellow-600">Timeout:</span> Test job took too long to complete - worker may be slow or overloaded</div>
-                                    <div><span class="font-medium text-blue-600">Processing:</span> Test job is currently running - please wait for completion</div>
-                                </div>
-                            </div>
-                        </details>
-                    </div>
-                    <div class="flex items-center">
-                        <button id="test-queue-btn" type="button"
-                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                            <span id="test-queue-btn-text">Test Queue Worker</span>
-                        </button>
-                    </div>
-                </div>
-
-
-
-                <!-- Test Results Section -->
-                <div id="test-results-section" class="hidden">
-                    <div data-class="border-t border-gray-200 pt-6">
-                        <h3 class="text-md font-medium text-gray-900 mb-4">Test Results</h3>
-
-                        <!-- Current Test Progress -->
-                        <div id="current-test-progress" class="hidden mb-4">
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0">
-                                        <svg class="animate-spin h-5 w-5 text-blue-600" fill="none"
-                                            viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10"
-                                                stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor"
-                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                            </path>
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3 flex-1">
-                                        <div class="text-sm font-medium text-blue-900">
-                                            Testing queue worker...
-                                        </div>
-                                        <div class="text-sm text-blue-700">
-                                            <span id="test-progress-message">Dispatching test job</span>
-                                            <span id="test-elapsed-time" class="ml-2 font-mono"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Test Results Display -->
-                        <div id="test-results-display" class="space-y-3">
-                            <!-- Test results will be dynamically inserted here -->
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- File Management Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
@@ -347,6 +267,72 @@
                     @endif
                 </div>
             </div>
+
+            <!-- Queue Worker Testing Section -->
+            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-lg font-medium text-gray-900">
+                            Queue Worker Status
+                        </h2>
+                        <p class="mt-1 text-sm text-gray-600">
+                            Test and monitor your background job processing system to ensure files are uploaded
+                            properly.
+                        </p>
+
+                    </div>
+                    <div class="flex items-center">
+                        <button id="test-queue-btn" type="button"
+                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            <span id="test-queue-btn-text">Test Queue Worker</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Test Results Section -->
+                <div id="test-results-section" class="hidden">
+                    <div data-class="border-t border-gray-200 pt-6">
+                        <h3 class="text-md font-medium text-gray-900 mb-4">Test Results</h3>
+
+                        <!-- Current Test Progress -->
+                        <div id="current-test-progress" class="hidden mb-4">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <svg class="animate-spin h-5 w-5 text-blue-600" fill="none"
+                                            viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10"
+                                                stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3 flex-1">
+                                        <div class="text-sm font-medium text-blue-900">
+                                            Testing queue worker...
+                                        </div>
+                                        <div class="text-sm text-blue-700">
+                                            <span id="test-progress-message">Dispatching test job</span>
+                                            <span id="test-elapsed-time" class="ml-2 font-mono"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Test Results Display -->
+                        <div id="test-results-display" class="space-y-3">
+                            <!-- Test results will be dynamically inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </x-app-layout>
