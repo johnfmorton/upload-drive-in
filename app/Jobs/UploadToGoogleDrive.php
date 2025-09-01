@@ -18,11 +18,11 @@ class UploadToGoogleDrive implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * The file upload record associated with this job.
+     * The file upload record ID associated with this job.
      *
-     * @var FileUpload
+     * @var int
      */
-    protected FileUpload $fileUpload;
+    protected int $fileUploadId;
 
     /**
      * The number of times the job may be attempted.
@@ -38,7 +38,7 @@ class UploadToGoogleDrive implements ShouldQueue
      */
     public function __construct(FileUpload $fileUpload)
     {
-        $this->fileUpload = $fileUpload;
+        $this->fileUploadId = $fileUpload->id;
     }
 
     /**
@@ -51,23 +51,33 @@ class UploadToGoogleDrive implements ShouldQueue
      */
     public function handle(GoogleDriveService $driveService): void
     {
-        $localPath = 'uploads/' . $this->fileUpload->filename;
-        $email = $this->fileUpload->email;
-        $originalFilename = $this->fileUpload->original_filename;
-        $mimeType = $this->fileUpload->mime_type;
-        $message = $this->fileUpload->message;
+        // Try to find the FileUpload record
+        $fileUpload = FileUpload::find($this->fileUploadId);
+        
+        if (!$fileUpload) {
+            Log::warning('FileUpload record no longer exists, skipping job', [
+                'file_upload_id' => $this->fileUploadId
+            ]);
+            return;
+        }
+
+        $localPath = 'uploads/' . $fileUpload->filename;
+        $email = $fileUpload->email;
+        $originalFilename = $fileUpload->original_filename;
+        $mimeType = $fileUpload->mime_type;
+        $message = $fileUpload->message;
 
         Log::info('Starting Google Drive upload job', [
-            'file_upload_id' => $this->fileUpload->id,
+            'file_upload_id' => $fileUpload->id,
             'local_path' => $localPath,
             'email' => $email,
-            'uploaded_by_user_id' => $this->fileUpload->uploaded_by_user_id
+            'uploaded_by_user_id' => $fileUpload->uploaded_by_user_id
         ]);
 
         try {
             // 1. Verify local file exists
             if (!Storage::disk('public')->exists($localPath)) {
-                Log::error('Local file missing for upload job.', ['path' => $localPath, 'file_upload_id' => $this->fileUpload->id]);
+                Log::error('Local file missing for upload job.', ['path' => $localPath, 'file_upload_id' => $fileUpload->id]);
                 // Fail the job permanently if the source file is gone
                 $this->fail(new Exception("Source file not found in storage: {$localPath}"));
                 return;
@@ -77,10 +87,10 @@ class UploadToGoogleDrive implements ShouldQueue
             $targetUser = null;
             
             // Priority 1: If client selected a specific company user (employee), use their Google Drive
-            if ($this->fileUpload->company_user_id) {
-                $targetUser = \App\Models\User::find($this->fileUpload->company_user_id);
+            if ($fileUpload->company_user_id) {
+                $targetUser = \App\Models\User::find($fileUpload->company_user_id);
                 Log::info('Using selected company user for upload.', [
-                    'company_user_id' => $this->fileUpload->company_user_id,
+                    'company_user_id' => $fileUpload->company_user_id,
                     'target_user_id' => $targetUser?->id,
                     'target_user_email' => $targetUser?->email,
                     'has_drive_connected' => $targetUser?->hasGoogleDriveConnected()
@@ -88,10 +98,10 @@ class UploadToGoogleDrive implements ShouldQueue
             }
             
             // Priority 2: If this upload was made by an employee directly, use their Google Drive
-            if (!$targetUser && $this->fileUpload->uploaded_by_user_id) {
-                $targetUser = \App\Models\User::find($this->fileUpload->uploaded_by_user_id);
+            if (!$targetUser && $fileUpload->uploaded_by_user_id) {
+                $targetUser = \App\Models\User::find($fileUpload->uploaded_by_user_id);
                 Log::info('Using employee uploader for upload.', [
-                    'uploaded_by_user_id' => $this->fileUpload->uploaded_by_user_id,
+                    'uploaded_by_user_id' => $fileUpload->uploaded_by_user_id,
                     'target_user_id' => $targetUser?->id,
                     'target_user_email' => $targetUser?->email,
                     'has_drive_connected' => $targetUser?->hasGoogleDriveConnected()
@@ -120,8 +130,8 @@ class UploadToGoogleDrive implements ShouldQueue
                     $targetUser = $adminUser;
                     Log::info('Using admin user as fallback for upload.', [
                         'admin_id' => $targetUser->id,
-                        'original_company_user_id' => $this->fileUpload->company_user_id,
-                        'original_uploaded_by_user_id' => $this->fileUpload->uploaded_by_user_id
+                        'original_company_user_id' => $fileUpload->company_user_id,
+                        'original_uploaded_by_user_id' => $fileUpload->uploaded_by_user_id
                     ]);
                 } else {
                     Log::error('Selected user has no Google Drive and admin also has no Google Drive connection.');
@@ -159,10 +169,10 @@ class UploadToGoogleDrive implements ShouldQueue
             );
 
             // 5. Update the FileUpload record with the Google Drive ID
-            $this->fileUpload->update(['google_drive_file_id' => $googleDriveFileId]);
+            $fileUpload->update(['google_drive_file_id' => $googleDriveFileId]);
 
             Log::info('Google Drive upload job completed successfully.', [
-                'file_upload_id' => $this->fileUpload->id,
+                'file_upload_id' => $fileUpload->id,
                 'google_drive_file_id' => $googleDriveFileId,
                 'target_user_id' => $targetUser->id
             ]);
@@ -178,7 +188,7 @@ class UploadToGoogleDrive implements ShouldQueue
         } catch (Exception $e) {
             // Log the error with context
             Log::error('Google Drive upload job failed.', [
-                'file_upload_id' => $this->fileUpload->id,
+                'file_upload_id' => $fileUpload->id,
                 'email' => $email,
                 'error' => $e->getMessage(),
             ]);
