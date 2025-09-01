@@ -69,7 +69,7 @@
                                     </div>
                                     <div class="ml-3">
                                         <h4 class="text-sm font-medium text-blue-800">
-                                            What this means:
+                                            {{ __('messages.what_this_means') }}
                                         </h4>
                                         <div class="mt-1 text-sm text-blue-700">
                                             <ul class="list-disc list-inside space-y-1">
@@ -97,7 +97,7 @@
                 <button x-on:click="closePrimaryContactConfirmation()"
                         type="button"
                         class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                    Cancel
+                    {{ __('messages.action_cancel') }}
                 </button>
             </div>
         </div>

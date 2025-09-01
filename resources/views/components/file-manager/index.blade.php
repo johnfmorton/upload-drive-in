@@ -113,6 +113,8 @@
 
         <x-file-manager.modals.simple-delete-modal />
 
+        <x-file-manager.modals.process-pending-modal />
+
         <x-file-manager.modals.progress-modal />
 
         <!-- Shared JavaScript -->

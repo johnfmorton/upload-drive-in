@@ -196,14 +196,220 @@
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-md font-medium text-gray-900">Recent Files</h3>
                         @if ($pendingCount > 0)
-                            <form action="{{ route('admin.files.process-pending') }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit"
-                                    class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                    onclick="return confirm('Process {{ $pendingCount }} pending uploads? This will queue them for Google Drive upload.')">
+                            <div x-data="{ 
+                                showProcessPendingModal: false,
+                                pendingCount: {{ $pendingCount }},
+                                isProcessingPending: false,
+                                processingResults: null,
+                                
+                                openProcessPendingModal() {
+                                    console.log('🔍 Opening process pending modal');
+                                    this.showProcessPendingModal = true;
+                                    this.processingResults = null;
+                                },
+                                
+                                closeProcessPendingModal() {
+                                    console.log('🔍 Closing process pending modal');
+                                    this.showProcessPendingModal = false;
+                                    this.isProcessingPending = false;
+                                    this.processingResults = null;
+                                },
+                                
+                                async confirmProcessPending() {
+                                    console.log('🔍 Confirm process pending called');
+                                    if (this.isProcessingPending) {
+                                        console.log('🔍 Returning early - already processing');
+                                        return;
+                                    }
+                                    
+                                    console.log('🔍 Starting process pending operation');
+                                    this.isProcessingPending = true;
+                                    
+                                    try {
+                                        const response = await fetch('{{ route('admin.files.process-pending') }}', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content'),
+                                                'Accept': 'application/json'
+                                            }
+                                        });
+                                        
+                                        const result = await response.json();
+                                        
+                                        if (response.ok) {
+                                            console.log('🔍 Process pending successful:', result);
+                                            this.processingResults = {
+                                                success: true,
+                                                message: result.message || 'Pending uploads have been queued for processing.'
+                                            };
+                                            
+                                            // Auto-close modal after 3 seconds on success
+                                            setTimeout(() => {
+                                                this.closeProcessPendingModal();
+                                                // Refresh the page to show updated counts
+                                                window.location.reload();
+                                            }, 3000);
+                                        } else {
+                                            throw new Error(result.message || 'Failed to process pending uploads');
+                                        }
+                                    } catch (error) {
+                                        console.error('🔍 Process pending failed:', error);
+                                        this.processingResults = {
+                                            success: false,
+                                            message: error.message || 'Failed to process pending uploads'
+                                        };
+                                    } finally {
+                                        this.isProcessingPending = false;
+                                    }
+                                }
+                            }">
+                                <button x-on:click="openProcessPendingModal()"
+                                    class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                     Process {{ $pendingCount }} Pending
                                 </button>
-                            </form>
+                                
+                                <!-- Process Pending Modal -->
+                                <div x-show="showProcessPendingModal" 
+                                     x-cloak
+                                     class="fixed inset-0 z-[9999] overflow-y-auto"
+                                     aria-labelledby="process-pending-modal-title" 
+                                     role="dialog" 
+                                     aria-modal="true"
+                                     data-modal-name="admin-process-pending-modal"
+                                     data-z-index="9999"
+                                     data-modal-type="container">
+                                    
+                                    <!-- Background overlay -->
+                                    <div x-show="showProcessPendingModal"
+                                         x-transition:enter="ease-out duration-300"
+                                         x-transition:enter-start="opacity-0"
+                                         x-transition:enter-end="opacity-100"
+                                         x-transition:leave="ease-in duration-200"
+                                         x-transition:leave-start="opacity-100"
+                                         x-transition:leave-end="opacity-0"
+                                         class="fixed inset-0 modal-backdrop transition-opacity z-[9998]"
+                                         x-on:click="closeProcessPendingModal()"
+                                         data-modal-name="admin-process-pending-modal"
+                                         data-z-index="9998"
+                                         data-modal-type="backdrop"></div>
+
+                                    <!-- Modal Panel -->
+                                    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                                        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                                        
+                                        <div x-show="showProcessPendingModal"
+                                             x-transition:enter="ease-out duration-300"
+                                             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                                             x-transition:leave="ease-in duration-200"
+                                             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                                             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                             class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-[10000] relative"
+                                             data-modal-name="admin-process-pending-modal"
+                                             data-z-index="10000"
+                                             data-modal-type="content">
+                                            
+                                            <!-- Modal Content -->
+                                            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                                <div class="sm:flex sm:items-start">
+                                                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                                        <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                        </svg>
+                                                    </div>
+                                                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                                        <h3 id="process-pending-modal-title" class="text-lg leading-6 font-medium text-gray-900">
+                                                            Process Pending Uploads
+                                                        </h3>
+                                                        <div class="mt-2">
+                                                            <!-- Processing state content -->
+                                                            <div x-show="!isProcessingPending && !processingResults">
+                                                                <p class="text-sm text-gray-500">
+                                                                    <span x-text="`You have ${pendingCount} pending upload${pendingCount === 1 ? '' : 's'} that need to be processed.`"></span>
+                                                                </p>
+                                                                <p class="text-sm text-gray-500 mt-2">
+                                                                    This will attempt to upload all pending files to Google Drive. The process may take a few moments depending on file sizes.
+                                                                </p>
+                                                            </div>
+                                                            
+                                                            <!-- Processing progress -->
+                                                            <div x-show="isProcessingPending">
+                                                                <div class="flex items-center space-x-3">
+                                                                    <svg class="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+                                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                    </svg>
+                                                                    <span class="text-sm text-gray-700">Processing pending uploads...</span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <!-- Results display -->
+                                                            <div x-show="processingResults">
+                                                                <div x-show="processingResults && processingResults.success" class="rounded-md bg-green-50 p-4">
+                                                                    <div class="flex">
+                                                                        <div class="flex-shrink-0">
+                                                                            <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                                                            </svg>
+                                                                        </div>
+                                                                        <div class="ml-3">
+                                                                            <p class="text-sm font-medium text-green-800" x-text="processingResults.message"></p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <div x-show="processingResults && !processingResults.success" class="rounded-md bg-red-50 p-4">
+                                                                    <div class="flex">
+                                                                        <div class="flex-shrink-0">
+                                                                            <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                                                            </svg>
+                                                                        </div>
+                                                                        <div class="ml-3">
+                                                                            <p class="text-sm font-medium text-red-800" x-text="processingResults.message"></p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Modal Actions -->
+                                            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                                <!-- Process Button -->
+                                                <button x-show="!isProcessingPending && !processingResults"
+                                                        x-on:click="confirmProcessPending()"
+                                                        type="button"
+                                                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                                    Process Uploads
+                                                </button>
+                                                
+                                                <!-- Processing indicator (replaces process button) -->
+                                                <div x-show="isProcessingPending" 
+                                                     class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white sm:ml-3 sm:w-auto sm:text-sm opacity-75 cursor-not-allowed">
+                                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Processing...
+                                                </div>
+                                                
+                                                <!-- Close Button (changes based on state) -->
+                                                <button x-on:click="closeProcessPendingModal()"
+                                                        :disabled="isProcessingPending"
+                                                        type="button"
+                                                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    <span x-show="!processingResults">Cancel</span>
+                                                    <span x-show="processingResults">Close</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         @endif
                     </div>
 

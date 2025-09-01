@@ -130,8 +130,18 @@ class DashboardController extends AdminController
                 ->count();
 
             if ($pendingCount === 0) {
+                $message = 'No pending uploads found.';
+                
+                if (request()->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => $message,
+                        'processed_count' => 0
+                    ]);
+                }
+                
                 return redirect()->route('admin.dashboard')
-                    ->with('info', 'No pending uploads found.');
+                    ->with('info', $message);
             }
 
             // Call the artisan command to process pending uploads
@@ -142,13 +152,34 @@ class DashboardController extends AdminController
             $output = \Illuminate\Support\Facades\Artisan::output();
             Log::info('Processed pending uploads via admin interface', ['output' => $output]);
 
+            $message = "Processing {$pendingCount} pending uploads. Check the queue status for progress.";
+            
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'processed_count' => $pendingCount,
+                    'output' => $output
+                ]);
+            }
+
             return redirect()->route('admin.dashboard')
-                ->with('success', "Processing {$pendingCount} pending uploads. Check the queue status for progress.");
+                ->with('success', $message);
 
         } catch (\Exception $e) {
             Log::error('Failed to process pending uploads', ['error' => $e->getMessage()]);
+            
+            $errorMessage = 'Failed to process pending uploads: ' . $e->getMessage();
+            
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMessage
+                ], 500);
+            }
+            
             return redirect()->route('admin.dashboard')
-                ->with('error', 'Failed to process pending uploads: ' . $e->getMessage());
+                ->with('error', $errorMessage);
         }
     }
 

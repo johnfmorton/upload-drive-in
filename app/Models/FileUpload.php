@@ -13,6 +13,14 @@ class FileUpload extends Model
 {
     use HasFactory;
 
+    // Status constants for upload recovery system
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_PROCESSING = 'processing';
+    public const STATUS_UPLOADED = 'uploaded';
+    public const STATUS_FAILED = 'failed';
+    public const STATUS_MISSING_FILE = 'missing_file';
+    public const STATUS_RETRY = 'retry';
+
     protected $fillable = [
         'client_user_id',
         'company_user_id',
@@ -29,12 +37,21 @@ class FileUpload extends Model
         'google_drive_file_id',
         'uploaded_by_user_id',
         'email', // For backward compatibility with existing uploads
+        'retry_count',
+        'last_error',
+        'error_details',
+        'last_processed_at',
+        'recovery_attempts',
     ];
 
     protected $casts = [
         'file_size' => 'integer',
         'chunk_size' => 'integer',
         'total_chunks' => 'integer',
+        'retry_count' => 'integer',
+        'recovery_attempts' => 'integer',
+        'error_details' => 'array',
+        'last_processed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -272,6 +289,148 @@ class FileUpload extends Model
     }
 
     /**
+     * Get the current status of the upload based on various conditions.
+     *
+     * @return string
+     */
+    public function getUploadStatus(): string
+    {
+        // Check if file has been successfully uploaded
+        if (!empty($this->google_drive_file_id)) {
+            return self::STATUS_UPLOADED;
+        }
+
+        // Check if file is marked as failed
+        if (!empty($this->last_error) && $this->retry_count >= config('upload-recovery.max_retry_attempts', 3)) {
+            return self::STATUS_FAILED;
+        }
+
+        // Check if file is missing from local storage
+        if (!$this->localFileExists()) {
+            return self::STATUS_MISSING_FILE;
+        }
+
+        // Check if file is being retried
+        if ($this->retry_count > 0) {
+            return self::STATUS_RETRY;
+        }
+
+        // Check if file is currently being processed
+        if ($this->last_processed_at && $this->last_processed_at->diffInMinutes(now()) < 5) {
+            return self::STATUS_PROCESSING;
+        }
+
+        // Default to pending
+        return self::STATUS_PENDING;
+    }
+
+    /**
+     * Check if this upload is stuck (pending beyond threshold).
+     *
+     * @return bool
+     */
+    public function isStuck(): bool
+    {
+        $thresholdMinutes = config('upload-recovery.stuck_threshold_minutes', 30);
+        
+        // If file has been uploaded successfully, it's not stuck
+        if (!empty($this->google_drive_file_id)) {
+            return false;
+        }
+
+        // Check if it's been pending for too long
+        $lastActivity = $this->last_processed_at ?? $this->created_at;
+        return $lastActivity->diffInMinutes(now()) > $thresholdMinutes;
+    }
+
+    /**
+     * Check if the local file still exists in storage.
+     *
+     * @return bool
+     */
+    public function localFileExists(): bool
+    {
+        if (!$this->filename) {
+            return false;
+        }
+
+        $filePath = storage_path('app/public/uploads/' . $this->filename);
+        return file_exists($filePath);
+    }
+
+    /**
+     * Update the recovery status with error information.
+     *
+     * @param string|null $error
+     * @param array|null $errorDetails
+     * @return bool
+     */
+    public function updateRecoveryStatus(?string $error = null, ?array $errorDetails = null): bool
+    {
+        $this->retry_count = ($this->retry_count ?? 0) + 1;
+        $this->last_processed_at = now();
+        
+        if ($error) {
+            $this->last_error = $error;
+        }
+        
+        if ($errorDetails) {
+            $this->error_details = array_merge($this->error_details ?? [], $errorDetails);
+        }
+
+        return $this->save();
+    }
+
+    /**
+     * Mark the upload as successfully recovered.
+     *
+     * @param string $googleDriveFileId
+     * @return bool
+     */
+    public function markAsRecovered(string $googleDriveFileId): bool
+    {
+        $this->google_drive_file_id = $googleDriveFileId;
+        $this->last_error = null;
+        $this->error_details = null;
+        $this->last_processed_at = now();
+
+        return $this->save();
+    }
+
+    /**
+     * Increment recovery attempts counter.
+     *
+     * @return bool
+     */
+    public function incrementRecoveryAttempts(): bool
+    {
+        $this->recovery_attempts = ($this->recovery_attempts ?? 0) + 1;
+        return $this->save();
+    }
+
+    /**
+     * Check if the upload has exceeded maximum recovery attempts.
+     *
+     * @return bool
+     */
+    public function hasExceededRecoveryAttempts(): bool
+    {
+        $maxAttempts = config('upload-recovery.max_recovery_attempts', 5);
+        return ($this->recovery_attempts ?? 0) >= $maxAttempts;
+    }
+
+    /**
+     * Check if the upload can be retried.
+     *
+     * @return bool
+     */
+    public function canBeRetried(): bool
+    {
+        $maxRetries = config('upload-recovery.max_retry_attempts', 3);
+        return ($this->retry_count ?? 0) < $maxRetries && !$this->hasExceededRecoveryAttempts();
+    }
+
+    /**
      * Delete the file from Google Drive using the new service approach.
      *
      * @return bool True if deletion was successful, false otherwise
@@ -401,5 +560,134 @@ class FileUpload extends Model
     {
         return $query->whereNotNull('google_drive_file_id')
                     ->where('google_drive_file_id', '!=', '');
+    }
+
+    /**
+     * Scope to get uploads that are stuck (pending beyond threshold).
+     */
+    public function scopeStuck($query)
+    {
+        $thresholdMinutes = config('upload-recovery.stuck_threshold_minutes', 30);
+        $thresholdTime = now()->subMinutes($thresholdMinutes);
+
+        return $query->where(function ($q) {
+            $q->whereNull('google_drive_file_id')
+              ->orWhere('google_drive_file_id', '');
+        })->where(function ($q) use ($thresholdTime) {
+            $q->where('last_processed_at', '<', $thresholdTime)
+              ->orWhere(function ($subQ) use ($thresholdTime) {
+                  $subQ->whereNull('last_processed_at')
+                       ->where('created_at', '<', $thresholdTime);
+              });
+        });
+    }
+
+    /**
+     * Scope to get uploads that have failed.
+     */
+    public function scopeFailed($query)
+    {
+        $maxRetries = config('upload-recovery.max_retry_attempts', 3);
+        
+        return $query->where('retry_count', '>=', $maxRetries)
+                    ->whereNotNull('last_error')
+                    ->where(function ($q) {
+                        $q->whereNull('google_drive_file_id')
+                          ->orWhere('google_drive_file_id', '');
+                    });
+    }
+
+    /**
+     * Scope to get uploads with missing local files.
+     */
+    public function scopeMissingFile($query)
+    {
+        // This scope will need to be used with a custom filter since we can't check file existence in SQL
+        return $query->where(function ($q) {
+            $q->whereNull('google_drive_file_id')
+              ->orWhere('google_drive_file_id', '');
+        });
+    }
+
+    /**
+     * Scope to get uploads that are being retried.
+     */
+    public function scopeRetrying($query)
+    {
+        return $query->where('retry_count', '>', 0)
+                    ->where(function ($q) {
+                        $q->whereNull('google_drive_file_id')
+                          ->orWhere('google_drive_file_id', '');
+                    });
+    }
+
+    /**
+     * Scope to get uploads by status.
+     */
+    public function scopeByStatus($query, string $status)
+    {
+        switch ($status) {
+            case self::STATUS_UPLOADED:
+                return $query->completed();
+            case self::STATUS_PENDING:
+                return $query->pending();
+            case self::STATUS_FAILED:
+                return $query->failed();
+            case self::STATUS_RETRY:
+                return $query->retrying();
+            case self::STATUS_MISSING_FILE:
+                return $query->missingFile();
+            case self::STATUS_PROCESSING:
+                // Files processed in the last 5 minutes
+                return $query->where('last_processed_at', '>=', now()->subMinutes(5))
+                            ->where(function ($q) {
+                                $q->whereNull('google_drive_file_id')
+                                  ->orWhere('google_drive_file_id', '');
+                            });
+            default:
+                return $query;
+        }
+    }
+
+    /**
+     * Scope to get uploads that can be recovered.
+     */
+    public function scopeRecoverable($query)
+    {
+        $maxRecoveryAttempts = config('upload-recovery.max_recovery_attempts', 5);
+        
+        return $query->where(function ($q) {
+            $q->whereNull('google_drive_file_id')
+              ->orWhere('google_drive_file_id', '');
+        })->where('recovery_attempts', '<', $maxRecoveryAttempts);
+    }
+
+    /**
+     * Scope to get uploads that need attention (stuck or failed).
+     */
+    public function scopeNeedsAttention($query)
+    {
+        $thresholdMinutes = config('upload-recovery.stuck_threshold_minutes', 30);
+        $thresholdTime = now()->subMinutes($thresholdMinutes);
+        $maxRetries = config('upload-recovery.max_retry_attempts', 3);
+
+        return $query->where(function ($q) {
+            $q->whereNull('google_drive_file_id')
+              ->orWhere('google_drive_file_id', '');
+        })->where(function ($q) use ($thresholdTime, $maxRetries) {
+            // Stuck uploads
+            $q->where(function ($stuckQ) use ($thresholdTime) {
+                $stuckQ->where('last_processed_at', '<', $thresholdTime)
+                       ->orWhere(function ($subQ) use ($thresholdTime) {
+                           $subQ->whereNull('last_processed_at')
+                                ->where('created_at', '<', $thresholdTime);
+                       });
+            })
+            // Or failed uploads
+            ->orWhere(function ($failedQ) use ($maxRetries) {
+                $failedQ->where('retry_count', '>=', $maxRetries)
+                        ->whereNotNull('last_error');
+            });
+        });
     }
 }

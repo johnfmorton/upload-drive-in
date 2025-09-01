@@ -12,9 +12,9 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                    @if(auth()->user()->isAdmin())
+                    @if (auth()->user()->isAdmin())
                         <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                           {{ __('Dashboard') }}
+                            {{ __('Dashboard') }}
                         </x-nav-link>
                         <x-nav-link :href="route('admin.file-manager.index')" :active="request()->routeIs('admin.file-manager.*')">
                             {{ __('File Manager') }}
@@ -63,28 +63,36 @@
             <div class="hidden sm:flex sm:items-center sm:ml-6">
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                        <button
+                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
                             <div>{{ Auth::user()->name }}</div>
 
                             <div class="ml-1">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                        clip-rule="evenodd" />
                                 </svg>
                             </div>
                         </button>
                     </x-slot>
 
                     <x-slot name="content">
-                        @if(auth()->user()->isAdmin())
+                        @if (auth()->user()->isAdmin())
+                            <x-dropdown-link :href="route('admin.profile.edit')">
+                                {{ __('Profile') }}
+                            </x-dropdown-link>
+
                             <x-dropdown-link :href="route('admin.users.index')">
                                 {{ __('messages.nav_client_users') }}
                             </x-dropdown-link>
-                            <x-dropdown-link :href="route('admin.cloud-storage.index')">
-                                {{ __('messages.nav_cloud_storage') }}
+                            <x-dropdown-link :href="route('admin.employees.index')">
+                                {{ __('messages.employee_management') }}
                             </x-dropdown-link>
                             <div class="border-t border-gray-100"></div>
-                            <x-dropdown-link :href="route('admin.profile.edit')">
-                                {{ __('Profile') }}
+                            <x-dropdown-link :href="route('admin.cloud-storage.index')">
+                                {{ __('messages.nav_cloud_storage') }}
                             </x-dropdown-link>
                             <x-dropdown-link :href="route('admin.settings.edit')">
                                 {{ __('messages.app_settings') }}
@@ -92,26 +100,23 @@
                             <x-dropdown-link :href="route('admin.security.settings')">
                                 {{ __('messages.security_and_access_settings') }}
                             </x-dropdown-link>
-                            <x-dropdown-link :href="route('admin.employees.index')">
-                                {{ __('messages.employee_management') }}
-                            </x-dropdown-link>
+                            
                         @elseif(auth()->user()->isClient())
                             <x-dropdown-link :href="route('client.profile.edit')">
                                 {{ __('Profile') }}
                             </x-dropdown-link>
                         @elseif(auth()->user()->isEmployee())
+                        <x-dropdown-link :href="route('employee.profile.edit', ['username' => auth()->user()->username])">
+                            {{ __('Profile') }}
+                        </x-dropdown-link>
                             <x-dropdown-link :href="route('employee.clients.index', ['username' => auth()->user()->username])">
                                 {{ __('messages.nav_client_management') }}
                             </x-dropdown-link>
+                            <div class="border-t border-gray-100"></div>
                             <x-dropdown-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])">
                                 {{ __('Cloud Storage') }}
                             </x-dropdown-link>
-                            <div class="border-t border-gray-100"></div>
-                            <x-dropdown-link :href="route('employee.profile.edit', ['username' => auth()->user()->username])">
-                                {{ __('Profile') }}
-                            </x-dropdown-link>
                         @endif
-
                         <!-- Authentication -->
                         <div class="border-t border-gray-100"></div>
                         <form method="POST" action="{{ route('logout') }}">
@@ -128,10 +133,14 @@
 
             <!-- Hamburger -->
             <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
+                <button @click="open = ! open"
+                    class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        <path :class="{ 'hidden': open, 'inline-flex': !open }" class="inline-flex"
+                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16" />
+                        <path :class="{ 'hidden': !open, 'inline-flex': open }" class="hidden" stroke-linecap="round"
+                            stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
@@ -139,7 +148,7 @@
     </div>
 
     <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
+    <div :class="{ 'block': open, 'hidden': !open }" class="hidden sm:hidden">
         @auth
             <div class="pt-2 pb-3 space-y-1">
                 @if (Auth::user()->isAdmin())
@@ -177,7 +186,7 @@
                 </div>
 
                 <div class="mt-3 space-y-1">
-                    @if(auth()->user()->isAdmin())
+                    @if (auth()->user()->isAdmin())
                         <x-responsive-nav-link :href="route('admin.users.index')">
                             {{ __('messages.nav_client_users') }}
                         </x-responsive-nav-link>

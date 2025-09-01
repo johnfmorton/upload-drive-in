@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         Commands\ProcessPendingUploads::class,
+        Commands\DiagnoseUploadsCommand::class,
         Commands\Remove2FAToken::class,
         Commands\ExportSqliteData::class,
         Commands\ImportToMariaDB::class,

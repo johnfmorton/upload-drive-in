@@ -94,6 +94,16 @@ document.addEventListener('alpine:init', () => {
         deleteModalTitle: '',
         deleteModalMessage: '',
         
+        // Process pending modal state
+        showProcessPendingModal: false,
+        pendingCount: 0,
+        isProcessingPending: false,
+        processingProgress: 0,
+        processedCount: 0,
+        totalCount: 0,
+        processingMessage: '',
+        processingResults: null,
+        
         // Operation states
         isDeleting: false,
         isDownloading: false,
@@ -460,6 +470,119 @@ document.addEventListener('alpine:init', () => {
             this.isDeleting = false;
         },
 
+        // Process Pending Modal Methods
+        openProcessPendingModal() {
+            console.log('🔍 Opening process pending modal');
+            this.showProcessPendingModal = true;
+            this.pendingCount = this.getPendingCount();
+            this.processingProgress = 0;
+            this.processedCount = 0;
+            this.totalCount = 0;
+            this.processingMessage = '';
+            this.processingResults = null;
+        },
+
+        closeProcessPendingModal() {
+            console.log('🔍 Closing process pending modal');
+            this.showProcessPendingModal = false;
+            this.isProcessingPending = false;
+            this.processingProgress = 0;
+            this.processedCount = 0;
+            this.totalCount = 0;
+            this.processingMessage = '';
+            this.processingResults = null;
+        },
+
+        confirmProcessPending() {
+            console.log('🔍 Confirm process pending called');
+            if (this.isProcessingPending || this.pendingCount === 0) {
+                console.log('🔍 Returning early - already processing or no pending files');
+                return;
+            }
+
+            console.log('🔍 Starting process pending operation');
+            this.performProcessPending()
+                .then((result) => {
+                    console.log('🔍 Process pending successful:', result);
+                    this.processingResults = result;
+                    // Auto-close modal after 3 seconds on success
+                    if (result.success) {
+                        setTimeout(() => {
+                            this.closeProcessPendingModal();
+                            // Refresh the file list to show updated statuses
+                            this.loadFiles();
+                        }, 3000);
+                    }
+                })
+                .catch(error => {
+                    console.error('🔍 Process pending failed:', error);
+                    this.processingResults = {
+                        success: false,
+                        message: error.message || 'Failed to process pending uploads'
+                    };
+                });
+        },
+
+        async performProcessPending() {
+            this.isProcessingPending = true;
+            this.processingMessage = 'Initializing upload processing...';
+            this.totalCount = this.pendingCount;
+
+            try {
+                @if($userType === 'employee')
+                const response = await fetch(`/employee/{{ $username }}/file-manager/process-pending`, {
+                @else
+                const response = await fetch('/admin/file-manager/process-pending', {
+                @endif
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // Simulate progress for better UX
+                        this.processingMessage = 'Processing uploads...';
+                        this.processingProgress = 50;
+                        this.processedCount = Math.floor(this.totalCount / 2);
+
+                        // Wait a moment to show progress
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+
+                        this.processingProgress = 100;
+                        this.processedCount = this.totalCount;
+                        this.processingMessage = 'Upload processing completed';
+
+                        return {
+                            success: true,
+                            message: data.message || `Successfully processed ${data.processed_count || this.totalCount} uploads`,
+                            processed_count: data.processed_count || this.totalCount
+                        };
+                    } else {
+                        throw new Error(data.message || 'Failed to process pending uploads');
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `Failed to process uploads (${response.status})`);
+                }
+            } catch (error) {
+                console.error('Process pending error:', error);
+                throw error;
+            } finally {
+                this.isProcessingPending = false;
+            }
+        },
+
+        getPendingCount() {
+            // Count files that don't have google_drive_file_id (pending uploads)
+            return this.files.filter(file => !file.google_drive_file_id).length;
+        },
+
         async performDeleteFile(file) {
             if (!file || !file.id) {
                 throw new Error('Invalid file data');
@@ -521,6 +644,80 @@ document.addEventListener('alpine:init', () => {
                 this.isDeleting = false;
                 this.currentFile = null;
                 console.log('Delete operation completed for file:', file.id);
+            }
+        },
+
+        bulkDelete() {
+            this.confirmBulkDelete();
+        },
+
+        bulkDownload() {
+            if (this.selectedFiles.length === 0) {
+                this.showError('Please select files to download.');
+                return;
+            }
+
+            // Create a form and submit it for bulk download
+            const form = document.createElement('form');
+            form.method = 'POST';
+            @if($userType === 'employee')
+            form.action = `/employee/{{ $username }}/file-manager/bulk-download`;
+            @else
+            form.action = '/admin/file-manager/bulk-download';
+            @endif
+
+            // Add CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+
+            // Add selected file IDs
+            this.selectedFiles.forEach(fileId => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'file_ids[]';
+                input.value = fileId;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        },
+
+        toggleSelectAll() {
+            if (this.selectAll) {
+                this.selectedFiles = this.filteredFiles.map(file => file.id);
+            } else {
+                this.selectedFiles = [];
+            }
+        },
+
+        toggleColumn(columnKey) {
+            this.visibleColumns[columnKey] = !this.visibleColumns[columnKey];
+            this.saveColumnVisibility();
+        },
+
+        resetColumns() {
+            this.visibleColumns = {
+                original_filename: true,
+                email: true,
+                file_size: true,
+                status: true,
+                created_at: true,
+                message: false
+            };
+            this.saveColumnVisibility();
+        },
+
+        saveColumnVisibility() {
+            try {
+                localStorage.setItem('fileManagerColumns_{{ $userType }}', JSON.stringify(this.visibleColumns));
+            } catch (error) {
+                console.error('Error saving column visibility:', error);
             }
         },
 

@@ -20,7 +20,7 @@
                     <dd class="text-xl sm:text-2xl font-bold text-gray-900 mt-1">
                         {{ $primaryContactCount }} 
                         <span class="text-base sm:text-lg font-medium text-gray-600">
-                            {{ $primaryContactCount === 1 ? 'Client' : 'Clients' }}
+                            {{ $primaryContactCount === 1 ? __('messages.primary_contact_clients_singular') : __('messages.primary_contact_clients_plural') }}
                         </span>
                     </dd>
                 </dl>
@@ -30,7 +30,7 @@
         @if($primaryContactCount > 0)
             <div class="mt-4">
                 <div class="text-sm text-gray-600">
-                    You receive files and notifications when clients don't select a specific recipient.
+                    {{ __('messages.primary_contact_responsibility_description') }}
                 </div>
             </div>
         @endif
