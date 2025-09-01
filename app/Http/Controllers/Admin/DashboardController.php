@@ -184,6 +184,104 @@ class DashboardController extends AdminController
     }
 
     /**
+     * Retry failed uploads for a specific provider.
+     */
+    public function retryFailedUploads(Request $request)
+    {
+        $validated = $request->validate([
+            'provider' => 'nullable|string|in:google-drive,dropbox,onedrive'
+        ]);
+
+        try {
+            $user = auth()->user();
+            $provider = $validated['provider'] ?? null;
+            
+            // Build query for failed uploads
+            $query = FileUpload::where(function($query) use ($user) {
+                    $query->where('company_user_id', $user->id)
+                          ->orWhere('uploaded_by_user_id', $user->id);
+                })
+                ->whereNotNull('cloud_storage_error_type');
+            
+            // Filter by provider if specified
+            if ($provider) {
+                $query->where('cloud_storage_provider', $provider);
+            }
+            
+            $failedUploads = $query->get();
+            
+            if ($failedUploads->isEmpty()) {
+                $message = $provider 
+                    ? "No failed uploads found for {$provider}."
+                    : 'No failed uploads found.';
+                
+                if (request()->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => $message,
+                        'retried_count' => 0
+                    ]);
+                }
+                
+                return redirect()->back()->with('info', $message);
+            }
+
+            $retriedCount = 0;
+            
+            foreach ($failedUploads as $upload) {
+                // Clear error information to allow retry
+                $upload->update([
+                    'cloud_storage_error_type' => null,
+                    'cloud_storage_error_context' => null,
+                    'connection_health_at_failure' => null,
+                    'retry_recommended_at' => null,
+                ]);
+                
+                // Dispatch upload job
+                \App\Jobs\UploadToGoogleDrive::dispatch($upload);
+                $retriedCount++;
+            }
+
+            Log::info('Retried failed uploads via admin interface', [
+                'provider' => $provider,
+                'retried_count' => $retriedCount,
+                'user_id' => $user->id
+            ]);
+
+            $message = $provider 
+                ? "Retrying {$retriedCount} failed uploads for {$provider}. Check the queue status for progress."
+                : "Retrying {$retriedCount} failed uploads. Check the queue status for progress.";
+            
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'retried_count' => $retriedCount
+                ]);
+            }
+
+            return redirect()->back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to retry failed uploads', [
+                'provider' => $validated['provider'] ?? null,
+                'error' => $e->getMessage()
+            ]);
+            
+            $errorMessage = 'Failed to retry uploads: ' . $e->getMessage();
+            
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMessage
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', $errorMessage);
+        }
+    }
+
+    /**
      * Dispatch a test job to verify queue worker functionality.
      * 
      * @param Request $request

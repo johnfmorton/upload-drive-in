@@ -2,8 +2,15 @@
 
 namespace App\Jobs;
 
+use App\Contracts\CloudStorageProviderInterface;
+use App\Contracts\CloudStorageErrorHandlerInterface;
+use App\Enums\CloudStorageErrorType;
+use App\Exceptions\CloudStorageException;
 use App\Models\FileUpload;
-use App\Services\GoogleDriveService;
+use App\Services\CloudStorageHealthService;
+use App\Services\CloudStorageLogService;
+use App\Services\GoogleDriveProvider;
+use App\Services\GoogleDriveErrorHandler;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -12,8 +19,6 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Exception;
-use Google\Service\Exception as GoogleServiceException;
-use Google\Exception as GoogleException;
 
 class UploadToGoogleDrive implements ShouldQueue
 {
@@ -28,6 +33,7 @@ class UploadToGoogleDrive implements ShouldQueue
 
     /**
      * The number of times the job may be attempted.
+     * This will be dynamically set based on error type
      *
      * @var int
      */
@@ -35,11 +41,11 @@ class UploadToGoogleDrive implements ShouldQueue
 
     /**
      * The number of seconds to wait before retrying the job.
-     * Uses exponential backoff: 1 minute, 5 minutes, 15 minutes
+     * This will be dynamically calculated based on error type
      *
      * @var array<int, int>
      */
-    public array $backoff = [60, 300, 900];
+    public array $backoff = [];
 
     /**
      * Create a new job instance.
@@ -52,64 +58,97 @@ class UploadToGoogleDrive implements ShouldQueue
     }
 
     /**
-     * Classify an error as transient or permanent.
+     * Determine which user's cloud storage to use for the upload.
      *
-     * @param Exception $exception
-     * @return bool True if transient (should retry), false if permanent
+     * @param FileUpload $fileUpload
+     * @param CloudStorageProviderInterface $provider
+     * @return \App\Models\User|null
      */
-    protected function isTransientError(Exception $exception): bool
+    protected function determineTargetUser(FileUpload $fileUpload, CloudStorageProviderInterface $provider): ?\App\Models\User
     {
-        // Google API Service exceptions
-        if ($exception instanceof GoogleServiceException) {
-            $code = $exception->getCode();
-            
-            // Transient errors that should be retried
-            $transientCodes = [
-                429, // Rate limit exceeded
-                500, // Internal server error
-                502, // Bad gateway
-                503, // Service unavailable
-                504, // Gateway timeout
-            ];
-            
-            return in_array($code, $transientCodes);
+        $targetUser = null;
+        
+        // Priority 1: If client selected a specific company user (employee), use their cloud storage
+        if ($fileUpload->company_user_id) {
+            $targetUser = \App\Models\User::find($fileUpload->company_user_id);
+            Log::info('Using selected company user for upload.', [
+                'company_user_id' => $fileUpload->company_user_id,
+                'target_user_id' => $targetUser?->id,
+                'target_user_email' => $targetUser?->email,
+                'has_valid_connection' => $targetUser ? $provider->hasValidConnection($targetUser) : false,
+                'provider' => $provider->getProviderName(),
+            ]);
         }
-
-        // Google client exceptions (network issues, etc.)
-        if ($exception instanceof GoogleException) {
-            return true; // Most Google client exceptions are transient
+        
+        // Priority 2: If this upload was made by an employee directly, use their cloud storage
+        if (!$targetUser && $fileUpload->uploaded_by_user_id) {
+            $targetUser = \App\Models\User::find($fileUpload->uploaded_by_user_id);
+            Log::info('Using employee uploader for upload.', [
+                'uploaded_by_user_id' => $fileUpload->uploaded_by_user_id,
+                'target_user_id' => $targetUser?->id,
+                'target_user_email' => $targetUser?->email,
+                'has_valid_connection' => $targetUser ? $provider->hasValidConnection($targetUser) : false,
+                'provider' => $provider->getProviderName(),
+            ]);
         }
-
-        // Network-related errors
-        $message = strtolower($exception->getMessage());
-        $transientMessages = [
-            'connection timed out',
-            'connection refused',
-            'network is unreachable',
-            'temporary failure',
-            'timeout',
-            'ssl connection error',
-            'curl error',
-        ];
-
-        foreach ($transientMessages as $transientMessage) {
-            if (str_contains($message, $transientMessage)) {
-                return true;
+        
+        // Priority 3: Only fall back to admin if target user doesn't have valid connection OR no target user found
+        if (!$targetUser) {
+            // No target user found at all, try admin
+            $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
+            if ($adminUser && $provider->hasValidConnection($adminUser)) {
+                $targetUser = $adminUser;
+                Log::info('No target user found, using admin user as fallback.', [
+                    'admin_id' => $targetUser->id,
+                    'provider' => $provider->getProviderName(),
+                ]);
             }
+        } elseif (!$provider->hasValidConnection($targetUser)) {
+            // Target user exists but doesn't have valid connection, try admin fallback
+            Log::warning('Selected user does not have valid cloud storage connection, attempting admin fallback.', [
+                'selected_user_id' => $targetUser->id,
+                'selected_user_email' => $targetUser->email,
+                'provider' => $provider->getProviderName(),
+            ]);
+            
+            $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
+            if ($adminUser && $provider->hasValidConnection($adminUser)) {
+                $targetUser = $adminUser;
+                Log::info('Using admin user as fallback for upload.', [
+                    'admin_id' => $targetUser->id,
+                    'original_company_user_id' => $fileUpload->company_user_id,
+                    'original_uploaded_by_user_id' => $fileUpload->uploaded_by_user_id,
+                    'provider' => $provider->getProviderName(),
+                ]);
+            } else {
+                Log::error('Selected user has no valid connection and admin also has no valid connection.', [
+                    'selected_user_id' => $targetUser->id ?? null,
+                    'admin_has_connection' => $adminUser ? $provider->hasValidConnection($adminUser) : false,
+                    'provider' => $provider->getProviderName(),
+                ]);
+                return null;
+            }
+        } else {
+            // Target user exists and has valid connection - use them!
+            Log::info('Using target user with valid cloud storage connection.', [
+                'target_user_id' => $targetUser->id,
+                'target_user_email' => $targetUser->email,
+                'provider' => $provider->getProviderName(),
+            ]);
         }
 
-        // Default to permanent error
-        return false;
+        return $targetUser;
     }
 
     /**
      * Get detailed error information for logging and storage.
      *
      * @param Exception $exception
+     * @param CloudStorageErrorType|null $errorType
      * @param array $context
      * @return array
      */
-    protected function getErrorDetails(Exception $exception, array $context = []): array
+    protected function getErrorDetails(Exception $exception, ?CloudStorageErrorType $errorType = null, array $context = []): array
     {
         $details = [
             'error_type' => get_class($exception),
@@ -119,13 +158,16 @@ class UploadToGoogleDrive implements ShouldQueue
             'line' => $exception->getLine(),
             'timestamp' => now()->toISOString(),
             'attempt' => $this->attempts(),
-            'is_transient' => $this->isTransientError($exception),
+            'classified_error_type' => $errorType?->value,
+            'error_severity' => $errorType?->getSeverity(),
+            'requires_user_intervention' => $errorType?->requiresUserIntervention() ?? false,
+            'is_recoverable' => $errorType?->isRecoverable() ?? false,
         ];
 
-        // Add Google API specific details
-        if ($exception instanceof GoogleServiceException) {
-            $details['google_api_errors'] = $exception->getErrors();
-            $details['http_status'] = $exception->getCode();
+        // Add CloudStorageException specific details
+        if ($exception instanceof CloudStorageException) {
+            $details['provider'] = $exception->getProvider();
+            $details['cloud_storage_context'] = $exception->getContext();
         }
 
         // Add context information
@@ -137,30 +179,75 @@ class UploadToGoogleDrive implements ShouldQueue
     }
 
     /**
-     * Record error information in the database.
+     * Record error information in the database and update health status.
      *
      * @param FileUpload $fileUpload
      * @param Exception $exception
+     * @param CloudStorageErrorType|null $errorType
+     * @param CloudStorageHealthService $healthService
+     * @param CloudStorageLogService $logService
      * @param array $context
      * @return void
      */
-    protected function recordError(FileUpload $fileUpload, Exception $exception, array $context = []): void
-    {
-        $errorDetails = $this->getErrorDetails($exception, $context);
+    protected function recordError(
+        FileUpload $fileUpload, 
+        Exception $exception, 
+        ?CloudStorageErrorType $errorType,
+        CloudStorageHealthService $healthService,
+        CloudStorageLogService $logService,
+        array $context = []
+    ): void {
+        $errorDetails = $this->getErrorDetails($exception, $errorType, $context);
         
-        $fileUpload->updateRecoveryStatus(
-            $exception->getMessage(),
-            $errorDetails
-        );
-
-        Log::error('Google Drive upload job failed with detailed error information', [
-            'file_upload_id' => $fileUpload->id,
-            'attempt' => $this->attempts(),
-            'max_tries' => $this->tries,
-            'is_transient' => $errorDetails['is_transient'],
-            'will_retry' => $errorDetails['is_transient'] && $this->attempts() < $this->tries,
+        // Update FileUpload with cloud storage error information
+        $fileUpload->update([
+            'cloud_storage_provider' => 'google-drive',
+            'cloud_storage_error_type' => $errorType?->value,
+            'cloud_storage_error_context' => $errorDetails,
+            'connection_health_at_failure' => now(),
+            'last_error' => $exception->getMessage(),
             'error_details' => $errorDetails,
+            'last_processed_at' => now(),
         ]);
+
+        // Update health status if we have a target user
+        if (isset($context['target_user_id'])) {
+            $targetUser = \App\Models\User::find($context['target_user_id']);
+            if ($targetUser && $errorType) {
+                $healthService->markConnectionAsUnhealthy(
+                    $targetUser, 
+                    'google-drive', 
+                    $exception->getMessage(),
+                    $errorType
+                );
+            }
+        }
+
+        // Log retry decision if this isn't the final failure
+        if (isset($context['target_user_id']) && !($context['final_failure'] ?? false)) {
+            $targetUser = \App\Models\User::find($context['target_user_id']);
+            if ($targetUser && $errorType) {
+                $errorHandler = app(GoogleDriveErrorHandler::class);
+                $shouldRetry = $errorHandler->shouldRetry($errorType, $this->attempts());
+                $retryDelay = $shouldRetry ? $errorHandler->getRetryDelay($errorType, $this->attempts()) : null;
+                
+                $logService->logRetryDecision(
+                    $context['operation_id'] ?? 'job_' . $this->fileUploadId,
+                    'upload_job',
+                    'google-drive',
+                    $targetUser,
+                    $errorType,
+                    $this->attempts(),
+                    $shouldRetry,
+                    $retryDelay,
+                    [
+                        'file_upload_id' => $fileUpload->id,
+                        'filename' => $fileUpload->original_filename,
+                        'client_email' => $fileUpload->email,
+                    ]
+                );
+            }
+        }
     }
 
     /**
@@ -181,29 +268,56 @@ class UploadToGoogleDrive implements ShouldQueue
             return;
         }
 
-        // Record the final failure
-        $this->recordError($fileUpload, $exception, [
+        // Get error handler and health service for final failure processing
+        $errorHandler = app(GoogleDriveErrorHandler::class);
+        $healthService = app(CloudStorageHealthService::class);
+        
+        $errorType = null;
+        if ($exception instanceof CloudStorageException) {
+            $errorType = $exception->getErrorType();
+        } else {
+            $errorType = $errorHandler->classifyError($exception);
+        }
+
+        // Get log service for final failure processing
+        $logService = app(CloudStorageLogService::class);
+        
+        // Record the final failure with enhanced context
+        $this->recordError($fileUpload, $exception, $errorType, $healthService, $logService, [
             'final_failure' => true,
             'total_attempts' => $this->attempts(),
+            'target_user_id' => $fileUpload->company_user_id ?? $fileUpload->uploaded_by_user_id,
         ]);
 
-        Log::error('Google Drive upload job permanently failed after all retries', [
+        Log::error('Cloud storage upload job permanently failed after all retries', [
             'file_upload_id' => $fileUpload->id,
+            'provider' => 'google-drive',
             'total_attempts' => $this->attempts(),
+            'error_type' => $errorType?->value,
+            'error_severity' => $errorType?->getSeverity(),
+            'requires_user_intervention' => $errorType?->requiresUserIntervention(),
             'error' => $exception->getMessage(),
-            'error_type' => get_class($exception),
+            'exception_type' => get_class($exception),
         ]);
     }
 
     /**
      * Execute the job.
-     * Uploads the file associated with the FileUpload record to Google Drive.
+     * Uploads the file associated with the FileUpload record to cloud storage using provider interface.
      *
-     * @param GoogleDriveService $driveService Injected Google Drive service instance.
+     * @param CloudStorageProviderInterface $provider Injected cloud storage provider (Google Drive)
+     * @param CloudStorageErrorHandlerInterface $errorHandler Injected error handler
+     * @param CloudStorageHealthService $healthService Injected health monitoring service
+     * @param CloudStorageLogService $logService Injected logging service
      * @return void
      * @throws Exception Throws exceptions on failure, allowing the queue worker to handle retries/failures.
      */
-    public function handle(GoogleDriveService $driveService): void
+    public function handle(
+        CloudStorageProviderInterface $provider,
+        CloudStorageErrorHandlerInterface $errorHandler,
+        CloudStorageHealthService $healthService,
+        CloudStorageLogService $logService
+    ): void
     {
         // Try to find the FileUpload record
         $fileUpload = FileUpload::find($this->fileUploadId);
@@ -224,8 +338,9 @@ class UploadToGoogleDrive implements ShouldQueue
         $mimeType = $fileUpload->mime_type;
         $message = $fileUpload->message;
 
-        Log::info('Starting Google Drive upload job', [
+        Log::info('Starting cloud storage upload job', [
             'file_upload_id' => $fileUpload->id,
+            'provider' => $provider->getProviderName(),
             'local_path' => $localPath,
             'email' => $email,
             'uploaded_by_user_id' => $fileUpload->uploaded_by_user_id,
@@ -243,8 +358,9 @@ class UploadToGoogleDrive implements ShouldQueue
                     'error' => $error->getMessage(),
                 ]);
                 
-                // Record error and fail permanently - missing files are not recoverable
-                $this->recordError($fileUpload, $error, [
+                // Classify as file not found error and record
+                $errorType = CloudStorageErrorType::FILE_NOT_FOUND;
+                $this->recordError($fileUpload, $error, $errorType, $healthService, $logService, [
                     'error_category' => 'missing_file',
                     'permanent_failure' => true,
                 ]);
@@ -253,91 +369,31 @@ class UploadToGoogleDrive implements ShouldQueue
                 return;
             }
 
-            // 2. Determine which user's Google Drive to use
-            $targetUser = null;
+            // 2. Determine which user's cloud storage to use
+            $targetUser = $this->determineTargetUser($fileUpload, $provider);
             
-            // Priority 1: If client selected a specific company user (employee), use their Google Drive
-            if ($fileUpload->company_user_id) {
-                $targetUser = \App\Models\User::find($fileUpload->company_user_id);
-                Log::info('Using selected company user for upload.', [
-                    'company_user_id' => $fileUpload->company_user_id,
-                    'target_user_id' => $targetUser?->id,
-                    'target_user_email' => $targetUser?->email,
-                    'has_drive_connected' => $targetUser?->hasGoogleDriveConnected()
-                ]);
-            }
-            
-            // Priority 2: If this upload was made by an employee directly, use their Google Drive
-            if (!$targetUser && $fileUpload->uploaded_by_user_id) {
-                $targetUser = \App\Models\User::find($fileUpload->uploaded_by_user_id);
-                Log::info('Using employee uploader for upload.', [
-                    'uploaded_by_user_id' => $fileUpload->uploaded_by_user_id,
-                    'target_user_id' => $targetUser?->id,
-                    'target_user_email' => $targetUser?->email,
-                    'has_drive_connected' => $targetUser?->hasGoogleDriveConnected()
-                ]);
-            }
-            
-            // Priority 3: Only fall back to admin if target user doesn't have Google Drive OR no target user found
             if (!$targetUser) {
-                // No target user found at all, try admin
-                $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
-                if ($adminUser && $adminUser->hasGoogleDriveConnected()) {
-                    $targetUser = $adminUser;
-                    Log::info('No target user found, using admin user as fallback.', [
-                        'admin_id' => $targetUser->id
-                    ]);
-                }
-            } elseif (!$targetUser->hasGoogleDriveConnected()) {
-                // Target user exists but doesn't have Google Drive, try admin fallback
-                Log::warning('Selected user does not have Google Drive connected, attempting admin fallback.', [
-                    'selected_user_id' => $targetUser->id,
-                    'selected_user_email' => $targetUser->email
-                ]);
-                
-                $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
-                if ($adminUser && $adminUser->hasGoogleDriveConnected()) {
-                    $targetUser = $adminUser;
-                    Log::info('Using admin user as fallback for upload.', [
-                        'admin_id' => $targetUser->id,
-                        'original_company_user_id' => $fileUpload->company_user_id,
-                        'original_uploaded_by_user_id' => $fileUpload->uploaded_by_user_id
-                    ]);
-                } else {
-                    $error = new Exception('No user with Google Drive connection available for upload');
-                    Log::error('Selected user has no Google Drive and admin also has no Google Drive connection.');
-                    
-                    // This is a configuration issue, not a transient error
-                    $this->recordError($fileUpload, $error, [
-                        'error_category' => 'configuration',
-                        'permanent_failure' => true,
-                        'selected_user_id' => $targetUser->id ?? null,
-                        'admin_has_drive' => false,
-                    ]);
-                    
-                    throw $error;
-                }
-            } else {
-                // Target user exists and has Google Drive - use them!
-                Log::info('Using target user with Google Drive connection.', [
-                    'target_user_id' => $targetUser->id,
-                    'target_user_email' => $targetUser->email
-                ]);
-            }
-
-            if (!$targetUser) {
-                $error = new Exception('No target user found for Google Drive upload');
-                $this->recordError($fileUpload, $error, [
+                $error = new Exception('No target user found for cloud storage upload');
+                $errorType = CloudStorageErrorType::INVALID_CREDENTIALS;
+                $this->recordError($fileUpload, $error, $errorType, $healthService, $logService, [
                     'error_category' => 'configuration',
                     'permanent_failure' => true,
                 ]);
                 throw $error;
             }
 
-            // 3. Upload the file using the new method
+            // 3. Upload the file using the provider interface
             $description = "Uploaded by: " . $email . "\nMessage: " . ($message ?? 'No message');
+            $metadata = [
+                'original_filename' => $originalFilename,
+                'mime_type' => $mimeType,
+                'description' => $description,
+                'client_email' => $email,
+                'message' => $message,
+            ];
 
-            Log::info('Attempting file upload via GoogleDriveService.', [
+            Log::info('Attempting file upload via cloud storage provider.', [
+                 'provider' => $provider->getProviderName(),
                  'local_path' => $localPath,
                  'target_user_id' => $targetUser->id,
                  'client_email' => $email,
@@ -345,26 +401,37 @@ class UploadToGoogleDrive implements ShouldQueue
                  'attempt' => $this->attempts(),
             ]);
 
-            $googleDriveFileId = $driveService->uploadFileForUser(
+            $cloudFileId = $provider->uploadFile(
                 $targetUser,
                 $localPath,
-                $email,
-                $originalFilename,
-                $mimeType,
-                $description
+                $email, // target path (client email for folder organization)
+                $metadata
             );
 
-            // 4. Update the FileUpload record with the Google Drive ID and clear error info
+            // 4. Update the FileUpload record with the cloud storage ID and clear error info
             $fileUpload->update([
-                'google_drive_file_id' => $googleDriveFileId,
+                'google_drive_file_id' => $cloudFileId, // Keep existing field name for backward compatibility
+                'cloud_storage_provider' => $provider->getProviderName(),
+                'cloud_storage_error_type' => null,
+                'cloud_storage_error_context' => null,
+                'connection_health_at_failure' => null,
                 'last_error' => null,
                 'error_details' => null,
                 'last_processed_at' => now(),
             ]);
 
-            Log::info('Google Drive upload job completed successfully.', [
+            // Record successful operation in health monitoring
+            $healthService->recordSuccessfulOperation($targetUser, $provider->getProviderName(), [
+                'operation' => 'upload',
+                'file_id' => $cloudFileId,
+                'file_name' => $originalFilename,
+                'client_email' => $email,
+            ]);
+
+            Log::info('Cloud storage upload job completed successfully.', [
                 'file_upload_id' => $fileUpload->id,
-                'google_drive_file_id' => $googleDriveFileId,
+                'provider' => $provider->getProviderName(),
+                'cloud_file_id' => $cloudFileId,
                 'target_user_id' => $targetUser->id,
                 'total_attempts' => $this->attempts(),
             ]);
@@ -372,45 +439,75 @@ class UploadToGoogleDrive implements ShouldQueue
             // 5. Delete the local file after successful upload
             try {
                 Storage::disk('public')->delete($localPath);
-                Log::info('Deleted local file after successful Google Drive upload.', ['path' => $localPath]);
+                Log::info('Deleted local file after successful cloud storage upload.', [
+                    'path' => $localPath,
+                    'provider' => $provider->getProviderName()
+                ]);
             } catch (Exception $e) {
-                Log::warning('Failed to delete local file after Google Drive upload.', [
+                Log::warning('Failed to delete local file after cloud storage upload.', [
                     'path' => $localPath, 
+                    'provider' => $provider->getProviderName(),
                     'error' => $e->getMessage()
                 ]);
             }
 
         } catch (Exception $e) {
-            // Record detailed error information
+            // Classify the error using the error handler
+            $errorType = null;
+            if ($e instanceof CloudStorageException) {
+                $errorType = $e->getErrorType();
+            } else {
+                $errorType = $errorHandler->classifyError($e);
+            }
+
+            // Record detailed error information with enhanced context
             $context = [
                 'local_path' => $localPath,
                 'email' => $email,
                 'target_user_id' => $targetUser->id ?? null,
                 'original_filename' => $originalFilename,
                 'mime_type' => $mimeType,
+                'provider' => $provider->getProviderName(),
             ];
             
-            $this->recordError($fileUpload, $e, $context);
+            $this->recordError($fileUpload, $e, $errorType, $healthService, $logService, $context);
 
-            // Determine if we should retry based on error type
-            $isTransient = $this->isTransientError($e);
-            $willRetry = $isTransient && $this->attempts() < $this->tries;
+            // Determine retry logic based on error handler
+            $shouldRetry = $errorHandler->shouldRetry($errorType, $this->attempts());
+            $maxAttempts = $errorHandler->getMaxRetryAttempts($errorType);
+            
+            // Update job tries based on error type
+            if ($maxAttempts > 0) {
+                $this->tries = min($maxAttempts + 1, $this->tries); // +1 because attempts start at 1
+            }
 
-            Log::error('Google Drive upload job failed.', [
+            // Calculate retry delay if we should retry
+            if ($shouldRetry) {
+                $retryDelay = $errorHandler->getRetryDelay($errorType, $this->attempts());
+                $this->backoff = [$retryDelay];
+            }
+
+            Log::error('Cloud storage upload job failed with enhanced error handling.', [
                 'file_upload_id' => $fileUpload->id,
+                'provider' => $provider->getProviderName(),
                 'email' => $email,
                 'error' => $e->getMessage(),
                 'error_type' => get_class($e),
+                'classified_error_type' => $errorType->value,
+                'error_severity' => $errorType->getSeverity(),
                 'attempt' => $this->attempts(),
                 'max_tries' => $this->tries,
-                'is_transient' => $isTransient,
-                'will_retry' => $willRetry,
+                'should_retry' => $shouldRetry,
+                'requires_user_intervention' => $errorType->requiresUserIntervention(),
+                'retry_delay' => $shouldRetry ? $errorHandler->getRetryDelay($errorType, $this->attempts()) : null,
             ]);
 
-            // For permanent errors, fail immediately
-            if (!$isTransient) {
-                Log::warning('Permanent error detected, failing job immediately', [
+            // For errors that don't allow retries, fail immediately
+            if (!$shouldRetry) {
+                Log::warning('Error type does not allow retries, failing job immediately', [
                     'file_upload_id' => $fileUpload->id,
+                    'error_type' => $errorType->value,
+                    'requires_user_intervention' => $errorType->requiresUserIntervention(),
                     'error' => $e->getMessage(),
                 ]);
                 $this->fail($e);

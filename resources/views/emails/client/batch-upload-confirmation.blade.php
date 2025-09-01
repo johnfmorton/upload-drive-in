@@ -1,13 +1,13 @@
 <x-mail::message>
 
-
-
-# {{ __('messages.client_batch_upload_heading') }}
+# {{ trans_choice('messages.client_batch_upload_heading', $fileCount) }}
 
 {{ trans_choice('messages.client_batch_upload_body', $fileCount, ['count' => $fileCount]) }}
 
-@if(!empty($recipientNames))
-{{ __('messages.upload_recipient_line', ['names' => implode(', ', $recipientNames)]) }}
+@if (!empty($recipientNames))
+        {{ trans_choice('messages.upload_recipient_line', $recipientCount, [
+            'names' => implode(', ', $recipientNames),
+        ]) }}
 @endif
 
 **{{ __('messages.uploaded_files_list') }}:**

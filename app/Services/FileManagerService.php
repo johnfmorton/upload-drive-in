@@ -166,6 +166,29 @@ class FileManagerService
             }
         }
 
+        // Apply error status filters
+        if (!empty($filters['error_status'])) {
+            switch ($filters['error_status']) {
+                case 'no_error':
+                    $query->whereNull('cloud_storage_error_type');
+                    break;
+                case 'has_error':
+                    $query->whereNotNull('cloud_storage_error_type');
+                    break;
+                case 'recoverable':
+                    $query->withRecoverableCloudStorageError();
+                    break;
+                case 'requires_intervention':
+                    $query->withCloudStorageErrorRequiringIntervention();
+                    break;
+            }
+        }
+
+        // Apply error severity filter
+        if (!empty($filters['error_severity'])) {
+            $query->withCloudStorageErrorSeverity($filters['error_severity']);
+        }
+
         // Apply sorting with enhanced options
         $sortBy = $filters['sort_by'] ?? 'created_at';
         $sortDirection = $filters['sort_direction'] ?? 'desc';

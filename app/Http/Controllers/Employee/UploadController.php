@@ -73,9 +73,26 @@ class UploadController extends Controller
     public function connect()
     {
         $user = Auth::user();
-        $authUrl = $this->driveService->getAuthUrl($user);
+        $isReconnection = $user->hasGoogleDriveConnected();
         
-        return redirect($authUrl);
+        try {
+            $authUrl = $this->driveService->getAuthUrl($user, $isReconnection);
+            
+            Log::info('Initiating Google Drive OAuth flow for employee', [
+                'user_id' => $user->id,
+                'is_reconnection' => $isReconnection
+            ]);
+            
+            return redirect($authUrl);
+        } catch (\Exception $e) {
+            Log::error('Failed to initiate Google Drive connection for employee', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->route('employee.cloud-storage.index', ['username' => $user->username])
+                ->with('error', __('messages.google_drive_connection_failed'));
+        }
     }
 
     /**

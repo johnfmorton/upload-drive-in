@@ -261,10 +261,22 @@ class CloudStorageController extends Controller
         }
 
         try {
-            $authUrl = $this->driveService->getAuthUrl(Auth::user());
+            $user = Auth::user();
+            $isReconnection = $user->hasGoogleDriveConnected();
+            
+            $authUrl = $this->driveService->getAuthUrl($user, $isReconnection);
+            
+            Log::info('Initiating Google Drive OAuth flow', [
+                'user_id' => $user->id,
+                'is_reconnection' => $isReconnection
+            ]);
+            
             return redirect($authUrl);
         } catch (\Exception $e) {
-            Log::error('Failed to initiate Google Drive connection', ['error' => $e->getMessage()]);
+            Log::error('Failed to initiate Google Drive connection', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
             return redirect()->back()->with('error', __('messages.settings_update_failed'));
         }
     }
@@ -385,6 +397,133 @@ class CloudStorageController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to disconnect Google Drive', ['error' => $e->getMessage()]);
             return redirect()->back()->with('error', __('messages.settings_update_failed'));
+        }
+    }
+
+    /**
+     * Get cloud storage status for the dashboard widget.
+     */
+    public function getStatus()
+    {
+        try {
+            $user = Auth::user();
+            $healthService = app(\App\Services\CloudStorageHealthService::class);
+            
+            // Get health status for all providers
+            $providersHealth = $healthService->getAllProvidersHealth($user);
+            
+            // Get pending uploads count for each provider
+            $pendingUploads = \App\Models\FileUpload::where(function($query) use ($user) {
+                $query->where('company_user_id', $user->id)
+                      ->orWhere('uploaded_by_user_id', $user->id);
+            })
+            ->whereNull('google_drive_file_id')
+            ->whereNull('cloud_storage_error_type')
+            ->get()
+            ->groupBy('cloud_storage_provider')
+            ->map(fn($uploads) => $uploads->count())
+            ->toArray();
+            
+            // Get failed uploads count for each provider
+            $failedUploads = \App\Models\FileUpload::where(function($query) use ($user) {
+                $query->where('company_user_id', $user->id)
+                      ->orWhere('uploaded_by_user_id', $user->id);
+            })
+            ->whereNotNull('cloud_storage_error_type')
+            ->get()
+            ->groupBy('cloud_storage_provider')
+            ->map(fn($uploads) => $uploads->count())
+            ->toArray();
+            
+            return response()->json([
+                'providers' => $providersHealth,
+                'pending_uploads' => $pendingUploads,
+                'failed_uploads' => $failedUploads,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get cloud storage status', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Failed to get status'], 500);
+        }
+    }
+
+    /**
+     * Reconnect a cloud storage provider.
+     */
+    public function reconnectProvider(Request $request)
+    {
+        $validated = $request->validate([
+            'provider' => 'required|string|in:google-drive,dropbox,onedrive'
+        ]);
+
+        try {
+            $user = Auth::user();
+            $provider = $validated['provider'];
+            
+            Log::info('Initiating provider reconnection', [
+                'user_id' => $user->id,
+                'provider' => $provider
+            ]);
+            
+            switch ($provider) {
+                case 'google-drive':
+                    // Always mark as reconnection for this endpoint
+                    $authUrl = $this->driveService->getAuthUrl($user, true);
+                    
+                    Log::info('Generated reconnection URL for Google Drive', [
+                        'user_id' => $user->id
+                    ]);
+                    
+                    return response()->json(['redirect_url' => $authUrl]);
+                    
+                default:
+                    Log::warning('Unsupported provider for reconnection', [
+                        'provider' => $provider,
+                        'user_id' => $user->id
+                    ]);
+                    return response()->json(['error' => 'Provider not supported yet'], 400);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to reconnect provider', [
+                'provider' => $validated['provider'],
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => 'Failed to initiate reconnection'], 500);
+        }
+    }
+
+    /**
+     * Test connection to a cloud storage provider.
+     */
+    public function testConnection(Request $request)
+    {
+        $validated = $request->validate([
+            'provider' => 'required|string|in:google-drive,dropbox,onedrive'
+        ]);
+
+        try {
+            $user = Auth::user();
+            $provider = $validated['provider'];
+            $healthService = app(\App\Services\CloudStorageHealthService::class);
+            
+            // Perform health check
+            $healthStatus = $healthService->checkConnectionHealth($user, $provider);
+            
+            $message = $healthStatus->isHealthy() 
+                ? 'Connection test successful' 
+                : 'Connection test failed: ' . $healthStatus->last_error_message;
+            
+            return response()->json([
+                'success' => $healthStatus->isHealthy(),
+                'message' => $message,
+                'status' => $healthStatus->status
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to test connection', [
+                'provider' => $validated['provider'],
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => 'Connection test failed'], 500);
         }
     }
 }

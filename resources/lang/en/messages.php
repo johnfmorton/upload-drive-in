@@ -561,4 +561,17 @@
     'validation_primary_contact_required' => 'A primary contact must be selected.',
     'validation_primary_contact_invalid' => 'The selected primary contact is invalid.',
     'validation_primary_contact_not_in_team' => 'The primary contact must be one of the selected team members.',
+
+    // Cloud Storage Error Messages
+    'status_error' => 'Error',
+    'retry' => 'Retry',
+    'retrying' => 'Retrying',
+    'retry_selected' => 'Retry Selected',
+    'cloud_storage_error' => 'Cloud Storage Error',
+    'error_recoverable' => 'Recoverable Error',
+    'error_requires_intervention' => 'Requires Intervention',
+    'error_severity_low' => 'Low Severity',
+    'error_severity_medium' => 'Medium Severity',
+    'error_severity_high' => 'High Severity',
+    'error_severity_critical' => 'Critical Severity',
 ];

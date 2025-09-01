@@ -74,6 +74,8 @@ class FileManagerController extends AdminController
                 'file_type',
                 'file_size_min',
                 'file_size_max',
+                'error_status',
+                'error_severity',
                 'sort_by',
                 'sort_direction'
             ]);
@@ -830,6 +832,172 @@ class FileManagerController extends AdminController
             return response('Thumbnail generation failed: ' . $e->getMessage(), 500, [
                 'Content-Type' => 'text/plain'
             ]);
+        }
+    }
+
+    /**
+     * Retry a failed file upload.
+     */
+    public function retry(FileUpload $file): JsonResponse
+    {
+        try {
+            $this->checkAdminAccess();
+            $this->checkFileAccess($file);
+
+            // Check if the file has a cloud storage error
+            if (!$file->hasCloudStorageError()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File does not have a cloud storage error to retry'
+                ], 400);
+            }
+
+            // Check if the error is recoverable
+            if (!$file->isCloudStorageErrorRecoverable()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This error type cannot be automatically retried. Please check your cloud storage connection.'
+                ], 400);
+            }
+
+            // Clear the error information
+            $file->clearCloudStorageError();
+
+            // Dispatch the upload job again
+            \App\Jobs\UploadToGoogleDrive::dispatch($file);
+
+            // Audit log the retry action
+            $this->auditLogService->logFileAccess('retry', $file, auth()->user(), request());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File upload retry initiated successfully'
+            ]);
+
+        } catch (\App\Exceptions\FileAccessException $e) {
+            \Log::warning('File retry access denied', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getUserMessage()
+            ], 403);
+
+        } catch (\Exception $e) {
+            \Log::error('File retry error', [
+                'user_id' => auth()->id(),
+                'file_id' => $file->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrying the file upload'
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk retry multiple failed file uploads.
+     */
+    public function bulkRetry(Request $request): JsonResponse
+    {
+        try {
+            $this->checkAdminAccess();
+
+            $request->validate([
+                'file_ids' => 'required|array|min:1',
+                'file_ids.*' => 'integer|exists:file_uploads,id'
+            ]);
+
+            $fileIds = $request->file_ids;
+            $files = FileUpload::whereIn('id', $fileIds)->get();
+
+            // Filter files that the user can access
+            $accessibleFiles = $files->filter(function ($file) {
+                return $file->canBeAccessedBy(auth()->user());
+            });
+
+            if ($accessibleFiles->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No accessible files found to retry'
+                ], 400);
+            }
+
+            // Filter files that have recoverable errors
+            $retryableFiles = $accessibleFiles->filter(function ($file) {
+                return $file->hasCloudStorageError() && $file->isCloudStorageErrorRecoverable();
+            });
+
+            if ($retryableFiles->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No files with recoverable errors found'
+                ], 400);
+            }
+
+            $successCount = 0;
+            $failureCount = 0;
+
+            foreach ($retryableFiles as $file) {
+                try {
+                    // Clear the error information
+                    $file->clearCloudStorageError();
+
+                    // Dispatch the upload job again
+                    \App\Jobs\UploadToGoogleDrive::dispatch($file);
+
+                    $successCount++;
+
+                    // Audit log the retry action
+                    $this->auditLogService->logFileAccess('bulk_retry', $file, auth()->user(), request());
+
+                } catch (\Exception $e) {
+                    $failureCount++;
+                    \Log::error('Bulk retry individual file error', [
+                        'user_id' => auth()->id(),
+                        'file_id' => $file->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            $message = "Retry initiated for {$successCount} file" . ($successCount !== 1 ? 's' : '');
+            if ($failureCount > 0) {
+                $message .= ", {$failureCount} failed";
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'retried_count' => $successCount,
+                'failed_count' => $failureCount
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid request data',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            \Log::error('Bulk retry error', [
+                'user_id' => auth()->id(),
+                'file_ids' => $request->file_ids ?? [],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while retrying the file uploads'
+            ], 500);
         }
     }
 }

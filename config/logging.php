@@ -151,6 +151,22 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'cloud-storage' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/cloud-storage.log'),
+            'level' => 'debug',
+            'days' => 30, // Keep cloud storage logs for analysis
+            'replace_placeholders' => true,
+        ],
+
+        'performance' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/performance.log'),
+            'level' => 'info',
+            'days' => 14, // Keep performance logs for optimization
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

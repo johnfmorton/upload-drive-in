@@ -39,8 +39,13 @@ class ClientBatchUploadConfirmation extends Mailable
      */
     public function envelope(): Envelope
     {
+        $count = $this->fileUploads->count();
+
         return new Envelope(
-            subject: __('messages.client_batch_upload_subject', ['app_name' => config('app.name')]), //* New translation key needed
+            subject: trans_choice('messages.client_batch_upload_subject', $count, [
+                'count'    => $count,
+                'app_name' => config('app.name'),
+            ]),
         );
     }
 

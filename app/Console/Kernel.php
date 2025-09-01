@@ -31,6 +31,7 @@ class Kernel extends ConsoleKernel
         Commands\ResetUserPassword::class,
         Commands\ToggleUserNotifications::class,
         Commands\GenerateUserLoginUrl::class,
+        Commands\CheckCloudStorageHealth::class,
     ];
 
     /**
@@ -87,6 +88,22 @@ class Kernel extends ConsoleKernel
                  ->withoutOverlapping()
                  ->runInBackground()
                  ->appendOutputTo(storage_path('logs/queue-worker-cleanup.log'));
+
+        // Check cloud storage health every 4 hours
+        $schedule->command('cloud-storage:check-health --notify')
+                 ->everyFourHours()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/cloud-storage-health.log'));
+
+        // More frequent health checks during business hours (every hour from 8 AM to 6 PM)
+        $schedule->command('cloud-storage:check-health')
+                 ->hourly()
+                 ->between('08:00', '18:00')
+                 ->weekdays()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/cloud-storage-health.log'));
     }
 
     /**

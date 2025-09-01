@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use App\Enums\UserRole;
+use App\Enums\CloudStorageErrorType;
 
 class FileUpload extends Model
 {
@@ -42,6 +43,10 @@ class FileUpload extends Model
         'error_details',
         'last_processed_at',
         'recovery_attempts',
+        'cloud_storage_error_type',
+        'cloud_storage_error_context',
+        'connection_health_at_failure',
+        'retry_recommended_at',
     ];
 
     protected $casts = [
@@ -51,7 +56,10 @@ class FileUpload extends Model
         'retry_count' => 'integer',
         'recovery_attempts' => 'integer',
         'error_details' => 'array',
+        'cloud_storage_error_context' => 'array',
         'last_processed_at' => 'datetime',
+        'connection_health_at_failure' => 'datetime',
+        'retry_recommended_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -66,7 +74,10 @@ class FileUpload extends Model
         'preview_url',
         'download_url',
         'thumbnail_url',
-        'file_size_human'
+        'file_size_human',
+        'cloud_storage_error_message',
+        'cloud_storage_error_description',
+        'cloud_storage_error_severity'
     ];
 
     /**
@@ -289,6 +300,37 @@ class FileUpload extends Model
     }
 
     /**
+     * Accessor for cloud_storage_error_message attribute.
+     *
+     * @return string|null
+     */
+    public function getCloudStorageErrorMessageAttribute(): ?string
+    {
+        return $this->getCloudStorageErrorMessage();
+    }
+
+    /**
+     * Accessor for cloud_storage_error_description attribute.
+     *
+     * @return string|null
+     */
+    public function getCloudStorageErrorDescriptionAttribute(): ?string
+    {
+        $errorType = $this->getCloudStorageErrorType();
+        return $errorType?->getDescription();
+    }
+
+    /**
+     * Accessor for cloud_storage_error_severity attribute.
+     *
+     * @return string|null
+     */
+    public function getCloudStorageErrorSeverityAttribute(): ?string
+    {
+        return $this->getCloudStorageErrorSeverity();
+    }
+
+    /**
      * Get the current status of the upload based on various conditions.
      *
      * @return string
@@ -428,6 +470,161 @@ class FileUpload extends Model
     {
         $maxRetries = config('upload-recovery.max_retry_attempts', 3);
         return ($this->retry_count ?? 0) < $maxRetries && !$this->hasExceededRecoveryAttempts();
+    }
+
+    /**
+     * Update cloud storage error information.
+     *
+     * @param CloudStorageErrorType|string|null $errorType
+     * @param array|null $errorContext
+     * @param \DateTime|null $connectionHealthAt
+     * @param \DateTime|null $retryRecommendedAt
+     * @return bool
+     */
+    public function updateCloudStorageError(
+        CloudStorageErrorType|string|null $errorType = null,
+        ?array $errorContext = null,
+        ?\DateTime $connectionHealthAt = null,
+        ?\DateTime $retryRecommendedAt = null
+    ): bool {
+        if ($errorType instanceof CloudStorageErrorType) {
+            $this->cloud_storage_error_type = $errorType->value;
+        } elseif (is_string($errorType)) {
+            $this->cloud_storage_error_type = $errorType;
+        }
+
+        if ($errorContext !== null) {
+            $this->cloud_storage_error_context = $errorContext;
+        }
+
+        if ($connectionHealthAt !== null) {
+            $this->connection_health_at_failure = $connectionHealthAt;
+        }
+
+        if ($retryRecommendedAt !== null) {
+            $this->retry_recommended_at = $retryRecommendedAt;
+        }
+
+        return $this->save();
+    }
+
+    /**
+     * Clear cloud storage error information.
+     *
+     * @return bool
+     */
+    public function clearCloudStorageError(): bool
+    {
+        $this->cloud_storage_error_type = null;
+        $this->cloud_storage_error_context = null;
+        $this->connection_health_at_failure = null;
+        $this->retry_recommended_at = null;
+
+        return $this->save();
+    }
+
+    /**
+     * Check if this upload has a cloud storage error.
+     *
+     * @return bool
+     */
+    public function hasCloudStorageError(): bool
+    {
+        return !empty($this->cloud_storage_error_type);
+    }
+
+    /**
+     * Get the cloud storage error type as an enum.
+     *
+     * @return CloudStorageErrorType|null
+     */
+    public function getCloudStorageErrorType(): ?CloudStorageErrorType
+    {
+        if (empty($this->cloud_storage_error_type)) {
+            return null;
+        }
+
+        return CloudStorageErrorType::tryFrom($this->cloud_storage_error_type);
+    }
+
+    /**
+     * Check if the cloud storage error is recoverable.
+     *
+     * @return bool
+     */
+    public function isCloudStorageErrorRecoverable(): bool
+    {
+        $errorType = $this->getCloudStorageErrorType();
+        return $errorType?->isRecoverable() ?? false;
+    }
+
+    /**
+     * Check if the cloud storage error requires user intervention.
+     *
+     * @return bool
+     */
+    public function cloudStorageErrorRequiresUserIntervention(): bool
+    {
+        $errorType = $this->getCloudStorageErrorType();
+        return $errorType?->requiresUserIntervention() ?? false;
+    }
+
+    /**
+     * Get the cloud storage error severity.
+     *
+     * @return string|null
+     */
+    public function getCloudStorageErrorSeverity(): ?string
+    {
+        $errorType = $this->getCloudStorageErrorType();
+        return $errorType?->getSeverity();
+    }
+
+    /**
+     * Get a user-friendly error message for cloud storage errors.
+     *
+     * @return string|null
+     */
+    public function getCloudStorageErrorMessage(): ?string
+    {
+        $errorType = $this->getCloudStorageErrorType();
+        if (!$errorType) {
+            return null;
+        }
+
+        $provider = $this->storage_provider ?? 'cloud storage';
+        $context = $this->cloud_storage_error_context ?? [];
+
+        return match ($errorType) {
+            CloudStorageErrorType::TOKEN_EXPIRED => 
+                "Your {$provider} connection has expired. Please reconnect to continue uploading files.",
+            CloudStorageErrorType::INSUFFICIENT_PERMISSIONS => 
+                "Insufficient {$provider} permissions. Please reconnect and grant full access.",
+            CloudStorageErrorType::API_QUOTA_EXCEEDED => 
+                "{$provider} API limit reached. " . ($context['retry_after'] ?? 'Uploads will resume automatically later.'),
+            CloudStorageErrorType::STORAGE_QUOTA_EXCEEDED => 
+                "{$provider} storage quota exceeded. Please free up space or upgrade your plan.",
+            CloudStorageErrorType::NETWORK_ERROR => 
+                'Network connection issue. The upload will be retried automatically.',
+            CloudStorageErrorType::FILE_NOT_FOUND => 
+                'The target folder was not found in your cloud storage.',
+            CloudStorageErrorType::FOLDER_ACCESS_DENIED => 
+                'Access denied to the target folder in your cloud storage.',
+            CloudStorageErrorType::INVALID_FILE_TYPE => 
+                'This file type is not allowed by your cloud storage provider.',
+            CloudStorageErrorType::FILE_TOO_LARGE => 
+                'File size exceeds the maximum allowed by your cloud storage provider.',
+            CloudStorageErrorType::INVALID_FILE_CONTENT => 
+                'The file content is invalid or corrupted.',
+            CloudStorageErrorType::SERVICE_UNAVAILABLE => 
+                "{$provider} service is temporarily unavailable. The upload will be retried automatically.",
+            CloudStorageErrorType::INVALID_CREDENTIALS => 
+                "Invalid {$provider} credentials. Please reconnect your account.",
+            CloudStorageErrorType::TIMEOUT => 
+                'Upload timed out. The upload will be retried automatically.',
+            CloudStorageErrorType::UNKNOWN_ERROR => 
+                "{$provider} upload failed: " . ($context['original_message'] ?? 'Unknown error occurred.'),
+        };
     }
 
     /**
@@ -689,5 +886,61 @@ class FileUpload extends Model
                         ->whereNotNull('last_error');
             });
         });
+    }
+
+    /**
+     * Scope to get uploads with cloud storage errors.
+     */
+    public function scopeWithCloudStorageError($query)
+    {
+        return $query->whereNotNull('cloud_storage_error_type');
+    }
+
+    /**
+     * Scope to get uploads with specific cloud storage error type.
+     */
+    public function scopeWithCloudStorageErrorType($query, CloudStorageErrorType|string $errorType)
+    {
+        $errorValue = $errorType instanceof CloudStorageErrorType ? $errorType->value : $errorType;
+        return $query->where('cloud_storage_error_type', $errorValue);
+    }
+
+    /**
+     * Scope to get uploads with recoverable cloud storage errors.
+     */
+    public function scopeWithRecoverableCloudStorageError($query)
+    {
+        $recoverableTypes = collect(CloudStorageErrorType::cases())
+            ->filter(fn($type) => $type->isRecoverable())
+            ->map(fn($type) => $type->value)
+            ->toArray();
+
+        return $query->whereIn('cloud_storage_error_type', $recoverableTypes);
+    }
+
+    /**
+     * Scope to get uploads with cloud storage errors requiring user intervention.
+     */
+    public function scopeWithCloudStorageErrorRequiringIntervention($query)
+    {
+        $interventionTypes = collect(CloudStorageErrorType::cases())
+            ->filter(fn($type) => $type->requiresUserIntervention())
+            ->map(fn($type) => $type->value)
+            ->toArray();
+
+        return $query->whereIn('cloud_storage_error_type', $interventionTypes);
+    }
+
+    /**
+     * Scope to get uploads by cloud storage error severity.
+     */
+    public function scopeWithCloudStorageErrorSeverity($query, string $severity)
+    {
+        $severityTypes = collect(CloudStorageErrorType::cases())
+            ->filter(fn($type) => $type->getSeverity() === $severity)
+            ->map(fn($type) => $type->value)
+            ->toArray();
+
+        return $query->whereIn('cloud_storage_error_type', $severityTypes);
     }
 }

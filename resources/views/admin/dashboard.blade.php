@@ -54,7 +54,7 @@
                                     class="inline-flex items-center px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z">
+                                            d="M15.02,16.98H1.16v-1.16c0-3.83,3.1-6.93,6.93-6.93s6.93,3.1,6.93,6.93v1.16ZM16.17,16.98h6.93v-1.16c0-3.83-3.1-6.93-6.93-6.93-1.22,0-2.41.32-3.47.93M12.13,4.73c0,1.97-1.6,3.57-3.57,3.57s-3.57-1.6-3.57-3.57h0c0-1.97,1.6-3.57,3.57-3.57s3.57,1.6,3.57,3.57ZM19.85,4.73c0,1.97-1.6,3.57-3.57,3.57s-3.57-1.6-3.57-3.57h0c0-1.97,1.6-3.57,3.57-3.57s3.57,1.6,3.57,3.57Z">
                                         </path>
                                     </svg>
                                     Manage Employees
@@ -76,8 +76,8 @@
                 </div>
             @endif
             
-            <!-- Google Drive Connection -->
-            <x-dashboard.google-drive-connection :user="Auth::user()" :is-admin="true" />
+            <!-- Cloud Storage Status Widget -->
+            <x-dashboard.cloud-storage-status-widget :user="Auth::user()" :is-admin="true" />
             
             <!-- Dashboard Statistics Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

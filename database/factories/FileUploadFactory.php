@@ -32,6 +32,7 @@ class FileUploadFactory extends Factory
             'original_filename' => $this->faker->word() . '.jpg',
             'provider_file_id' => $this->faker->uuid(),
             'storage_provider' => 'google-drive',
+            'cloud_storage_provider' => 'google-drive',
             'message' => $this->faker->sentence(),
             'validation_method' => 'email',
             'mime_type' => 'image/jpeg',
@@ -116,5 +117,47 @@ class FileUploadFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'google_drive_file_id' => $this->faker->uuid(),
         ]);
+    }
+
+    /**
+     * Indicate that the file has a cloud storage error.
+     */
+    public function withCloudStorageError(string $errorType = null, array $errorContext = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'cloud_storage_error_type' => $errorType ?? $this->faker->randomElement([
+                'token_expired',
+                'insufficient_permissions',
+                'api_quota_exceeded',
+                'network_error',
+                'storage_quota_exceeded',
+            ]),
+            'cloud_storage_error_context' => $errorContext ?? [
+                'message' => $this->faker->sentence(),
+                'code' => $this->faker->numberBetween(400, 500),
+            ],
+            'connection_health_at_failure' => $this->faker->dateTimeBetween('-1 hour', 'now'),
+            'retry_recommended_at' => $this->faker->dateTimeBetween('now', '+1 hour'),
+        ]);
+    }
+
+    /**
+     * Indicate that the file has a recoverable cloud storage error.
+     */
+    public function withRecoverableError(): static
+    {
+        return $this->withCloudStorageError(
+            $this->faker->randomElement(['network_error', 'service_unavailable', 'timeout', 'api_quota_exceeded'])
+        );
+    }
+
+    /**
+     * Indicate that the file has a cloud storage error requiring user intervention.
+     */
+    public function withErrorRequiringIntervention(): static
+    {
+        return $this->withCloudStorageError(
+            $this->faker->randomElement(['token_expired', 'insufficient_permissions', 'storage_quota_exceeded', 'invalid_credentials'])
+        );
     }
 }

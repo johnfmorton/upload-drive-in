@@ -107,6 +107,22 @@ Route::middleware(['auth', \App\Http\Middleware\FileDownloadRateLimitMiddleware:
 Route::get('/health', [\App\Http\Controllers\HealthController::class, 'check'])->name('health.check');
 Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, 'detailed'])->name('health.detailed');
 
+// Cloud storage dashboard routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin/dashboard/cloud-storage-status', [\App\Http\Controllers\CloudStorageDashboardController::class, 'getStatus'])
+        ->name('admin.dashboard.cloud-storage-status');
+    Route::get('/admin/dashboard/cloud-storage/{provider}/errors', [\App\Http\Controllers\CloudStorageDashboardController::class, 'getProviderErrors'])
+        ->name('admin.dashboard.cloud-storage.errors');
+    Route::post('/admin/dashboard/cloud-storage/{provider}/health-check', [\App\Http\Controllers\CloudStorageDashboardController::class, 'checkHealth'])
+        ->name('admin.dashboard.cloud-storage.health-check');
+    
+    // File manager bulk retry routes
+    Route::post('/admin/file-manager/bulk-retry', [\App\Http\Controllers\FileManagerBulkRetryController::class, 'bulkRetry'])
+        ->name('admin.file-manager.bulk-retry');
+    Route::post('/admin/file-manager/uploads/{upload}/retry', [\App\Http\Controllers\FileManagerBulkRetryController::class, 'retryUpload'])
+        ->name('admin.file-manager.retry-upload');
+});
+
 // Public Queue Testing Routes (for setup instructions)
 Route::post('/setup/queue/test', [\App\Http\Controllers\SetupController::class, 'testQueue'])
     ->name('setup.queue.test')

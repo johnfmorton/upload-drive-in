@@ -39,6 +39,29 @@
             </div>
         </div>
 
+        <!-- Error Status Filter -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Error Status</label>
+            <div class="space-y-2">
+                <select x-model="errorStatusFilter"
+                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    <option value="">All Files</option>
+                    <option value="no_error">No Errors</option>
+                    <option value="has_error">Has Errors</option>
+                    <option value="recoverable">Recoverable Errors</option>
+                    <option value="requires_intervention">Requires Intervention</option>
+                </select>
+                <select x-model="errorSeverityFilter"
+                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    <option value="">All Severities</option>
+                    <option value="low">Low Severity</option>
+                    <option value="medium">Medium Severity</option>
+                    <option value="high">High Severity</option>
+                    <option value="critical">Critical Severity</option>
+                </select>
+            </div>
+        </div>
+
         <!-- Filter Actions -->
         <div class="flex flex-col justify-end space-y-2">
             <button x-on:click="clearAllFilters()"

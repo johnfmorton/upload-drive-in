@@ -8,8 +8,8 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            <!-- Google Drive Connection -->
-            <x-dashboard.google-drive-connection :user="$user" :is-admin="false" />
+            <!-- Cloud Storage Status Widget -->
+            <x-dashboard.cloud-storage-status-widget :user="$user" :is-admin="false" />
 
             <!-- Dashboard Statistics Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

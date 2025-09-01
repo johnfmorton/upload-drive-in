@@ -34,11 +34,13 @@ class AdminBatchUploadNotification extends Mailable
      */
     public function envelope(): Envelope
     {
+        $count = $this->fileUploads->count();
+
         return new Envelope(
-            subject: __('messages.admin_batch_upload_subject', [ //* New translation key needed
-                'count' => $this->fileUploads->count(),
+            subject: trans_choice('messages.admin_batch_upload_subject', $count, [
+                'count'    => $count,
                 'userName' => $this->user->name,
-                'app_name' => config('app.name')
+                'app_name' => config('app.name'),
             ]),
         );
     }

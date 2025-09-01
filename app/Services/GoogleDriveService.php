@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\GoogleDriveToken;
+use App\Services\CloudStorageHealthService;
 use Google\Client;
 use Google\Service\Drive;
 use Google\Service\Drive\DriveFile;
@@ -25,8 +26,9 @@ class GoogleDriveService
      */
     private ?Client $client = null;
 
-    public function __construct()
-    {
+    public function __construct(
+        private ?CloudStorageHealthService $healthService = null
+    ) {
         $this->client = new Client();
         $this->client->setClientId(config('cloud-storage.providers.google-drive.client_id'));
         $this->client->setClientSecret(config('cloud-storage.providers.google-drive.client_secret'));
@@ -34,6 +36,11 @@ class GoogleDriveService
         $this->client->addScope(Drive::DRIVE);
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
+        
+        // Inject health service if not provided (for backward compatibility)
+        if (!$this->healthService) {
+            $this->healthService = app(CloudStorageHealthService::class);
+        }
     }
 
 
@@ -294,6 +301,12 @@ class GoogleDriveService
                 'drive_folder_id' => $driveFolderId
             ]);
 
+            // Record successful operation for health monitoring
+            $this->healthService?->recordSuccessfulOperation($user, 'google-drive', [
+                'last_upload_file_id' => $newFileId,
+                'last_upload_at' => now()->toISOString(),
+            ]);
+
             return $newFileId;
         } catch (Exception $e) {
             Log::error('Failed to upload file to Google Drive.', [
@@ -333,15 +346,17 @@ class GoogleDriveService
     /**
      * Get the authorization URL for a specific user.
      */
-    public function getAuthUrl(User $user): string
+    public function getAuthUrl(User $user, bool $isReconnection = false): string
     {
         // Use unified callback endpoint for all user types
         $this->client->setRedirectUri(route('google-drive.unified-callback'));
 
-        // Add user ID as state parameter to identify user after callback
+        // Add user ID and reconnection flag as state parameter to identify user after callback
         $state = base64_encode(json_encode([
             'user_id' => $user->id,
-            'user_type' => $user->role->value
+            'user_type' => $user->role->value,
+            'is_reconnection' => $isReconnection,
+            'timestamp' => now()->timestamp
         ]));
         
         $this->client->setState($state);
@@ -363,6 +378,10 @@ class GoogleDriveService
             throw new Exception('Failed to get access token from Google');
         }
 
+        $expiresAt = isset($token['expires_in'])
+            ? Carbon::now()->addSeconds($token['expires_in'])
+            : null;
+            
         // Store or update the token
         GoogleDriveToken::updateOrCreate(
             ['user_id' => $user->id],
@@ -370,12 +389,19 @@ class GoogleDriveService
                 'access_token' => $token['access_token'],
                 'refresh_token' => $token['refresh_token'] ?? null,
                 'token_type' => $token['token_type'] ?? 'Bearer',
-                'expires_at' => isset($token['expires_in'])
-                    ? Carbon::now()->addSeconds($token['expires_in'])
-                    : null,
+                'expires_at' => $expiresAt,
                 'scopes' => $this->client->getScopes(),
             ]
         );
+        
+        // Record successful connection for health monitoring
+        $this->healthService?->recordSuccessfulOperation($user, 'google-drive', [
+            'connected_at' => now()->toISOString(),
+            'scopes' => $this->client->getScopes(),
+        ]);
+        
+        // Update token expiration info
+        $this->healthService?->updateTokenExpiration($user, 'google-drive', $expiresAt);
     }
 
     /**
@@ -397,7 +423,7 @@ class GoogleDriveService
     /**
      * Get a valid token for the user, refreshing if necessary.
      */
-    protected function getValidToken(User $user): GoogleDriveToken
+    public function getValidToken(User $user): GoogleDriveToken
     {
         $token = GoogleDriveToken::where('user_id', $user->id)->first();
         if (!$token) {
@@ -418,12 +444,17 @@ class GoogleDriveService
 
             $newToken = $this->client->fetchAccessTokenWithRefreshToken();
 
+            $expiresAt = isset($newToken['expires_in'])
+                ? Carbon::now()->addSeconds($newToken['expires_in'])
+                : null;
+                
             $token->update([
                 'access_token' => $newToken['access_token'],
-                'expires_at' => isset($newToken['expires_in'])
-                    ? Carbon::now()->addSeconds($newToken['expires_in'])
-                    : null,
+                'expires_at' => $expiresAt,
             ]);
+            
+            // Update health service with new token expiration
+            $this->healthService?->updateTokenExpiration($user, 'google-drive', $expiresAt);
         }
 
         return $token;

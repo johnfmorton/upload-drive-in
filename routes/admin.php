@@ -39,11 +39,13 @@ Route::prefix('file-manager')
         Route::post('/bulk-delete', [\App\Http\Controllers\Admin\FileManagerController::class, 'bulkDestroy'])->name('bulk-delete');
         Route::delete('/', [\App\Http\Controllers\Admin\FileManagerController::class, 'bulkDestroy'])->name('bulk-destroy');
         Route::post('/process-pending', [\App\Http\Controllers\Admin\FileManagerController::class, 'processPending'])->name('process-pending');
+        Route::post('/bulk-retry', [\App\Http\Controllers\Admin\FileManagerController::class, 'bulkRetry'])->name('bulk-retry');
 
         // Dynamic file-specific routes
         Route::get('/{file}', [\App\Http\Controllers\Admin\FileManagerController::class, 'show'])->name('show');
         Route::patch('/{file}', [\App\Http\Controllers\Admin\FileManagerController::class, 'update'])->name('update');
         Route::delete('/{file}', [\App\Http\Controllers\Admin\FileManagerController::class, 'destroy'])->name('destroy');
+        Route::post('/{file}/retry', [\App\Http\Controllers\Admin\FileManagerController::class, 'retry'])->name('retry');
 
         // Rate-limited download endpoints
         Route::middleware([\App\Http\Middleware\FileDownloadRateLimitMiddleware::class . ':30,1'])
@@ -65,6 +67,8 @@ Route::delete('/files/{file}', [DashboardController::class, 'destroy'])
     ->name('files.destroy');
 Route::post('/files/process-pending', [DashboardController::class, 'processPendingUploads'])
     ->name('files.process-pending');
+Route::post('/files/retry-failed', [DashboardController::class, 'retryFailedUploads'])
+    ->name('files.retry-failed');
 
 // User Management
 Route::resource('/users', AdminUserController::class)
@@ -101,6 +105,9 @@ Route::prefix('cloud-storage')
     ->name('cloud-storage.')
     ->group(function () {
         Route::get('/', [CloudStorageController::class, 'index'])->name('index');
+        Route::get('/status', [CloudStorageController::class, 'getStatus'])->name('status');
+        Route::post('/reconnect', [CloudStorageController::class, 'reconnectProvider'])->name('reconnect');
+        Route::post('/test', [CloudStorageController::class, 'testConnection'])->name('test');
 
         // Microsoft Teams routes
         Route::put('/microsoft-teams', [CloudStorageController::class, 'updateMicrosoftTeams'])->name('microsoft-teams.update');

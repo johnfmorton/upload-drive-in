@@ -12,7 +12,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Bind cloud storage provider interfaces
+        $this->app->bind(
+            \App\Contracts\CloudStorageProviderInterface::class,
+            \App\Services\GoogleDriveProvider::class
+        );
+        
+        $this->app->bind(
+            \App\Contracts\CloudStorageErrorHandlerInterface::class,
+            \App\Services\GoogleDriveErrorHandler::class
+        );
     }
 
     /**

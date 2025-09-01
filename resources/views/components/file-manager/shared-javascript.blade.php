@@ -26,6 +26,8 @@ document.addEventListener('alpine:init', () => {
         userEmailFilter: '',
         fileSizeMinFilter: '',
         fileSizeMaxFilter: '',
+        errorStatusFilter: '',
+        errorSeverityFilter: '',
         
         // Column management (for table view)
         availableColumns: [{
@@ -70,6 +72,13 @@ document.addEventListener('alpine:init', () => {
             resizable: true,
             defaultWidth: 300,
             minWidth: 200
+        }, {
+            key: 'cloud_storage_error',
+            label: 'Cloud Storage Error',
+            sortable: false,
+            resizable: true,
+            defaultWidth: 350,
+            minWidth: 250
         }],
         visibleColumns: {},
         columnWidths: {},
@@ -108,6 +117,7 @@ document.addEventListener('alpine:init', () => {
         isDeleting: false,
         isDownloading: false,
         currentFile: null,
+        retryingFiles: [], // Array of file IDs being retried
         
         // Progress tracking
         bulkOperationProgress: {
@@ -235,6 +245,32 @@ document.addEventListener('alpine:init', () => {
                 }
             }
 
+            // Apply error status filter
+            if (this.errorStatusFilter) {
+                filtered = filtered.filter(file => {
+                    const hasError = file.cloud_storage_error_type;
+                    switch (this.errorStatusFilter) {
+                        case 'no_error':
+                            return !hasError;
+                        case 'has_error':
+                            return hasError;
+                        case 'recoverable':
+                            return hasError && this.isErrorRecoverable(file);
+                        case 'requires_intervention':
+                            return hasError && this.errorRequiresUserIntervention(file);
+                        default:
+                            return true;
+                    }
+                });
+            }
+
+            // Apply error severity filter
+            if (this.errorSeverityFilter) {
+                filtered = filtered.filter(file => {
+                    return file.cloud_storage_error_severity === this.errorSeverityFilter;
+                });
+            }
+
             // Apply sorting
             filtered.sort((a, b) => {
                 let valA = a[this.sortColumn];
@@ -271,6 +307,8 @@ document.addEventListener('alpine:init', () => {
             if (this.userEmailFilter.trim()) count++;
             if (this.fileSizeMinFilter.trim()) count++;
             if (this.fileSizeMaxFilter.trim()) count++;
+            if (this.errorStatusFilter) count++;
+            if (this.errorSeverityFilter) count++;
             return count;
         },
 
@@ -803,6 +841,8 @@ document.addEventListener('alpine:init', () => {
             this.userEmailFilter = '';
             this.fileSizeMinFilter = '';
             this.fileSizeMaxFilter = '';
+            this.errorStatusFilter = '';
+            this.errorSeverityFilter = '';
             this.selectedFiles = [];
         },
 
@@ -843,6 +883,157 @@ document.addEventListener('alpine:init', () => {
             setTimeout(() => {
                 this.showSuccessNotification = false;
             }, duration);
+        },
+
+        // Error handling helper methods
+        isErrorRecoverable(file) {
+            if (!file.cloud_storage_error_type) return false;
+            const recoverableTypes = ['network_error', 'service_unavailable', 'timeout', 'api_quota_exceeded'];
+            return recoverableTypes.includes(file.cloud_storage_error_type);
+        },
+
+        errorRequiresUserIntervention(file) {
+            if (!file.cloud_storage_error_type) return false;
+            const interventionTypes = ['token_expired', 'insufficient_permissions', 'storage_quota_exceeded', 'invalid_credentials'];
+            return interventionTypes.includes(file.cloud_storage_error_type);
+        },
+
+        getErrorSeverityColor(severity) {
+            switch (severity) {
+                case 'low': return 'text-yellow-500';
+                case 'medium': return 'text-orange-500';
+                case 'high': return 'text-red-500';
+                case 'critical': return 'text-red-700';
+                default: return 'text-gray-500';
+            }
+        },
+
+        getErrorBadgeColor(severity) {
+            switch (severity) {
+                case 'low': return 'bg-yellow-100 text-yellow-800';
+                case 'medium': return 'bg-orange-100 text-orange-800';
+                case 'high': return 'bg-red-100 text-red-800';
+                case 'critical': return 'bg-red-200 text-red-900';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        },
+
+        isRetryingFile(fileId) {
+            return this.retryingFiles.includes(fileId);
+        },
+
+        async retryFileUpload(file) {
+            if (!this.isErrorRecoverable(file) || this.isRetryingFile(file.id)) {
+                return;
+            }
+
+            console.log('🔍 Retrying file upload:', file.id);
+            this.retryingFiles.push(file.id);
+
+            try {
+                const response = await fetch(`{{ $userType === 'admin' ? '/admin' : '/employee' }}/file-manager/${file.id}/retry`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('🔍 File retry successful');
+                    this.showSuccess(data.message || 'File upload retry initiated successfully');
+                    
+                    // Update the file in the local array
+                    const fileIndex = this.files.findIndex(f => f.id === file.id);
+                    if (fileIndex !== -1) {
+                        // Clear error information
+                        this.files[fileIndex].cloud_storage_error_type = null;
+                        this.files[fileIndex].cloud_storage_error_message = null;
+                        this.files[fileIndex].cloud_storage_error_description = null;
+                        this.files[fileIndex].cloud_storage_error_severity = null;
+                    }
+                } else {
+                    console.error('🔍 File retry failed:', data.message);
+                    this.showError(data.message || 'Failed to retry file upload');
+                }
+            } catch (error) {
+                console.error('🔍 File retry error:', error);
+                this.showError('An error occurred while retrying the file upload');
+            } finally {
+                // Remove from retrying list
+                this.retryingFiles = this.retryingFiles.filter(id => id !== file.id);
+            }
+        },
+
+        async bulkRetryFiles() {
+            const recoverableFiles = this.selectedFiles
+                .map(id => this.files.find(f => f.id === id))
+                .filter(file => file && this.isErrorRecoverable(file));
+
+            if (recoverableFiles.length === 0) {
+                this.showError('No recoverable files selected');
+                return;
+            }
+
+            console.log('🔍 Starting bulk retry for', recoverableFiles.length, 'files');
+            this.showBulkProgress('Retrying Files', recoverableFiles.length);
+
+            let successCount = 0;
+            let failureCount = 0;
+
+            // Use bulk retry endpoint instead of individual retries
+            try {
+                const response = await fetch(`{{ $userType === 'admin' ? '/admin' : '/employee' }}/file-manager/bulk-retry`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        file_ids: recoverableFiles.map(f => f.id)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    successCount = data.retried_count || recoverableFiles.length;
+                    failureCount = data.failed_count || 0;
+                    
+                    // Update the files in the local array
+                    recoverableFiles.forEach(file => {
+                        const fileIndex = this.files.findIndex(f => f.id === file.id);
+                        if (fileIndex !== -1) {
+                            this.files[fileIndex].cloud_storage_error_type = null;
+                            this.files[fileIndex].cloud_storage_error_message = null;
+                            this.files[fileIndex].cloud_storage_error_description = null;
+                            this.files[fileIndex].cloud_storage_error_severity = null;
+                        }
+                    });
+                } else {
+                    failureCount = recoverableFiles.length;
+                    console.error('🔍 Bulk retry failed:', data.message);
+                }
+            } catch (error) {
+                failureCount = recoverableFiles.length;
+                console.error('🔍 Bulk retry error:', error);
+            }
+
+            this.hideBulkProgress();
+
+            // Show results
+            if (successCount > 0 && failureCount === 0) {
+                this.showSuccess(`Successfully retried ${successCount} file${successCount > 1 ? 's' : ''}`);
+            } else if (successCount > 0 && failureCount > 0) {
+                this.showError(`Retried ${successCount} file${successCount > 1 ? 's' : ''}, ${failureCount} failed`);
+            } else {
+                this.showError(`Failed to retry ${failureCount} file${failureCount > 1 ? 's' : ''}`);
+            }
+
+            // Clear selection
+            this.selectedFiles = [];
         },
 
         showError(message) {
@@ -982,9 +1173,33 @@ document.addEventListener('alpine:init', () => {
                 case 'status':
                     if (file.google_drive_file_id) {
                         return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Uploaded</span>';
+                    } else if (file.cloud_storage_error_type) {
+                        const badgeColor = this.getErrorBadgeColor(file.cloud_storage_error_severity);
+                        return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeColor}">
+                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            Error
+                        </span>`;
                     } else {
                         return '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>';
                     }
+                case 'cloud_storage_error':
+                    if (!file.cloud_storage_error_type) {
+                        return '';
+                    }
+                    const severityColor = this.getErrorSeverityColor(file.cloud_storage_error_severity);
+                    return `<div class="flex items-center space-x-2">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 ${severityColor}" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate" title="${file.cloud_storage_error_message}">${file.cloud_storage_error_message}</p>
+                            <p class="text-xs text-gray-500 truncate">${file.cloud_storage_error_description}</p>
+                        </div>
+                    </div>`;
                 case 'created_at':
                     return this.formatDate(file.created_at);
                 case 'message':

@@ -28,11 +28,13 @@ Route::prefix('file-manager')
         Route::get('/', [\App\Http\Controllers\Employee\FileManagerController::class, 'index'])->name('index');
         Route::post('/bulk-delete', [\App\Http\Controllers\Employee\FileManagerController::class, 'bulkDestroy'])->name('bulk-delete');
         Route::delete('/', [\App\Http\Controllers\Employee\FileManagerController::class, 'bulkDestroy'])->name('bulk-destroy');
+        Route::post('/bulk-retry', [\App\Http\Controllers\Employee\FileManagerController::class, 'bulkRetry'])->name('bulk-retry');
 
         // Dynamic routes next
         Route::get('/{fileUpload}', [\App\Http\Controllers\Employee\FileManagerController::class, 'show'])->name('show');
         Route::patch('/{fileUpload}', [\App\Http\Controllers\Employee\FileManagerController::class, 'update'])->name('update');
         Route::delete('/{fileUpload}', [\App\Http\Controllers\Employee\FileManagerController::class, 'destroy'])->name('destroy');
+        Route::post('/{fileUpload}/retry', [\App\Http\Controllers\Employee\FileManagerController::class, 'retry'])->name('retry');
 
         // Rate-limited download endpoints
         Route::middleware([\App\Http\Middleware\FileDownloadRateLimitMiddleware::class . ':30,1'])
@@ -51,6 +53,13 @@ Route::prefix('file-manager')
 
 // Cloud Storage Routes
 Route::get('/cloud-storage', [\App\Http\Controllers\Employee\CloudStorageController::class, 'index'])->name('cloud-storage.index');
+Route::get('/cloud-storage/status', [\App\Http\Controllers\Employee\CloudStorageController::class, 'getStatus'])->name('cloud-storage.status');
+Route::post('/cloud-storage/reconnect', [\App\Http\Controllers\Employee\CloudStorageController::class, 'reconnectProvider'])->name('cloud-storage.reconnect');
+Route::post('/cloud-storage/test', [\App\Http\Controllers\Employee\CloudStorageController::class, 'testConnection'])->name('cloud-storage.test');
+
+// File retry routes
+Route::post('/files/retry-failed', [\App\Http\Controllers\Employee\FileManagerController::class, 'retryFailedUploads'])
+    ->name('files.retry-failed');
 
 // Client Management Routes
 Route::get('/clients', [ClientManagementController::class, 'index'])->name('clients.index');
