@@ -120,21 +120,22 @@
 
     // ---- BATCH UPLOAD EMAILS ----
 
-    // Client Batch Email
-    'client_batch_upload_subject' => 'File Upload Batch Confirmation - :app_name',
-    'client_batch_upload_heading' => 'File Upload Batch Successful',
-    'client_batch_upload_body' => '{1} Your file has been successfully uploaded.|[2,*] Your :count files have been successfully uploaded.',
-    'upload_recipient_line' => 'Recipient: :names',
+    // Client Batch Email (count-aware)
+    'client_batch_upload_subject' => '{0} Upload confirmation — :app_name|{1} Upload confirmation — :app_name|[2,*] Upload confirmation (:count files) — :app_name',
+    'client_batch_upload_heading' => '{0} No files uploaded|{1} File upload successful|[2,*] File uploads successful',
+    'client_batch_upload_body' => '{0} No files were uploaded.|{1} Your file has been successfully uploaded.|[2,*] Your :count files have been successfully uploaded.',
+    // Show “Recipient” vs “Recipients” based on how many names you pass
+    'upload_recipient_line' => '{1} Recipient: :names|[2,*] Recipients: :names',
     'uploaded_files_list' => 'Uploaded Files',
     'upload_thank_you' => 'Thank you for using our service.',
-    'unsubscribe_link_text' => "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:*",
+    'unsubscribe_link_text' => 'If you’re having trouble clicking the ":actionText" button, copy and paste the URL below into your web browser:',
     'unsubscribe_action_text' => 'Unsubscribe from notifications',
     'want_to_unsubscribe_from_notifications' => 'Want to unsubscribe from notifications?',
 
     // Admin Batch Email
-    'admin_batch_upload_subject' => '{1} New File Uploaded by :userName to :app_name*|[2,*] :count New Files Uploaded by :userName to :app_name',
+    'admin_batch_upload_subject' => '{0} No new files.|{1} New file uploaded by :userName to :app_name|[2,*] :count new files uploaded by :userName to :app_name',
     'admin_batch_upload_heading' => 'Batch File Upload Notification',
-    'admin_batch_upload_body_intro' => '{1} :userName (:userEmail) has uploaded 1 new file.*|[2,*] :userName (:userEmail) has uploaded :count new files.',
+    'admin_batch_upload_body_intro' => '{0} No new files were uploaded.|{1} :userName (:userEmail) has uploaded 1 new file.|[2,*] :userName (:userEmail) has uploaded :count new files.',
     'uploaded_files_details' => 'Uploaded File Details',
     'file_label' => 'File',
     // Re-using existing keys: 'file_name', 'file_size', 'file_message'
