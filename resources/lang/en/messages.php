@@ -168,7 +168,7 @@
     'whitelist_mode' => 'Whitelist Mode (allow only approved domains)',
     'domain_rules' => 'Security Domain Rules',
     'domain_rules_hint' => 'Enter one rule per line. Use * as a wildcard. Examples: *.example.com, user@domain.com, *.co.uk',
-    
+
     // Security Settings Page Specific
     'security_settings_title' => 'Security and Access Settings',
     'security_settings_description' => 'Manage security policies and access control settings for your application.',
@@ -197,13 +197,13 @@
     // User Management Messages
     'client_created' => 'Client user created successfully. You can provide them with their login link manually.',
     'client_created_and_invited' => 'Client user created and invitation sent successfully.',
-    
+
     // Admin User Creation Messages
     'admin_user_created' => 'Client user created successfully. You can provide them with their login link manually.',
     'admin_user_created_and_invited' => 'Client user created and invitation sent successfully.',
     'admin_user_created_email_failed' => 'Client user created successfully, but invitation email failed to send. You can provide them with their login link manually.',
     'admin_user_creation_failed' => 'Failed to create client user. Please try again.',
-    
+
     // Employee Client Creation Messages
     'employee_client_created' => 'Client user created successfully. You can provide them with their login link manually.',
     'employee_client_created_and_invited' => 'Client user created and invitation sent successfully.',

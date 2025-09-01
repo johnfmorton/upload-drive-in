@@ -100,15 +100,14 @@
                             <x-dropdown-link :href="route('admin.security.settings')">
                                 {{ __('messages.security_and_access_settings') }}
                             </x-dropdown-link>
-                            
                         @elseif(auth()->user()->isClient())
                             <x-dropdown-link :href="route('client.profile.edit')">
                                 {{ __('Profile') }}
                             </x-dropdown-link>
                         @elseif(auth()->user()->isEmployee())
-                        <x-dropdown-link :href="route('employee.profile.edit', ['username' => auth()->user()->username])">
-                            {{ __('Profile') }}
-                        </x-dropdown-link>
+                            <x-dropdown-link :href="route('employee.profile.edit', ['username' => auth()->user()->username])">
+                                {{ __('Profile') }}
+                            </x-dropdown-link>
                             <x-dropdown-link :href="route('employee.clients.index', ['username' => auth()->user()->username])">
                                 {{ __('messages.nav_client_management') }}
                             </x-dropdown-link>
