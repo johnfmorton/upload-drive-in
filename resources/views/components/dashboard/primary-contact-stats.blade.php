@@ -4,7 +4,7 @@
     $primaryContactCount = $user->primaryContactClients()->count();
 @endphp
 
-<div class="bg-white overflow-hidden shadow rounded-lg h-full">
+<div class="bg-white overflow-hidden shadow rounded-lg h-full flex flex-col justify-between">
     <div class="p-4 sm:p-5">
         <div class="flex items-center">
             <div class="flex-shrink-0">
