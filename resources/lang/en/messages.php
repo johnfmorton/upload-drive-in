@@ -134,11 +134,13 @@
 
     // Admin Batch Email
     'admin_batch_upload_subject' => '{0} No new files.|{1} New file uploaded by :userName to :app_name|[2,*] :count new files uploaded by :userName to :app_name',
-    'admin_batch_upload_heading' => 'Batch File Upload Notification',
+    'admin_batch_upload_heading' => 'File Upload Notification',
     'admin_batch_upload_body_intro' => '{0} No new files were uploaded.|{1} :userName (:userEmail) has uploaded 1 new file.|[2,*] :userName (:userEmail) has uploaded :count new files.',
     'uploaded_files_details' => 'Uploaded File Details',
     'file_label' => 'File',
-    // Re-using existing keys: 'file_name', 'file_size', 'file_message'
+    'file_name' => 'File name',
+    'file_size' => 'Size',
+    'file_message' => 'Message',
 
     // Two-Factor Authentication
     'two_factor_authentication' => 'Two-Factor Authentication',
@@ -402,9 +404,9 @@
     'primary_client' => 'Primary',
     'primary_contact_badge' => 'Primary Contact',
     'no_client_relationships' => 'You have no client relationships yet.',
-    'filter_by_primary_contact' =>'Filter',
-    'filter_all_clients' =>'All Clients',
-    'filter_primary_contact_only' =>'Only Primary Clients',
+    'filter_by_primary_contact' => 'Filter',
+    'filter_all_clients' => 'All Clients',
+    'filter_primary_contact_only' => 'Only Primary Clients',
 
     // File Upload Messages
     'no_valid_upload_destination' => 'No valid upload destination found. Please contact support.',

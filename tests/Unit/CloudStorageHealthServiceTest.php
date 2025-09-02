@@ -23,7 +23,8 @@ class CloudStorageHealthServiceTest extends TestCase
     {
         parent::setUp();
         
-        $this->healthService = new CloudStorageHealthService();
+        $logService = new \App\Services\CloudStorageLogService();
+        $this->healthService = new CloudStorageHealthService($logService);
         $this->user = User::factory()->create();
         
         // Fake notifications to prevent actual sending during tests

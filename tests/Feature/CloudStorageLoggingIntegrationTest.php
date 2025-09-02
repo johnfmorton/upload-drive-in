@@ -2,12 +2,16 @@
 
 namespace Tests\Feature;
 
-use App\Enums\CloudStorageErrorType;
 use App\Models\User;
+use App\Models\GoogleDriveToken;
 use App\Services\CloudStorageLogService;
+use App\Services\CloudStorageHealthService;
+use App\Services\GoogleDriveService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
+use Carbon\Carbon;
 
 class CloudStorageLoggingIntegrationTest extends TestCase
 {
@@ -15,183 +19,259 @@ class CloudStorageLoggingIntegrationTest extends TestCase
 
     private User $user;
     private CloudStorageLogService $logService;
+    private CloudStorageHealthService $healthService;
 
     protected function setUp(): void
     {
         parent::setUp();
         
-        $this->user = User::factory()->create([
-            'role' => \App\Enums\UserRole::ADMIN,
-        ]);
-        
+        $this->user = User::factory()->create();
         $this->logService = app(CloudStorageLogService::class);
+        $this->healthService = app(CloudStorageHealthService::class);
+        
+        // Clear cache before each test
+        Cache::flush();
     }
 
-    public function test_log_service_creates_structured_operation_logs(): void
+    public function test_comprehensive_logging_during_status_determination(): void
     {
-        // Mock log channels
-        Log::shouldReceive('channel')->with('cloud-storage')->andReturnSelf();
-        Log::shouldReceive('channel')->with('audit')->andReturnSelf();
-        Log::shouldReceive('channel')->with('performance')->andReturnSelf();
+        // Create an expired token to trigger refresh
+        GoogleDriveToken::factory()->create([
+            'user_id' => $this->user->id,
+            'access_token' => 'expired_token',
+            'refresh_token' => 'valid_refresh_token',
+            'expires_at' => Carbon::now()->subHour(),
+        ]);
+
+        // Mock the Google Drive service to simulate token refresh failure
+        $this->mock(GoogleDriveService::class, function ($mock) {
+            $mock->shouldReceive('validateAndRefreshToken')
+                ->once()
+                ->andReturn(false);
+        });
+
+        Log::shouldReceive('channel')->andReturnSelf();
+        Log::shouldReceive('debug')->atLeast()->once();
+        Log::shouldReceive('info')->atLeast()->once();
+        Log::shouldReceive('error')->atLeast()->once(); // Add error expectation
+
+        // Perform status determination which should trigger logging
+        $status = $this->healthService->determineConsolidatedStatus($this->user, 'google-drive');
+
+        // Verify status determination was logged
+        $this->assertEquals('authentication_required', $status);
         
-        Log::shouldReceive('info')->times(4); // cloud-storage start, cloud-storage success, audit, performance
-        
-        $operationId = $this->logService->logOperationStart(
-            'upload',
-            'google-drive',
-            $this->user,
-            ['file_name' => 'test.pdf']
-        );
-        
-        $this->logService->logOperationSuccess(
-            $operationId,
-            'upload',
-            'google-drive',
-            $this->user,
-            ['file_id' => 'drive123'],
-            1500.0
-        );
-        
-        $this->assertNotEmpty($operationId);
-        $this->assertStringStartsWith('cs_', $operationId);
+        // Verify metrics were tracked
+        $this->assertGreaterThan(0, $this->getMetric('status_frequency.google-drive.authentication_required'));
     }
 
-    public function test_log_service_handles_operation_failures(): void
+    public function test_token_refresh_logging_with_successful_refresh(): void
     {
-        // Mock log channels
-        Log::shouldReceive('channel')->with('cloud-storage')->andReturnSelf();
-        Log::shouldReceive('channel')->with('audit')->andReturnSelf();
-        Log::shouldReceive('channel')->with('performance')->andReturnSelf();
+        // Create an expired token
+        $token = GoogleDriveToken::factory()->create([
+            'user_id' => $this->user->id,
+            'access_token' => 'expired_token',
+            'refresh_token' => 'valid_refresh_token',
+            'expires_at' => Carbon::now()->subHour(),
+        ]);
+
+        // Mock successful token refresh
+        $googleService = $this->mock(GoogleDriveService::class);
+        $googleService->shouldReceive('validateAndRefreshToken')
+            ->once()
+            ->andReturnUsing(function ($user) {
+                // Simulate logging that would happen in real service
+                $this->logService->logTokenRefreshAttempt($user, 'google-drive', [
+                    'trigger' => 'test'
+                ]);
+                $this->logService->logTokenRefreshSuccess($user, 'google-drive', [
+                    'new_expires_at' => now()->addHour()->toISOString()
+                ]);
+                return true;
+            });
+
+        $googleService->shouldReceive('testApiConnectivity')
+            ->once()
+            ->andReturnUsing(function ($user) {
+                $this->logService->logApiConnectivityTest($user, 'google-drive', true);
+                return true;
+            });
+
+        Log::shouldReceive('channel')->andReturnSelf();
+        Log::shouldReceive('debug')->atLeast()->once();
+        Log::shouldReceive('info')->atLeast()->once();
+
+        // Perform status determination
+        $status = $this->healthService->determineConsolidatedStatus($this->user, 'google-drive');
+
+        // Verify successful status and metrics
+        $this->assertEquals('healthy', $status);
+        $this->assertEquals(1, $this->getMetric('token_refresh_attempts.google-drive'));
+        $this->assertEquals(1, $this->getMetric('token_refresh_success.google-drive'));
+        $this->assertEquals(1, $this->getMetric('api_connectivity_success.google-drive'));
+        $this->assertEquals(1, $this->getMetric('status_frequency.google-drive.healthy'));
+    }
+
+    public function test_cache_operations_are_logged(): void
+    {
+        Log::shouldReceive('channel')->andReturnSelf();
+        Log::shouldReceive('debug')->atLeast()->once();
+        Log::shouldReceive('error')->atLeast()->once(); // Add error expectation for failed token validation
+
+        // First call should miss cache and log cache miss
+        $this->healthService->ensureValidToken($this->user, 'google-drive');
         
-        Log::shouldReceive('error')->once();
-        Log::shouldReceive('warning')->once();
+        // Verify cache miss was logged
+        $this->assertEquals(1, $this->getMetric('cache_misses'));
+    }
+
+    public function test_api_connectivity_failure_logging(): void
+    {
+        // Create a valid token
+        GoogleDriveToken::factory()->create([
+            'user_id' => $this->user->id,
+            'access_token' => 'valid_token',
+            'refresh_token' => 'valid_refresh_token',
+            'expires_at' => Carbon::now()->addHour(),
+        ]);
+
+        // Mock token validation success but API connectivity failure
+        $googleService = $this->mock(GoogleDriveService::class);
+        $googleService->shouldReceive('validateAndRefreshToken')
+            ->once()
+            ->andReturn(true);
+
+        $googleService->shouldReceive('testApiConnectivity')
+            ->once()
+            ->andReturnUsing(function ($user) {
+                $this->logService->logApiConnectivityTest($user, 'google-drive', false, [
+                    'reason' => 'network_error'
+                ]);
+                return false;
+            });
+
+        Log::shouldReceive('channel')->andReturnSelf();
+        Log::shouldReceive('debug')->atLeast()->once();
+        Log::shouldReceive('info')->atLeast()->once(); // Add info expectation for status determination
+        Log::shouldReceive('warning')->atLeast()->once(); // Add warning expectation for API connectivity failure
+
+        // Perform status determination
+        $status = $this->healthService->determineConsolidatedStatus($this->user, 'google-drive');
+
+        // Verify connection issues status and metrics
+        $this->assertEquals('connection_issues', $status);
+        $this->assertEquals(1, $this->getMetric('api_connectivity_failures.google-drive'));
+        $this->assertEquals(1, $this->getMetric('status_frequency.google-drive.connection_issues'));
+    }
+
+    public function test_status_change_tracking(): void
+    {
+        Log::shouldReceive('channel')->andReturnSelf();
+        Log::shouldReceive('info')->atLeast()->twice();
+
+        // First status determination
+        $this->logService->logStatusDetermination($this->user, 'google-drive', 'healthy', 'All good');
+        
+        // Second status determination with different status
+        $this->logService->logStatusDetermination($this->user, 'google-drive', 'authentication_required', 'Token expired');
+
+        // Verify status change was tracked
+        $this->assertEquals(1, $this->getMetric('status_changes.google-drive.healthy_to_authentication_required'));
+    }
+
+    public function test_metrics_summary_includes_all_categories(): void
+    {
+        // Set up various metrics
+        $this->setMetric('token_refresh_attempts.google-drive', 5);
+        $this->setMetric('token_refresh_success.google-drive', 4);
+        $this->setMetric('token_refresh_failures.google-drive', 1);
+        $this->setMetric('api_connectivity_success.google-drive', 8);
+        $this->setMetric('api_connectivity_failures.google-drive', 2);
+        $this->setMetric('status_frequency.google-drive.healthy', 6);
+        $this->setMetric('status_frequency.google-drive.authentication_required', 1);
+        $this->setMetric('cache_hits', 20);
+        $this->setMetric('cache_misses', 5);
+
+        $summary = $this->logService->getMetricsSummary('google-drive');
+
+        // Verify all categories are present
+        $this->assertArrayHasKey('token_refresh', $summary);
+        $this->assertArrayHasKey('api_connectivity', $summary);
+        $this->assertArrayHasKey('status_distribution', $summary);
+        $this->assertArrayHasKey('cache_performance', $summary);
+
+        // Verify token refresh metrics
+        $this->assertEquals(5, $summary['token_refresh']['attempts']);
+        $this->assertEquals(4, $summary['token_refresh']['successes']);
+        $this->assertEquals(1, $summary['token_refresh']['failures']);
+        $this->assertEquals(0.8, $summary['token_refresh']['success_rate']);
+
+        // Verify API connectivity metrics
+        $this->assertEquals(8, $summary['api_connectivity']['successes']);
+        $this->assertEquals(2, $summary['api_connectivity']['failures']);
+
+        // Verify status distribution
+        $this->assertEquals(6, $summary['status_distribution']['healthy']);
+        $this->assertEquals(1, $summary['status_distribution']['authentication_required']);
+        $this->assertEquals(0, $summary['status_distribution']['connection_issues']);
+        $this->assertEquals(0, $summary['status_distribution']['not_connected']);
+
+        // Verify cache performance
+        $this->assertEquals(20, $summary['cache_performance']['hits']);
+        $this->assertEquals(5, $summary['cache_performance']['misses']);
+    }
+
+    public function test_proactive_token_validation_logging(): void
+    {
+        Log::shouldReceive('channel')->andReturnSelf();
         Log::shouldReceive('info')->once();
-        
-        $operationId = 'cs_test_' . now()->timestamp;
-        $exception = new \Exception('Test error');
-        
-        $this->logService->logOperationFailure(
-            $operationId,
-            'upload',
-            'google-drive',
-            $this->user,
-            CloudStorageErrorType::TOKEN_EXPIRED,
-            'Token expired',
-            ['file_name' => 'test.pdf'],
-            1000.0,
-            $exception
-        );
-        
-        $this->assertTrue(true); // Test passes if no exceptions thrown
+
+        $this->logService->logProactiveTokenValidation($this->user, 'google-drive', true, true, true);
+
+        // Verify proactive validation metrics
+        $this->assertEquals(1, $this->getMetric('proactive_validation.expired_tokens.google-drive'));
+        $this->assertEquals(1, $this->getMetric('proactive_validation.refresh_needed.google-drive'));
     }
 
-    public function test_health_status_changes_are_logged(): void
+    public function test_error_context_is_preserved_in_logs(): void
     {
-        // Mock log channels
-        Log::shouldReceive('channel')->with('cloud-storage')->andReturnSelf();
-        Log::shouldReceive('channel')->with('audit')->andReturnSelf();
-        
-        Log::shouldReceive('log')->once();
-        Log::shouldReceive('info')->once();
-        
-        $this->logService->logHealthStatusChange(
-            'google-drive',
-            $this->user,
-            'healthy',
-            'unhealthy',
-            CloudStorageErrorType::TOKEN_EXPIRED,
-            'Token expired'
-        );
-        
-        $this->assertTrue(true); // Test passes if no exceptions thrown
+        Log::shouldReceive('channel')
+            ->with('cloud-storage')
+            ->once()
+            ->andReturnSelf();
+            
+        Log::shouldReceive('error')
+            ->with('Token refresh failed', \Mockery::on(function ($data) {
+                return isset($data['event']) && 
+                       $data['event'] === 'token_refresh_failure' &&
+                       isset($data['context']['error_type']) &&
+                       $data['context']['error_type'] === 'invalid_credentials';
+            }))
+            ->once();
+
+        $this->logService->logTokenRefreshFailure($this->user, 'google-drive', 'Invalid refresh token', [
+            'error_type' => 'invalid_credentials',
+            'http_code' => 400,
+            'attempt' => 1
+        ]);
+
+        // Verify metrics are tracked
+        $this->assertEquals(1, $this->getMetric('token_refresh_failures.google-drive'));
     }
 
-    public function test_oauth_events_are_logged_for_security_monitoring(): void
+    /**
+     * Helper method to get a metric value from cache.
+     */
+    private function getMetric(string $metric): ?int
     {
-        // Mock log channels
-        Log::shouldReceive('channel')->with('cloud-storage')->andReturnSelf();
-        Log::shouldReceive('channel')->with('audit')->andReturnSelf();
-        
-        Log::shouldReceive('log')->twice();
-        Log::shouldReceive('info')->twice();
-
-        // Log OAuth events
-        $this->logService->logOAuthEvent(
-            'google-drive',
-            $this->user,
-            'auth_url_generated',
-            true
-        );
-
-        $this->logService->logOAuthEvent(
-            'google-drive',
-            $this->user,
-            'callback_complete',
-            true
-        );
-        
-        $this->assertTrue(true); // Test passes if no exceptions thrown
+        return Cache::get('cloud_storage_metrics:' . $metric);
     }
 
-    public function test_performance_metrics_are_logged_with_categorization(): void
+    /**
+     * Helper method to set a metric value in cache.
+     */
+    private function setMetric(string $metric, int $value): void
     {
-        // Mock log channels
-        Log::shouldReceive('channel')->with('performance')->andReturnSelf();
-        Log::shouldReceive('info')->times(4);
-
-        // Log performance metrics for different durations
-        $testCases = [
-            [500.0, 'fast'],
-            [2000.0, 'normal'],
-            [10000.0, 'slow'],
-            [20000.0, 'very_slow'],
-        ];
-
-        foreach ($testCases as [$duration, $expectedCategory]) {
-            $this->logService->logPerformanceMetrics(
-                'upload',
-                'google-drive',
-                $duration,
-                'success'
-            );
-        }
-        
-        $this->assertTrue(true); // Test passes if no exceptions thrown
-    }
-
-    public function test_bulk_operation_summary_calculates_correct_metrics(): void
-    {
-        // Mock log channels
-        Log::shouldReceive('channel')->with('cloud-storage')->andReturnSelf();
-        Log::shouldReceive('channel')->with('audit')->andReturnSelf();
-        
-        Log::shouldReceive('info')->twice();
-
-        $errorSummary = [
-            'token_expired' => 2,
-            'network_error' => 1,
-        ];
-
-        $this->logService->logBulkOperationSummary(
-            'bulk_upload',
-            'google-drive',
-            $this->user,
-            10, // total
-            7,  // success
-            3,  // failure
-            5000.0, // total duration
-            $errorSummary
-        );
-        
-        $this->assertTrue(true); // Test passes if no exceptions thrown
-    }
-
-    public function test_log_filtering_command_exists(): void
-    {
-        // Test that the command is registered
-        $this->artisan('list')
-            ->assertExitCode(0);
-        
-        $this->assertTrue(true); // Test passes if command exists
+        Cache::put('cloud_storage_metrics:' . $metric, $value, 3600);
     }
 }

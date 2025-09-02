@@ -2,11 +2,10 @@
 
 namespace Tests\Unit\Services;
 
-use App\Enums\CloudStorageErrorType;
 use App\Models\User;
 use App\Services\CloudStorageLogService;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
@@ -22,495 +21,285 @@ class CloudStorageLogServiceTest extends TestCase
         parent::setUp();
         
         $this->logService = new CloudStorageLogService();
-        $this->user = User::factory()->create([
-            'email' => 'test@example.com',
-            'role' => \App\Enums\UserRole::ADMIN,
+        $this->user = User::factory()->create();
+        
+        // Clear cache before each test
+        Cache::flush();
+    }
+
+    public function test_logs_token_refresh_attempt(): void
+    {
+        Log::shouldReceive('channel')
+            ->with('cloud-storage')
+            ->once()
+            ->andReturnSelf();
+            
+        Log::shouldReceive('info')
+            ->with('Token refresh attempt initiated', \Mockery::type('array'))
+            ->once();
+
+        $this->logService->logTokenRefreshAttempt($this->user, 'google-drive', [
+            'trigger' => 'proactive_validation'
         ]);
+
+        // Verify metrics are tracked
+        $this->assertEquals(1, $this->getMetric('token_refresh_attempts.google-drive'));
+        $this->assertEquals(1, $this->getMetric("token_refresh_attempts.google-drive.user.{$this->user->id}"));
     }
 
-    public function test_log_operation_start_creates_structured_log(): void
+    public function test_logs_token_refresh_success(): void
     {
         Log::shouldReceive('channel')
             ->with('cloud-storage')
             ->once()
             ->andReturnSelf();
-        
+            
         Log::shouldReceive('info')
-            ->once()
-            ->with(
-                'Cloud storage operation started: upload',
-                \Mockery::on(function ($context) {
-                    return isset($context['operation_id']) &&
-                           $context['operation'] === 'upload' &&
-                           $context['provider'] === 'google-drive' &&
-                           $context['user_id'] === $this->user->id &&
-                           $context['user_email'] === $this->user->email &&
-                           $context['operation_status'] === 'started' &&
-                           isset($context['started_at']) &&
-                           isset($context['timestamp']);
-                })
-            );
+            ->with('Token refresh completed successfully', \Mockery::type('array'))
+            ->once();
 
-        $operationId = $this->logService->logOperationStart(
-            'upload',
-            'google-drive',
-            $this->user,
-            ['file_name' => 'test.pdf']
-        );
+        $this->logService->logTokenRefreshSuccess($this->user, 'google-drive', [
+            'new_expires_at' => now()->addHour()->toISOString()
+        ]);
 
-        $this->assertNotEmpty($operationId);
-        $this->assertStringStartsWith('cs_', $operationId);
+        // Verify metrics are tracked
+        $this->assertEquals(1, $this->getMetric('token_refresh_success.google-drive'));
+        $this->assertEquals(1, $this->getMetric("token_refresh_success.google-drive.user.{$this->user->id}"));
     }
 
-    public function test_log_operation_success_logs_to_multiple_channels(): void
+    public function test_logs_token_refresh_failure(): void
     {
-        $operationId = 'cs_test123_' . now()->timestamp;
-        $durationMs = 1500.5;
-
-        // Expect cloud-storage channel log
         Log::shouldReceive('channel')
             ->with('cloud-storage')
             ->once()
             ->andReturnSelf();
-        
-        Log::shouldReceive('info')
-            ->once()
-            ->with(
-                'Cloud storage operation successful: upload',
-                \Mockery::on(function ($context) use ($operationId, $durationMs) {
-                    return $context['operation_id'] === $operationId &&
-                           $context['operation_status'] === 'success' &&
-                           $context['duration_ms'] === $durationMs &&
-                           isset($context['completed_at']);
-                })
-            );
-
-        // Expect audit channel log
-        Log::shouldReceive('channel')
-            ->with('audit')
-            ->once()
-            ->andReturnSelf();
-        
-        Log::shouldReceive('info')
-            ->once()
-            ->with(
-                'Cloud storage success: upload',
-                \Mockery::on(function ($context) use ($operationId, $durationMs) {
-                    return $context['operation_id'] === $operationId &&
-                           $context['user_id'] === $this->user->id &&
-                           $context['provider'] === 'google-drive' &&
-                           $context['duration_ms'] === $durationMs;
-                })
-            );
-
-        // Expect performance channel log
-        Log::shouldReceive('channel')
-            ->with('performance')
-            ->once()
-            ->andReturnSelf();
-        
-        Log::shouldReceive('info')
-            ->once()
-            ->with(
-                'Cloud storage performance: upload',
-                \Mockery::on(function ($context) use ($durationMs) {
-                    return $context['duration_ms'] === $durationMs &&
-                           $context['outcome'] === 'success' &&
-                           $context['performance_category'] === 'normal';
-                })
-            );
-
-        $this->logService->logOperationSuccess(
-            $operationId,
-            'upload',
-            'google-drive',
-            $this->user,
-            ['file_id' => 'drive123'],
-            $durationMs
-        );
-    }
-
-    public function test_log_operation_failure_includes_error_classification(): void
-    {
-        $operationId = 'cs_test123_' . now()->timestamp;
-        $errorType = CloudStorageErrorType::TOKEN_EXPIRED;
-        $exception = new \Exception('Token has expired');
-
-        Log::shouldReceive('channel')
-            ->with('cloud-storage')
-            ->once()
-            ->andReturnSelf();
-        
+            
         Log::shouldReceive('error')
-            ->once()
-            ->with(
-                'Cloud storage operation failed: upload',
-                \Mockery::on(function ($context) use ($operationId, $errorType) {
-                    return $context['operation_id'] === $operationId &&
-                           $context['operation_status'] === 'failed' &&
-                           $context['error_type'] === $errorType->value &&
-                           $context['error_classification'] === 'authentication' &&
-                           $context['is_retryable'] === false &&
-                           $context['requires_user_action'] === true &&
-                           isset($context['exception']);
-                })
-            );
+            ->with('Token refresh failed', \Mockery::type('array'))
+            ->once();
 
+        $this->logService->logTokenRefreshFailure($this->user, 'google-drive', 'Invalid refresh token', [
+            'error_type' => 'invalid_credentials'
+        ]);
+
+        // Verify metrics are tracked
+        $this->assertEquals(1, $this->getMetric('token_refresh_failures.google-drive'));
+        $this->assertEquals(1, $this->getMetric("token_refresh_failures.google-drive.user.{$this->user->id}"));
+    }
+
+    public function test_logs_status_determination(): void
+    {
         Log::shouldReceive('channel')
-            ->with('audit')
+            ->with('cloud-storage')
             ->once()
             ->andReturnSelf();
-        
+            
+        Log::shouldReceive('info')
+            ->with('Status determined', \Mockery::type('array'))
+            ->once();
+
+        $this->logService->logStatusDetermination(
+            $this->user, 
+            'google-drive', 
+            'healthy', 
+            'Token is valid and API connectivity confirmed',
+            ['determination_time_ms' => 150.5]
+        );
+
+        // Verify status frequency metrics
+        $this->assertEquals(1, $this->getMetric('status_frequency.google-drive.healthy'));
+        $this->assertEquals(1, $this->getMetric("status_frequency.google-drive.healthy.user.{$this->user->id}"));
+    }
+
+    public function test_logs_api_connectivity_test_success(): void
+    {
+        Log::shouldReceive('channel')
+            ->with('cloud-storage')
+            ->once()
+            ->andReturnSelf();
+            
+        Log::shouldReceive('info')
+            ->with('API connectivity test passed', \Mockery::type('array'))
+            ->once();
+
+        $this->logService->logApiConnectivityTest($this->user, 'google-drive', true, [
+            'test_method' => 'about_get'
+        ]);
+
+        // Verify metrics are tracked
+        $this->assertEquals(1, $this->getMetric('api_connectivity_success.google-drive'));
+        $this->assertEquals(1, $this->getMetric("api_connectivity_success.google-drive.user.{$this->user->id}"));
+    }
+
+    public function test_logs_api_connectivity_test_failure(): void
+    {
+        Log::shouldReceive('channel')
+            ->with('cloud-storage')
+            ->once()
+            ->andReturnSelf();
+            
         Log::shouldReceive('warning')
-            ->once()
-            ->with('Cloud storage failure: upload', \Mockery::any());
+            ->with('API connectivity test failed', \Mockery::type('array'))
+            ->once();
 
-        // Expect performance channel log for failures too
-        Log::shouldReceive('channel')
-            ->with('performance')
-            ->once()
-            ->andReturnSelf();
-        
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Cloud storage performance: upload', \Mockery::any());
+        $this->logService->logApiConnectivityTest($this->user, 'google-drive', false, [
+            'reason' => 'network_error'
+        ]);
 
-        $this->logService->logOperationFailure(
-            $operationId,
-            'upload',
-            'google-drive',
-            $this->user,
-            $errorType,
-            'Token has expired',
-            ['file_name' => 'test.pdf'],
-            1000.0,
-            $exception
-        );
+        // Verify metrics are tracked
+        $this->assertEquals(1, $this->getMetric('api_connectivity_failures.google-drive'));
+        $this->assertEquals(1, $this->getMetric("api_connectivity_failures.google-drive.user.{$this->user->id}"));
     }
 
-    public function test_log_retry_decision_logs_retry_reasoning(): void
-    {
-        $operationId = 'cs_test123_' . now()->timestamp;
-        $errorType = CloudStorageErrorType::NETWORK_ERROR;
-
-        Log::shouldReceive('channel')
-            ->with('cloud-storage')
-            ->once()
-            ->andReturnSelf();
-        
-        Log::shouldReceive('log')
-            ->once()
-            ->with(
-                'info',
-                'Cloud storage operation will be retried: upload (attempt 2)',
-                \Mockery::on(function ($context) use ($operationId, $errorType) {
-                    return $context['operation_id'] === $operationId &&
-                           $context['retry_decision'] === 'retry' &&
-                           $context['attempt_number'] === 2 &&
-                           $context['error_type'] === $errorType->value &&
-                           $context['retry_delay_seconds'] === 30 &&
-                           $context['retry_reason'] === 'Network error - temporary issue';
-                })
-            );
-
-        $this->logService->logRetryDecision(
-            $operationId,
-            'upload',
-            'google-drive',
-            $this->user,
-            $errorType,
-            2,
-            true,
-            30
-        );
-    }
-
-    public function test_log_health_status_change_categorizes_severity(): void
-    {
-        $errorType = CloudStorageErrorType::TOKEN_EXPIRED;
-
-        Log::shouldReceive('channel')
-            ->with('cloud-storage')
-            ->once()
-            ->andReturnSelf();
-        
-        Log::shouldReceive('log')
-            ->once()
-            ->with(
-                'error',
-                'Cloud storage health status changed: healthy → unhealthy',
-                \Mockery::on(function ($context) use ($errorType) {
-                    return $context['event_type'] === 'health_status_change' &&
-                           $context['previous_status'] === 'healthy' &&
-                           $context['new_status'] === 'unhealthy' &&
-                           $context['error_type'] === $errorType->value &&
-                           $context['status_severity'] === 'high' &&
-                           isset($context['status_changed_at']);
-                })
-            );
-
-        Log::shouldReceive('channel')
-            ->with('audit')
-            ->once()
-            ->andReturnSelf();
-        
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Cloud storage health status change', \Mockery::any());
-
-        $this->logService->logHealthStatusChange(
-            'google-drive',
-            $this->user,
-            'healthy',
-            'unhealthy',
-            $errorType,
-            'Token expired'
-        );
-    }
-
-    public function test_log_token_refresh_logs_to_audit_channel(): void
-    {
-        $newExpiresAt = now()->addHour();
-
-        Log::shouldReceive('channel')
-            ->with('cloud-storage')
-            ->once()
-            ->andReturnSelf();
-        
-        Log::shouldReceive('log')
-            ->once()
-            ->with(
-                'info',
-                'Cloud storage token refreshed successfully: google-drive',
-                \Mockery::on(function ($context) use ($newExpiresAt) {
-                    return $context['event_type'] === 'token_refresh' &&
-                           $context['refresh_status'] === 'success' &&
-                           $context['new_expires_at'] === $newExpiresAt->toISOString() &&
-                           isset($context['refreshed_at']);
-                })
-            );
-
-        Log::shouldReceive('channel')
-            ->with('audit')
-            ->once()
-            ->andReturnSelf();
-        
-        Log::shouldReceive('info')
-            ->once()
-            ->with(
-                'Token refresh: google-drive',
-                \Mockery::on(function ($context) use ($newExpiresAt) {
-                    return $context['user_id'] === $this->user->id &&
-                           $context['provider'] === 'google-drive' &&
-                           $context['success'] === true &&
-                           $context['new_expires_at'] === $newExpiresAt->toISOString();
-                })
-            );
-
-        $this->logService->logTokenRefresh(
-            'google-drive',
-            $this->user,
-            true,
-            $newExpiresAt
-        );
-    }
-
-    public function test_log_oauth_event_logs_security_events(): void
+    public function test_logs_proactive_token_validation(): void
     {
         Log::shouldReceive('channel')
             ->with('cloud-storage')
             ->once()
             ->andReturnSelf();
-        
-        Log::shouldReceive('log')
-            ->once()
-            ->with(
-                'info',
-                'OAuth event successful: callback_complete for google-drive',
-                \Mockery::on(function ($context) {
-                    return $context['event_type'] === 'oauth_event' &&
-                           $context['oauth_event'] === 'callback_complete' &&
-                           $context['oauth_status'] === 'success' &&
-                           isset($context['event_at']);
-                })
-            );
-
-        Log::shouldReceive('channel')
-            ->with('audit')
-            ->once()
-            ->andReturnSelf();
-        
+            
         Log::shouldReceive('info')
-            ->once()
-            ->with(
-                'OAuth event: callback_complete',
-                \Mockery::on(function ($context) {
-                    return $context['user_id'] === $this->user->id &&
-                           $context['provider'] === 'google-drive' &&
-                           $context['event'] === 'callback_complete' &&
-                           $context['success'] === true;
-                })
-            );
+            ->with('Proactive token validation completed', \Mockery::type('array'))
+            ->once();
 
-        $this->logService->logOAuthEvent(
-            'google-drive',
-            $this->user,
-            'callback_complete',
-            true
-        );
+        $this->logService->logProactiveTokenValidation($this->user, 'google-drive', true, true, true);
+
+        // Verify proactive validation metrics
+        $this->assertEquals(1, $this->getMetric('proactive_validation.expired_tokens.google-drive'));
+        $this->assertEquals(1, $this->getMetric('proactive_validation.refresh_needed.google-drive'));
     }
 
-    public function test_log_bulk_operation_summary_calculates_metrics(): void
+    public function test_logs_cache_operations(): void
     {
-        $errorSummary = [
-            'token_expired' => 2,
-            'network_error' => 1,
+        Log::shouldReceive('channel')
+            ->with('cloud-storage')
+            ->once()
+            ->andReturnSelf();
+            
+        Log::shouldReceive('debug')
+            ->with('Cache operation', \Mockery::type('array'))
+            ->once();
+
+        $this->logService->logCacheOperation('get', 'test_key', true, [
+            'operation' => 'token_validation_cache_hit'
+        ]);
+
+        // Verify cache metrics
+        $this->assertEquals(1, $this->getMetric('cache_hits'));
+    }
+
+    public function test_calculates_token_refresh_success_rate(): void
+    {
+        // Set up metrics
+        $this->setMetric('token_refresh_attempts.google-drive', 10);
+        $this->setMetric('token_refresh_success.google-drive', 8);
+
+        $successRate = $this->logService->getTokenRefreshSuccessRate('google-drive');
+
+        $this->assertEquals(0.8, $successRate);
+    }
+
+    public function test_returns_perfect_success_rate_when_no_attempts(): void
+    {
+        $successRate = $this->logService->getTokenRefreshSuccessRate('google-drive');
+
+        $this->assertEquals(1.0, $successRate);
+    }
+
+    public function test_gets_status_distribution(): void
+    {
+        // Set up status metrics
+        $this->setMetric('status_frequency.google-drive.healthy', 5);
+        $this->setMetric('status_frequency.google-drive.authentication_required', 2);
+        $this->setMetric('status_frequency.google-drive.connection_issues', 1);
+
+        $distribution = $this->logService->getStatusDistribution('google-drive');
+
+        $expected = [
+            'healthy' => 5,
+            'authentication_required' => 2,
+            'connection_issues' => 1,
+            'not_connected' => 0,
         ];
 
-        Log::shouldReceive('channel')
-            ->with('cloud-storage')
-            ->once()
-            ->andReturnSelf();
-        
-        Log::shouldReceive('info')
-            ->once()
-            ->with(
-                'Bulk cloud storage operation completed: bulk_upload',
-                \Mockery::on(function ($context) use ($errorSummary) {
-                    return $context['event_type'] === 'bulk_operation_summary' &&
-                           $context['total_items'] === 10 &&
-                           $context['success_count'] === 7 &&
-                           $context['failure_count'] === 3 &&
-                           $context['success_rate'] === 70.0 &&
-                           $context['total_duration_ms'] === 5000.0 &&
-                           $context['average_duration_ms'] === 500.0 &&
-                           $context['error_summary'] === $errorSummary;
-                })
-            );
-
-        Log::shouldReceive('channel')
-            ->with('audit')
-            ->once()
-            ->andReturnSelf();
-        
-        Log::shouldReceive('info')
-            ->once()
-            ->with('Bulk operation: bulk_upload', \Mockery::any());
-
-        $this->logService->logBulkOperationSummary(
-            'bulk_upload',
-            'google-drive',
-            $this->user,
-            10,
-            7,
-            3,
-            5000.0,
-            $errorSummary
-        );
+        $this->assertEquals($expected, $distribution);
     }
 
-    public function test_performance_metrics_categorization(): void
+    public function test_gets_comprehensive_metrics_summary(): void
     {
-        $testCases = [
-            [500.0, 'fast'],
-            [2000.0, 'normal'],
-            [10000.0, 'slow'],
-            [20000.0, 'very_slow'],
-        ];
+        // Set up various metrics
+        $this->setMetric('token_refresh_attempts.google-drive', 10);
+        $this->setMetric('token_refresh_success.google-drive', 8);
+        $this->setMetric('token_refresh_failures.google-drive', 2);
+        $this->setMetric('api_connectivity_success.google-drive', 15);
+        $this->setMetric('api_connectivity_failures.google-drive', 1);
+        $this->setMetric('status_frequency.google-drive.healthy', 12);
+        $this->setMetric('cache_hits', 50);
+        $this->setMetric('cache_misses', 10);
 
-        foreach ($testCases as [$duration, $expectedCategory]) {
-            Log::shouldReceive('channel')
-                ->with('performance')
-                ->once()
-                ->andReturnSelf();
-            
-            Log::shouldReceive('info')
-                ->once()
-                ->with(
-                    'Cloud storage performance: test_operation',
-                    \Mockery::on(function ($context) use ($duration, $expectedCategory) {
-                        return $context['duration_ms'] === $duration &&
-                               $context['performance_category'] === $expectedCategory;
-                    })
-                );
+        $summary = $this->logService->getMetricsSummary('google-drive');
 
-            $this->logService->logPerformanceMetrics(
-                'test_operation',
-                'google-drive',
-                $duration,
-                'success'
-            );
-        }
+        $this->assertArrayHasKey('token_refresh', $summary);
+        $this->assertArrayHasKey('api_connectivity', $summary);
+        $this->assertArrayHasKey('status_distribution', $summary);
+        $this->assertArrayHasKey('cache_performance', $summary);
+
+        $this->assertEquals(10, $summary['token_refresh']['attempts']);
+        $this->assertEquals(8, $summary['token_refresh']['successes']);
+        $this->assertEquals(2, $summary['token_refresh']['failures']);
+        $this->assertEquals(0.8, $summary['token_refresh']['success_rate']);
+
+        $this->assertEquals(15, $summary['api_connectivity']['successes']);
+        $this->assertEquals(1, $summary['api_connectivity']['failures']);
+
+        $this->assertEquals(12, $summary['status_distribution']['healthy']);
+
+        $this->assertEquals(50, $summary['cache_performance']['hits']);
+        $this->assertEquals(10, $summary['cache_performance']['misses']);
     }
 
-    public function test_error_classification_mapping(): void
+    public function test_tracks_status_changes(): void
     {
-        $testCases = [
-            [CloudStorageErrorType::TOKEN_EXPIRED, 'authentication'],
-            [CloudStorageErrorType::INSUFFICIENT_PERMISSIONS, 'authentication'],
-            [CloudStorageErrorType::API_QUOTA_EXCEEDED, 'quota'],
-            [CloudStorageErrorType::STORAGE_QUOTA_EXCEEDED, 'quota'],
-            [CloudStorageErrorType::NETWORK_ERROR, 'network'],
-            [CloudStorageErrorType::FILE_NOT_FOUND, 'access'],
-            [CloudStorageErrorType::FOLDER_ACCESS_DENIED, 'access'],
-            [CloudStorageErrorType::INVALID_FILE_TYPE, 'validation'],
-            [CloudStorageErrorType::UNKNOWN_ERROR, 'unknown'],
-        ];
+        Log::shouldReceive('channel')->andReturnSelf();
+        Log::shouldReceive('info')->times(3); // Two status determinations + one status change
 
-        foreach ($testCases as [$errorType, $expectedClassification]) {
-            $operationId = 'cs_test_' . $errorType->value;
-
-            Log::shouldReceive('channel')
-                ->with('cloud-storage')
-                ->once()
-                ->andReturnSelf();
-            
-            Log::shouldReceive('error')
-                ->once()
-                ->with(
-                    'Cloud storage operation failed: test',
-                    \Mockery::on(function ($context) use ($errorType, $expectedClassification) {
-                        return $context['error_type'] === $errorType->value &&
-                               $context['error_classification'] === $expectedClassification;
-                    })
-                );
-
-            Log::shouldReceive('channel')
-                ->with('audit')
-                ->once()
-                ->andReturnSelf();
-            
-            Log::shouldReceive('warning')
-                ->once()
-                ->with('Cloud storage failure: test', \Mockery::any());
-
-            $this->logService->logOperationFailure(
-                $operationId,
-                'test',
-                'google-drive',
-                $this->user,
-                $errorType,
-                'Test error message'
-            );
-        }
-    }
-
-    public function test_operation_id_generation_is_unique(): void
-    {
-        $operationIds = [];
+        // First status determination
+        $this->logService->logStatusDetermination($this->user, 'google-drive', 'healthy', 'All good');
         
-        for ($i = 0; $i < 10; $i++) {
-            Log::shouldReceive('channel')->andReturnSelf();
-            Log::shouldReceive('info');
-            
-            $operationId = $this->logService->logOperationStart(
-                'test',
-                'google-drive',
-                $this->user
-            );
-            
-            $this->assertNotContains($operationId, $operationIds);
-            $operationIds[] = $operationId;
-        }
+        // Second status determination with different status
+        $this->logService->logStatusDetermination($this->user, 'google-drive', 'authentication_required', 'Token expired');
+
+        // Verify status change was tracked
+        $this->assertEquals(1, $this->getMetric('status_changes.google-drive.healthy_to_authentication_required'));
+    }
+
+    public function test_resets_failure_count_on_success(): void
+    {
+        // Set up initial failure count
+        $this->setMetric("token_refresh_failures.google-drive.user.{$this->user->id}", 3);
+
+        Log::shouldReceive('channel')->andReturnSelf();
+        Log::shouldReceive('info');
+
+        $this->logService->logTokenRefreshSuccess($this->user, 'google-drive');
+
+        // Verify failure count was reset
+        $this->assertNull($this->getMetric("token_refresh_failures.google-drive.user.{$this->user->id}"));
+    }
+
+    /**
+     * Helper method to get a metric value from cache.
+     */
+    private function getMetric(string $metric): ?int
+    {
+        return Cache::get('cloud_storage_metrics:' . $metric);
+    }
+
+    /**
+     * Helper method to set a metric value in cache.
+     */
+    private function setMetric(string $metric, int $value): void
+    {
+        Cache::put('cloud_storage_metrics:' . $metric, $value, 3600);
     }
 }

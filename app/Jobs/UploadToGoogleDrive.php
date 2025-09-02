@@ -253,10 +253,10 @@ class UploadToGoogleDrive implements ShouldQueue
     /**
      * Handle job failure.
      *
-     * @param Exception $exception
+     * @param \Throwable $exception
      * @return void
      */
-    public function failed(Exception $exception): void
+    public function failed(\Throwable $exception): void
     {
         $fileUpload = FileUpload::find($this->fileUploadId);
         

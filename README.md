@@ -185,3 +185,24 @@ Redis can be used for improved caching and queue performance. For DDEV environme
 4. Test the connection: `ddev artisan validate:cache-configuration`
 
 Redis provides better performance for caching and queue operations compared to file-based or database alternatives.
+
+## Google Drive Status Messaging
+
+The application features an enhanced Google Drive status messaging system that provides clear, consolidated status information without contradictory messages.
+
+**Key Features:**
+- Single, clear status messages (Healthy, Authentication Required, Connection Issues, Not Connected)
+- Automatic token refresh handling in the background
+- Consistent status display across admin and employee interfaces
+- Clear action guidance when user intervention is required
+
+**For detailed information, see:**
+- [Google Drive Status Messaging Improvement](docs/google-drive-status-messaging-improvement.md) - Complete feature documentation
+- [Google Drive Status Quick Reference](docs/quick-reference/google-drive-status-quick-reference.md) - Developer quick reference
+- [Troubleshooting Guide](docs/troubleshooting/google-drive-connection-issues.md) - Comprehensive troubleshooting
+
+**Common Status Messages:**
+- ✅ **Healthy**: "Connection is working properly" - No action needed
+- ❌ **Authentication Required**: "Please reconnect your account" - Click reconnect button
+- ⚠️ **Connection Issues**: "Experiencing connectivity problems" - Wait and retry
+- ℹ️ **Not Connected**: "Account not connected" - Follow setup instructions

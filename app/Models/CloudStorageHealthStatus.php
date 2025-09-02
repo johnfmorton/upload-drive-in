@@ -14,21 +14,30 @@ class CloudStorageHealthStatus extends Model
         'user_id',
         'provider',
         'status',
+        'consolidated_status',
         'last_successful_operation_at',
         'consecutive_failures',
         'last_error_type',
         'last_error_message',
+        'last_error_context',
         'token_expires_at',
+        'last_token_refresh_attempt_at',
+        'token_refresh_failures',
+        'operational_test_result',
         'requires_reconnection',
         'provider_specific_data',
     ];
 
     protected $casts = [
         'provider_specific_data' => 'array',
+        'operational_test_result' => 'array',
+        'last_error_context' => 'array',
         'last_successful_operation_at' => 'datetime',
         'token_expires_at' => 'datetime',
+        'last_token_refresh_attempt_at' => 'datetime',
         'requires_reconnection' => 'boolean',
         'consecutive_failures' => 'integer',
+        'token_refresh_failures' => 'integer',
     ];
 
     /**
@@ -119,5 +128,141 @@ class CloudStorageHealthStatus extends Model
         }
 
         return $this->token_expires_at->isPast();
+    }
+
+    /**
+     * Get consolidated status message that eliminates confusion.
+     */
+    public function getConsolidatedStatusMessage(): string
+    {
+        return match ($this->consolidated_status) {
+            'healthy' => 'Connection is working properly',
+            'authentication_required' => 'Please reconnect your account',
+            'connection_issues' => 'Experiencing connectivity problems',
+            'not_connected' => 'Account not connected',
+            default => 'Status unknown',
+        };
+    }
+
+    /**
+     * Check if automatic token refresh is working.
+     */
+    public function isTokenRefreshWorking(): bool
+    {
+        return $this->token_refresh_failures < 3;
+    }
+
+    /**
+     * Get the last error type as an enum instance.
+     */
+    public function getLastErrorTypeEnum(): ?\App\Enums\CloudStorageErrorType
+    {
+        if (!$this->last_error_type) {
+            return null;
+        }
+
+        return \App\Enums\CloudStorageErrorType::tryFrom($this->last_error_type);
+    }
+
+    /**
+     * Check if the last error requires user intervention.
+     */
+    public function lastErrorRequiresUserIntervention(): bool
+    {
+        $errorType = $this->getLastErrorTypeEnum();
+        if (!$errorType) {
+            return false;
+        }
+
+        return $errorType->requiresUserIntervention();
+    }
+
+    /**
+     * Check if the last error is recoverable through retry.
+     */
+    public function lastErrorIsRecoverable(): bool
+    {
+        $errorType = $this->getLastErrorTypeEnum();
+        if (!$errorType) {
+            return false;
+        }
+
+        return $errorType->isRecoverable();
+    }
+
+    /**
+     * Get the severity of the last error.
+     */
+    public function getLastErrorSeverity(): ?string
+    {
+        $errorType = $this->getLastErrorTypeEnum();
+        if (!$errorType) {
+            return null;
+        }
+
+        return $errorType->getSeverity();
+    }
+
+    /**
+     * Check if exponential backoff should be applied for token refresh.
+     */
+    public function shouldApplyTokenRefreshBackoff(): bool
+    {
+        if ($this->token_refresh_failures < 2 || !$this->last_token_refresh_attempt_at) {
+            return false;
+        }
+
+        $backoffDelay = $this->calculateTokenRefreshBackoffDelay();
+        $nextAllowedAttempt = $this->last_token_refresh_attempt_at->addSeconds($backoffDelay);
+
+        return now()->isBefore($nextAllowedAttempt);
+    }
+
+    /**
+     * Calculate the exponential backoff delay for token refresh.
+     */
+    public function calculateTokenRefreshBackoffDelay(): int
+    {
+        $baseDelay = 30; // 30 seconds base delay
+        $maxDelay = 300; // 5 minutes maximum delay
+        
+        $delay = $baseDelay * pow(2, min($this->token_refresh_failures - 1, 4));
+        return min($delay, $maxDelay);
+    }
+
+    /**
+     * Get the time remaining until next token refresh attempt is allowed.
+     */
+    public function getTokenRefreshBackoffTimeRemaining(): ?int
+    {
+        if (!$this->shouldApplyTokenRefreshBackoff()) {
+            return null;
+        }
+
+        $backoffDelay = $this->calculateTokenRefreshBackoffDelay();
+        $nextAllowedAttempt = $this->last_token_refresh_attempt_at->addSeconds($backoffDelay);
+
+        return max(0, now()->diffInSeconds($nextAllowedAttempt, false));
+    }
+
+    /**
+     * Get a user-friendly error message with context.
+     */
+    public function getDetailedErrorMessage(): ?string
+    {
+        if (!$this->last_error_message) {
+            return null;
+        }
+
+        $message = $this->last_error_message;
+        $context = $this->last_error_context;
+
+        if ($context && isset($context['requires_user_intervention']) && $context['requires_user_intervention']) {
+            $message .= ' (User action required)';
+        } elseif ($context && isset($context['is_recoverable']) && $context['is_recoverable']) {
+            $message .= ' (Will retry automatically)';
+        }
+
+        return $message;
     }
 }

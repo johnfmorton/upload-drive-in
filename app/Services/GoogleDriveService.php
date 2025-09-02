@@ -5,9 +5,13 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\GoogleDriveToken;
 use App\Services\CloudStorageHealthService;
+use App\Services\CloudStorageLogService;
+use App\Enums\CloudStorageErrorType;
+use App\Exceptions\CloudStorageException;
 use Google\Client;
 use Google\Service\Drive;
 use Google\Service\Drive\DriveFile;
+use Google\Service\Exception as GoogleServiceException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
@@ -27,7 +31,8 @@ class GoogleDriveService
     private ?Client $client = null;
 
     public function __construct(
-        private ?CloudStorageHealthService $healthService = null
+        private ?CloudStorageHealthService $healthService = null,
+        private ?CloudStorageLogService $logService = null
     ) {
         $this->client = new Client();
         $this->client->setClientId(config('cloud-storage.providers.google-drive.client_id'));
@@ -37,9 +42,12 @@ class GoogleDriveService
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
         
-        // Inject health service if not provided (for backward compatibility)
+        // Inject services if not provided (for backward compatibility)
         if (!$this->healthService) {
             $this->healthService = app(CloudStorageHealthService::class);
+        }
+        if (!$this->logService) {
+            $this->logService = app(CloudStorageLogService::class);
         }
     }
 
@@ -436,6 +444,225 @@ class GoogleDriveService
                 throw new Exception('No refresh token available for user.');
             }
 
+            $refreshResult = $this->refreshToken($token);
+            if (!$refreshResult['success']) {
+                throw new Exception($refreshResult['error'] ?? 'Token refresh failed');
+            }
+            
+            $token = $token->fresh(); // Reload the updated token
+        }
+
+        return $token;
+    }
+
+    /**
+     * Validates and refreshes a token without performing file operations.
+     * This method proactively attempts token refresh during status checks.
+     * Implements caching to reduce redundant API calls.
+     *
+     * @param User $user The user whose token to validate and refresh
+     * @return bool True if token is valid or successfully refreshed, false otherwise
+     */
+    public function validateAndRefreshToken(User $user): bool
+    {
+        try {
+            $token = GoogleDriveToken::where('user_id', $user->id)->first();
+            if (!$token) {
+                Log::debug('No Google Drive token found for user', ['user_id' => $user->id]);
+                return false;
+            }
+
+            $wasExpired = $token->expires_at && $token->expires_at->isPast();
+            $refreshNeeded = false;
+            $refreshSuccess = null;
+
+            // If token is not expired, it's valid
+            if (!$wasExpired) {
+                $this->logService->logProactiveTokenValidation($user, 'google-drive', false, false);
+                Log::debug('Google Drive token is still valid', [
+                    'user_id' => $user->id,
+                    'expires_at' => $token->expires_at?->toISOString()
+                ]);
+                return true;
+            }
+
+            // Token is expired, attempt refresh
+            if (!$token->refresh_token) {
+                $this->logService->logProactiveTokenValidation($user, 'google-drive', true, false);
+                Log::warning('Google Drive token expired and no refresh token available', [
+                    'user_id' => $user->id
+                ]);
+                return false;
+            }
+
+            $refreshNeeded = true;
+            $this->logService->logTokenRefreshAttempt($user, 'google-drive', [
+                'trigger' => 'proactive_validation',
+                'token_expired_at' => $token->expires_at->toISOString()
+            ]);
+
+            Log::info('Attempting proactive Google Drive token refresh', [
+                'user_id' => $user->id,
+                'token_expired_at' => $token->expires_at->toISOString()
+            ]);
+
+            $refreshResult = $this->refreshToken($token);
+            $refreshSuccess = $refreshResult['success'];
+            
+            if ($refreshSuccess) {
+                $this->logService->logTokenRefreshSuccess($user, 'google-drive', [
+                    'trigger' => 'proactive_validation',
+                    'new_expires_at' => $refreshResult['expires_at']?->toISOString()
+                ]);
+                $this->logService->logProactiveTokenValidation($user, 'google-drive', true, true, true);
+                
+                Log::info('Google Drive token successfully refreshed proactively', [
+                    'user_id' => $user->id,
+                    'new_expires_at' => $refreshResult['expires_at']?->toISOString()
+                ]);
+                return true;
+            } else {
+                $this->logService->logTokenRefreshFailure($user, 'google-drive', $refreshResult['error'], [
+                    'trigger' => 'proactive_validation'
+                ]);
+                $this->logService->logProactiveTokenValidation($user, 'google-drive', true, true, false);
+                
+                Log::error('Proactive Google Drive token refresh failed', [
+                    'user_id' => $user->id,
+                    'error' => $refreshResult['error']
+                ]);
+                return false;
+            }
+        } catch (Exception $e) {
+            $this->logService->logTokenRefreshFailure($user, 'google-drive', $e->getMessage(), [
+                'trigger' => 'proactive_validation',
+                'exception' => true
+            ]);
+            
+            Log::error('Exception during Google Drive token validation and refresh', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Tests API connectivity with a lightweight API call to verify connection.
+     * This method performs a minimal API operation to validate operational capability.
+     * Implements caching to reduce redundant API calls.
+     *
+     * @param User $user The user whose Google Drive connection to test
+     * @return bool True if API connectivity is working, false otherwise
+     */
+    public function testApiConnectivity(User $user): bool
+    {
+        try {
+            // First ensure we have a valid token
+            if (!$this->validateAndRefreshToken($user)) {
+                $this->logService->logApiConnectivityTest($user, 'google-drive', false, [
+                    'reason' => 'token_validation_failed'
+                ]);
+                
+                Log::debug('Cannot test API connectivity - token validation failed', [
+                    'user_id' => $user->id
+                ]);
+                return false;
+            }
+
+            // Get the Drive service with the validated token
+            $service = $this->getDriveService($user);
+            
+            Log::debug('Testing Google Drive API connectivity', ['user_id' => $user->id]);
+
+            // Perform a lightweight API call - get user's Drive info
+            $about = $service->about->get(['fields' => 'user']);
+            
+            if ($about && $about->getUser()) {
+                $this->logService->logApiConnectivityTest($user, 'google-drive', true, [
+                    'drive_user_email' => $about->getUser()->getEmailAddress(),
+                    'test_method' => 'about_get'
+                ]);
+                
+                Log::info('Google Drive API connectivity test successful', [
+                    'user_id' => $user->id,
+                    'drive_user_email' => $about->getUser()->getEmailAddress()
+                ]);
+                
+                // Record successful operation for health monitoring
+                $this->healthService?->recordSuccessfulOperation($user, 'google-drive', [
+                    'last_connectivity_test_at' => now()->toISOString(),
+                    'drive_user_email' => $about->getUser()->getEmailAddress(),
+                ]);
+                
+                return true;
+            } else {
+                $this->logService->logApiConnectivityTest($user, 'google-drive', false, [
+                    'reason' => 'empty_response',
+                    'test_method' => 'about_get'
+                ]);
+                
+                Log::warning('Google Drive API connectivity test returned empty response', [
+                    'user_id' => $user->id
+                ]);
+                return false;
+            }
+        } catch (Exception $e) {
+            $this->logService->logApiConnectivityTest($user, 'google-drive', false, [
+                'reason' => 'exception',
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'test_method' => 'about_get'
+            ]);
+            
+            Log::error('Google Drive API connectivity test failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Refreshes a Google Drive token with comprehensive error handling and exponential backoff.
+     * This method centralizes token refresh logic and provides detailed success/failure status.
+     *
+     * @param GoogleDriveToken $token The token to refresh
+     * @param int $attempt Current attempt number for exponential backoff
+     * @return array Array with 'success' boolean and additional result data
+     */
+    private function refreshToken(GoogleDriveToken $token, int $attempt = 1): array
+    {
+        $maxAttempts = 3;
+        $baseDelay = 1; // Base delay in seconds
+        $user = $token->user;
+        
+        try {
+            if (!$token->refresh_token) {
+                $error = 'No refresh token available';
+                $this->logService->logTokenRefreshFailure($user, 'google-drive', $error, [
+                    'attempt' => $attempt,
+                    'error_type' => 'invalid_credentials',
+                    'requires_user_intervention' => true
+                ]);
+                
+                return [
+                    'success' => false,
+                    'error' => $error,
+                    'error_type' => CloudStorageErrorType::INVALID_CREDENTIALS,
+                    'requires_user_intervention' => true,
+                    'is_recoverable' => false
+                ];
+            }
+
+            Log::info('Attempting Google Drive token refresh', [
+                'user_id' => $token->user_id,
+                'token_expires_at' => $token->expires_at?->toISOString(),
+                'attempt' => $attempt,
+                'max_attempts' => $maxAttempts
+            ]);
+
             $this->client->setAccessToken([
                 'refresh_token' => $token->refresh_token,
                 'access_token' => $token->access_token,
@@ -443,6 +670,34 @@ class GoogleDriveService
             ]);
 
             $newToken = $this->client->fetchAccessTokenWithRefreshToken();
+
+            // Check for specific error responses from Google
+            if (isset($newToken['error'])) {
+                return $this->handleTokenRefreshError($token, $newToken, $attempt, $maxAttempts);
+            }
+
+            // Check if refresh was successful
+            if (!isset($newToken['access_token'])) {
+                $error = 'No access token in refresh response';
+                $this->logService->logTokenRefreshFailure($user, 'google-drive', $error, [
+                    'attempt' => $attempt,
+                    'error_type' => 'unknown_error',
+                    'response' => $newToken
+                ]);
+                
+                Log::error('Google Drive token refresh failed - no access token in response', [
+                    'user_id' => $token->user_id,
+                    'response' => $newToken
+                ]);
+                
+                return [
+                    'success' => false,
+                    'error' => $error,
+                    'error_type' => CloudStorageErrorType::UNKNOWN_ERROR,
+                    'requires_user_intervention' => true,
+                    'is_recoverable' => false
+                ];
+            }
 
             $expiresAt = isset($newToken['expires_in'])
                 ? Carbon::now()->addSeconds($newToken['expires_in'])
@@ -454,10 +709,362 @@ class GoogleDriveService
             ]);
             
             // Update health service with new token expiration
-            $this->healthService?->updateTokenExpiration($user, 'google-drive', $expiresAt);
+            $this->healthService?->updateTokenExpiration($token->user, 'google-drive', $expiresAt);
+
+            $this->logService->logTokenRefreshSuccess($user, 'google-drive', [
+                'attempt' => $attempt,
+                'new_expires_at' => $expiresAt?->toISOString(),
+                'expires_in_seconds' => $newToken['expires_in'] ?? null
+            ]);
+
+            Log::info('Google Drive token refresh successful', [
+                'user_id' => $token->user_id,
+                'new_expires_at' => $expiresAt?->toISOString(),
+                'attempt' => $attempt
+            ]);
+
+            return [
+                'success' => true,
+                'expires_at' => $expiresAt,
+                'access_token' => $newToken['access_token'],
+                'attempt' => $attempt
+            ];
+            
+        } catch (GoogleServiceException $e) {
+            return $this->handleGoogleServiceException($token, $e, $attempt, $maxAttempts);
+        } catch (Exception $e) {
+            return $this->handleGenericTokenRefreshException($token, $e, $attempt, $maxAttempts);
+        }
+    }
+
+    /**
+     * Handle specific token refresh errors from Google's response.
+     */
+    private function handleTokenRefreshError(GoogleDriveToken $token, array $response, int $attempt, int $maxAttempts): array
+    {
+        $error = $response['error'];
+        $errorDescription = $response['error_description'] ?? '';
+        
+        Log::error('Google Drive token refresh failed with error response', [
+            'user_id' => $token->user_id,
+            'error' => $error,
+            'error_description' => $errorDescription,
+            'attempt' => $attempt
+        ]);
+
+        // Handle specific error types
+        switch ($error) {
+            case 'invalid_grant':
+                // Refresh token is expired or revoked
+                return [
+                    'success' => false,
+                    'error' => 'Refresh token is expired or revoked. Please reconnect your Google Drive account.',
+                    'error_type' => CloudStorageErrorType::TOKEN_EXPIRED,
+                    'requires_user_intervention' => true,
+                    'is_recoverable' => false,
+                    'original_error' => $error,
+                    'error_description' => $errorDescription
+                ];
+                
+            case 'invalid_client':
+                // Client credentials are invalid
+                return [
+                    'success' => false,
+                    'error' => 'Invalid client credentials. Please check Google Drive configuration.',
+                    'error_type' => CloudStorageErrorType::INVALID_CREDENTIALS,
+                    'requires_user_intervention' => true,
+                    'is_recoverable' => false,
+                    'original_error' => $error,
+                    'error_description' => $errorDescription
+                ];
+                
+            case 'temporarily_unavailable':
+            case 'server_error':
+                // Temporary server issues - retry with exponential backoff
+                if ($attempt < $maxAttempts) {
+                    $delay = pow(2, $attempt - 1); // Exponential backoff: 1s, 2s, 4s
+                    Log::info('Google Drive token refresh failed temporarily, retrying', [
+                        'user_id' => $token->user_id,
+                        'attempt' => $attempt,
+                        'delay_seconds' => $delay,
+                        'error' => $error
+                    ]);
+                    
+                    sleep($delay);
+                    return $this->refreshToken($token, $attempt + 1);
+                }
+                
+                return [
+                    'success' => false,
+                    'error' => 'Google Drive service temporarily unavailable after multiple attempts.',
+                    'error_type' => CloudStorageErrorType::SERVICE_UNAVAILABLE,
+                    'requires_user_intervention' => false,
+                    'is_recoverable' => true,
+                    'original_error' => $error,
+                    'error_description' => $errorDescription,
+                    'attempts_made' => $attempt
+                ];
+                
+            default:
+                return [
+                    'success' => false,
+                    'error' => "Token refresh failed: {$errorDescription}",
+                    'error_type' => CloudStorageErrorType::UNKNOWN_ERROR,
+                    'requires_user_intervention' => true,
+                    'is_recoverable' => false,
+                    'original_error' => $error,
+                    'error_description' => $errorDescription
+                ];
+        }
+    }
+
+    /**
+     * Handle Google Service exceptions during token refresh.
+     */
+    private function handleGoogleServiceException(GoogleDriveToken $token, GoogleServiceException $e, int $attempt, int $maxAttempts): array
+    {
+        $httpCode = $e->getCode();
+        $errorMessage = $e->getMessage();
+        
+        Log::error('Google Service exception during token refresh', [
+            'user_id' => $token->user_id,
+            'http_code' => $httpCode,
+            'error' => $errorMessage,
+            'attempt' => $attempt
+        ]);
+
+        switch ($httpCode) {
+            case 400:
+                // Bad request - likely invalid refresh token
+                return [
+                    'success' => false,
+                    'error' => 'Invalid refresh token. Please reconnect your Google Drive account.',
+                    'error_type' => CloudStorageErrorType::TOKEN_EXPIRED,
+                    'requires_user_intervention' => true,
+                    'is_recoverable' => false,
+                    'http_code' => $httpCode
+                ];
+                
+            case 401:
+                // Unauthorized - refresh token expired
+                return [
+                    'success' => false,
+                    'error' => 'Google Drive authorization expired. Please reconnect your account.',
+                    'error_type' => CloudStorageErrorType::TOKEN_EXPIRED,
+                    'requires_user_intervention' => true,
+                    'is_recoverable' => false,
+                    'http_code' => $httpCode
+                ];
+                
+            case 403:
+                // Forbidden - could be quota exceeded or permissions issue
+                if (str_contains(strtolower($errorMessage), 'quota')) {
+                    return [
+                        'success' => false,
+                        'error' => 'Google Drive API quota exceeded. Please try again later.',
+                        'error_type' => CloudStorageErrorType::API_QUOTA_EXCEEDED,
+                        'requires_user_intervention' => false,
+                        'is_recoverable' => true,
+                        'http_code' => $httpCode
+                    ];
+                }
+                
+                return [
+                    'success' => false,
+                    'error' => 'Insufficient permissions for Google Drive access.',
+                    'error_type' => CloudStorageErrorType::INSUFFICIENT_PERMISSIONS,
+                    'requires_user_intervention' => true,
+                    'is_recoverable' => false,
+                    'http_code' => $httpCode
+                ];
+                
+            case 429:
+                // Rate limit exceeded - retry with exponential backoff
+                if ($attempt < $maxAttempts) {
+                    $delay = pow(2, $attempt - 1) * 2; // Longer delay for rate limits: 2s, 4s, 8s
+                    Log::info('Google Drive rate limit exceeded, retrying', [
+                        'user_id' => $token->user_id,
+                        'attempt' => $attempt,
+                        'delay_seconds' => $delay
+                    ]);
+                    
+                    sleep($delay);
+                    return $this->refreshToken($token, $attempt + 1);
+                }
+                
+                return [
+                    'success' => false,
+                    'error' => 'Google Drive rate limit exceeded. Please try again later.',
+                    'error_type' => CloudStorageErrorType::API_QUOTA_EXCEEDED,
+                    'requires_user_intervention' => false,
+                    'is_recoverable' => true,
+                    'http_code' => $httpCode,
+                    'attempts_made' => $attempt
+                ];
+                
+            case 500:
+            case 502:
+            case 503:
+            case 504:
+                // Server errors - retry with exponential backoff
+                if ($attempt < $maxAttempts) {
+                    $delay = pow(2, $attempt - 1); // Exponential backoff: 1s, 2s, 4s
+                    Log::info('Google Drive server error, retrying', [
+                        'user_id' => $token->user_id,
+                        'http_code' => $httpCode,
+                        'attempt' => $attempt,
+                        'delay_seconds' => $delay
+                    ]);
+                    
+                    sleep($delay);
+                    return $this->refreshToken($token, $attempt + 1);
+                }
+                
+                return [
+                    'success' => false,
+                    'error' => 'Google Drive service temporarily unavailable.',
+                    'error_type' => CloudStorageErrorType::SERVICE_UNAVAILABLE,
+                    'requires_user_intervention' => false,
+                    'is_recoverable' => true,
+                    'http_code' => $httpCode,
+                    'attempts_made' => $attempt
+                ];
+                
+            default:
+                return [
+                    'success' => false,
+                    'error' => "Google Drive API error: {$errorMessage}",
+                    'error_type' => CloudStorageErrorType::UNKNOWN_ERROR,
+                    'requires_user_intervention' => true,
+                    'is_recoverable' => false,
+                    'http_code' => $httpCode
+                ];
+        }
+    }
+
+    /**
+     * Handle generic exceptions during token refresh.
+     */
+    private function handleGenericTokenRefreshException(GoogleDriveToken $token, Exception $e, int $attempt, int $maxAttempts): array
+    {
+        $errorMessage = $e->getMessage();
+        
+        Log::error('Generic exception during Google Drive token refresh', [
+            'user_id' => $token->user_id,
+            'error' => $errorMessage,
+            'error_code' => $e->getCode(),
+            'attempt' => $attempt
+        ]);
+
+        // Check for network-related errors
+        if ($this->isNetworkError($e)) {
+            if ($attempt < $maxAttempts) {
+                $delay = pow(2, $attempt - 1); // Exponential backoff: 1s, 2s, 4s
+                Log::info('Network error during token refresh, retrying', [
+                    'user_id' => $token->user_id,
+                    'attempt' => $attempt,
+                    'delay_seconds' => $delay,
+                    'error' => $errorMessage
+                ]);
+                
+                sleep($delay);
+                return $this->refreshToken($token, $attempt + 1);
+            }
+            
+            return [
+                'success' => false,
+                'error' => 'Network error during token refresh. Please check your internet connection.',
+                'error_type' => CloudStorageErrorType::NETWORK_ERROR,
+                'requires_user_intervention' => false,
+                'is_recoverable' => true,
+                'original_error' => $errorMessage,
+                'attempts_made' => $attempt
+            ];
         }
 
-        return $token;
+        // Check for timeout errors
+        if ($this->isTimeoutError($e)) {
+            if ($attempt < $maxAttempts) {
+                $delay = pow(2, $attempt - 1) * 2; // Longer delay for timeouts: 2s, 4s, 8s
+                Log::info('Timeout error during token refresh, retrying', [
+                    'user_id' => $token->user_id,
+                    'attempt' => $attempt,
+                    'delay_seconds' => $delay
+                ]);
+                
+                sleep($delay);
+                return $this->refreshToken($token, $attempt + 1);
+            }
+            
+            return [
+                'success' => false,
+                'error' => 'Token refresh timed out. Please try again.',
+                'error_type' => CloudStorageErrorType::TIMEOUT,
+                'requires_user_intervention' => false,
+                'is_recoverable' => true,
+                'original_error' => $errorMessage,
+                'attempts_made' => $attempt
+            ];
+        }
+
+        // Generic error handling
+        return [
+            'success' => false,
+            'error' => "Token refresh failed: {$errorMessage}",
+            'error_type' => CloudStorageErrorType::UNKNOWN_ERROR,
+            'requires_user_intervention' => true,
+            'is_recoverable' => false,
+            'original_error' => $errorMessage,
+            'error_code' => $e->getCode()
+        ];
+    }
+
+    /**
+     * Check if an exception is network-related.
+     */
+    private function isNetworkError(Exception $e): bool
+    {
+        $message = strtolower($e->getMessage());
+        $networkKeywords = [
+            'connection refused',
+            'connection timed out',
+            'network is unreachable',
+            'no route to host',
+            'connection reset',
+            'dns resolution failed',
+            'could not resolve host',
+            'ssl connection error'
+        ];
+        
+        foreach ($networkKeywords as $keyword) {
+            if (str_contains($message, $keyword)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if an exception is timeout-related.
+     */
+    private function isTimeoutError(Exception $e): bool
+    {
+        $message = strtolower($e->getMessage());
+        $timeoutKeywords = [
+            'timeout',
+            'timed out',
+            'operation timeout',
+            'request timeout'
+        ];
+        
+        foreach ($timeoutKeywords as $keyword) {
+            if (str_contains($message, $keyword)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**

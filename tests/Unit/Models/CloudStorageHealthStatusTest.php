@@ -218,4 +218,127 @@ class CloudStorageHealthStatusTest extends TestCase
             'status' => 'unhealthy',
         ]);
     }
+
+    public function test_it_can_create_health_status_with_consolidated_fields(): void
+    {
+        $operationalTestResult = ['test' => 'success', 'response_time' => 150];
+        $lastTokenRefresh = now()->subMinutes(30);
+
+        $healthStatus = CloudStorageHealthStatus::create([
+            'user_id' => $this->user->id,
+            'provider' => 'google-drive',
+            'status' => 'healthy',
+            'consolidated_status' => 'healthy',
+            'last_token_refresh_attempt_at' => $lastTokenRefresh,
+            'token_refresh_failures' => 1,
+            'operational_test_result' => $operationalTestResult,
+        ]);
+
+        $this->assertDatabaseHas('cloud_storage_health_statuses', [
+            'user_id' => $this->user->id,
+            'provider' => 'google-drive',
+            'consolidated_status' => 'healthy',
+            'token_refresh_failures' => 1,
+        ]);
+
+        $this->assertEquals('healthy', $healthStatus->consolidated_status);
+        $this->assertEquals(1, $healthStatus->token_refresh_failures);
+        $this->assertInstanceOf(Carbon::class, $healthStatus->last_token_refresh_attempt_at);
+        $this->assertIsArray($healthStatus->operational_test_result);
+        $this->assertEquals($operationalTestResult, $healthStatus->operational_test_result);
+    }
+
+    public function test_it_casts_new_attributes_correctly(): void
+    {
+        $operationalTestResult = ['api_call' => 'success', 'latency' => 200];
+        $lastTokenRefresh = now()->subHour();
+
+        $healthStatus = CloudStorageHealthStatus::create([
+            'user_id' => $this->user->id,
+            'provider' => 'google-drive',
+            'last_token_refresh_attempt_at' => $lastTokenRefresh,
+            'token_refresh_failures' => 2,
+            'operational_test_result' => $operationalTestResult,
+        ]);
+
+        $this->assertInstanceOf(Carbon::class, $healthStatus->last_token_refresh_attempt_at);
+        $this->assertIsInt($healthStatus->token_refresh_failures);
+        $this->assertIsArray($healthStatus->operational_test_result);
+        $this->assertEquals($operationalTestResult, $healthStatus->operational_test_result);
+    }
+
+    public function test_get_consolidated_status_message(): void
+    {
+        $testCases = [
+            'healthy' => 'Connection is working properly',
+            'authentication_required' => 'Please reconnect your account',
+            'connection_issues' => 'Experiencing connectivity problems',
+            'not_connected' => 'Account not connected',
+        ];
+
+        foreach ($testCases as $status => $expectedMessage) {
+            $user = User::factory()->create();
+            $healthStatus = CloudStorageHealthStatus::factory()->create([
+                'user_id' => $user->id,
+                'consolidated_status' => $status,
+            ]);
+
+            $this->assertEquals($expectedMessage, $healthStatus->getConsolidatedStatusMessage());
+        }
+    }
+
+    public function test_get_consolidated_status_message_with_unknown_status(): void
+    {
+        // Create a health status with a valid enum value first
+        $healthStatus = CloudStorageHealthStatus::factory()->create([
+            'user_id' => $this->user->id,
+            'consolidated_status' => 'healthy',
+        ]);
+
+        // Manually set an invalid status to test the default case
+        // This simulates a scenario where the enum might be expanded in the future
+        $healthStatus->setAttribute('consolidated_status', 'unknown_status');
+
+        $this->assertEquals('Status unknown', $healthStatus->getConsolidatedStatusMessage());
+    }
+
+    public function test_is_token_refresh_working_returns_true_when_failures_below_threshold(): void
+    {
+        $healthStatus = CloudStorageHealthStatus::factory()->create([
+            'user_id' => $this->user->id,
+            'token_refresh_failures' => 2,
+        ]);
+
+        $this->assertTrue($healthStatus->isTokenRefreshWorking());
+    }
+
+    public function test_is_token_refresh_working_returns_false_when_failures_at_threshold(): void
+    {
+        $healthStatus = CloudStorageHealthStatus::factory()->create([
+            'user_id' => $this->user->id,
+            'token_refresh_failures' => 3,
+        ]);
+
+        $this->assertFalse($healthStatus->isTokenRefreshWorking());
+    }
+
+    public function test_is_token_refresh_working_returns_false_when_failures_above_threshold(): void
+    {
+        $healthStatus = CloudStorageHealthStatus::factory()->create([
+            'user_id' => $this->user->id,
+            'token_refresh_failures' => 5,
+        ]);
+
+        $this->assertFalse($healthStatus->isTokenRefreshWorking());
+    }
+
+    public function test_is_token_refresh_working_returns_true_when_no_failures(): void
+    {
+        $healthStatus = CloudStorageHealthStatus::factory()->create([
+            'user_id' => $this->user->id,
+            'token_refresh_failures' => 0,
+        ]);
+
+        $this->assertTrue($healthStatus->isTokenRefreshWorking());
+    }
 }

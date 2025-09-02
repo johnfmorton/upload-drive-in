@@ -75,15 +75,15 @@
                         
                         <div>
                             <h3 class="text-sm font-medium text-gray-900" x-text="getProviderDisplayName(provider.provider)"></h3>
-                            <p class="text-xs text-gray-500" x-text="provider.status_message"></p>
+                            <p class="text-xs text-gray-500" x-text="provider.status_message || getConsolidatedStatusMessage(provider.consolidated_status)"></p>
                         </div>
                     </div>
                     
                     <!-- Status Indicator -->
                     <div class="flex items-center">
                         <div class="flex items-center mr-2">
-                            <div :class="getStatusIndicatorClass(provider.status)" class="w-3 h-3 rounded-full mr-2"></div>
-                            <span class="text-sm font-medium" :class="getStatusTextClass(provider.status)" x-text="getStatusDisplayText(provider.status)"></span>
+                            <div :class="getStatusIndicatorClass(provider.consolidated_status || provider.status)" class="w-3 h-3 rounded-full mr-2"></div>
+                            <span class="text-sm font-medium" :class="getStatusTextClass(provider.consolidated_status || provider.status)" x-text="getStatusDisplayText(provider.consolidated_status || provider.status)"></span>
                         </div>
                     </div>
                 </div>
@@ -98,21 +98,7 @@
                         <span>Last success: <span x-text="provider.last_successful_operation"></span></span>
                     </div>
 
-                    <!-- Token Refresh Notice -->
-                    <div x-show="provider.token_expiring_soon && !provider.token_expired" class="flex items-center text-sm text-yellow-600">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                        </svg>
-                        <span>Token will refresh soon</span>
-                    </div>
 
-                    <!-- Token Refresh Required -->
-                    <div x-show="provider.token_expired" class="flex items-center text-sm text-red-600">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <span>Token refresh needed</span>
-                    </div>
 
                     <!-- Error Information -->
                     <div x-show="provider.last_error_message" class="flex items-start text-sm text-red-600">
@@ -151,7 +137,7 @@
                 <!-- Action Buttons -->
                 <div class="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-2">
                     <!-- Reconnect Button -->
-                    <template x-if="provider.requires_reconnection || provider.is_disconnected">
+                    <template x-if="(provider.consolidated_status && (provider.consolidated_status === 'authentication_required' || provider.consolidated_status === 'not_connected')) || provider.requires_reconnection || provider.is_disconnected">
                         <button @click="reconnectProvider(provider.provider)"
                                 :disabled="isReconnecting[provider.provider]"
                                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -183,7 +169,7 @@
                     </template>
 
                     <!-- Test Connection Button -->
-                    <template x-if="provider.is_healthy || provider.is_degraded">
+                    <template x-if="(provider.consolidated_status && (provider.consolidated_status === 'healthy' || provider.consolidated_status === 'connection_issues')) || provider.is_healthy || provider.is_degraded">
                         <button @click="testConnection(provider.provider)"
                                 :disabled="isTesting[provider.provider]"
                                 class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -377,8 +363,12 @@ function cloudStorageStatusWidget(initialProviders) {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    console.log('🔍 Connection test completed');
-                    this.showSuccess(data.message || 'Connection test completed successfully');
+                    console.log('🔍 Connection test completed:', data);
+                    if (data.success) {
+                        this.showSuccess(data.message || 'Connection test completed successfully');
+                    } else {
+                        this.showError(data.message || 'Connection test failed');
+                    }
                     await this.refreshStatus(true);
                 } else {
                     throw new Error(data.message || 'Connection test failed');
@@ -400,12 +390,26 @@ function cloudStorageStatusWidget(initialProviders) {
             return names[provider] || provider;
         },
         
+        getConsolidatedStatusMessage(consolidatedStatus) {
+            const messages = {
+                'healthy': 'Connection is working properly',
+                'authentication_required': 'Please reconnect your account',
+                'connection_issues': 'Experiencing connectivity problems',
+                'not_connected': 'Account not connected'
+            };
+            return messages[consolidatedStatus] || 'Status unknown';
+        },
+        
         getStatusIndicatorClass(status) {
             const classes = {
                 'healthy': 'bg-green-500',
                 'degraded': 'bg-yellow-500',
                 'unhealthy': 'bg-red-500',
-                'disconnected': 'bg-gray-400'
+                'disconnected': 'bg-gray-400',
+                // Consolidated status values (prioritized)
+                'authentication_required': 'bg-red-500',
+                'connection_issues': 'bg-yellow-500',
+                'not_connected': 'bg-gray-400'
             };
             return classes[status] || 'bg-gray-400';
         },
@@ -415,7 +419,11 @@ function cloudStorageStatusWidget(initialProviders) {
                 'healthy': 'text-green-700',
                 'degraded': 'text-yellow-700',
                 'unhealthy': 'text-red-700',
-                'disconnected': 'text-gray-700'
+                'disconnected': 'text-gray-700',
+                // Consolidated status values (prioritized)
+                'authentication_required': 'text-red-700',
+                'connection_issues': 'text-yellow-700',
+                'not_connected': 'text-gray-700'
             };
             return classes[status] || 'text-gray-700';
         },
@@ -425,7 +433,11 @@ function cloudStorageStatusWidget(initialProviders) {
                 'healthy': 'Healthy',
                 'degraded': 'Degraded',
                 'unhealthy': 'Unhealthy',
-                'disconnected': 'Disconnected'
+                'disconnected': 'Disconnected',
+                // Consolidated status values (prioritized)
+                'authentication_required': 'Authentication Required',
+                'connection_issues': 'Connection Issues',
+                'not_connected': 'Not Connected'
             };
             return texts[status] || status;
         },
@@ -439,7 +451,10 @@ function cloudStorageStatusWidget(initialProviders) {
         },
         
         getOverallStatusMessage() {
-            const healthyCount = this.providers.filter(p => p.is_healthy).length;
+            const healthyCount = this.providers.filter(p => 
+                (p.consolidated_status && p.consolidated_status === 'healthy') || 
+                (!p.consolidated_status && p.is_healthy)
+            ).length;
             const totalCount = this.providers.length;
             
             if (healthyCount === totalCount) {
@@ -452,7 +467,10 @@ function cloudStorageStatusWidget(initialProviders) {
         },
         
         getOverallStatusIndicatorClass() {
-            const healthyCount = this.providers.filter(p => p.is_healthy).length;
+            const healthyCount = this.providers.filter(p => 
+                (p.consolidated_status && p.consolidated_status === 'healthy') || 
+                (!p.consolidated_status && p.is_healthy)
+            ).length;
             const totalCount = this.providers.length;
             
             if (healthyCount === totalCount) {
@@ -465,7 +483,10 @@ function cloudStorageStatusWidget(initialProviders) {
         },
         
         getOverallStatusTextClass() {
-            const healthyCount = this.providers.filter(p => p.is_healthy).length;
+            const healthyCount = this.providers.filter(p => 
+                (p.consolidated_status && p.consolidated_status === 'healthy') || 
+                (!p.consolidated_status && p.is_healthy)
+            ).length;
             const totalCount = this.providers.length;
             
             if (healthyCount === totalCount) {
@@ -478,7 +499,10 @@ function cloudStorageStatusWidget(initialProviders) {
         },
         
         getOverallStatusText() {
-            const healthyCount = this.providers.filter(p => p.is_healthy).length;
+            const healthyCount = this.providers.filter(p => 
+                (p.consolidated_status && p.consolidated_status === 'healthy') || 
+                (!p.consolidated_status && p.is_healthy)
+            ).length;
             const totalCount = this.providers.length;
             
             if (healthyCount === totalCount) {

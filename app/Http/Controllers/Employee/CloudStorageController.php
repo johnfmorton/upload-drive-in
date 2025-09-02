@@ -96,7 +96,7 @@ class CloudStorageController extends Controller
             $user = Auth::user();
             $healthService = app(\App\Services\CloudStorageHealthService::class);
             
-            // Get health status for all providers
+            // Get health status for all providers using consolidated status
             $providersHealth = $healthService->getAllProvidersHealth($user);
             
             // Get pending uploads count for each provider
@@ -123,13 +123,22 @@ class CloudStorageController extends Controller
             ->toArray();
             
             return response()->json([
+                'success' => true,
                 'providers' => $providersHealth,
                 'pending_uploads' => $pendingUploads,
                 'failed_uploads' => $failedUploads,
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to get cloud storage status', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Failed to get status'], 500);
+            Log::error('Failed to get cloud storage status', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Unable to retrieve cloud storage status. Please try again.',
+                'message' => 'Failed to get status'
+            ], 500);
         }
     }
 
@@ -177,24 +186,42 @@ class CloudStorageController extends Controller
             $provider = $validated['provider'];
             $healthService = app(\App\Services\CloudStorageHealthService::class);
             
-            // Perform health check
+            // Perform comprehensive health check using new proactive validation logic
             $healthStatus = $healthService->checkConnectionHealth($user, $provider);
             
-            $message = $healthStatus->isHealthy() 
-                ? 'Connection test successful' 
-                : 'Connection test failed: ' . $healthStatus->last_error_message;
+            // Use consolidated status for consistent messaging
+            $consolidatedStatus = $healthStatus->consolidated_status ?? 'connection_issues';
+            $isHealthy = $consolidatedStatus === 'healthy';
+            
+            $message = match ($consolidatedStatus) {
+                'healthy' => 'Connection test successful - your ' . ucfirst(str_replace('-', ' ', $provider)) . ' integration is working properly',
+                'authentication_required' => 'Authentication required - please reconnect your ' . ucfirst(str_replace('-', ' ', $provider)) . ' account',
+                'connection_issues' => 'Connection issues detected - ' . ($healthStatus->last_error_message ?? 'unable to connect to ' . ucfirst(str_replace('-', ' ', $provider))),
+                'not_connected' => 'Account not connected - please set up your ' . ucfirst(str_replace('-', ' ', $provider)) . ' integration',
+                default => 'Connection test failed - ' . ($healthStatus->last_error_message ?? 'unknown error')
+            };
             
             return response()->json([
-                'success' => $healthStatus->isHealthy(),
+                'success' => $isHealthy,
                 'message' => $message,
-                'status' => $healthStatus->status
+                'status' => $healthStatus->status,
+                'consolidated_status' => $consolidatedStatus,
+                'status_message' => $healthStatus->getConsolidatedStatusMessage(),
+                'requires_reconnection' => $healthStatus->requires_reconnection ?? false,
+                'last_successful_operation' => $healthStatus->last_successful_operation_at?->toISOString()
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to test connection', [
+                'user_id' => Auth::id(),
                 'provider' => $validated['provider'],
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
-            return response()->json(['error' => 'Connection test failed'], 500);
+            return response()->json([
+                'success' => false,
+                'error' => 'Connection test failed due to an unexpected error. Please try again.',
+                'message' => 'Connection test failed'
+            ], 500);
         }
     }
 }

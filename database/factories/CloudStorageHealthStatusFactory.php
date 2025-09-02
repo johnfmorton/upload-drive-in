@@ -20,6 +20,7 @@ class CloudStorageHealthStatusFactory extends Factory
             'user_id' => \App\Models\User::factory(),
             'provider' => $this->faker->randomElement(['google-drive', 'dropbox', 'onedrive']),
             'status' => $this->faker->randomElement(['healthy', 'degraded', 'unhealthy', 'disconnected']),
+            'consolidated_status' => $this->faker->randomElement(['healthy', 'authentication_required', 'connection_issues', 'not_connected']),
             'last_successful_operation_at' => $this->faker->optional()->dateTimeBetween('-1 week', 'now'),
             'consecutive_failures' => $this->faker->numberBetween(0, 10),
             'last_error_type' => $this->faker->optional()->randomElement([
@@ -35,6 +36,14 @@ class CloudStorageHealthStatusFactory extends Factory
             ]),
             'last_error_message' => $this->faker->optional()->sentence(),
             'token_expires_at' => $this->faker->optional()->dateTimeBetween('now', '+1 month'),
+            'last_token_refresh_attempt_at' => $this->faker->optional()->dateTimeBetween('-1 day', 'now'),
+            'token_refresh_failures' => $this->faker->numberBetween(0, 5),
+            'operational_test_result' => $this->faker->optional()->randomElement([
+                ['test' => 'success', 'response_time' => $this->faker->numberBetween(50, 500)],
+                ['test' => 'failed', 'error' => 'Connection timeout'],
+                ['api_call' => 'success', 'latency' => $this->faker->numberBetween(100, 1000)],
+                null,
+            ]),
             'requires_reconnection' => $this->faker->boolean(20), // 20% chance of requiring reconnection
             'provider_specific_data' => $this->faker->optional()->randomElement([
                 ['folder_id' => $this->faker->uuid(), 'quota_used' => $this->faker->numberBetween(1000, 1000000)],
@@ -51,11 +60,14 @@ class CloudStorageHealthStatusFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'healthy',
+            'consolidated_status' => 'healthy',
             'consecutive_failures' => 0,
+            'token_refresh_failures' => 0,
             'last_error_type' => null,
             'last_error_message' => null,
             'requires_reconnection' => false,
             'last_successful_operation_at' => now()->subMinutes($this->faker->numberBetween(1, 60)),
+            'operational_test_result' => ['test' => 'success', 'response_time' => $this->faker->numberBetween(50, 200)],
         ]);
     }
 
@@ -66,10 +78,13 @@ class CloudStorageHealthStatusFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'degraded',
+            'consolidated_status' => 'connection_issues',
             'consecutive_failures' => $this->faker->numberBetween(2, 4),
+            'token_refresh_failures' => $this->faker->numberBetween(1, 2),
             'last_error_type' => $this->faker->randomElement(['network_error', 'api_quota_exceeded']),
             'last_error_message' => 'Connection issues detected',
             'requires_reconnection' => false,
+            'operational_test_result' => ['test' => 'failed', 'error' => 'Connection timeout'],
         ]);
     }
 
@@ -80,10 +95,13 @@ class CloudStorageHealthStatusFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'unhealthy',
+            'consolidated_status' => 'authentication_required',
             'consecutive_failures' => $this->faker->numberBetween(5, 10),
+            'token_refresh_failures' => $this->faker->numberBetween(3, 5),
             'last_error_type' => $this->faker->randomElement(['token_expired', 'insufficient_permissions']),
             'last_error_message' => 'Multiple failures detected',
             'requires_reconnection' => true,
+            'operational_test_result' => ['test' => 'failed', 'error' => 'Authentication failed'],
         ]);
     }
 
@@ -94,12 +112,16 @@ class CloudStorageHealthStatusFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'disconnected',
+            'consolidated_status' => 'not_connected',
             'consecutive_failures' => 0,
+            'token_refresh_failures' => 0,
             'last_error_type' => null,
             'last_error_message' => null,
             'requires_reconnection' => false,
             'last_successful_operation_at' => null,
             'token_expires_at' => null,
+            'last_token_refresh_attempt_at' => null,
+            'operational_test_result' => null,
         ]);
     }
 
@@ -121,9 +143,13 @@ class CloudStorageHealthStatusFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'token_expires_at' => now()->subHours($this->faker->numberBetween(1, 24)),
             'status' => 'unhealthy',
+            'consolidated_status' => 'authentication_required',
+            'token_refresh_failures' => $this->faker->numberBetween(3, 5),
+            'last_token_refresh_attempt_at' => now()->subMinutes($this->faker->numberBetween(5, 60)),
             'last_error_type' => 'token_expired',
             'last_error_message' => 'Access token has expired',
             'requires_reconnection' => true,
+            'operational_test_result' => ['test' => 'failed', 'error' => 'Token expired'],
         ]);
     }
 }

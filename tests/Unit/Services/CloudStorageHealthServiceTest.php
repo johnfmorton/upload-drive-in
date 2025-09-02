@@ -23,7 +23,8 @@ class CloudStorageHealthServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new CloudStorageHealthService();
+        $logService = new \App\Services\CloudStorageLogService();
+        $this->service = new CloudStorageHealthService($logService);
         $this->user = User::factory()->create();
     }
 
