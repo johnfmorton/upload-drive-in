@@ -32,6 +32,7 @@ class Kernel extends ConsoleKernel
         Commands\ToggleUserNotifications::class,
         Commands\GenerateUserLoginUrl::class,
         Commands\CheckCloudStorageHealth::class,
+        Commands\FixCloudStorageHealthStatus::class,
     ];
 
     /**
@@ -104,6 +105,13 @@ class Kernel extends ConsoleKernel
                  ->withoutOverlapping()
                  ->runInBackground()
                  ->appendOutputTo(storage_path('logs/cloud-storage-health.log'));
+
+        // Fix inconsistent health status records daily at 4 AM
+        $schedule->command('cloud-storage:fix-health-status')
+                 ->dailyAt('04:00')
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/health-status-fix.log'));
     }
 
     /**

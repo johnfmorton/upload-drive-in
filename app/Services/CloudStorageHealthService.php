@@ -460,8 +460,51 @@ class CloudStorageHealthService
     {
         $healthStatus = $this->getOrCreateHealthStatus($user, $provider);
         
-        // Use consolidated status if available, otherwise fall back to legacy status
-        $consolidatedStatus = $healthStatus->consolidated_status ?? $this->determineConsolidatedStatus($user, $provider);
+        // Auto-validate and recalculate consolidated status if it seems inconsistent
+        $consolidatedStatus = $healthStatus->consolidated_status;
+        
+        // Check for inconsistencies that indicate stale data
+        $needsRecalculation = false;
+        
+        if (!$consolidatedStatus) {
+            // No consolidated status set - calculate it
+            $needsRecalculation = true;
+        } elseif ($healthStatus->status === 'healthy' && $consolidatedStatus === 'not_connected') {
+            // Clear inconsistency: status is healthy but consolidated shows not connected
+            $needsRecalculation = true;
+            Log::info('Detected stale consolidated status, recalculating', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'status' => $healthStatus->status,
+                'consolidated_status' => $consolidatedStatus
+            ]);
+        } elseif ($healthStatus->last_successful_operation_at && 
+                  $consolidatedStatus === 'not_connected' && 
+                  $healthStatus->last_successful_operation_at->isAfter(now()->subHours(24))) {
+            // Had successful operations recently but shows not connected
+            $needsRecalculation = true;
+            Log::info('Detected inconsistent status with recent successful operations', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'last_success' => $healthStatus->last_successful_operation_at->toISOString(),
+                'consolidated_status' => $consolidatedStatus
+            ]);
+        }
+        
+        if ($needsRecalculation) {
+            $consolidatedStatus = $this->determineConsolidatedStatus($user, $provider);
+            
+            // Update the database with the corrected status
+            $healthStatus->update(['consolidated_status' => $consolidatedStatus]);
+            
+            Log::info('Auto-corrected consolidated status', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'old_status' => $healthStatus->consolidated_status,
+                'new_status' => $consolidatedStatus
+            ]);
+        }
+        
         $isHealthy = $consolidatedStatus === 'healthy';
         
         return [
