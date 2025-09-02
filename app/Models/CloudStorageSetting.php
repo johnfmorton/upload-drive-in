@@ -134,4 +134,131 @@ class CloudStorageSetting extends Model
 
         return $config;
     }
+
+    /**
+     * Get provider schema information
+     */
+    public static function getProviderSchema(string $provider): array
+    {
+        $schemas = [
+            'google-drive' => [
+                'required' => ['client_id', 'client_secret'],
+                'optional' => ['redirect_uri', 'root_folder_id'],
+                'encrypted' => ['client_secret'],
+                'auth_type' => 'oauth',
+                'storage_model' => 'hierarchical',
+            ],
+            'amazon-s3' => [
+                'required' => ['access_key_id', 'secret_access_key', 'region', 'bucket'],
+                'optional' => ['endpoint', 'storage_class'],
+                'encrypted' => ['secret_access_key'],
+                'auth_type' => 'api_key',
+                'storage_model' => 'flat',
+            ],
+            'azure-blob' => [
+                'required' => ['connection_string', 'container'],
+                'optional' => ['access_tier'],
+                'encrypted' => ['connection_string'],
+                'auth_type' => 'connection_string',
+                'storage_model' => 'flat',
+            ],
+            'microsoft-teams' => [
+                'required' => ['client_id', 'client_secret'],
+                'optional' => ['redirect_uri', 'root_folder_id'],
+                'encrypted' => ['client_secret'],
+                'auth_type' => 'oauth',
+                'storage_model' => 'hierarchical',
+            ],
+            'dropbox' => [
+                'required' => ['app_key', 'app_secret'],
+                'optional' => ['redirect_uri', 'root_folder'],
+                'encrypted' => ['app_secret'],
+                'auth_type' => 'oauth',
+                'storage_model' => 'hierarchical',
+            ],
+        ];
+
+        return $schemas[$provider] ?? [];
+    }
+
+    /**
+     * Validate provider configuration against schema
+     */
+    public static function validateProviderConfig(string $provider, array $config): array
+    {
+        $errors = [];
+        $schema = static::getProviderSchema($provider);
+
+        if (empty($schema)) {
+            $errors[] = "Unknown provider: {$provider}";
+            return $errors;
+        }
+
+        // Check required keys
+        foreach ($schema['required'] as $requiredKey) {
+            if (!isset($config[$requiredKey]) || empty($config[$requiredKey])) {
+                $errors[] = "Missing required configuration key: {$requiredKey}";
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Get required keys for a provider
+     */
+    public static function getRequiredKeys(string $provider): array
+    {
+        $schema = static::getProviderSchema($provider);
+        return $schema['required'] ?? [];
+    }
+
+    /**
+     * Get optional keys for a provider
+     */
+    public static function getOptionalKeys(string $provider): array
+    {
+        $schema = static::getProviderSchema($provider);
+        return $schema['optional'] ?? [];
+    }
+
+    /**
+     * Get encrypted keys for a provider
+     */
+    public static function getEncryptedKeys(string $provider): array
+    {
+        $schema = static::getProviderSchema($provider);
+        return $schema['encrypted'] ?? [];
+    }
+
+    /**
+     * Migrate configuration from environment to database
+     */
+    public static function migrateFromEnvironment(string $provider): array
+    {
+        $migrated = [];
+        $schema = static::getProviderSchema($provider);
+        
+        if (empty($schema)) {
+            return $migrated;
+        }
+
+        $allKeys = array_merge($schema['required'], $schema['optional']);
+
+        foreach ($allKeys as $key) {
+            $envKey = static::getEnvironmentKey($provider, $key);
+            $envValue = env($envKey);
+
+            if ($envValue !== null && $envValue !== '') {
+                // Only migrate if not already in database
+                if (static::getValue($provider, $key) === null) {
+                    $shouldEncrypt = in_array($key, $schema['encrypted']);
+                    static::setValue($provider, $key, $envValue, $shouldEncrypt);
+                    $migrated[] = $key;
+                }
+            }
+        }
+
+        return $migrated;
+    }
 }

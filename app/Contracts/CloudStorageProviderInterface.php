@@ -6,13 +6,18 @@ use App\Models\User;
 use App\Services\CloudStorageHealthStatus;
 
 /**
- * Interface for cloud storage providers
+ * Enhanced interface for cloud storage providers
  * 
- * Defines standard methods for upload, delete, health check, and authentication
- * across all cloud storage providers (Google Drive, Dropbox, OneDrive, etc.)
+ * Defines standard methods for upload, delete, health check, authentication,
+ * capability detection, and provider-specific features across all cloud storage 
+ * providers (Google Drive, Amazon S3, Azure Blob, Dropbox, etc.)
  */
 interface CloudStorageProviderInterface
 {
+    // ========================================
+    // EXISTING METHODS (unchanged for backward compatibility)
+    // ========================================
+
     /**
      * Upload a file to the cloud storage provider
      *
@@ -83,4 +88,76 @@ interface CloudStorageProviderInterface
      * @return bool True if connection is valid
      */
     public function hasValidConnection(User $user): bool;
+
+    // ========================================
+    // NEW ENHANCED METHODS
+    // ========================================
+
+    /**
+     * Get the capabilities supported by this provider
+     *
+     * @return array Array of capability names and their support status
+     *               e.g., ['folder_creation' => true, 'presigned_urls' => false]
+     */
+    public function getCapabilities(): array;
+
+    /**
+     * Validate the provider configuration
+     *
+     * @param array $config Configuration array to validate
+     * @return array Array of validation errors (empty if valid)
+     */
+    public function validateConfiguration(array $config): array;
+
+    /**
+     * Initialize the provider with configuration
+     *
+     * @param array $config Provider-specific configuration
+     * @return void
+     * @throws \App\Exceptions\CloudStorageSetupException
+     */
+    public function initialize(array $config): void;
+
+    /**
+     * Get the authentication type used by this provider
+     *
+     * @return string Authentication type ('oauth', 'api_key', 'service_account', 'connection_string')
+     */
+    public function getAuthenticationType(): string;
+
+    /**
+     * Get the storage model used by this provider
+     *
+     * @return string Storage model ('hierarchical', 'flat', 'hybrid')
+     */
+    public function getStorageModel(): string;
+
+    /**
+     * Get the maximum file size supported by this provider
+     *
+     * @return int Maximum file size in bytes
+     */
+    public function getMaxFileSize(): int;
+
+    /**
+     * Get the supported file types for this provider
+     *
+     * @return array Array of supported MIME types or ['*'] for all types
+     */
+    public function getSupportedFileTypes(): array;
+
+    /**
+     * Check if the provider supports a specific feature
+     *
+     * @param string $feature Feature name to check
+     * @return bool True if feature is supported
+     */
+    public function supportsFeature(string $feature): bool;
+
+    /**
+     * Clean up provider resources and connections
+     *
+     * @return void
+     */
+    public function cleanup(): void;
 }
