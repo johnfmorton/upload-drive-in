@@ -400,7 +400,11 @@
     'client_relationships_title' => 'Client Relationships',
     'client_relationships_description' => 'View and manage your client relationships.',
     'primary_client' => 'Primary',
+    'primary_contact_badge' => 'Primary Contact',
     'no_client_relationships' => 'You have no client relationships yet.',
+    'filter_by_primary_contact' =>'Filter',
+    'filter_all_clients' =>'All Clients',
+    'filter_primary_contact_only' =>'Only Primary Clients',
 
     // File Upload Messages
     'no_valid_upload_destination' => 'No valid upload destination found. Please contact support.',
