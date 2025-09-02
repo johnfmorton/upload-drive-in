@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\Notification;
 class CloudStorageHealthService
 {
     public function __construct(
-        private readonly CloudStorageLogService $logService
+        private readonly CloudStorageLogService $logService,
+        private readonly CloudStorageManager $storageManager
     ) {}
     /**
      * Ensure valid token by attempting refresh if needed with comprehensive error handling.
@@ -67,10 +68,7 @@ class CloudStorageHealthService
                 'last_token_refresh_attempt_at' => now(),
             ]);
             
-            $result = match ($provider) {
-                'google-drive' => $this->ensureValidGoogleDriveTokenWithErrorHandling($user, $healthStatus),
-                default => ['success' => false, 'error' => 'Unsupported provider'],
-            };
+            $result = $this->ensureValidTokenWithProvider($user, $provider, $healthStatus);
             
             // Update token refresh failure count and error details
             if ($result['success']) {
@@ -198,10 +196,7 @@ class CloudStorageHealthService
         }
         
         try {
-            $result = match ($provider) {
-                'google-drive' => $this->testGoogleDriveApiConnectivity($user),
-                default => false,
-            };
+            $result = $this->testProviderApiConnectivity($user, $provider);
             
             // Store the test result
             $healthStatus = $this->getOrCreateHealthStatus($user, $provider);
@@ -419,12 +414,21 @@ class CloudStorageHealthService
             'requires_reconnection' => false,
         ];
         
-        // Sync token expiration data for Google Drive
-        if ($provider === 'google-drive') {
-            $token = $user->googleDriveToken;
-            if ($token && $token->expires_at) {
-                $updateData['token_expires_at'] = $token->expires_at;
+        // Sync token expiration data for providers that support it
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            if (method_exists($providerInstance, 'getTokenExpiration')) {
+                $tokenExpiration = $providerInstance->getTokenExpiration($user);
+                if ($tokenExpiration) {
+                    $updateData['token_expires_at'] = $tokenExpiration;
+                }
             }
+        } catch (\Exception $e) {
+            Log::debug('Failed to sync token expiration data', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage()
+            ]);
         }
         
         if ($providerData) {
@@ -734,41 +738,86 @@ class CloudStorageHealthService
     {
         // This would be implemented by specific provider services
         // For now, we'll return true as a placeholder
-        return match ($provider) {
-            'google-drive' => $this->checkGoogleDriveHealth($user),
-            default => true,
-        };
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            return $providerInstance->hasValidConnection($user);
+        } catch (\Exception $e) {
+            Log::warning('Failed to perform provider health check', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
     }
 
     /**
      * Check Google Drive specific health.
      */
-    private function checkGoogleDriveHealth(User $user): bool
+    /**
+     * Ensure valid token for any provider using CloudStorageManager.
+     */
+    private function ensureValidTokenWithProvider(User $user, string $provider, CloudStorageHealthStatus $healthStatus): array
     {
         try {
-            // Check if user has a token
-            $token = $user->googleDriveToken;
-            if (!$token) {
-                return false;
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            // Check if provider supports token validation
+            if (method_exists($providerInstance, 'validateAndRefreshToken')) {
+                $result = $providerInstance->validateAndRefreshToken($user);
+                return [
+                    'success' => $result,
+                    'error' => $result ? null : 'Token validation failed',
+                    'provider' => $provider
+                ];
             }
             
-            // Sync token expiration data with health status
-            $this->updateTokenExpiration($user, 'google-drive', $token->expires_at);
+            // Fallback to basic connection check
+            $hasConnection = $providerInstance->hasValidConnection($user);
+            return [
+                'success' => $hasConnection,
+                'error' => $hasConnection ? null : 'No valid connection found',
+                'provider' => $provider
+            ];
             
-            // For a more thorough health check, we could integrate with GoogleDriveService
-            // to perform an actual API call, but for basic health monitoring,
-            // checking token existence and expiration is sufficient
-            
-            // Check if token is expired
-            if ($token->expires_at && $token->expires_at->isPast()) {
-                // Token is expired, but we might be able to refresh it
-                return $token->refresh_token !== null;
-            }
-            
-            return true;
         } catch (\Exception $e) {
-            Log::error('Google Drive health check failed', [
+            Log::error('Provider token validation failed', [
                 'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'provider' => $provider,
+                'error_type' => CloudStorageErrorType::UNKNOWN_ERROR,
+                'requires_user_intervention' => true,
+                'is_recoverable' => false
+            ];
+        }
+    }
+
+    /**
+     * Test API connectivity for any provider using CloudStorageManager.
+     */
+    private function testProviderApiConnectivity(User $user, string $provider): bool
+    {
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            // Check if provider supports API connectivity testing
+            if (method_exists($providerInstance, 'testApiConnectivity')) {
+                return $providerInstance->testApiConnectivity($user);
+            }
+            
+            // Fallback to basic connection check
+            return $providerInstance->hasValidConnection($user);
+            
+        } catch (\Exception $e) {
+            Log::error('Provider API connectivity test failed', [
+                'user_id' => $user->id,
+                'provider' => $provider,
                 'error' => $e->getMessage(),
             ]);
             return false;
@@ -916,22 +965,7 @@ class CloudStorageHealthService
         return min($delay, $maxDelay);
     }
 
-    /**
-     * Test Google Drive API connectivity.
-     */
-    private function testGoogleDriveApiConnectivity(User $user): bool
-    {
-        try {
-            $googleDriveService = app(GoogleDriveService::class);
-            return $googleDriveService->testApiConnectivity($user);
-        } catch (\Exception $e) {
-            Log::error('Google Drive API connectivity test failed', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-            return false;
-        }
-    }
+
 
     /**
      * Map consolidated status to legacy status for backward compatibility.
@@ -965,12 +999,22 @@ class CloudStorageHealthService
      */
     private function getSupportedProviders(): array
     {
-        return [
-            'google-drive',
-            // Future providers can be added here
-            // 'dropbox',
-            // 'onedrive',
-        ];
+        try {
+            return $this->storageManager->getAvailableProviders();
+        } catch (\Exception $e) {
+            Log::warning('Failed to get available providers from storage manager', [
+                'error' => $e->getMessage()
+            ]);
+            
+            // Fallback to hardcoded list
+            return [
+                'google-drive',
+                'amazon-s3',
+                // Future providers can be added here
+                // 'dropbox',
+                // 'onedrive',
+            ];
+        }
     }
 
     /**

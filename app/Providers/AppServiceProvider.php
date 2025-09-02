@@ -22,6 +22,20 @@ class AppServiceProvider extends ServiceProvider
             \App\Contracts\CloudStorageErrorHandlerInterface::class,
             \App\Services\GoogleDriveErrorHandler::class
         );
+        
+        // Backward compatibility: Add deprecation warnings to GoogleDriveService
+        $this->app->extend(\App\Services\GoogleDriveService::class, function ($service, $app) {
+            // Log deprecation warning when GoogleDriveService is resolved
+            if (config('app.debug')) {
+                \Log::warning('GoogleDriveService is deprecated. Use CloudStorageManager instead.', [
+                    'migration_guide' => 'See documentation for migration guide',
+                    'new_service' => \App\Services\CloudStorageManager::class,
+                    'deprecated_service' => \App\Services\GoogleDriveService::class,
+                    'resolved_at' => now()->toISOString()
+                ]);
+            }
+            return $service;
+        });
     }
 
     /**

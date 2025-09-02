@@ -33,6 +33,12 @@ class Kernel extends ConsoleKernel
         Commands\GenerateUserLoginUrl::class,
         Commands\CheckCloudStorageHealth::class,
         Commands\FixCloudStorageHealthStatus::class,
+        Commands\MigrateCloudStorageConfig::class,
+        Commands\TestCloudStorageProviders::class,
+        Commands\ValidateCloudStorageConfiguration::class,
+        Commands\ComprehensiveCloudStorageHealthCheck::class,
+        Commands\MonitorCloudStorageProviders::class,
+        Commands\RunComprehensiveCloudStorageValidation::class,
     ];
 
     /**
@@ -112,6 +118,27 @@ class Kernel extends ConsoleKernel
                  ->withoutOverlapping()
                  ->runInBackground()
                  ->appendOutputTo(storage_path('logs/health-status-fix.log'));
+
+        // Monitor cloud storage providers every 5 minutes with alerting
+        $schedule->command('cloud-storage:monitor --alert --quiet')
+                 ->everyFiveMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/cloud-storage-monitoring.log'));
+
+        // Comprehensive health check every hour with caching and notifications
+        $schedule->command('cloud-storage:health-check --cache --notify --quiet')
+                 ->hourly()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/comprehensive-health-check.log'));
+
+        // Configuration validation daily at 2 AM
+        $schedule->command('cloud-storage:validate-config --log --quiet')
+                 ->dailyAt('02:00')
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/config-validation.log'));
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Services\CloudStorageHealthService;
 use App\Services\CloudStorageLogService;
 use App\Enums\CloudStorageErrorType;
 use App\Exceptions\CloudStorageException;
+use App\Traits\LogsDeprecationWarnings;
 use Google\Client;
 use Google\Service\Drive;
 use Google\Service\Drive\DriveFile;
@@ -20,9 +21,12 @@ use Exception;
 /**
  * Service class for interacting with the Google Drive API.
  * Handles authentication, folder operations, and file uploads.
+ * 
+ * @deprecated Use CloudStorageManager with google-drive provider instead
  */
 class GoogleDriveService
 {
+    use LogsDeprecationWarnings;
 
 
     /**
@@ -255,6 +259,7 @@ class GoogleDriveService
      * @param string|null $description Optional description for the file in Google Drive.
      * @return string The Google Drive File ID of the newly uploaded file.
      * @throws Exception If the local file doesn't exist or the upload fails.
+     * @deprecated Use CloudStorageManager::getProvider('google-drive')->uploadFile() instead
      */
     public function uploadFile(
         User $user,
@@ -264,6 +269,8 @@ class GoogleDriveService
         string $mimeType,
         ?string $description = null
     ): string {
+        $this->logDeprecationWarning(__METHOD__, 'CloudStorageManager::getProvider(\'google-drive\')->uploadFile()');
+        
         // Verify local file exists
         if (!Storage::disk('public')->exists($localRelativePath)) {
             Log::error('Local file not found for Google Drive upload.', ['path' => $localRelativePath]);
@@ -353,9 +360,12 @@ class GoogleDriveService
 
     /**
      * Get the authorization URL for a specific user.
+     * @deprecated Use CloudStorageManager::getProvider('google-drive')->getAuthUrl() instead
      */
     public function getAuthUrl(User $user, bool $isReconnection = false): string
     {
+        $this->logDeprecationWarning(__METHOD__, 'CloudStorageManager::getProvider(\'google-drive\')->getAuthUrl()');
+        
         // Use unified callback endpoint for all user types
         $this->client->setRedirectUri(route('google-drive.unified-callback'));
 
@@ -374,9 +384,12 @@ class GoogleDriveService
 
     /**
      * Handle the OAuth callback and store the token for the user.
+     * @deprecated Use CloudStorageManager::getProvider('google-drive')->handleAuthCallback() instead
      */
     public function handleCallback(User $user, string $code): void
     {
+        $this->logDeprecationWarning(__METHOD__, 'CloudStorageManager::getProvider(\'google-drive\')->handleAuthCallback()');
+        
         // Use unified callback endpoint for all user types
         $this->client->setRedirectUri(route('google-drive.unified-callback'));
 

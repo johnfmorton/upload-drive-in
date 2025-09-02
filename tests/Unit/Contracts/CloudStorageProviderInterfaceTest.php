@@ -128,8 +128,11 @@ class CloudStorageProviderInterfaceTest extends TestCase
         $method = $this->interfaceReflection->getMethod('getAuthUrl');
         $parameters = $method->getParameters();
 
-        $this->assertCount(1, $parameters);
+        $this->assertCount(2, $parameters);
         $this->assertEquals('user', $parameters[0]->getName());
+        $this->assertEquals('isReconnection', $parameters[1]->getName());
+        $this->assertTrue($parameters[1]->isOptional());
+        $this->assertFalse($parameters[1]->getDefaultValue());
 
         $this->assertTrue($method->hasReturnType());
         $this->assertEquals('string', $method->getReturnType()->getName());

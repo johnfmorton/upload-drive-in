@@ -165,6 +165,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's cloud storage health statuses.
+     */
+    public function cloudStorageHealthStatuses(): HasMany
+    {
+        return $this->hasMany(CloudStorageHealthStatus::class);
+    }
+
+    /**
      * Check if the user has connected their Google Drive account.
      */
     public function hasGoogleDriveConnected(): bool

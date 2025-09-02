@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\FileUpload;
 use App\Services\GoogleDriveService;
 use App\Services\GoogleDriveProvider;
+use App\Services\CloudStorageManager;
 use App\Services\CloudStorageHealthService;
 use App\Jobs\UploadToGoogleDrive;
 use Illuminate\Http\Request;
@@ -19,7 +20,8 @@ class GoogleDriveUnifiedCallbackController extends Controller
     public function __construct(
         private GoogleDriveService $googleDriveService,
         private GoogleDriveProvider $googleDriveProvider,
-        private CloudStorageHealthService $healthService
+        private CloudStorageHealthService $healthService,
+        private CloudStorageManager $storageManager
     ) {}
 
     /**
@@ -131,8 +133,9 @@ class GoogleDriveUnifiedCallbackController extends Controller
                 'user_id' => $user->id
             ]);
 
-            // Use the provider to check connection health
-            $healthStatus = $this->googleDriveProvider->getConnectionHealth($user);
+            // Use CloudStorageManager to get the provider and check connection health
+            $provider = $this->storageManager->getProvider('google-drive');
+            $healthStatus = $provider->getConnectionHealth($user);
             
             $isValid = $healthStatus->isHealthy() || $healthStatus->isDegraded();
             

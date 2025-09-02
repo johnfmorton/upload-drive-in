@@ -14,7 +14,6 @@ use Mockery;
 
 class CloudStorageManagerTest extends TestCase
 {
-    use RefreshDatabase;
 
     private CloudStorageManager $manager;
     private CloudStorageFactory $mockFactory;
@@ -83,6 +82,9 @@ class CloudStorageManagerTest extends TestCase
 
     public function test_get_provider_throws_exception_when_provider_not_configured(): void
     {
+        // Mock config to disable fallback for this test
+        config(['cloud-storage.fallback.enabled' => false]);
+        
         $this->mockConfigService
             ->shouldReceive('isProviderConfigured')
             ->with('unconfigured-provider')
@@ -181,17 +183,34 @@ class CloudStorageManagerTest extends TestCase
 
     public function test_switch_user_provider_updates_user_preference(): void
     {
-        $user = User::factory()->create();
+        $mockUser = Mockery::mock(User::class);
+        $mockUser->shouldReceive('setAttribute')->andReturn(null);
+        $mockUser->shouldReceive('getAttribute')
+            ->with('preferred_cloud_provider')
+            ->andReturn(null);
+        $mockUser->shouldReceive('getAttribute')
+            ->with('id')
+            ->andReturn(1);
+        $mockUser->id = 1;
+        $mockUser->shouldReceive('update')
+            ->with(['preferred_cloud_provider' => 'amazon-s3'])
+            ->once();
+
+        $mockHealthStatus = Mockery::mock('App\Services\CloudStorageHealthStatus');
+        $mockHealthStatus->shouldReceive('isHealthy')->andReturn(true);
+        $mockHealthStatus->shouldReceive('getStatus')->andReturn('healthy');
+        $mockHealthStatus->shouldReceive('getLastChecked')->andReturn(now());
+        $mockHealthStatus->shouldReceive('getErrors')->andReturn([]);
 
         $this->mockConfigService
             ->shouldReceive('isProviderConfigured')
             ->with('amazon-s3')
-            ->once()
+            ->twice() // Called once in switchUserProvider and once in getProvider
             ->andReturn(true);
 
         $this->mockFactory
             ->shouldReceive('createForUser')
-            ->with($user, 'amazon-s3')
+            ->with($mockUser, 'amazon-s3')
             ->once()
             ->andReturn($this->mockProvider);
 
@@ -199,15 +218,32 @@ class CloudStorageManagerTest extends TestCase
             ->shouldReceive('getProviderName')
             ->andReturn('amazon-s3');
 
-        $this->manager->switchUserProvider($user, 'amazon-s3');
+        $this->mockProvider
+            ->shouldReceive('getConnectionHealth')
+            ->with($mockUser)
+            ->once()
+            ->andReturn($mockHealthStatus);
 
-        $user->refresh();
-        $this->assertEquals('amazon-s3', $user->preferred_cloud_provider);
+        $this->mockProvider
+            ->shouldReceive('hasValidConnection')
+            ->with($mockUser)
+            ->andReturn(true);
+
+        $this->mockProvider
+            ->shouldReceive('getCapabilities')
+            ->andReturn(['file_upload' => true]);
+
+        $this->manager->switchUserProvider($mockUser, 'amazon-s3');
+        
+        // The assertion is implicit in the mock expectations above
+        $this->assertTrue(true); // Explicit assertion to avoid risky test warning
     }
 
     public function test_switch_user_provider_throws_exception_for_unconfigured_provider(): void
     {
-        $user = User::factory()->create();
+        $mockUser = Mockery::mock(User::class);
+        $mockUser->shouldReceive('setAttribute')->andReturn(null);
+        $mockUser->id = 1;
 
         $this->mockConfigService
             ->shouldReceive('isProviderConfigured')
@@ -218,7 +254,7 @@ class CloudStorageManagerTest extends TestCase
         $this->expectException(CloudStorageException::class);
         $this->expectExceptionMessage("Provider 'unconfigured' is not configured");
 
-        $this->manager->switchUserProvider($user, 'unconfigured');
+        $this->manager->switchUserProvider($mockUser, 'unconfigured');
     }
 
     public function test_get_provider_capabilities_returns_provider_capabilities(): void
@@ -298,6 +334,195 @@ class CloudStorageManagerTest extends TestCase
         $this->assertTrue($result['google-drive']['valid']);
         $this->assertEmpty($result['google-drive']['errors']);
         $this->assertEquals(['folder_creation' => true], $result['google-drive']['capabilities']);
+    }
+
+    public function test_validate_provider_health_returns_health_status(): void
+    {
+        $user = User::factory()->make();
+        $mockHealthStatus = Mockery::mock('App\Services\CloudStorageHealthStatus');
+        
+        $mockHealthStatus->shouldReceive('isHealthy')->andReturn(true);
+        $mockHealthStatus->shouldReceive('getStatus')->andReturn('healthy');
+        $mockHealthStatus->shouldReceive('getLastChecked')->andReturn(now());
+        $mockHealthStatus->shouldReceive('getErrors')->andReturn([]);
+
+        $this->mockProvider
+            ->shouldReceive('getConnectionHealth')
+            ->with($user)
+            ->once()
+            ->andReturn($mockHealthStatus);
+
+        $this->mockProvider
+            ->shouldReceive('getProviderName')
+            ->andReturn('google-drive');
+
+        $this->mockProvider
+            ->shouldReceive('hasValidConnection')
+            ->with($user)
+            ->andReturn(true);
+
+        $this->mockProvider
+            ->shouldReceive('getCapabilities')
+            ->andReturn(['folder_creation' => true]);
+
+        $result = $this->manager->validateProviderHealth($this->mockProvider, $user);
+
+        $this->assertTrue($result['healthy']);
+        $this->assertEquals('google-drive', $result['provider']);
+        $this->assertEquals('healthy', $result['status']);
+        $this->assertIsArray($result['errors']);
+        $this->assertIsArray($result['details']);
+    }
+
+    public function test_validate_all_providers_health_returns_status_for_each(): void
+    {
+        $user = User::factory()->make();
+        $mockHealthStatus = Mockery::mock('App\Services\CloudStorageHealthStatus');
+        
+        $mockHealthStatus->shouldReceive('isHealthy')->andReturn(true);
+        $mockHealthStatus->shouldReceive('getStatus')->andReturn('healthy');
+        $mockHealthStatus->shouldReceive('getLastChecked')->andReturn(now());
+        $mockHealthStatus->shouldReceive('getErrors')->andReturn([]);
+
+        $this->mockFactory
+            ->shouldReceive('getRegisteredProviders')
+            ->once()
+            ->andReturn([
+                'google-drive' => 'App\Services\GoogleDriveProvider',
+            ]);
+
+        $this->mockConfigService
+            ->shouldReceive('isProviderConfigured')
+            ->with('google-drive')
+            ->twice() // Called once in getAvailableProviders and once in validateAllProvidersHealth
+            ->andReturn(true);
+
+        $this->mockFactory
+            ->shouldReceive('createForUser')
+            ->with($user, 'google-drive')
+            ->once()
+            ->andReturn($this->mockProvider);
+
+        $this->mockProvider
+            ->shouldReceive('getProviderName')
+            ->andReturn('google-drive');
+
+        $this->mockProvider
+            ->shouldReceive('getConnectionHealth')
+            ->with($user)
+            ->once()
+            ->andReturn($mockHealthStatus);
+
+        $this->mockProvider
+            ->shouldReceive('hasValidConnection')
+            ->with($user)
+            ->andReturn(true);
+
+        $this->mockProvider
+            ->shouldReceive('getCapabilities')
+            ->andReturn(['folder_creation' => true]);
+
+        $result = $this->manager->validateAllProvidersHealth($user);
+
+        $this->assertArrayHasKey('google-drive', $result);
+        $this->assertTrue($result['google-drive']['healthy']);
+        $this->assertEquals('google-drive', $result['google-drive']['provider']);
+    }
+
+    public function test_get_best_provider_for_user_returns_preferred_when_healthy(): void
+    {
+        $user = User::factory()->make(['preferred_cloud_provider' => 'google-drive']);
+        $mockHealthStatus = Mockery::mock('App\Services\CloudStorageHealthStatus');
+        
+        $mockHealthStatus->shouldReceive('isHealthy')->andReturn(true);
+        $mockHealthStatus->shouldReceive('getStatus')->andReturn('healthy');
+        $mockHealthStatus->shouldReceive('getLastChecked')->andReturn(now());
+        $mockHealthStatus->shouldReceive('getErrors')->andReturn([]);
+
+        $this->mockConfigService
+            ->shouldReceive('isProviderConfigured')
+            ->with('google-drive')
+            ->once()
+            ->andReturn(true);
+
+        $this->mockFactory
+            ->shouldReceive('createForUser')
+            ->with($user, 'google-drive')
+            ->once()
+            ->andReturn($this->mockProvider);
+
+        $this->mockProvider
+            ->shouldReceive('getProviderName')
+            ->andReturn('google-drive');
+
+        $this->mockProvider
+            ->shouldReceive('getConnectionHealth')
+            ->with($user)
+            ->once()
+            ->andReturn($mockHealthStatus);
+
+        $this->mockProvider
+            ->shouldReceive('hasValidConnection')
+            ->with($user)
+            ->andReturn(true);
+
+        $this->mockProvider
+            ->shouldReceive('getCapabilities')
+            ->andReturn(['folder_creation' => true]);
+
+        $result = $this->manager->getBestProviderForUser($user);
+
+        $this->assertSame($this->mockProvider, $result);
+    }
+
+    public function test_get_best_provider_throws_exception_when_no_healthy_providers(): void
+    {
+        $user = User::factory()->make(['preferred_cloud_provider' => 'google-drive']);
+        $mockHealthStatus = Mockery::mock('App\Services\CloudStorageHealthStatus');
+        
+        $mockHealthStatus->shouldReceive('isHealthy')->andReturn(false);
+        $mockHealthStatus->shouldReceive('getStatus')->andReturn('unhealthy');
+        $mockHealthStatus->shouldReceive('getLastChecked')->andReturn(now());
+        $mockHealthStatus->shouldReceive('getErrors')->andReturn(['Connection failed']);
+
+        $this->mockConfigService
+            ->shouldReceive('isProviderConfigured')
+            ->with('google-drive')
+            ->once()
+            ->andReturn(true);
+
+        $this->mockFactory
+            ->shouldReceive('createForUser')
+            ->with($user, 'google-drive')
+            ->once()
+            ->andReturn($this->mockProvider);
+
+        $this->mockProvider
+            ->shouldReceive('getProviderName')
+            ->andReturn('google-drive');
+
+        $this->mockProvider
+            ->shouldReceive('getConnectionHealth')
+            ->with($user)
+            ->once()
+            ->andReturn($mockHealthStatus);
+
+        $this->mockProvider
+            ->shouldReceive('hasValidConnection')
+            ->with($user)
+            ->andReturn(false);
+
+        $this->mockProvider
+            ->shouldReceive('getCapabilities')
+            ->andReturn(['folder_creation' => true]);
+
+        // Mock config for fallback
+        config(['cloud-storage.fallback.order' => ['google-drive']]);
+
+        $this->expectException(CloudStorageException::class);
+        $this->expectExceptionMessage('No healthy providers available for user');
+
+        $this->manager->getBestProviderForUser($user);
     }
 
     protected function tearDown(): void

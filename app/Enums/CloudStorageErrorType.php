@@ -80,6 +80,59 @@ enum CloudStorageErrorType: string
      */
     case UNKNOWN_ERROR = 'unknown_error';
 
+    // ========================================
+    // S3-SPECIFIC ERROR TYPES
+    // ========================================
+
+    /**
+     * S3 bucket not found
+     */
+    case BUCKET_NOT_FOUND = 'bucket_not_found';
+
+    /**
+     * Invalid S3 bucket name
+     */
+    case INVALID_BUCKET_NAME = 'invalid_bucket_name';
+
+    /**
+     * S3 bucket access denied
+     */
+    case BUCKET_ACCESS_DENIED = 'bucket_access_denied';
+
+    /**
+     * Invalid AWS region
+     */
+    case INVALID_REGION = 'invalid_region';
+
+    /**
+     * S3 storage class not supported
+     */
+    case STORAGE_CLASS_NOT_SUPPORTED = 'storage_class_not_supported';
+
+    // ========================================
+    // GENERIC PROVIDER ERROR TYPES
+    // ========================================
+
+    /**
+     * Provider not configured
+     */
+    case PROVIDER_NOT_CONFIGURED = 'provider_not_configured';
+
+    /**
+     * Provider initialization failed
+     */
+    case PROVIDER_INITIALIZATION_FAILED = 'provider_initialization_failed';
+
+    /**
+     * Feature not supported by provider
+     */
+    case FEATURE_NOT_SUPPORTED = 'feature_not_supported';
+
+    /**
+     * Invalid parameter provided
+     */
+    case INVALID_PARAMETER = 'invalid_parameter';
+
     /**
      * Get a human-readable description of the error type
      *
@@ -102,6 +155,15 @@ enum CloudStorageErrorType: string
             self::INVALID_CREDENTIALS => 'Invalid authentication configuration',
             self::TIMEOUT => 'Operation timed out',
             self::UNKNOWN_ERROR => 'Unknown error occurred',
+            self::BUCKET_NOT_FOUND => 'S3 bucket not found',
+            self::INVALID_BUCKET_NAME => 'Invalid S3 bucket name',
+            self::BUCKET_ACCESS_DENIED => 'S3 bucket access denied',
+            self::INVALID_REGION => 'Invalid AWS region',
+            self::STORAGE_CLASS_NOT_SUPPORTED => 'S3 storage class not supported',
+            self::PROVIDER_NOT_CONFIGURED => 'Provider not configured',
+            self::PROVIDER_INITIALIZATION_FAILED => 'Provider initialization failed',
+            self::FEATURE_NOT_SUPPORTED => 'Feature not supported by provider',
+            self::INVALID_PARAMETER => 'Invalid parameter provided',
         };
     }
 
@@ -132,7 +194,14 @@ enum CloudStorageErrorType: string
             self::TOKEN_EXPIRED,
             self::INSUFFICIENT_PERMISSIONS,
             self::STORAGE_QUOTA_EXCEEDED,
-            self::INVALID_CREDENTIALS => true,
+            self::INVALID_CREDENTIALS,
+            self::BUCKET_NOT_FOUND,
+            self::INVALID_BUCKET_NAME,
+            self::BUCKET_ACCESS_DENIED,
+            self::INVALID_REGION,
+            self::PROVIDER_NOT_CONFIGURED,
+            self::PROVIDER_INITIALIZATION_FAILED,
+            self::INVALID_PARAMETER => true,
             default => false,
         };
     }
@@ -157,7 +226,16 @@ enum CloudStorageErrorType: string
             self::FOLDER_ACCESS_DENIED,
             self::INVALID_FILE_TYPE,
             self::FILE_TOO_LARGE,
-            self::INVALID_FILE_CONTENT => 'medium',
+            self::INVALID_FILE_CONTENT,
+            self::STORAGE_CLASS_NOT_SUPPORTED,
+            self::FEATURE_NOT_SUPPORTED,
+            self::INVALID_PARAMETER => 'medium',
+            self::BUCKET_NOT_FOUND,
+            self::INVALID_BUCKET_NAME,
+            self::BUCKET_ACCESS_DENIED,
+            self::INVALID_REGION,
+            self::PROVIDER_NOT_CONFIGURED,
+            self::PROVIDER_INITIALIZATION_FAILED,
             self::UNKNOWN_ERROR => 'high',
         };
     }

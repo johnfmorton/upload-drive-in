@@ -202,17 +202,173 @@ class CloudStorageManager
             throw new CloudStorageException("Provider '{$providerName}' is not configured");
         }
 
-        // Test provider can be instantiated
-        $this->getProvider($providerName, $user);
+        // Test provider can be instantiated and validate health
+        $provider = $this->getProvider($providerName, $user);
+        $healthStatus = $this->validateProviderHealth($provider, $user);
+        
+        if (!$healthStatus['healthy']) {
+            Log::warning('CloudStorageManager: Provider health check failed during switch', [
+                'user_id' => $user->id,
+                'provider' => $providerName,
+                'health_status' => $healthStatus
+            ]);
+            
+            throw new CloudStorageException(
+                "Provider '{$providerName}' failed health check: " . 
+                implode(', ', $healthStatus['errors'])
+            );
+        }
 
-        // Store user preference (this would typically be in a user settings table)
-        // For now, we'll use a simple approach - this can be enhanced later
+        // Store user preference
         $user->update(['preferred_cloud_provider' => $providerName]);
 
         Log::info('CloudStorageManager: User provider switched', [
             'user_id' => $user->id,
-            'new_provider' => $providerName
+            'new_provider' => $providerName,
+            'health_status' => $healthStatus
         ]);
+    }
+
+    /**
+     * Validate provider health for a specific user
+     *
+     * @param CloudStorageProviderInterface $provider
+     * @param User $user
+     * @return array Health status information
+     */
+    public function validateProviderHealth(CloudStorageProviderInterface $provider, User $user): array
+    {
+        try {
+            $connectionHealth = $provider->getConnectionHealth($user);
+            
+            return [
+                'healthy' => $connectionHealth->isHealthy(),
+                'provider' => $provider->getProviderName(),
+                'status' => $connectionHealth->getStatus(),
+                'last_checked' => $connectionHealth->getLastChecked(),
+                'errors' => $connectionHealth->getErrors(),
+                'details' => [
+                    'has_valid_connection' => $provider->hasValidConnection($user),
+                    'capabilities' => $provider->getCapabilities(),
+                ]
+            ];
+        } catch (\Exception $e) {
+            Log::error('CloudStorageManager: Provider health check failed', [
+                'provider' => $provider->getProviderName(),
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'healthy' => false,
+                'provider' => $provider->getProviderName(),
+                'status' => 'error',
+                'last_checked' => now(),
+                'errors' => [$e->getMessage()],
+                'details' => []
+            ];
+        }
+    }
+
+    /**
+     * Validate health for all user's available providers
+     *
+     * @param User $user
+     * @return array Health status for each provider
+     */
+    public function validateAllProvidersHealth(User $user): array
+    {
+        $results = [];
+        $availableProviders = $this->getAvailableProviders();
+
+        foreach ($availableProviders as $providerName) {
+            try {
+                $provider = $this->getProvider($providerName, $user);
+                $results[$providerName] = $this->validateProviderHealth($provider, $user);
+            } catch (\Exception $e) {
+                $results[$providerName] = [
+                    'healthy' => false,
+                    'provider' => $providerName,
+                    'status' => 'error',
+                    'last_checked' => now(),
+                    'errors' => [$e->getMessage()],
+                    'details' => []
+                ];
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get the best available provider for a user based on health and preferences
+     *
+     * @param User $user
+     * @return CloudStorageProviderInterface
+     * @throws CloudStorageException
+     */
+    public function getBestProviderForUser(User $user): CloudStorageProviderInterface
+    {
+        // First try user's preferred provider
+        $preferredProvider = $this->getUserPreferredProvider($user);
+        
+        try {
+            $provider = $this->getProvider($preferredProvider, $user);
+            $healthStatus = $this->validateProviderHealth($provider, $user);
+            
+            if ($healthStatus['healthy']) {
+                return $provider;
+            }
+            
+            Log::info('CloudStorageManager: Preferred provider unhealthy, trying alternatives', [
+                'user_id' => $user->id,
+                'preferred_provider' => $preferredProvider,
+                'health_status' => $healthStatus
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('CloudStorageManager: Preferred provider failed, trying alternatives', [
+                'user_id' => $user->id,
+                'preferred_provider' => $preferredProvider,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        // Try fallback providers in order
+        $fallbackOrder = config('cloud-storage.fallback.order', ['google-drive']);
+        
+        foreach ($fallbackOrder as $providerName) {
+            if ($providerName === $preferredProvider) {
+                continue; // Already tried
+            }
+            
+            try {
+                if (!$this->configService->isProviderConfigured($providerName)) {
+                    continue;
+                }
+                
+                $provider = $this->getProvider($providerName, $user);
+                $healthStatus = $this->validateProviderHealth($provider, $user);
+                
+                if ($healthStatus['healthy']) {
+                    Log::info('CloudStorageManager: Using healthy fallback provider', [
+                        'user_id' => $user->id,
+                        'provider' => $providerName,
+                        'health_status' => $healthStatus
+                    ]);
+                    
+                    return $provider;
+                }
+            } catch (\Exception $e) {
+                Log::warning('CloudStorageManager: Fallback provider failed', [
+                    'user_id' => $user->id,
+                    'provider' => $providerName,
+                    'error' => $e->getMessage()
+                ]);
+                continue;
+            }
+        }
+
+        throw new CloudStorageException('No healthy providers available for user');
     }
 
     /**
@@ -288,5 +444,25 @@ class CloudStorageManager
         }
 
         throw new CloudStorageException('No fallback providers available');
+    }
+
+    /**
+     * Get error handler for a specific provider
+     *
+     * @param string $providerName
+     * @return \App\Contracts\CloudStorageErrorHandlerInterface
+     * @throws CloudStorageException
+     */
+    public function getErrorHandler(string $providerName): \App\Contracts\CloudStorageErrorHandlerInterface
+    {
+        try {
+            return $this->factory->getErrorHandler($providerName);
+        } catch (\Exception $e) {
+            Log::error('CloudStorageManager: Failed to get error handler', [
+                'provider' => $providerName,
+                'error' => $e->getMessage()
+            ]);
+            throw new CloudStorageException("Failed to get error handler for provider '{$providerName}'", 0, $e);
+        }
     }
 }

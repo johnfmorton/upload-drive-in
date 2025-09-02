@@ -284,4 +284,49 @@ class CloudStorageFactory
         
         return $name;
     }
+
+    /**
+     * Get error handler for a specific provider
+     *
+     * @param string $providerName
+     * @return \App\Contracts\CloudStorageErrorHandlerInterface
+     * @throws CloudStorageException
+     */
+    public function getErrorHandler(string $providerName): \App\Contracts\CloudStorageErrorHandlerInterface
+    {
+        try {
+            // Get provider configuration to find error handler class
+            $config = config("cloud-storage.providers.{$providerName}");
+            
+            if (!$config || !isset($config['error_handler'])) {
+                throw new CloudStorageException("No error handler configured for provider '{$providerName}'");
+            }
+            
+            $errorHandlerClass = $config['error_handler'];
+            
+            if (!class_exists($errorHandlerClass)) {
+                throw new CloudStorageException("Error handler class '{$errorHandlerClass}' does not exist");
+            }
+            
+            $errorHandler = $this->container->make($errorHandlerClass);
+            
+            if (!$errorHandler instanceof \App\Contracts\CloudStorageErrorHandlerInterface) {
+                throw new CloudStorageException("Error handler class '{$errorHandlerClass}' does not implement CloudStorageErrorHandlerInterface");
+            }
+            
+            return $errorHandler;
+            
+        } catch (\Exception $e) {
+            Log::error('CloudStorageFactory: Failed to create error handler', [
+                'provider' => $providerName,
+                'error' => $e->getMessage()
+            ]);
+            
+            throw new CloudStorageException(
+                "Failed to create error handler for provider '{$providerName}': " . $e->getMessage(),
+                0,
+                $e
+            );
+        }
+    }
 }

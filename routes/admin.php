@@ -142,4 +142,12 @@ Route::prefix('cloud-storage')
 
         // Default provider route
         Route::put('/default', [CloudStorageController::class, 'updateDefault'])->name('default');
+        
+        // Provider management routes
+        Route::get('/providers', [CloudStorageController::class, 'getAvailableProviders'])->name('providers');
+        Route::post('/set-provider', [CloudStorageController::class, 'setUserProvider'])->name('set-provider');
+        Route::get('/provider-management', [CloudStorageController::class, 'providerManagement'])->name('provider-management');
+        Route::get('/providers/{provider}/details', [CloudStorageController::class, 'getProviderDetails'])->name('providers.details');
+        Route::post('/providers/{provider}/validate', [CloudStorageController::class, 'validateProviderConfig'])->name('providers.validate');
+        Route::put('/providers/{provider}/config', [CloudStorageController::class, 'updateProviderConfig'])->name('providers.config.update');
     });

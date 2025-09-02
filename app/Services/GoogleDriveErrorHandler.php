@@ -2,61 +2,44 @@
 
 namespace App\Services;
 
-use App\Contracts\CloudStorageErrorHandlerInterface;
 use App\Enums\CloudStorageErrorType;
 use Exception;
 use Google\Service\Exception as GoogleServiceException;
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Google Drive specific error handler
  * 
- * Implements CloudStorageErrorHandlerInterface to provide Google Drive
+ * Extends BaseCloudStorageErrorHandler to provide Google Drive
  * specific error classification, user-friendly messages, and retry logic
  */
-class GoogleDriveErrorHandler implements CloudStorageErrorHandlerInterface
+class GoogleDriveErrorHandler extends BaseCloudStorageErrorHandler
 {
-    private const PROVIDER_NAME = 'Google Drive';
 
     /**
-     * Classify an exception into a universal error type
+     * Get the provider name for logging and error messages
+     *
+     * @return string Provider name
+     */
+    protected function getProviderName(): string
+    {
+        return 'Google Drive';
+    }
+
+    /**
+     * Classify provider-specific exceptions
      *
      * @param Exception $exception The exception to classify
-     * @return CloudStorageErrorType The classified error type
+     * @return CloudStorageErrorType|null The classified error type, or null if not handled
      */
-    public function classifyError(Exception $exception): CloudStorageErrorType
+    protected function classifyProviderException(Exception $exception): ?CloudStorageErrorType
     {
-        Log::debug('Classifying Google Drive error', [
-            'exception_type' => get_class($exception),
-            'message' => $exception->getMessage(),
-            'code' => $exception->getCode()
-        ]);
-
         // Handle Google Service API exceptions
         if ($exception instanceof GoogleServiceException) {
             return $this->classifyGoogleServiceException($exception);
         }
 
-        // Handle network-related exceptions
-        if ($this->isNetworkError($exception)) {
-            return CloudStorageErrorType::NETWORK_ERROR;
-        }
-
-        // Handle timeout exceptions
-        if ($this->isTimeoutError($exception)) {
-            return CloudStorageErrorType::TIMEOUT;
-        }
-
-        // Default to unknown error
-        Log::warning('Unclassified Google Drive error', [
-            'exception_type' => get_class($exception),
-            'message' => $exception->getMessage(),
-            'code' => $exception->getCode()
-        ]);
-
-        return CloudStorageErrorType::UNKNOWN_ERROR;
+        return null; // Let base class handle common errors
     }
 
     /**
@@ -171,54 +154,16 @@ class GoogleDriveErrorHandler implements CloudStorageErrorHandlerInterface
         };
     }
 
-    /**
-     * Check if exception is a network error
-     *
-     * @param Exception $exception
-     * @return bool
-     */
-    private function isNetworkError(Exception $exception): bool
-    {
-        if ($exception instanceof ConnectException) {
-            return true;
-        }
 
-        if ($exception instanceof RequestException) {
-            $message = strtolower($exception->getMessage());
-            return str_contains($message, 'connection') ||
-                   str_contains($message, 'network') ||
-                   str_contains($message, 'dns') ||
-                   str_contains($message, 'resolve');
-        }
-
-        $message = strtolower($exception->getMessage());
-        return str_contains($message, 'connection refused') ||
-               str_contains($message, 'network unreachable') ||
-               str_contains($message, 'name resolution failed');
-    }
 
     /**
-     * Check if exception is a timeout error
-     *
-     * @param Exception $exception
-     * @return bool
-     */
-    private function isTimeoutError(Exception $exception): bool
-    {
-        $message = strtolower($exception->getMessage());
-        return str_contains($message, 'timeout') ||
-               str_contains($message, 'timed out') ||
-               str_contains($message, 'operation timeout');
-    }
-
-    /**
-     * Generate a user-friendly error message for the given error type
+     * Get provider-specific user-friendly messages
      *
      * @param CloudStorageErrorType $type The error type
      * @param array $context Additional context for message generation
-     * @return string User-friendly error message
+     * @return string|null Provider-specific message, or null to use default
      */
-    public function getUserFriendlyMessage(CloudStorageErrorType $type, array $context = []): string
+    protected function getProviderSpecificMessage(CloudStorageErrorType $type, array $context = []): ?string
     {
         $fileName = $context['file_name'] ?? 'file';
         $operation = $context['operation'] ?? 'operation';
@@ -266,136 +211,38 @@ class GoogleDriveErrorHandler implements CloudStorageErrorHandlerInterface
             
             CloudStorageErrorType::UNKNOWN_ERROR => 
                 'An unexpected error occurred with Google Drive. ' . 
-                ($context['original_message'] ?? 'Please try again or contact support if the problem persists.')
+                ($context['original_message'] ?? 'Please try again or contact support if the problem persists.'),
+            
+            // Return null for error types that should use common messages
+            default => null
         };
     }
 
     /**
-     * Get quota reset time message
+     * Get provider-specific quota retry delay
      *
-     * @param array $context
-     * @return string
+     * @param array $context Additional context
+     * @return int Delay in seconds
      */
-    private function getQuotaResetTimeMessage(array $context): string
+    protected function getQuotaRetryDelay(array $context = []): int
     {
         if (isset($context['retry_after'])) {
-            $minutes = ceil($context['retry_after'] / 60);
-            return $minutes <= 60 ? "{$minutes} minutes" : ceil($minutes / 60) . ' hours';
+            return (int) $context['retry_after'];
         }
 
-        return '1 hour'; // Default estimate
+        return 3600; // 1 hour for Google Drive quota issues
     }
 
-    /**
-     * Determine if an error should be retried based on type and attempt count
-     *
-     * @param CloudStorageErrorType $type The error type
-     * @param int $attemptCount Current attempt count (1-based)
-     * @return bool True if the operation should be retried
-     */
-    public function shouldRetry(CloudStorageErrorType $type, int $attemptCount): bool
-    {
-        $maxAttempts = $this->getMaxRetryAttempts($type);
-        
-        if ($attemptCount >= $maxAttempts) {
-            return false;
-        }
 
-        return match ($type) {
-            // Never retry - requires user intervention
-            CloudStorageErrorType::TOKEN_EXPIRED,
-            CloudStorageErrorType::INSUFFICIENT_PERMISSIONS,
-            CloudStorageErrorType::STORAGE_QUOTA_EXCEEDED,
-            CloudStorageErrorType::INVALID_CREDENTIALS,
-            CloudStorageErrorType::INVALID_FILE_TYPE,
-            CloudStorageErrorType::FILE_TOO_LARGE,
-            CloudStorageErrorType::INVALID_FILE_CONTENT => false,
-            
-            // Retry with limits
-            CloudStorageErrorType::API_QUOTA_EXCEEDED => false, // Don't retry immediately, wait for quota reset
-            CloudStorageErrorType::NETWORK_ERROR,
-            CloudStorageErrorType::SERVICE_UNAVAILABLE,
-            CloudStorageErrorType::TIMEOUT => $attemptCount < 3, // Retry up to 3 times
-            
-            // Don't retry permanent failures
-            CloudStorageErrorType::FILE_NOT_FOUND,
-            CloudStorageErrorType::FOLDER_ACCESS_DENIED => false,
-            
-            // Conservative retry for unknown errors
-            CloudStorageErrorType::UNKNOWN_ERROR => $attemptCount < 2
-        };
-    }
 
     /**
-     * Get the delay in seconds before retrying an operation
-     *
-     * @param CloudStorageErrorType $type The error type
-     * @param int $attemptCount Current attempt count (1-based)
-     * @return int Delay in seconds before retry
-     */
-    public function getRetryDelay(CloudStorageErrorType $type, int $attemptCount): int
-    {
-        return match ($type) {
-            CloudStorageErrorType::API_QUOTA_EXCEEDED => 3600, // 1 hour for quota issues
-            CloudStorageErrorType::NETWORK_ERROR => min(300, 30 * pow(2, $attemptCount - 1)), // Exponential backoff, max 5 minutes
-            CloudStorageErrorType::SERVICE_UNAVAILABLE => min(1800, 60 * pow(2, $attemptCount - 1)), // Exponential backoff, max 30 minutes
-            CloudStorageErrorType::TIMEOUT => min(600, 60 * $attemptCount), // Linear backoff, max 10 minutes
-            default => min(300, 30 * $attemptCount) // Linear backoff for unknown errors, max 5 minutes
-        };
-    }
-
-    /**
-     * Get the maximum number of retry attempts for an error type
-     *
-     * @param CloudStorageErrorType $type The error type
-     * @return int Maximum retry attempts
-     */
-    public function getMaxRetryAttempts(CloudStorageErrorType $type): int
-    {
-        return match ($type) {
-            // No retries for user intervention required
-            CloudStorageErrorType::TOKEN_EXPIRED,
-            CloudStorageErrorType::INSUFFICIENT_PERMISSIONS,
-            CloudStorageErrorType::STORAGE_QUOTA_EXCEEDED,
-            CloudStorageErrorType::INVALID_CREDENTIALS,
-            CloudStorageErrorType::INVALID_FILE_TYPE,
-            CloudStorageErrorType::FILE_TOO_LARGE,
-            CloudStorageErrorType::INVALID_FILE_CONTENT,
-            CloudStorageErrorType::FILE_NOT_FOUND,
-            CloudStorageErrorType::FOLDER_ACCESS_DENIED => 0,
-            
-            // Limited retries for quota issues
-            CloudStorageErrorType::API_QUOTA_EXCEEDED => 0, // No immediate retries, handled by queue delay
-            
-            // Standard retries for transient issues
-            CloudStorageErrorType::NETWORK_ERROR,
-            CloudStorageErrorType::SERVICE_UNAVAILABLE,
-            CloudStorageErrorType::TIMEOUT => 3,
-            
-            // Conservative retries for unknown errors
-            CloudStorageErrorType::UNKNOWN_ERROR => 1
-        };
-    }
-
-    /**
-     * Determine if an error requires user intervention
-     *
-     * @param CloudStorageErrorType $type The error type
-     * @return bool True if user intervention is required
-     */
-    public function requiresUserIntervention(CloudStorageErrorType $type): bool
-    {
-        return $type->requiresUserIntervention();
-    }
-
-    /**
-     * Get recommended actions for the user to resolve the error
+     * Get provider-specific recommended actions
      *
      * @param CloudStorageErrorType $type The error type
      * @param array $context Additional context for recommendations
-     * @return array Array of recommended actions
+     * @return array|null Provider-specific actions, or null to use default
      */
-    public function getRecommendedActions(CloudStorageErrorType $type, array $context = []): array
+    protected function getProviderSpecificActions(CloudStorageErrorType $type, array $context = []): ?array
     {
         return match ($type) {
             CloudStorageErrorType::TOKEN_EXPIRED => [
@@ -449,11 +296,8 @@ class GoogleDriveErrorHandler implements CloudStorageErrorHandlerInterface
                 'Use Google Drive\'s web interface for very large files'
             ],
             
-            default => [
-                'Try uploading the file again',
-                'Check your internet connection',
-                'Contact support if the problem persists'
-            ]
+            // Return null for error types that should use common actions
+            default => null
         };
     }
 }

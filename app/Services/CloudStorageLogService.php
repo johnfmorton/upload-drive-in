@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\CloudStorageHealthStatus;
+use App\Enums\CloudStorageErrorType;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
@@ -311,7 +312,15 @@ class CloudStorageLogService
 
         if ($durationMs !== null) {
             $this->trackOperationDuration($provider, $operation, $durationMs);
+            
+            // Integrate with performance metrics service
+            $performanceService = app(CloudStoragePerformanceMetricsService::class);
+            $performanceService->recordOperationMetrics($provider, $operation, $user, $durationMs, true, null, $result);
         }
+
+        // Track success with error tracking service to reset consecutive failures
+        $errorTrackingService = app(CloudStorageErrorTrackingService::class);
+        $errorTrackingService->trackSuccess($provider, $user, $operation);
     }
 
     /**
@@ -348,6 +357,12 @@ class CloudStorageLogService
 
         if ($durationMs !== null) {
             $this->trackOperationDuration($provider, $operation, $durationMs);
+        }
+
+        // Integrate with error tracking service
+        if ($errorType instanceof CloudStorageErrorType) {
+            $errorTrackingService = app(CloudStorageErrorTrackingService::class);
+            $errorTrackingService->trackError($provider, $user, $errorType, $operation, $errorMessage, $exception, $context);
         }
     }
 
@@ -450,5 +465,36 @@ class CloudStorageLogService
         }
 
         Cache::put($cacheKey, $newStatus, self::METRICS_TTL);
+    }
+
+    /**
+     * Log health status changes for monitoring.
+     */
+    public function logHealthStatusChange(string $provider, User $user, string $previousStatus, string $newStatus, $errorType = null, ?string $reason = null, array $context = []): void
+    {
+        $logData = [
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+            'provider' => $provider,
+            'previous_status' => $previousStatus,
+            'new_status' => $newStatus,
+            'reason' => $reason,
+            'timestamp' => now()->toISOString(),
+        ];
+
+        if ($errorType) {
+            $logData['error_type'] = is_object($errorType) ? $errorType->value : $errorType;
+        }
+
+        if (!empty($context)) {
+            $logData['context'] = $context;
+        }
+
+        Log::channel('cloud-storage')->info("Health status changed: {$previousStatus} -> {$newStatus}", $logData);
+
+        // Track status change metrics
+        $this->incrementMetric("health_status_changes.{$provider}");
+        $this->incrementMetric("health_status_changes.{$provider}.to.{$newStatus}");
+        $this->incrementMetric("health_status_changes.{$provider}.from.{$previousStatus}");
     }
 }

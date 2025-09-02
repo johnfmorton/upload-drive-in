@@ -17,7 +17,7 @@ class CloudStorageConnectionAlert extends Notification implements ShouldQueue
     public function __construct(
         private string $provider,
         private string $alertType,
-        private CloudStorageHealthStatus $healthStatus,
+        private ?CloudStorageHealthStatus $healthStatus = null,
         private array $context = []
     ) {
         $this->onQueue('notifications');

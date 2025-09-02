@@ -107,6 +107,21 @@ Route::middleware(['auth', \App\Http\Middleware\FileDownloadRateLimitMiddleware:
 Route::get('/health', [\App\Http\Controllers\HealthController::class, 'check'])->name('health.check');
 Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, 'detailed'])->name('health.detailed');
 
+// Cloud storage health check routes
+Route::prefix('health/cloud-storage')->name('health.cloud-storage.')->group(function () {
+    Route::get('/basic', [\App\Http\Controllers\CloudStorageHealthController::class, 'basic'])->name('basic');
+    Route::get('/comprehensive', [\App\Http\Controllers\CloudStorageHealthController::class, 'comprehensive'])->name('comprehensive');
+    Route::get('/provider/{provider}', [\App\Http\Controllers\CloudStorageHealthController::class, 'provider'])->name('provider');
+    Route::get('/configuration', [\App\Http\Controllers\CloudStorageHealthController::class, 'configuration'])->name('configuration');
+    Route::get('/readiness', [\App\Http\Controllers\CloudStorageHealthController::class, 'readiness'])->name('readiness');
+    Route::get('/liveness', [\App\Http\Controllers\CloudStorageHealthController::class, 'liveness'])->name('liveness');
+});
+
+// Authenticated cloud storage health routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/health/cloud-storage/user', [\App\Http\Controllers\CloudStorageHealthController::class, 'user'])->name('health.cloud-storage.user');
+});
+
 // Cloud storage dashboard routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/admin/dashboard/cloud-storage-status', [\App\Http\Controllers\CloudStorageDashboardController::class, 'getStatus'])

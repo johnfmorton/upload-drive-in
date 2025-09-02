@@ -14,14 +14,17 @@ use Google\Client;
 use Google\Service\Drive;
 use Illuminate\Support\Facades\Auth;
 use App\Services\GoogleDriveService;
+use App\Services\CloudStorageManager;
 
 class CloudStorageController extends Controller
 {
     protected GoogleDriveService $driveService;
+    protected CloudStorageManager $storageManager;
 
-    public function __construct(GoogleDriveService $driveService)
+    public function __construct(GoogleDriveService $driveService, CloudStorageManager $storageManager)
     {
         $this->driveService = $driveService;
+        $this->storageManager = $storageManager;
     }
 
     /**
@@ -43,15 +46,21 @@ class CloudStorageController extends Controller
         ];
 
         try {
-            if ($user->hasGoogleDriveConnected()) {
-                $service = $this->driveService->getDriveService($user);
-                if (!empty($currentFolderId)) {
+            // Use CloudStorageManager to check if user has any valid connection
+            $provider = $this->storageManager->getUserProvider($user);
+            if ($provider && $provider->hasValidConnection($user)) {
+                // For Google Drive, we can still get folder name using the legacy service
+                if ($provider->getProviderName() === 'google-drive' && !empty($currentFolderId)) {
+                    $service = $this->driveService->getDriveService($user);
                     $folder = $service->files->get($currentFolderId, ['fields' => 'id,name']);
                     $currentFolderName = $folder->getName();
                 }
             }
         } catch (\Exception $e) {
-            Log::warning('Failed to fetch Google Drive folder name', ['error' => $e->getMessage()]);
+            Log::warning('Failed to fetch folder name', [
+                'error' => $e->getMessage(),
+                'user_id' => $user->id
+            ]);
         }
 
         return view('admin.cloud-storage.index', compact(
@@ -262,13 +271,17 @@ class CloudStorageController extends Controller
 
         try {
             $user = Auth::user();
-            $isReconnection = $user->hasGoogleDriveConnected();
             
-            $authUrl = $this->driveService->getAuthUrl($user, $isReconnection);
+            // Use CloudStorageManager to get the appropriate provider
+            $provider = $this->storageManager->getProvider('google-drive');
+            $isReconnection = $provider->hasValidConnection($user);
             
-            Log::info('Initiating Google Drive OAuth flow', [
+            $authUrl = $provider->getAuthUrl($user);
+            
+            Log::info('Initiating Google Drive OAuth flow via CloudStorageManager', [
                 'user_id' => $user->id,
-                'is_reconnection' => $isReconnection
+                'is_reconnection' => $isReconnection,
+                'provider' => $provider->getProviderName()
             ]);
             
             return redirect($authUrl);
@@ -391,11 +404,22 @@ class CloudStorageController extends Controller
     public function disconnect()
     {
         try {
-            $this->driveService->disconnect(Auth::user());
+            $user = Auth::user();
+            $provider = $this->storageManager->getProvider('google-drive');
+            $provider->disconnect($user);
+            
+            Log::info('User disconnected from Google Drive via CloudStorageManager', [
+                'user_id' => $user->id,
+                'provider' => $provider->getProviderName()
+            ]);
+            
             return redirect()->route('admin.cloud-storage.index')
                 ->with('success', __('messages.google_drive_disconnected'));
         } catch (\Exception $e) {
-            Log::error('Failed to disconnect Google Drive', ['error' => $e->getMessage()]);
+            Log::error('Failed to disconnect Google Drive', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
             return redirect()->back()->with('error', __('messages.settings_update_failed'));
         }
     }
@@ -411,6 +435,9 @@ class CloudStorageController extends Controller
             
             // Get health status for all providers using consolidated status
             $providersHealth = $healthService->getAllProvidersHealth($user);
+            
+            // Get available providers from storage manager
+            $availableProviders = $this->storageManager->getAvailableProviders();
             
             // Get pending uploads count for each provider
             $pendingUploads = \App\Models\FileUpload::where(function($query) use ($user) {
@@ -438,6 +465,7 @@ class CloudStorageController extends Controller
             return response()->json([
                 'success' => true,
                 'providers' => $providersHealth,
+                'available_providers' => $availableProviders,
                 'pending_uploads' => $pendingUploads,
                 'failed_uploads' => $failedUploads,
             ]);
@@ -473,23 +501,24 @@ class CloudStorageController extends Controller
                 'provider' => $provider
             ]);
             
-            switch ($provider) {
-                case 'google-drive':
-                    // Always mark as reconnection for this endpoint
-                    $authUrl = $this->driveService->getAuthUrl($user, true);
-                    
-                    Log::info('Generated reconnection URL for Google Drive', [
-                        'user_id' => $user->id
-                    ]);
-                    
-                    return response()->json(['redirect_url' => $authUrl]);
-                    
-                default:
-                    Log::warning('Unsupported provider for reconnection', [
-                        'provider' => $provider,
-                        'user_id' => $user->id
-                    ]);
-                    return response()->json(['error' => 'Provider not supported yet'], 400);
+            try {
+                $providerInstance = $this->storageManager->getProvider($provider);
+                $authUrl = $providerInstance->getAuthUrl($user);
+                
+                Log::info('Generated reconnection URL via CloudStorageManager', [
+                    'user_id' => $user->id,
+                    'provider' => $provider
+                ]);
+                
+                return response()->json(['redirect_url' => $authUrl]);
+                
+            } catch (\Exception $providerException) {
+                Log::warning('Failed to get provider for reconnection', [
+                    'provider' => $provider,
+                    'user_id' => $user->id,
+                    'error' => $providerException->getMessage()
+                ]);
+                return response()->json(['error' => 'Provider not available or configured'], 400);
             }
         } catch (\Exception $e) {
             Log::error('Failed to reconnect provider', [
@@ -550,6 +579,338 @@ class CloudStorageController extends Controller
                 'success' => false,
                 'error' => 'Connection test failed due to an unexpected error. Please try again.',
                 'message' => 'Connection test failed'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get available providers for selection.
+     */
+    public function getAvailableProviders()
+    {
+        try {
+            $availableProviders = $this->storageManager->getAvailableProviders();
+            $providersWithCapabilities = [];
+            
+            foreach ($availableProviders as $providerName) {
+                try {
+                    $provider = $this->storageManager->getProvider($providerName);
+                    $capabilities = $provider->getCapabilities();
+                    
+                    $providersWithCapabilities[] = [
+                        'name' => $providerName,
+                        'display_name' => ucfirst(str_replace('-', ' ', $providerName)),
+                        'capabilities' => $capabilities,
+                        'auth_type' => $provider->getAuthenticationType(),
+                        'storage_model' => $provider->getStorageModel(),
+                    ];
+                } catch (\Exception $e) {
+                    Log::warning('Failed to get provider capabilities', [
+                        'provider' => $providerName,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'providers' => $providersWithCapabilities,
+                'default_provider' => $this->storageManager->getDefaultProvider()->getProviderName(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get available providers', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve available providers'
+            ], 500);
+        }
+    }
+
+    /**
+     * Set user's preferred provider.
+     */
+    public function setUserProvider(Request $request)
+    {
+        $validated = $request->validate([
+            'provider' => 'required|string'
+        ]);
+
+        try {
+            $user = Auth::user();
+            $provider = $validated['provider'];
+            
+            // Validate that the provider is available
+            $availableProviders = $this->storageManager->getAvailableProviders();
+            if (!in_array($provider, $availableProviders)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Provider not available'
+                ], 400);
+            }
+            
+            // Switch user to the new provider
+            $this->storageManager->switchUserProvider($user, $provider);
+            
+            Log::info('User switched to new provider', [
+                'user_id' => $user->id,
+                'provider' => $provider
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Provider preference updated successfully',
+                'provider' => $provider
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to set user provider', [
+                'user_id' => Auth::id(),
+                'provider' => $validated['provider'] ?? 'unknown',
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to update provider preference'
+            ], 500);
+        }
+    }
+
+    /**
+     * Display the provider management interface.
+     */
+    public function providerManagement()
+    {
+        try {
+            $user = Auth::user();
+            $configService = app(\App\Services\CloudConfigurationService::class);
+            $healthService = app(\App\Services\CloudStorageHealthService::class);
+            
+            // Get all available providers with their configurations
+            $availableProviders = $this->storageManager->getAvailableProviders();
+            $providersData = [];
+            
+            foreach ($availableProviders as $providerName) {
+                try {
+                    $provider = $this->storageManager->getProvider($providerName);
+                    $config = $configService->getProviderConfig($providerName);
+                    $healthStatus = $healthService->checkConnectionHealth($user, $providerName);
+                    
+                    $providersData[$providerName] = [
+                        'name' => $providerName,
+                        'display_name' => ucfirst(str_replace('-', ' ', $providerName)),
+                        'capabilities' => $provider->getCapabilities(),
+                        'auth_type' => $provider->getAuthenticationType(),
+                        'storage_model' => $provider->getStorageModel(),
+                        'max_file_size' => $provider->getMaxFileSize(),
+                        'supported_file_types' => $provider->getSupportedFileTypes(),
+                        'configuration' => $config,
+                        'health_status' => $healthStatus,
+                        'is_configured' => $configService->isProviderConfigured($providerName),
+                        'has_connection' => $provider->hasValidConnection($user),
+                    ];
+                } catch (\Exception $e) {
+                    Log::warning('Failed to get provider data', [
+                        'provider' => $providerName,
+                        'error' => $e->getMessage()
+                    ]);
+                    
+                    $providersData[$providerName] = [
+                        'name' => $providerName,
+                        'display_name' => ucfirst(str_replace('-', ' ', $providerName)),
+                        'error' => 'Failed to load provider data',
+                        'is_configured' => false,
+                        'has_connection' => false,
+                    ];
+                }
+            }
+            
+            // Get current user's preferred provider
+            $userProvider = $this->storageManager->getUserProvider($user);
+            $currentProvider = $userProvider ? $userProvider->getProviderName() : null;
+            
+            // Get default system provider
+            $defaultProvider = $this->storageManager->getDefaultProvider()->getProviderName();
+            
+            return view('admin.cloud-storage.provider-management', compact(
+                'providersData',
+                'currentProvider',
+                'defaultProvider'
+            ));
+        } catch (\Exception $e) {
+            Log::error('Failed to load provider management interface', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            
+            return redirect()->route('admin.cloud-storage.index')
+                ->with('error', 'Failed to load provider management interface');
+        }
+    }
+
+    /**
+     * Update provider configuration.
+     */
+    public function updateProviderConfig(Request $request, string $provider)
+    {
+        try {
+            $configService = app(\App\Services\CloudConfigurationService::class);
+            
+            // Validate that the provider exists
+            $availableProviders = $this->storageManager->getAvailableProviders();
+            if (!in_array($provider, $availableProviders)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Provider not found'
+                ], 404);
+            }
+            
+            // Get provider instance for validation
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            // Validate configuration based on provider requirements
+            $configData = $request->all();
+            $validationResult = $providerInstance->validateConfiguration($configData);
+            
+            if (!empty($validationResult)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Configuration validation failed',
+                    'validation_errors' => $validationResult
+                ], 422);
+            }
+            
+            // Update configuration
+            $configService->setProviderConfig($provider, $configData);
+            
+            Log::info('Provider configuration updated', [
+                'provider' => $provider,
+                'user_id' => Auth::id()
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Provider configuration updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to update provider configuration', [
+                'provider' => $provider,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to update provider configuration'
+            ], 500);
+        }
+    }
+
+    /**
+     * Validate provider configuration without saving.
+     */
+    public function validateProviderConfig(Request $request, string $provider)
+    {
+        try {
+            // Validate that the provider exists
+            $availableProviders = $this->storageManager->getAvailableProviders();
+            if (!in_array($provider, $availableProviders)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Provider not found'
+                ], 404);
+            }
+            
+            // Get provider instance for validation
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            // Validate configuration
+            $configData = $request->all();
+            $validationResult = $providerInstance->validateConfiguration($configData);
+            
+            return response()->json([
+                'success' => empty($validationResult),
+                'validation_errors' => $validationResult,
+                'message' => empty($validationResult) 
+                    ? 'Configuration is valid' 
+                    : 'Configuration validation failed'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to validate provider configuration', [
+                'provider' => $provider,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to validate configuration'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get detailed provider information.
+     */
+    public function getProviderDetails(string $provider)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Validate that the provider exists
+            $availableProviders = $this->storageManager->getAvailableProviders();
+            if (!in_array($provider, $availableProviders)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Provider not found'
+                ], 404);
+            }
+            
+            $providerInstance = $this->storageManager->getProvider($provider);
+            $configService = app(\App\Services\CloudConfigurationService::class);
+            $healthService = app(\App\Services\CloudStorageHealthService::class);
+            
+            // Get comprehensive provider information
+            $providerData = [
+                'name' => $provider,
+                'display_name' => ucfirst(str_replace('-', ' ', $provider)),
+                'capabilities' => $providerInstance->getCapabilities(),
+                'auth_type' => $providerInstance->getAuthenticationType(),
+                'storage_model' => $providerInstance->getStorageModel(),
+                'max_file_size' => $providerInstance->getMaxFileSize(),
+                'supported_file_types' => $providerInstance->getSupportedFileTypes(),
+                'configuration' => $configService->getProviderConfig($provider),
+                'is_configured' => $configService->isProviderConfigured($provider),
+                'has_connection' => $providerInstance->hasValidConnection($user),
+            ];
+            
+            // Get health status if provider is configured
+            if ($providerData['is_configured']) {
+                $healthStatus = $healthService->checkConnectionHealth($user, $provider);
+                $providerData['health_status'] = [
+                    'status' => $healthStatus->status,
+                    'consolidated_status' => $healthStatus->consolidated_status,
+                    'last_check' => $healthStatus->last_check_at?->toISOString(),
+                    'last_error' => $healthStatus->last_error_message,
+                    'requires_reconnection' => $healthStatus->requires_reconnection ?? false,
+                ];
+            }
+            
+            return response()->json([
+                'success' => true,
+                'provider' => $providerData
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get provider details', [
+                'provider' => $provider,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get provider details'
             ], 500);
         }
     }
