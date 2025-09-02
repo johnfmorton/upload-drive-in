@@ -98,6 +98,14 @@ class CloudStorageHealthService
             'requires_reconnection' => false,
         ];
         
+        // Sync token expiration data for Google Drive
+        if ($provider === 'google-drive') {
+            $token = $user->googleDriveToken;
+            if ($token && $token->expires_at) {
+                $updateData['token_expires_at'] = $token->expires_at;
+            }
+        }
+        
         if ($providerData) {
             $updateData['provider_specific_data'] = array_merge(
                 $healthStatus->provider_specific_data ?? [],
@@ -370,6 +378,9 @@ class CloudStorageHealthService
             if (!$token) {
                 return false;
             }
+            
+            // Sync token expiration data with health status
+            $this->updateTokenExpiration($user, 'google-drive', $token->expires_at);
             
             // For a more thorough health check, we could integrate with GoogleDriveService
             // to perform an actual API call, but for basic health monitoring,
