@@ -331,8 +331,8 @@
     'not_connected' => 'Not Connected',
     'connect' => 'Connect',
     'disconnect' => 'Disconnect',
-    'client_id' => 'Client ID',
-    'client_secret' => 'Client Secret',
+    'client_id' => 'My Client ID',
+    'client_secret' => 'My Client Secret',
     'root_folder_id' => 'Root Folder ID',
     'root_folder' => 'Root Folder',
     'root_folder_description' => 'Choose the folder in your Google Drive where uploaded files will be stored.',
@@ -430,6 +430,7 @@
     'no_clients_match_filter' => 'No clients match your filter criteria.',
     'no_clients_found' => 'No clients found.',
     'manage_clients' => 'Manage Clients',
+    'actions' => 'Actions',
 
     // Google Drive Connection for Employees
     'google_drive_connection' => 'Google Drive Connection',

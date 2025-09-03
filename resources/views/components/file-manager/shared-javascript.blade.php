@@ -317,7 +317,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         get tableStyles() {
-            return `table-layout: fixed; width: ${this.getTotalTableWidth()}px;`;
+            return null;// `table-layout: fixed; width: ${this.getTotalTableWidth()}px;`;
         },
 
         // Methods
