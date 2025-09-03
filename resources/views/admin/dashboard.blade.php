@@ -76,19 +76,11 @@
                 </div>
             @endif
             
-            <!-- Cloud Storage Status Widget -->
-            <x-dashboard.cloud-storage-status-widget :user="Auth::user()" :is-admin="true" />
+          
             
-            <!-- Dashboard Statistics Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Primary Contact Statistics -->
-                <x-dashboard.primary-contact-stats :user="Auth::user()" :is-admin="true" />
-                
-                <!-- Client Relationships -->
-                <div class="lg:col-span-1">
-                    <x-dashboard.client-relationships :user="Auth::user()" :is-admin="true" />
-                </div>
-            </div>
+            <!-- Upload Page Display -->
+            <x-dashboard.google-drive-connection :user="Auth::user()" :is-admin="true" />
+            
 
 
             <!-- File Management Section -->
@@ -482,6 +474,23 @@
                 </div>
             </div>
 
+
+            <!-- Dashboard Statistics Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Primary Contact Statistics -->
+                <x-dashboard.primary-contact-stats :user="Auth::user()" :is-admin="true" />
+                
+                <!-- Client Relationships -->
+                <div class="lg:col-span-1">
+                    <x-dashboard.client-relationships :user="Auth::user()" :is-admin="true" />
+                </div>
+                
+                
+         
+
+            <!-- Cloud Storage Status Widget -->
+            <x-dashboard.cloud-storage-status-widget :user="Auth::user()" :is-admin="true" />
+            
             <!-- Queue Worker Testing Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -546,7 +555,7 @@
                     </div>
                 </div>
             </div>
-
+        </div>
         </div>
     </div>
 </x-app-layout>

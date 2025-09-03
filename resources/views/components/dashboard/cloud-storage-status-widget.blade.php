@@ -64,7 +64,7 @@
     </div>
 
     <!-- Provider Status Cards -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1  gap-6">
         <template x-for="provider in providers" :key="provider.provider">
             <div class="border border-gray-200 rounded-lg p-4">
                 <!-- Provider Header -->
