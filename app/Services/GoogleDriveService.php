@@ -39,8 +39,8 @@ class GoogleDriveService
         private ?CloudStorageLogService $logService = null
     ) {
         $this->client = new Client();
-        $this->client->setClientId(config('cloud-storage.providers.google-drive.client_id'));
-        $this->client->setClientSecret(config('cloud-storage.providers.google-drive.client_secret'));
+        $this->client->setClientId(config('cloud-storage.providers.google-drive.config.client_id'));
+        $this->client->setClientSecret(config('cloud-storage.providers.google-drive.config.client_secret'));
         $this->client->addScope(Drive::DRIVE_FILE);
         $this->client->addScope(Drive::DRIVE);
         $this->client->setAccessType('offline');

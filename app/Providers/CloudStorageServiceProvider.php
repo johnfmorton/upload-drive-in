@@ -69,6 +69,11 @@ class CloudStorageServiceProvider extends ServiceProvider
             );
         });
 
+        // Register provider availability service
+        $this->app->singleton(\App\Services\CloudStorageProviderAvailabilityService::class, function ($app) {
+            return new \App\Services\CloudStorageProviderAvailabilityService();
+        });
+
         // Register feature detection and utilization services
         $this->registerFeatureServices();
         
@@ -122,7 +127,9 @@ class CloudStorageServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Services\CloudStorageConfigurationValidationService::class, function ($app) {
             return new \App\Services\CloudStorageConfigurationValidationService(
                 $app->make(CloudConfigurationService::class),
-                $app->make(CloudStorageFactory::class)
+                $app->make(CloudStorageFactory::class),
+                $app->make(\App\Services\CloudStorageErrorMessageService::class),
+                $app->make(\App\Services\CloudStorageProviderAvailabilityService::class)
             );
         });
 
@@ -314,6 +321,7 @@ class CloudStorageServiceProvider extends ServiceProvider
             CloudStorageFactory::class,
             CloudStorageManager::class,
             CloudConfigurationService::class,
+            \App\Services\CloudStorageProviderAvailabilityService::class,
             \App\Services\CloudStorageFeatureDetectionService::class,
             \App\Services\CloudStorageGracefulDegradationService::class,
             \App\Services\CloudStorageFeatureUtilizationService::class,

@@ -206,6 +206,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Provider Availability Configuration
+    |--------------------------------------------------------------------------
+    |
+    | This configuration defines the availability status of each provider.
+    | Providers can be marked as fully_available, coming_soon, deprecated,
+    | or under maintenance to control UI display and selection logic.
+    |
+    */
+    'provider_availability' => [
+        'google-drive' => 'fully_available',
+        'amazon-s3' => 'coming_soon',
+        'azure-blob' => 'coming_soon',
+        'microsoft-teams' => 'coming_soon',
+        'dropbox' => 'coming_soon',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Feature Detection Configuration
     |--------------------------------------------------------------------------
     |

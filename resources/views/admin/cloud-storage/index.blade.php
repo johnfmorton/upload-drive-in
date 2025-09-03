@@ -27,7 +27,64 @@
                 </div>
             @endif
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                <div x-data="{ selectedProvider: '{{ old('default_provider', config('cloud-storage.default')) }}' }" x-cloak class="p-6 divide-y divide-gray-200">
+                @php
+                    $availabilityService = app(\App\Services\CloudStorageProviderAvailabilityService::class);
+                    $providersConfig = $availabilityService->getProviderConfigurationForFrontend();
+                    $defaultProvider = $availabilityService->getDefaultProvider() ?? 'google-drive';
+                    $selectedProvider = old('default_provider', config('cloud-storage.default', $defaultProvider));
+                @endphp
+
+                <div x-data="{ 
+                    selectedProvider: '{{ $selectedProvider }}',
+                    providersConfig: @js($providersConfig),
+                    previousValidSelection: '{{ $selectedProvider }}',
+                    
+                    isProviderSelectable(provider) {
+                        return this.providersConfig[provider]?.selectable ?? false;
+                    },
+                    
+                    getProviderLabel(provider) {
+                        return this.providersConfig[provider]?.label ?? provider;
+                    },
+                    
+                    getProviderStatusLabel(provider) {
+                        return this.providersConfig[provider]?.status_label ?? '';
+                    },
+                    
+                    handleProviderChange() {
+                        // If user selects a non-selectable provider, revert to previous valid selection
+                        if (!this.isProviderSelectable(this.selectedProvider)) {
+                            this.$nextTick(() => {
+                                this.selectedProvider = this.previousValidSelection;
+                            });
+                            this.showProviderNotAvailableMessage();
+                        } else {
+                            this.previousValidSelection = this.selectedProvider;
+                        }
+                    },
+                    
+                    showProviderNotAvailableMessage() {
+                        // Show a temporary message that the provider is not available
+                        const helpElement = document.getElementById('provider-selection-help');
+                        if (helpElement) {
+                            helpElement.classList.add('fade-in');
+                            setTimeout(() => {
+                                helpElement.classList.remove('fade-in');
+                            }, 3000);
+                        }
+                    },
+                    
+                    handleKeyDown(event) {
+                        // Handle keyboard navigation
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            const select = event.target;
+                            if (select.tagName === 'SELECT') {
+                                select.click();
+                            }
+                        }
+                    }
+                }" x-cloak class="p-6 divide-y divide-gray-200">
 
                  <!-- Default Provider Selection -->
                     <div class="py-6 first:pt-0 last:pb-0">
@@ -37,16 +94,71 @@
                             <div>
                                 <x-label for="default_provider" :value="__('messages.default_storage_provider')" class="text-lg" />
                                 <p class="mt-1 text-sm text-gray-500">{{ __('messages.select_default_provider_description') }}</p>
-                                <select x-model="selectedProvider" name="default_provider" id="default_provider"
-                                    class="mt-2 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-                                    <option value="google-drive" @if(config('cloud-storage.default') === 'google-drive') selected @endif>Google Drive</option>
-                                    <option value="microsoft-teams" @if(config('cloud-storage.default') === 'microsoft-teams') selected @endif>Microsoft Teams</option>
-                                    <option value="dropbox" @if(config('cloud-storage.default') === 'dropbox') selected @endif>Dropbox</option>
-                                </select>
+                                
+                                <div class="mt-2 relative">
+                                    <select x-model="selectedProvider" 
+                                            name="default_provider" 
+                                            id="default_provider"
+                                            class="provider-select enhanced-provider-select block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                                            aria-describedby="provider-selection-help"
+                                            role="combobox"
+                                            aria-expanded="false"
+                                            aria-label="Select cloud storage provider"
+                                            @change="handleProviderChange()"
+                                            @keydown="handleKeyDown($event)">
+                                        @foreach($providersConfig as $providerKey => $config)
+                                            <option value="{{ $providerKey }}" 
+                                                    @if($selectedProvider === $providerKey) selected @endif
+                                                    @if(!$config['selectable']) disabled @endif
+                                                    class="@if(!$config['selectable']) text-gray-400 bg-gray-50 @endif">
+                                                {{ $config['label'] }}
+                                                @if(!$config['selectable'])
+                                                    ({{ $config['status_label'] }})
+                                                @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    
+                                    <!-- Visual indicator for selected provider status -->
+                                    <div class="absolute inset-y-0 right-8 flex items-center pointer-events-none">
+                                        <template x-if="!isProviderSelectable(selectedProvider)">
+                                            <svg class="h-4 w-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                                            </svg>
+                                        </template>
+                                        <template x-if="isProviderSelectable(selectedProvider)">
+                                            <svg class="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                            </svg>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Provider status information -->
+                                <div id="provider-selection-help" class="provider-help-text mt-2 text-sm" role="status" aria-live="polite">
+                                    <template x-if="isProviderSelectable(selectedProvider)">
+                                        <p class="text-green-600 flex items-center">
+                                            <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span x-text="getProviderLabel(selectedProvider)"></span> is available and ready to use.
+                                        </p>
+                                    </template>
+                                    <template x-if="!isProviderSelectable(selectedProvider)">
+                                        <p class="text-amber-600 flex items-center">
+                                            <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span x-text="getProviderLabel(selectedProvider)"></span> is <span x-text="getProviderStatusLabel(selectedProvider).toLowerCase()"></span>. Please select an available provider.
+                                        </p>
+                                    </template>
+                                </div>
+                                
                                 <x-input-error for="default_provider" class="mt-2" />
                             </div>
                             <div class="flex justify-end">
-                                <x-button>
+                                <x-button x-bind:disabled="!isProviderSelectable(selectedProvider)"
+                                         x-bind:class="{ 'opacity-50 cursor-not-allowed': !isProviderSelectable(selectedProvider) }">
                                     {{ __('messages.save_changes') }}
                                 </x-button>
                             </div>

@@ -104,8 +104,8 @@ class UploadController extends Controller
             }
         }
 
-        if (!$companyUser || !$companyUser->hasGoogleDriveConnected()) {
-            Log::error('No valid company user with Google Drive connection found for upload', [
+        if (!$companyUser) {
+            Log::error('No company user found for upload', [
                 'client_user_id' => $user->id,
                 'selected_company_user_id' => $request->input('company_user_id'),
                 'has_relationships' => $user->companyUsers()->count() > 0
@@ -113,6 +113,16 @@ class UploadController extends Controller
             return response()->json([
                 'error' => __('messages.no_valid_upload_destination')
             ], 400);
+        }
+
+        // Log a warning if the company user doesn't have Google Drive connected
+        // but allow the upload to proceed - the job will handle fallbacks
+        if (!$companyUser->hasGoogleDriveConnected()) {
+            Log::warning('Company user does not have valid Google Drive connection, upload will rely on job fallbacks', [
+                'client_user_id' => $user->id,
+                'company_user_id' => $companyUser->id,
+                'company_user_email' => $companyUser->email
+            ]);
         }
 
         // Create the file receiver

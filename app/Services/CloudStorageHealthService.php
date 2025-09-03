@@ -245,59 +245,146 @@ class CloudStorageHealthService
 
     /**
      * Determine consolidated status that prioritizes operational capability over token age.
+     * Enhanced with improved caching, rate limiting awareness, and comprehensive validation.
      */
     public function determineConsolidatedStatus(User $user, string $provider): string
     {
+        $startTime = microtime(true);
+        $cacheKey = "consolidated_status_{$user->id}_{$provider}";
+        
+        // Check for cached consolidated status (30 seconds cache)
+        $cachedStatus = Cache::get($cacheKey);
+        if ($cachedStatus !== null) {
+            $this->logService->logCacheOperation('get', $cacheKey, true, [
+                'operation' => 'consolidated_status_cache_hit',
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'cached_status' => $cachedStatus
+            ]);
+            
+            Log::debug('Using cached consolidated status', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'cached_status' => $cachedStatus,
+            ]);
+            return $cachedStatus;
+        }
+        
         try {
-            $startTime = microtime(true);
+            $healthStatus = $this->getOrCreateHealthStatus($user, $provider);
             
-            // 1. Try to ensure valid token
-            $tokenValid = $this->ensureValidToken($user, $provider);
+            // Check if we're rate limited and should use last known status
+            if (!$this->canAttemptTokenRefresh($user, $provider) && 
+                !$this->canAttemptConnectivityTest($user, $provider)) {
+                
+                // Use last known consolidated status if available
+                if ($healthStatus->consolidated_status) {
+                    Log::info('Using last known status due to rate limiting', [
+                        'user_id' => $user->id,
+                        'provider' => $provider,
+                        'last_known_status' => $healthStatus->consolidated_status,
+                    ]);
+                    
+                    // Cache the last known status for a shorter period (10 seconds)
+                    Cache::put($cacheKey, $healthStatus->consolidated_status, now()->addSeconds(10));
+                    return $healthStatus->consolidated_status;
+                }
+            }
             
-            if (!$tokenValid) {
-                $reason = 'Token validation failed - refresh token may be expired or invalid';
-                $this->logService->logStatusDetermination($user, $provider, 'authentication_required', $reason, [
+            // 1. Enhanced token validation with detailed error tracking
+            $tokenValidationResult = $this->performEnhancedTokenValidation($user, $provider, $healthStatus);
+            
+            if (!$tokenValidationResult['valid']) {
+                $status = $this->determineStatusFromTokenValidation($tokenValidationResult);
+                $reason = $tokenValidationResult['reason'] ?? 'Token validation failed';
+                
+                $this->logService->logStatusDetermination($user, $provider, $status, $reason, [
                     'token_validation_result' => false,
+                    'token_validation_details' => $tokenValidationResult,
                     'determination_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
                 ]);
                 
-                Log::debug('Consolidated status: authentication_required (token validation failed)', [
+                Log::debug("Consolidated status: {$status} (token validation failed)", [
                     'user_id' => $user->id,
                     'provider' => $provider,
+                    'validation_details' => $tokenValidationResult,
                 ]);
-                return 'authentication_required';
+                
+                // Cache failed status for shorter period (10 seconds)
+                Cache::put($cacheKey, $status, now()->addSeconds(10));
+                return $status;
             }
             
-            // 2. Test actual API connectivity
-            $apiConnected = $this->testApiConnectivity($user, $provider);
+            // 2. Enhanced API connectivity testing with detailed diagnostics
+            $connectivityResult = $this->performEnhancedConnectivityTest($user, $provider, $healthStatus);
             
-            if (!$apiConnected) {
-                $reason = 'API connectivity test failed - network issues or API problems';
-                $this->logService->logStatusDetermination($user, $provider, 'connection_issues', $reason, [
+            if (!$connectivityResult['connected']) {
+                $status = $this->determineStatusFromConnectivityTest($connectivityResult);
+                $reason = $connectivityResult['reason'] ?? 'API connectivity test failed';
+                
+                $this->logService->logStatusDetermination($user, $provider, $status, $reason, [
                     'token_validation_result' => true,
                     'api_connectivity_result' => false,
+                    'connectivity_details' => $connectivityResult,
                     'determination_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
                 ]);
                 
-                Log::debug('Consolidated status: connection_issues (API connectivity failed)', [
+                Log::debug("Consolidated status: {$status} (API connectivity failed)", [
                     'user_id' => $user->id,
                     'provider' => $provider,
+                    'connectivity_details' => $connectivityResult,
                 ]);
-                return 'connection_issues';
+                
+                // Cache failed status for shorter period (10 seconds)
+                Cache::put($cacheKey, $status, now()->addSeconds(10));
+                return $status;
             }
             
-            // 3. If both token and API work, it's healthy
-            $reason = 'Token is valid and API connectivity confirmed';
+            // 3. Additional health checks for comprehensive validation
+            $additionalChecks = $this->performAdditionalHealthChecks($user, $provider, $healthStatus);
+            
+            if (!$additionalChecks['healthy']) {
+                $status = $additionalChecks['suggested_status'] ?? 'connection_issues';
+                $reason = $additionalChecks['reason'] ?? 'Additional health checks failed';
+                
+                $this->logService->logStatusDetermination($user, $provider, $status, $reason, [
+                    'token_validation_result' => true,
+                    'api_connectivity_result' => true,
+                    'additional_checks_result' => false,
+                    'additional_checks_details' => $additionalChecks,
+                    'determination_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
+                ]);
+                
+                Log::debug("Consolidated status: {$status} (additional health checks failed)", [
+                    'user_id' => $user->id,
+                    'provider' => $provider,
+                    'additional_checks' => $additionalChecks,
+                ]);
+                
+                // Cache failed status for shorter period (10 seconds)
+                Cache::put($cacheKey, $status, now()->addSeconds(10));
+                return $status;
+            }
+            
+            // 4. All checks passed - system is healthy
+            $reason = 'All validation checks passed - token valid, API connected, and additional health checks successful';
             $this->logService->logStatusDetermination($user, $provider, 'healthy', $reason, [
                 'token_validation_result' => true,
                 'api_connectivity_result' => true,
+                'additional_checks_result' => true,
                 'determination_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
             ]);
             
-            Log::debug('Consolidated status: healthy (token valid and API connected)', [
+            Log::debug('Consolidated status: healthy (all checks passed)', [
                 'user_id' => $user->id,
                 'provider' => $provider,
+                'token_validation' => $tokenValidationResult,
+                'connectivity_test' => $connectivityResult,
+                'additional_checks' => $additionalChecks,
             ]);
+            
+            // Cache healthy status for longer period (30 seconds)
+            Cache::put($cacheKey, 'healthy', now()->addSeconds(30));
             return 'healthy';
             
         } catch (\Exception $e) {
@@ -305,14 +392,19 @@ class CloudStorageHealthService
             $this->logService->logStatusDetermination($user, $provider, 'connection_issues', $reason, [
                 'exception' => true,
                 'error_message' => $e->getMessage(),
-                'error_code' => $e->getCode()
+                'error_code' => $e->getCode(),
+                'determination_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
             ]);
             
             Log::error('Failed to determine consolidated status', [
                 'user_id' => $user->id,
                 'provider' => $provider,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
+            
+            // Cache error status for very short period (5 seconds)
+            Cache::put($cacheKey, 'connection_issues', now()->addSeconds(5));
             return 'connection_issues';
         }
     }
@@ -473,8 +565,8 @@ class CloudStorageHealthService
         if (!$consolidatedStatus) {
             // No consolidated status set - calculate it
             $needsRecalculation = true;
-        } elseif ($healthStatus->status === 'healthy' && $consolidatedStatus === 'not_connected') {
-            // Clear inconsistency: status is healthy but consolidated shows not connected
+        } elseif ($healthStatus->status === 'healthy' && in_array($consolidatedStatus, ['not_connected', 'authentication_required'])) {
+            // Clear inconsistency: status is healthy but consolidated shows not connected or auth required
             $needsRecalculation = true;
             Log::info('Detected stale consolidated status, recalculating', [
                 'user_id' => $user->id,
@@ -483,9 +575,9 @@ class CloudStorageHealthService
                 'consolidated_status' => $consolidatedStatus
             ]);
         } elseif ($healthStatus->last_successful_operation_at && 
-                  $consolidatedStatus === 'not_connected' && 
+                  in_array($consolidatedStatus, ['not_connected', 'authentication_required']) && 
                   $healthStatus->last_successful_operation_at->isAfter(now()->subHours(24))) {
-            // Had successful operations recently but shows not connected
+            // Had successful operations recently but shows not connected or auth required
             $needsRecalculation = true;
             Log::info('Detected inconsistent status with recent successful operations', [
                 'user_id' => $user->id,
@@ -521,6 +613,7 @@ class CloudStorageHealthService
             'is_unhealthy' => $healthStatus->isUnhealthy(),
             'is_disconnected' => $healthStatus->isDisconnected(),
             'last_successful_operation' => $healthStatus->getTimeSinceLastSuccess(),
+            'last_successful_operation_at' => $healthStatus->last_successful_operation_at?->toISOString(),
             'consecutive_failures' => $healthStatus->consecutive_failures,
             'requires_reconnection' => $healthStatus->requires_reconnection,
             'token_expires_at' => $healthStatus->token_expires_at?->toISOString(),
@@ -1142,5 +1235,826 @@ class CloudStorageHealthService
                 'can_attempt' => $connectivityTestAttempts < 20,
             ],
         ];
+    }
+
+    /**
+     * Perform enhanced token validation with detailed error tracking and proactive refresh.
+     * Returns comprehensive validation result with specific error types and recovery suggestions.
+     */
+    private function performEnhancedTokenValidation(User $user, string $provider, CloudStorageHealthStatus $healthStatus): array
+    {
+        try {
+            // Check if we have a token at all
+            $hasToken = $this->checkTokenExists($user, $provider);
+            if (!$hasToken) {
+                return [
+                    'valid' => false,
+                    'reason' => 'No authentication token found',
+                    'error_type' => CloudStorageErrorType::TOKEN_EXPIRED,
+                    'requires_user_intervention' => true,
+                    'is_recoverable' => false,
+                    'suggested_action' => 'reconnect',
+                ];
+            }
+            
+            // Check token expiration before attempting validation
+            $tokenExpiration = $this->getTokenExpiration($user, $provider);
+            if ($tokenExpiration && $tokenExpiration->isPast()) {
+                Log::info('Token is expired, attempting proactive refresh', [
+                    'user_id' => $user->id,
+                    'provider' => $provider,
+                    'expired_at' => $tokenExpiration->toISOString(),
+                ]);
+                
+                // Attempt proactive token refresh
+                $refreshResult = $this->attemptProactiveTokenRefresh($user, $provider, $healthStatus);
+                if (!$refreshResult['success']) {
+                    return [
+                        'valid' => false,
+                        'reason' => 'Token expired and refresh failed: ' . $refreshResult['error'],
+                        'error_type' => $refreshResult['error_type'] ?? CloudStorageErrorType::TOKEN_EXPIRED,
+                        'requires_user_intervention' => $refreshResult['requires_user_intervention'] ?? true,
+                        'is_recoverable' => $refreshResult['is_recoverable'] ?? false,
+                        'suggested_action' => 'reconnect',
+                        'refresh_details' => $refreshResult,
+                    ];
+                }
+            }
+            
+            // Perform actual token validation
+            $validationResult = $this->validateTokenWithProvider($user, $provider);
+            if (!$validationResult['valid']) {
+                // If validation fails, try one more refresh attempt
+                if ($this->canAttemptTokenRefresh($user, $provider)) {
+                    Log::info('Token validation failed, attempting recovery refresh', [
+                        'user_id' => $user->id,
+                        'provider' => $provider,
+                        'validation_error' => $validationResult['error'] ?? 'Unknown error',
+                    ]);
+                    
+                    $recoveryRefreshResult = $this->attemptProactiveTokenRefresh($user, $provider, $healthStatus);
+                    if ($recoveryRefreshResult['success']) {
+                        // Re-validate after successful refresh
+                        $revalidationResult = $this->validateTokenWithProvider($user, $provider);
+                        if ($revalidationResult['valid']) {
+                            return [
+                                'valid' => true,
+                                'reason' => 'Token validated successfully after recovery refresh',
+                                'recovery_refresh_performed' => true,
+                                'original_validation_error' => $validationResult,
+                            ];
+                        }
+                    }
+                }
+                
+                return [
+                    'valid' => false,
+                    'reason' => 'Token validation failed: ' . ($validationResult['error'] ?? 'Unknown error'),
+                    'error_type' => $validationResult['error_type'] ?? CloudStorageErrorType::TOKEN_EXPIRED,
+                    'requires_user_intervention' => $validationResult['requires_user_intervention'] ?? true,
+                    'is_recoverable' => $validationResult['is_recoverable'] ?? false,
+                    'suggested_action' => 'reconnect',
+                    'validation_details' => $validationResult,
+                ];
+            }
+            
+            return [
+                'valid' => true,
+                'reason' => 'Token validation successful',
+                'validation_details' => $validationResult,
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Enhanced token validation failed with exception', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return [
+                'valid' => false,
+                'reason' => 'Token validation exception: ' . $e->getMessage(),
+                'error_type' => CloudStorageErrorType::UNKNOWN_ERROR,
+                'requires_user_intervention' => true,
+                'is_recoverable' => false,
+                'suggested_action' => 'reconnect',
+                'exception' => true,
+            ];
+        }
+    }
+
+    /**
+     * Perform enhanced API connectivity testing with comprehensive diagnostics.
+     * Tests multiple API endpoints and provides detailed failure analysis.
+     */
+    private function performEnhancedConnectivityTest(User $user, string $provider, CloudStorageHealthStatus $healthStatus): array
+    {
+        try {
+            // Check if we can skip connectivity test due to recent success
+            $lastSuccessfulTest = $healthStatus->operational_test_result['tested_at'] ?? null;
+            if ($lastSuccessfulTest) {
+                $lastTestTime = Carbon::parse($lastSuccessfulTest);
+                if ($lastTestTime->isAfter(now()->subMinutes(2)) && 
+                    ($healthStatus->operational_test_result['success'] ?? false)) {
+                    
+                    return [
+                        'connected' => true,
+                        'reason' => 'Recent successful connectivity test (cached result)',
+                        'cached_result' => true,
+                        'last_test_time' => $lastTestTime->toISOString(),
+                    ];
+                }
+            }
+            
+            // Perform basic connectivity test
+            $basicConnectivityResult = $this->performBasicConnectivityTest($user, $provider);
+            if (!$basicConnectivityResult['connected']) {
+                return [
+                    'connected' => false,
+                    'reason' => 'Basic connectivity test failed: ' . $basicConnectivityResult['error'],
+                    'error_type' => $basicConnectivityResult['error_type'] ?? CloudStorageErrorType::NETWORK_ERROR,
+                    'is_temporary' => $basicConnectivityResult['is_temporary'] ?? true,
+                    'suggested_action' => 'retry',
+                    'basic_test_details' => $basicConnectivityResult,
+                ];
+            }
+            
+            // Perform advanced connectivity tests
+            $advancedConnectivityResult = $this->performAdvancedConnectivityTests($user, $provider);
+            if (!$advancedConnectivityResult['all_passed']) {
+                return [
+                    'connected' => false,
+                    'reason' => 'Advanced connectivity tests failed: ' . $advancedConnectivityResult['summary'],
+                    'error_type' => CloudStorageErrorType::API_ERROR,
+                    'is_temporary' => $advancedConnectivityResult['is_temporary'] ?? true,
+                    'suggested_action' => $advancedConnectivityResult['suggested_action'] ?? 'retry',
+                    'basic_test_details' => $basicConnectivityResult,
+                    'advanced_test_details' => $advancedConnectivityResult,
+                ];
+            }
+            
+            // Update health status with successful test result
+            $healthStatus->update([
+                'operational_test_result' => [
+                    'success' => true,
+                    'tested_at' => now()->toISOString(),
+                    'test_type' => 'enhanced_connectivity',
+                    'basic_test' => $basicConnectivityResult,
+                    'advanced_tests' => $advancedConnectivityResult,
+                ],
+            ]);
+            
+            return [
+                'connected' => true,
+                'reason' => 'All connectivity tests passed successfully',
+                'basic_test_details' => $basicConnectivityResult,
+                'advanced_test_details' => $advancedConnectivityResult,
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Enhanced connectivity test failed with exception', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            // Update health status with failed test result
+            $healthStatus->update([
+                'operational_test_result' => [
+                    'success' => false,
+                    'tested_at' => now()->toISOString(),
+                    'test_type' => 'enhanced_connectivity',
+                    'error' => $e->getMessage(),
+                ],
+            ]);
+            
+            return [
+                'connected' => false,
+                'reason' => 'Connectivity test exception: ' . $e->getMessage(),
+                'error_type' => CloudStorageErrorType::UNKNOWN_ERROR,
+                'is_temporary' => false,
+                'suggested_action' => 'reconnect',
+                'exception' => true,
+            ];
+        }
+    }
+
+    /**
+     * Perform additional health checks beyond basic token and connectivity validation.
+     * Includes permission checks, quota validation, and provider-specific diagnostics.
+     */
+    private function performAdditionalHealthChecks(User $user, string $provider, CloudStorageHealthStatus $healthStatus): array
+    {
+        try {
+            $checks = [];
+            $allPassed = true;
+            $issues = [];
+            
+            // Check 1: Verify permissions
+            $permissionCheck = $this->checkProviderPermissions($user, $provider);
+            $checks['permissions'] = $permissionCheck;
+            if (!$permissionCheck['valid']) {
+                $allPassed = false;
+                $issues[] = 'Insufficient permissions: ' . $permissionCheck['error'];
+            }
+            
+            // Check 2: Validate quota/storage limits
+            $quotaCheck = $this->checkProviderQuota($user, $provider);
+            $checks['quota'] = $quotaCheck;
+            if (!$quotaCheck['valid']) {
+                $allPassed = false;
+                $issues[] = 'Quota issue: ' . $quotaCheck['error'];
+            }
+            
+            // Check 3: Test file operations capability
+            $operationsCheck = $this->checkFileOperationsCapability($user, $provider);
+            $checks['file_operations'] = $operationsCheck;
+            if (!$operationsCheck['valid']) {
+                $allPassed = false;
+                $issues[] = 'File operations issue: ' . $operationsCheck['error'];
+            }
+            
+            // Check 4: Provider-specific health diagnostics
+            $providerSpecificCheck = $this->performProviderSpecificHealthCheck($user, $provider);
+            $checks['provider_specific'] = $providerSpecificCheck;
+            if (!$providerSpecificCheck['valid']) {
+                $allPassed = false;
+                $issues[] = 'Provider-specific issue: ' . $providerSpecificCheck['error'];
+            }
+            
+            if (!$allPassed) {
+                return [
+                    'healthy' => false,
+                    'reason' => 'Additional health checks failed: ' . implode('; ', $issues),
+                    'suggested_status' => $this->determineSuggestedStatusFromHealthChecks($checks),
+                    'checks' => $checks,
+                    'issues' => $issues,
+                ];
+            }
+            
+            return [
+                'healthy' => true,
+                'reason' => 'All additional health checks passed',
+                'checks' => $checks,
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Additional health checks failed with exception', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return [
+                'healthy' => false,
+                'reason' => 'Additional health checks exception: ' . $e->getMessage(),
+                'suggested_status' => 'connection_issues',
+                'exception' => true,
+            ];
+        }
+    }
+
+    /**
+     * Check if a token exists for the user and provider.
+     */
+    private function checkTokenExists(User $user, string $provider): bool
+    {
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            if (method_exists($providerInstance, 'hasToken')) {
+                return $providerInstance->hasToken($user);
+            }
+            
+            // Fallback to checking connection
+            return $providerInstance->hasValidConnection($user);
+            
+        } catch (\Exception $e) {
+            Log::debug('Token existence check failed', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Get token expiration time for the user and provider.
+     */
+    private function getTokenExpiration(User $user, string $provider): ?Carbon
+    {
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            if (method_exists($providerInstance, 'getTokenExpiration')) {
+                return $providerInstance->getTokenExpiration($user);
+            }
+            
+            // Fallback to health status record
+            $healthStatus = $this->getOrCreateHealthStatus($user, $provider);
+            return $healthStatus->token_expires_at;
+            
+        } catch (\Exception $e) {
+            Log::debug('Token expiration check failed', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Attempt proactive token refresh with comprehensive error handling.
+     */
+    private function attemptProactiveTokenRefresh(User $user, string $provider, CloudStorageHealthStatus $healthStatus): array
+    {
+        try {
+            // Check if we can attempt refresh (rate limiting)
+            if (!$this->canAttemptTokenRefresh($user, $provider)) {
+                return [
+                    'success' => false,
+                    'error' => 'Token refresh rate limited',
+                    'error_type' => CloudStorageErrorType::SERVICE_UNAVAILABLE,
+                    'requires_user_intervention' => false,
+                    'is_recoverable' => true,
+                ];
+            }
+            
+            // Check exponential backoff
+            if ($this->shouldApplyBackoff($healthStatus)) {
+                $backoffDelay = $this->calculateBackoffDelay($healthStatus->token_refresh_failures ?? 0);
+                return [
+                    'success' => false,
+                    'error' => "Token refresh delayed due to recent failures (backoff: {$backoffDelay}s)",
+                    'error_type' => CloudStorageErrorType::SERVICE_UNAVAILABLE,
+                    'requires_user_intervention' => false,
+                    'is_recoverable' => true,
+                    'backoff_delay' => $backoffDelay,
+                ];
+            }
+            
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            // Update attempt timestamp
+            $healthStatus->update([
+                'last_token_refresh_attempt_at' => now(),
+            ]);
+            
+            if (method_exists($providerInstance, 'refreshToken')) {
+                $result = $providerInstance->refreshToken($user);
+                
+                if ($result) {
+                    // Reset failure count on success
+                    $healthStatus->update([
+                        'token_refresh_failures' => 0,
+                        'last_error_type' => null,
+                        'last_error_message' => null,
+                    ]);
+                    
+                    Log::info('Proactive token refresh successful', [
+                        'user_id' => $user->id,
+                        'provider' => $provider,
+                    ]);
+                    
+                    return [
+                        'success' => true,
+                        'method' => 'refreshToken',
+                    ];
+                } else {
+                    // Increment failure count
+                    $healthStatus->increment('token_refresh_failures');
+                    
+                    return [
+                        'success' => false,
+                        'error' => 'Token refresh returned false',
+                        'error_type' => CloudStorageErrorType::TOKEN_EXPIRED,
+                        'requires_user_intervention' => true,
+                        'is_recoverable' => false,
+                    ];
+                }
+            }
+            
+            // Fallback to validateAndRefreshToken method
+            if (method_exists($providerInstance, 'validateAndRefreshToken')) {
+                $result = $providerInstance->validateAndRefreshToken($user);
+                
+                if ($result) {
+                    $healthStatus->update([
+                        'token_refresh_failures' => 0,
+                        'last_error_type' => null,
+                        'last_error_message' => null,
+                    ]);
+                    
+                    Log::info('Proactive token validation and refresh successful', [
+                        'user_id' => $user->id,
+                        'provider' => $provider,
+                    ]);
+                    
+                    return [
+                        'success' => true,
+                        'method' => 'validateAndRefreshToken',
+                    ];
+                } else {
+                    $healthStatus->increment('token_refresh_failures');
+                    
+                    return [
+                        'success' => false,
+                        'error' => 'Token validation and refresh returned false',
+                        'error_type' => CloudStorageErrorType::TOKEN_EXPIRED,
+                        'requires_user_intervention' => true,
+                        'is_recoverable' => false,
+                    ];
+                }
+            }
+            
+            return [
+                'success' => false,
+                'error' => 'Provider does not support token refresh',
+                'error_type' => CloudStorageErrorType::UNSUPPORTED_OPERATION,
+                'requires_user_intervention' => true,
+                'is_recoverable' => false,
+            ];
+            
+        } catch (\Exception $e) {
+            // Increment failure count on exception
+            $healthStatus->increment('token_refresh_failures');
+            $healthStatus->update([
+                'last_error_type' => CloudStorageErrorType::UNKNOWN_ERROR->value,
+                'last_error_message' => $e->getMessage(),
+            ]);
+            
+            Log::error('Proactive token refresh failed with exception', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => 'Token refresh exception: ' . $e->getMessage(),
+                'error_type' => CloudStorageErrorType::UNKNOWN_ERROR,
+                'requires_user_intervention' => true,
+                'is_recoverable' => false,
+                'exception' => true,
+            ];
+        }
+    }
+
+    /**
+     * Validate token with provider using appropriate method.
+     */
+    private function validateTokenWithProvider(User $user, string $provider): array
+    {
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            if (method_exists($providerInstance, 'validateToken')) {
+                $result = $providerInstance->validateToken($user);
+                return [
+                    'valid' => $result,
+                    'method' => 'validateToken',
+                    'error' => $result ? null : 'Token validation returned false',
+                ];
+            }
+            
+            if (method_exists($providerInstance, 'hasValidConnection')) {
+                $result = $providerInstance->hasValidConnection($user);
+                return [
+                    'valid' => $result,
+                    'method' => 'hasValidConnection',
+                    'error' => $result ? null : 'Connection validation returned false',
+                ];
+            }
+            
+            return [
+                'valid' => false,
+                'error' => 'Provider does not support token validation',
+                'error_type' => CloudStorageErrorType::UNSUPPORTED_OPERATION,
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Token validation with provider failed', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return [
+                'valid' => false,
+                'error' => 'Token validation exception: ' . $e->getMessage(),
+                'error_type' => CloudStorageErrorType::UNKNOWN_ERROR,
+                'exception' => true,
+            ];
+        }
+    }
+
+    /**
+     * Perform basic connectivity test.
+     */
+    private function performBasicConnectivityTest(User $user, string $provider): array
+    {
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            if (method_exists($providerInstance, 'testBasicConnectivity')) {
+                $result = $providerInstance->testBasicConnectivity($user);
+                return [
+                    'connected' => $result,
+                    'method' => 'testBasicConnectivity',
+                    'error' => $result ? null : 'Basic connectivity test returned false',
+                ];
+            }
+            
+            // Fallback to API connectivity test
+            if (method_exists($providerInstance, 'testApiConnectivity')) {
+                $result = $providerInstance->testApiConnectivity($user);
+                return [
+                    'connected' => $result,
+                    'method' => 'testApiConnectivity',
+                    'error' => $result ? null : 'API connectivity test returned false',
+                ];
+            }
+            
+            // Final fallback to connection check
+            $result = $providerInstance->hasValidConnection($user);
+            return [
+                'connected' => $result,
+                'method' => 'hasValidConnection',
+                'error' => $result ? null : 'Connection check returned false',
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Basic connectivity test failed', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return [
+                'connected' => false,
+                'error' => 'Basic connectivity test exception: ' . $e->getMessage(),
+                'error_type' => CloudStorageErrorType::NETWORK_ERROR,
+                'is_temporary' => true,
+                'exception' => true,
+            ];
+        }
+    }
+
+    /**
+     * Perform advanced connectivity tests.
+     */
+    private function performAdvancedConnectivityTests(User $user, string $provider): array
+    {
+        $tests = [];
+        $allPassed = true;
+        $issues = [];
+        
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            // Test 1: List files/folders capability
+            if (method_exists($providerInstance, 'testListCapability')) {
+                $listTest = $providerInstance->testListCapability($user);
+                $tests['list_capability'] = $listTest;
+                if (!$listTest) {
+                    $allPassed = false;
+                    $issues[] = 'Cannot list files/folders';
+                }
+            }
+            
+            // Test 2: Upload capability (dry run)
+            if (method_exists($providerInstance, 'testUploadCapability')) {
+                $uploadTest = $providerInstance->testUploadCapability($user);
+                $tests['upload_capability'] = $uploadTest;
+                if (!$uploadTest) {
+                    $allPassed = false;
+                    $issues[] = 'Cannot upload files';
+                }
+            }
+            
+            // Test 3: API rate limit status
+            if (method_exists($providerInstance, 'checkRateLimitStatus')) {
+                $rateLimitTest = $providerInstance->checkRateLimitStatus($user);
+                $tests['rate_limit_status'] = $rateLimitTest;
+                if (!$rateLimitTest) {
+                    $allPassed = false;
+                    $issues[] = 'API rate limit exceeded';
+                }
+            }
+            
+            return [
+                'all_passed' => $allPassed,
+                'tests' => $tests,
+                'summary' => $allPassed ? 'All advanced tests passed' : implode('; ', $issues),
+                'is_temporary' => $this->areIssuesTemporary($issues),
+                'suggested_action' => $allPassed ? null : $this->getSuggestedActionForIssues($issues),
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Advanced connectivity tests failed', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return [
+                'all_passed' => false,
+                'tests' => $tests,
+                'summary' => 'Advanced connectivity tests exception: ' . $e->getMessage(),
+                'is_temporary' => false,
+                'suggested_action' => 'reconnect',
+                'exception' => true,
+            ];
+        }
+    }
+
+    /**
+     * Helper methods for status determination.
+     */
+    private function determineStatusFromTokenValidation(array $tokenResult): string
+    {
+        if (isset($tokenResult['error_type'])) {
+            return match ($tokenResult['error_type']) {
+                CloudStorageErrorType::TOKEN_EXPIRED => 'authentication_required',
+                CloudStorageErrorType::INSUFFICIENT_PERMISSIONS => 'authentication_required',
+                CloudStorageErrorType::NETWORK_ERROR => 'connection_issues',
+                CloudStorageErrorType::API_ERROR => 'connection_issues',
+                default => 'authentication_required',
+            };
+        }
+        
+        return 'authentication_required';
+    }
+
+    private function determineStatusFromConnectivityTest(array $connectivityResult): string
+    {
+        if (isset($connectivityResult['is_temporary']) && $connectivityResult['is_temporary']) {
+            return 'connection_issues';
+        }
+        
+        if (isset($connectivityResult['error_type'])) {
+            return match ($connectivityResult['error_type']) {
+                CloudStorageErrorType::NETWORK_ERROR => 'connection_issues',
+                CloudStorageErrorType::API_ERROR => 'connection_issues',
+                CloudStorageErrorType::SERVICE_UNAVAILABLE => 'connection_issues',
+                default => 'connection_issues',
+            };
+        }
+        
+        return 'connection_issues';
+    }
+
+    private function determineSuggestedStatusFromHealthChecks(array $checks): string
+    {
+        // Analyze the types of failures to suggest appropriate status
+        $hasPermissionIssues = !($checks['permissions']['valid'] ?? true);
+        $hasQuotaIssues = !($checks['quota']['valid'] ?? true);
+        $hasOperationIssues = !($checks['file_operations']['valid'] ?? true);
+        
+        if ($hasPermissionIssues) {
+            return 'authentication_required';
+        }
+        
+        if ($hasQuotaIssues || $hasOperationIssues) {
+            return 'connection_issues';
+        }
+        
+        return 'connection_issues';
+    }
+
+    private function areIssuesTemporary(array $issues): bool
+    {
+        // Check if issues are likely temporary (rate limits, network issues)
+        $temporaryKeywords = ['rate limit', 'network', 'timeout', 'unavailable'];
+        
+        foreach ($issues as $issue) {
+            foreach ($temporaryKeywords as $keyword) {
+                if (stripos($issue, $keyword) !== false) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    private function getSuggestedActionForIssues(array $issues): string
+    {
+        if ($this->areIssuesTemporary($issues)) {
+            return 'retry';
+        }
+        
+        // Check for permission-related issues
+        foreach ($issues as $issue) {
+            if (stripos($issue, 'permission') !== false || stripos($issue, 'unauthorized') !== false) {
+                return 'reconnect';
+            }
+        }
+        
+        return 'retry';
+    }
+
+    /**
+     * Placeholder methods for additional health checks.
+     * These should be implemented based on specific provider capabilities.
+     */
+    private function checkProviderPermissions(User $user, string $provider): array
+    {
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            if (method_exists($providerInstance, 'checkPermissions')) {
+                $result = $providerInstance->checkPermissions($user);
+                return [
+                    'valid' => $result,
+                    'error' => $result ? null : 'Insufficient permissions',
+                ];
+            }
+            
+            // Default to valid if no permission check is available
+            return ['valid' => true];
+            
+        } catch (\Exception $e) {
+            return [
+                'valid' => false,
+                'error' => 'Permission check failed: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    private function checkProviderQuota(User $user, string $provider): array
+    {
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            if (method_exists($providerInstance, 'checkQuota')) {
+                $result = $providerInstance->checkQuota($user);
+                return [
+                    'valid' => $result,
+                    'error' => $result ? null : 'Quota exceeded or unavailable',
+                ];
+            }
+            
+            // Default to valid if no quota check is available
+            return ['valid' => true];
+            
+        } catch (\Exception $e) {
+            return [
+                'valid' => false,
+                'error' => 'Quota check failed: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    private function checkFileOperationsCapability(User $user, string $provider): array
+    {
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            if (method_exists($providerInstance, 'testFileOperations')) {
+                $result = $providerInstance->testFileOperations($user);
+                return [
+                    'valid' => $result,
+                    'error' => $result ? null : 'File operations not available',
+                ];
+            }
+            
+            // Default to valid if no file operations test is available
+            return ['valid' => true];
+            
+        } catch (\Exception $e) {
+            return [
+                'valid' => false,
+                'error' => 'File operations test failed: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    private function performProviderSpecificHealthCheck(User $user, string $provider): array
+    {
+        try {
+            $providerInstance = $this->storageManager->getProvider($provider);
+            
+            if (method_exists($providerInstance, 'performHealthCheck')) {
+                $result = $providerInstance->performHealthCheck($user);
+                return [
+                    'valid' => $result,
+                    'error' => $result ? null : 'Provider-specific health check failed',
+                ];
+            }
+            
+            // Default to valid if no provider-specific check is available
+            return ['valid' => true];
+            
+        } catch (\Exception $e) {
+            return [
+                'valid' => false,
+                'error' => 'Provider-specific health check failed: ' . $e->getMessage(),
+            ];
+        }
     }
 }

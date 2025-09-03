@@ -134,6 +134,16 @@ enum CloudStorageErrorType: string
     case INVALID_PARAMETER = 'invalid_parameter';
 
     /**
+     * API error occurred during operation
+     */
+    case API_ERROR = 'api_error';
+
+    /**
+     * Operation not supported by provider
+     */
+    case UNSUPPORTED_OPERATION = 'unsupported_operation';
+
+    /**
      * Get a human-readable description of the error type
      *
      * @return string Description of the error type
@@ -164,6 +174,8 @@ enum CloudStorageErrorType: string
             self::PROVIDER_INITIALIZATION_FAILED => 'Provider initialization failed',
             self::FEATURE_NOT_SUPPORTED => 'Feature not supported by provider',
             self::INVALID_PARAMETER => 'Invalid parameter provided',
+            self::API_ERROR => 'API error occurred during operation',
+            self::UNSUPPORTED_OPERATION => 'Operation not supported by provider',
         };
     }
 
@@ -178,7 +190,8 @@ enum CloudStorageErrorType: string
             self::NETWORK_ERROR,
             self::SERVICE_UNAVAILABLE,
             self::TIMEOUT,
-            self::API_QUOTA_EXCEEDED => true,
+            self::API_QUOTA_EXCEEDED,
+            self::API_ERROR => true,
             default => false,
         };
     }
@@ -201,7 +214,8 @@ enum CloudStorageErrorType: string
             self::INVALID_REGION,
             self::PROVIDER_NOT_CONFIGURED,
             self::PROVIDER_INITIALIZATION_FAILED,
-            self::INVALID_PARAMETER => true,
+            self::INVALID_PARAMETER,
+            self::UNSUPPORTED_OPERATION => true,
             default => false,
         };
     }
@@ -229,7 +243,9 @@ enum CloudStorageErrorType: string
             self::INVALID_FILE_CONTENT,
             self::STORAGE_CLASS_NOT_SUPPORTED,
             self::FEATURE_NOT_SUPPORTED,
-            self::INVALID_PARAMETER => 'medium',
+            self::INVALID_PARAMETER,
+            self::API_ERROR,
+            self::UNSUPPORTED_OPERATION => 'medium',
             self::BUCKET_NOT_FOUND,
             self::INVALID_BUCKET_NAME,
             self::BUCKET_ACCESS_DENIED,

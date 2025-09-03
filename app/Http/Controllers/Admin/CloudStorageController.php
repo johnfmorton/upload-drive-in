@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Google\Client;
 use Google\Service\Drive;
 use Illuminate\Support\Facades\Auth;
@@ -187,9 +188,25 @@ class CloudStorageController extends Controller
      */
     public function updateDefault(Request $request)
     {
+        $availabilityService = app(\App\Services\CloudStorageProviderAvailabilityService::class);
+        $availableProviders = $availabilityService->getAvailableProviders();
+        
         $validated = $request->validate([
-            'default_provider' => ['required', 'string', 'in:google-drive,microsoft-teams,dropbox'],
+            'default_provider' => [
+                'required', 
+                'string', 
+                Rule::in($availableProviders)
+            ],
+        ], [
+            'default_provider.in' => 'The selected provider is not currently available. Please select an available provider.',
         ]);
+
+        // Additional server-side validation to ensure provider is selectable
+        if (!$availabilityService->isValidProviderSelection($validated['default_provider'])) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'The selected provider is not available for selection. Please choose an available provider.');
+        }
 
         try {
             // Save default provider into .env
@@ -200,12 +217,14 @@ class CloudStorageController extends Controller
 
             Log::info('Default storage provider environment variable updated successfully', [
                 'provider' => $validated['default_provider'],
+                'available_providers' => $availableProviders,
             ]);
 
             return redirect()->back()->with('success', __('messages.settings_updated_successfully'));
         } catch (\Exception $e) {
             Log::error('Failed to update default storage provider environment variable', [
                 'error' => $e->getMessage(),
+                'provider' => $validated['default_provider'],
             ]);
 
             return redirect()->back()
@@ -260,37 +279,235 @@ class CloudStorageController extends Controller
      * Save credentials and redirect user to Google Drive OAuth.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
      */
     public function saveAndConnectGoogleDrive(Request $request)
     {
-        $clientId = CloudStorageSetting::getEffectiveValue('google-drive', 'client_id');
-        if (empty($clientId)) {
-            return redirect()->back()->with('error', __('messages.client_id').' '.__('messages.error_generic'));
-        }
-
+        $user = Auth::user();
+        $errorMessageService = app(\App\Services\CloudStorageErrorMessageService::class);
+        $validationService = app(\App\Services\CloudStorageConfigurationValidationService::class);
+        
+        // Comprehensive validation before initiating OAuth flow
         try {
-            $user = Auth::user();
+            // 1. Validate Google Drive configuration
+            $validationResult = $validationService->validateProviderConfiguration('google-drive');
             
-            // Use CloudStorageManager to get the appropriate provider
+            if (!$validationResult['is_valid']) {
+                $errorMessage = 'Google Drive is not properly configured. Please check your settings.';
+                $technicalDetails = implode('; ', $validationResult['errors']);
+                
+                Log::warning('Google Drive configuration validation failed', [
+                    'user_id' => $user->id,
+                    'errors' => $validationResult['errors'],
+                    'warnings' => $validationResult['warnings']
+                ]);
+                
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => $errorMessage,
+                        'technical_details' => $errorMessageService->shouldShowTechnicalDetails($user) ? $technicalDetails : null,
+                        'validation_errors' => $validationResult['errors']
+                    ], 400);
+                }
+                
+                return redirect()->back()->with('error', $errorMessage);
+            }
+
+            // 2. Check client ID availability
+            $clientId = CloudStorageSetting::getEffectiveValue('google-drive', 'client_id');
+            if (empty($clientId)) {
+                $errorMessage = 'Google Drive Client ID is required. Please configure your Google Drive credentials first.';
+                
+                Log::warning('Google Drive Client ID missing', [
+                    'user_id' => $user->id
+                ]);
+                
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => $errorMessage,
+                        'requires_configuration' => true
+                    ], 400);
+                }
+                
+                return redirect()->back()->with('error', $errorMessage);
+            }
+
+            // 3. Check client secret availability
+            $clientSecret = CloudStorageSetting::getEffectiveValue('google-drive', 'client_secret');
+            if (empty($clientSecret)) {
+                $errorMessage = 'Google Drive Client Secret is required. Please configure your Google Drive credentials first.';
+                
+                Log::warning('Google Drive Client Secret missing', [
+                    'user_id' => $user->id
+                ]);
+                
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => $errorMessage,
+                        'requires_configuration' => true
+                    ], 400);
+                }
+                
+                return redirect()->back()->with('error', $errorMessage);
+            }
+
+            // 4. Get provider and check availability
             $provider = $this->storageManager->getProvider('google-drive');
             $isReconnection = $provider->hasValidConnection($user);
             
-            $authUrl = $provider->getAuthUrl($user);
+            // 5. Validate network connectivity (basic check)
+            if (!$this->checkNetworkConnectivity()) {
+                $errorMessage = 'Network connectivity issue detected. Please check your internet connection and try again.';
+                
+                Log::warning('Network connectivity check failed during OAuth initiation', [
+                    'user_id' => $user->id
+                ]);
+                
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => $errorMessage,
+                        'is_retryable' => true,
+                        'retry_after' => 30
+                    ], 503);
+                }
+                
+                return redirect()->back()->with('error', $errorMessage);
+            }
+
+            // 6. Generate OAuth URL with retry logic for transient failures
+            $retryService = app(\App\Services\CloudStorageRetryService::class);
             
-            Log::info('Initiating Google Drive OAuth flow via CloudStorageManager', [
+            $authUrl = $retryService->executeWithRetry(
+                function () use ($provider, $user) {
+                    $url = $provider->getAuthUrl($user);
+                    if (empty($url)) {
+                        throw new \Exception('Empty OAuth URL generated');
+                    }
+                    return $url;
+                },
+                [
+                    'max_attempts' => 2,
+                    'base_delay' => 1000,
+                    'max_delay' => 5000
+                ],
+                [
+                    'user_id' => $user->id,
+                    'operation' => 'generate_oauth_url',
+                    'provider' => 'google-drive'
+                ]
+            );
+            
+            // 7. Log successful OAuth initiation
+            Log::info('Initiating Google Drive OAuth flow with comprehensive validation', [
                 'user_id' => $user->id,
                 'is_reconnection' => $isReconnection,
-                'provider' => $provider->getProviderName()
+                'provider' => $provider->getProviderName(),
+                'validation_passed' => true,
+                'client_id_configured' => !empty($clientId),
+                'client_secret_configured' => !empty($clientSecret)
             ]);
             
+            // 8. Return appropriate response
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'redirect_url' => $authUrl,
+                    'is_reconnection' => $isReconnection,
+                    'message' => $isReconnection ? 
+                        'Redirecting to reconnect your Google Drive account...' : 
+                        'Redirecting to connect your Google Drive account...'
+                ]);
+            }
+            
             return redirect($authUrl);
+            
+        } catch (\Google\Service\Exception $e) {
+            // Handle Google API specific errors
+            $errorType = app(\App\Services\GoogleDriveErrorHandler::class)->classifyException($e);
+            $errorResponse = $errorMessageService->generateErrorResponse($errorType, [
+                'provider' => 'google-drive',
+                'operation' => 'OAuth initiation',
+                'user' => $user,
+                'original_message' => $e->getMessage(),
+                'technical_details' => [
+                    'code' => $e->getCode(),
+                    'errors' => $e->getErrors()
+                ]
+            ]);
+            
+            Log::error('Google API error during OAuth initiation', [
+                'user_id' => $user->id,
+                'error_type' => $errorType->value,
+                'code' => $e->getCode(),
+                'message' => $e->getMessage(),
+                'errors' => $e->getErrors()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $errorResponse['message'],
+                    'error_type' => $errorResponse['error_type'],
+                    'instructions' => $errorResponse['instructions'],
+                    'is_retryable' => $errorResponse['is_retryable'],
+                    'requires_user_action' => $errorResponse['requires_user_action'],
+                    'technical_details' => $errorResponse['technical_details'] ?? null
+                ], 400);
+            }
+            
+            return redirect()->back()->with('error', $errorResponse['message']);
+            
         } catch (\Exception $e) {
+            // Handle general exceptions
+            $errorMessage = 'Failed to initiate Google Drive connection. Please try again.';
+            $technicalDetails = $e->getMessage();
+            
             Log::error('Failed to initiate Google Drive connection', [
-                'user_id' => Auth::id(),
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $errorMessage,
+                    'is_retryable' => true,
+                    'technical_details' => $errorMessageService->shouldShowTechnicalDetails($user) ? $technicalDetails : null
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', $errorMessage);
+        }
+    }
+
+    /**
+     * Check basic network connectivity
+     *
+     * @return bool Whether network connectivity is available
+     */
+    private function checkNetworkConnectivity(): bool
+    {
+        try {
+            // Simple connectivity check to Google's public DNS
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 5,
+                    'method' => 'HEAD'
+                ]
+            ]);
+            
+            $result = @file_get_contents('https://www.google.com', false, $context);
+            return $result !== false;
+        } catch (\Exception $e) {
+            Log::debug('Network connectivity check failed', [
                 'error' => $e->getMessage()
             ]);
-            return redirect()->back()->with('error', __('messages.settings_update_failed'));
+            return false;
         }
     }
 
@@ -381,21 +598,148 @@ class CloudStorageController extends Controller
     }
 
     /**
-     * Handle the OAuth callback for Google Drive.
+     * Handle the OAuth callback for Google Drive with comprehensive validation.
      */
     public function callback(Request $request)
     {
-        if ($request->has('code')) {
-            try {
-                $this->driveService->handleCallback(Auth::user(), $request->input('code'));
-                return redirect()->route('admin.cloud-storage.index')
-                    ->with('success', __('messages.google_drive_connected'));
-            } catch (\Exception $e) {
-                Log::error('Failed to handle Google Drive OAuth callback', ['error' => $e->getMessage()]);
-                return redirect()->back()->with('error', __('messages.settings_update_failed'));
-            }
+        $user = Auth::user();
+        $errorMessageService = app(\App\Services\CloudStorageErrorMessageService::class);
+        $healthService = app(\App\Services\CloudStorageHealthService::class);
+        
+        // Check for OAuth errors first
+        if ($request->has('error')) {
+            $oauthError = $request->input('error');
+            $errorDescription = $request->input('error_description', '');
+            
+            Log::warning('OAuth callback received error', [
+                'user_id' => $user->id,
+                'error' => $oauthError,
+                'error_description' => $errorDescription
+            ]);
+            
+            $errorMessage = match ($oauthError) {
+                'access_denied' => 'Google Drive connection was cancelled. Please try again and grant the necessary permissions.',
+                'invalid_request' => 'Invalid OAuth request. Please try connecting again.',
+                'unauthorized_client' => 'Google Drive application is not authorized. Please check your configuration.',
+                'unsupported_response_type' => 'OAuth configuration error. Please contact support.',
+                'invalid_scope' => 'Invalid permissions requested. Please contact support.',
+                'server_error' => 'Google Drive is temporarily unavailable. Please try again in a few minutes.',
+                'temporarily_unavailable' => 'Google Drive is temporarily unavailable. Please try again in a few minutes.',
+                default => "Google Drive connection failed: {$errorDescription}"
+            };
+            
+            return redirect()->route('admin.cloud-storage.index')
+                ->with('error', $errorMessage);
         }
-        return redirect()->back()->with('error', __('messages.settings_update_failed'));
+        
+        // Check for authorization code
+        if (!$request->has('code')) {
+            Log::warning('OAuth callback missing authorization code', [
+                'user_id' => $user->id,
+                'query_params' => $request->query()
+            ]);
+            
+            return redirect()->route('admin.cloud-storage.index')
+                ->with('error', 'Google Drive connection failed: No authorization code received. Please try again.');
+        }
+        
+        $authCode = $request->input('code');
+        
+        try {
+            // 1. Handle the OAuth callback
+            Log::info('Processing Google Drive OAuth callback', [
+                'user_id' => $user->id,
+                'has_code' => !empty($authCode)
+            ]);
+            
+            $this->driveService->handleCallback($user, $authCode);
+            
+            // 2. Immediately verify the token validity
+            Log::info('Verifying Google Drive token after OAuth callback', [
+                'user_id' => $user->id
+            ]);
+            
+            $healthStatus = $healthService->checkConnectionHealth($user, 'google-drive');
+            
+            // 3. Check if token verification was successful
+            if ($healthStatus && $healthStatus->consolidated_status === 'healthy') {
+                Log::info('Google Drive connection established and verified successfully', [
+                    'user_id' => $user->id,
+                    'consolidated_status' => $healthStatus->consolidated_status,
+                    'last_successful_operation' => $healthStatus->last_successful_operation_at
+                ]);
+                
+                return redirect()->route('admin.cloud-storage.index')
+                    ->with('success', 'Google Drive connected successfully! Your account is ready to receive files.');
+            } else {
+                // Token was stored but verification failed
+                $statusMessage = $healthStatus->getConsolidatedStatusMessage() ?? 'Connection verification failed';
+                
+                Log::warning('Google Drive token stored but verification failed', [
+                    'user_id' => $user->id,
+                    'consolidated_status' => $healthStatus->consolidated_status ?? 'unknown',
+                    'status_message' => $statusMessage,
+                    'last_error' => $healthStatus->last_error_message ?? null
+                ]);
+                
+                $warningMessage = match ($healthStatus->consolidated_status ?? 'connection_issues') {
+                    'authentication_required' => 'Google Drive connected but requires re-authentication. Please try connecting again.',
+                    'connection_issues' => 'Google Drive connected but there may be connection issues. Please test your connection.',
+                    'not_connected' => 'Google Drive connection could not be verified. Please try connecting again.',
+                    default => "Google Drive connected but verification failed: {$statusMessage}"
+                };
+                
+                return redirect()->route('admin.cloud-storage.index')
+                    ->with('warning', $warningMessage);
+            }
+            
+        } catch (\Google\Service\Exception $e) {
+            // Handle Google API specific errors during callback
+            $errorType = app(\App\Services\GoogleDriveErrorHandler::class)->classifyException($e);
+            $errorResponse = $errorMessageService->generateErrorResponse($errorType, [
+                'provider' => 'google-drive',
+                'operation' => 'OAuth callback',
+                'user' => $user,
+                'original_message' => $e->getMessage(),
+                'technical_details' => [
+                    'code' => $e->getCode(),
+                    'errors' => $e->getErrors()
+                ]
+            ]);
+            
+            Log::error('Google API error during OAuth callback', [
+                'user_id' => $user->id,
+                'error_type' => $errorType->value,
+                'code' => $e->getCode(),
+                'message' => $e->getMessage(),
+                'errors' => $e->getErrors()
+            ]);
+            
+            return redirect()->route('admin.cloud-storage.index')
+                ->with('error', $errorResponse['message']);
+                
+        } catch (\Exception $e) {
+            // Handle general exceptions during callback
+            Log::error('Failed to handle Google Drive OAuth callback', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            $errorMessage = 'Failed to complete Google Drive connection. Please try again.';
+            
+            // Provide more specific error messages for common issues
+            if (str_contains($e->getMessage(), 'invalid_grant')) {
+                $errorMessage = 'Google Drive authorization expired or was revoked. Please try connecting again.';
+            } elseif (str_contains($e->getMessage(), 'redirect_uri_mismatch')) {
+                $errorMessage = 'Google Drive configuration error. Please check your redirect URI settings.';
+            } elseif (str_contains($e->getMessage(), 'invalid_client')) {
+                $errorMessage = 'Invalid Google Drive client configuration. Please check your Client ID and Secret.';
+            }
+            
+            return redirect()->route('admin.cloud-storage.index')
+                ->with('error', $errorMessage);
+        }
     }
 
     /**
@@ -489,7 +833,7 @@ class CloudStorageController extends Controller
     public function reconnectProvider(Request $request)
     {
         $validated = $request->validate([
-            'provider' => 'required|string|in:google-drive,dropbox,onedrive'
+            'provider' => 'required|string|in:google-drive,amazon-s3,dropbox,onedrive'
         ]);
 
         try {
@@ -536,7 +880,7 @@ class CloudStorageController extends Controller
     public function testConnection(Request $request)
     {
         $validated = $request->validate([
-            'provider' => 'required|string|in:google-drive,dropbox,onedrive'
+            'provider' => 'required|string|in:google-drive,amazon-s3,dropbox,onedrive'
         ]);
 
         try {

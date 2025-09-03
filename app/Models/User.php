@@ -177,7 +177,8 @@ class User extends Authenticatable
      */
     public function hasGoogleDriveConnected(): bool
     {
-        return $this->googleDriveToken()->exists();
+        $token = $this->googleDriveToken;
+        return $token && !$token->hasExpired();
     }
 
     /**

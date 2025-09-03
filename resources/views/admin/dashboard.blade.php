@@ -354,7 +354,7 @@
                                                                             </svg>
                                                                         </div>
                                                                         <div class="ml-3">
-                                                                            <p class="text-sm font-medium text-green-800" x-text="processingResults.message"></p>
+                                                                            <p class="text-sm font-medium text-green-800" x-text="processingResults?.message || ''"></p>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -367,7 +367,7 @@
                                                                             </svg>
                                                                         </div>
                                                                         <div class="ml-3">
-                                                                            <p class="text-sm font-medium text-red-800" x-text="processingResults.message"></p>
+                                                                            <p class="text-sm font-medium text-red-800" x-text="processingResults?.message || ''"></p>
                                                                         </div>
                                                                     </div>
                                                                 </div>

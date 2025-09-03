@@ -115,7 +115,7 @@ class CloudConfigurationService
         $config = $this->getProviderConfig($providerName);
         
         // Add config file values as fallback
-        $configFileValues = Config::get("cloud-storage.providers.{$providerName}", []);
+        $configFileValues = Config::get("cloud-storage.providers.{$providerName}.config", []);
         foreach ($configFileValues as $key => $value) {
             if (!isset($config[$key]) && $value !== null) {
                 $config[$key] = $value;
@@ -164,7 +164,7 @@ class CloudConfigurationService
         }
 
         // Check config file
-        $configValue = Config::get("cloud-storage.providers.{$providerName}.{$key}");
+        $configValue = Config::get("cloud-storage.providers.{$providerName}.config.{$key}");
         if ($configValue !== null) {
             return 'config';
         }
@@ -277,7 +277,7 @@ class CloudConfigurationService
         }
 
         // Config file last
-        return Config::get("cloud-storage.providers.{$providerName}.{$key}");
+        return Config::get("cloud-storage.providers.{$providerName}.config.{$key}");
     }
 
     /**
