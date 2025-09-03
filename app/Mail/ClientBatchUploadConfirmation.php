@@ -6,6 +6,7 @@ use App\Models\FileUpload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -16,19 +17,19 @@ class ClientBatchUploadConfirmation extends Mailable
     use Queueable, SerializesModels;
 
     /**
-     * Create a new message instance.
-     *
-     * @param Collection<int, FileUpload> $fileUploads Collection of uploaded file models.
-     * @param string $unsubscribeUrl The URL for the user to disable notifications.
-     */
-    /**
      * Names of intended recipient users (admins/employees) for this upload.
      * @var array<int, string>
      */
     public array $recipientNames = [];
 
+    /**
+     * Create a new message instance.
+     *
+     * @param Collection|SupportCollection $fileUploads Collection of uploaded file models.
+     * @param string $unsubscribeUrl The URL for the user to disable notifications.
+     */
     public function __construct(
-        public Collection $fileUploads,
+        public Collection|SupportCollection $fileUploads,
         public string $unsubscribeUrl
     ) {
         //

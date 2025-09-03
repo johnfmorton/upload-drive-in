@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -19,11 +20,11 @@ class AdminBatchUploadNotification extends Mailable
     /**
      * Create a new message instance.
      *
-     * @param Collection<int, FileUpload> $fileUploads Collection of uploaded file models.
+     * @param Collection|SupportCollection $fileUploads Collection of uploaded file models.
      * @param User $user The user who uploaded the files.
      */
     public function __construct(
-        public Collection $fileUploads,
+        public Collection|SupportCollection $fileUploads,
         public User $user
     ) {
         //

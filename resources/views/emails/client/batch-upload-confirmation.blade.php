@@ -5,7 +5,7 @@
 {{ trans_choice('messages.client_batch_upload_body', $fileCount, ['count' => $fileCount]) }}
 
 @if (!empty($recipientNames))
-        {{ trans_choice('messages.upload_recipient_line', $recipientCount, [
+        {{ trans_choice('messages.upload_recipient_line', count($recipientNames), [
             'names' => implode(', ', $recipientNames),
         ]) }}
 @endif
