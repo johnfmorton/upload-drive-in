@@ -46,16 +46,7 @@ class CloudStorageProviderAvailabilityService
      */
     private function addFallbackProviders(): void
     {
-        $fallbackProviders = [
-            's3' => ProviderAvailabilityStatus::COMING_SOON,
-            'onedrive' => ProviderAvailabilityStatus::COMING_SOON,
-        ];
-
-        foreach ($fallbackProviders as $provider => $status) {
-            if (!isset($this->providerStatus[$provider])) {
-                $this->providerStatus[$provider] = $status;
-            }
-        }
+        // No fallback providers needed - all providers should be explicitly configured
     }
     /**
      * Provider availability configuration
@@ -197,9 +188,8 @@ class CloudStorageProviderAvailabilityService
     {
         return match ($provider) {
             'google-drive' => 'Google Drive',
-            's3' => 'Amazon S3',
-            'onedrive' => 'Microsoft OneDrive',
-            'dropbox' => 'Dropbox',
+            'amazon-s3' => 'Amazon S3',
+            'microsoft-teams' => 'Microsoft Teams',
             default => ucfirst(str_replace('-', ' ', $provider)),
         };
     }

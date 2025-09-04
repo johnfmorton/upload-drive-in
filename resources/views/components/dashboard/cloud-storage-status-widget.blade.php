@@ -573,7 +573,6 @@ function cloudStorageStatusWidget(initialProviders) {
         getProviderDisplayName(provider) {
             const names = {
                 'google-drive': 'Google Drive',
-                'dropbox': 'Dropbox',
                 'onedrive': 'OneDrive'
             };
             return names[provider] || provider;

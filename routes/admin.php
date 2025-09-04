@@ -6,7 +6,7 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\SecuritySettingsController;
-use App\Http\Controllers\CloudStorage\DropboxAuthController;
+
 use App\Http\Controllers\CloudStorage\MicrosoftTeamsAuthController;
 use App\Http\Controllers\Admin\GoogleDriveFolderController;
 use App\Http\Controllers\Admin\EmployeeController;
@@ -115,10 +115,6 @@ Route::prefix('cloud-storage')
         Route::get('/microsoft-teams/callback', [MicrosoftTeamsAuthController::class, 'callback'])->name('microsoft-teams.callback');
         Route::post('/microsoft-teams/disconnect', [MicrosoftTeamsAuthController::class, 'disconnect'])->name('microsoft-teams.disconnect');
 
-        // Dropbox routes
-        Route::put('/dropbox', [CloudStorageController::class, 'updateDropbox'])->name('dropbox.update');
-        Route::get('/dropbox/connect', [DropboxAuthController::class, 'connect'])->name('dropbox.connect');
-        Route::post('/dropbox/disconnect', [DropboxAuthController::class, 'disconnect'])->name('dropbox.disconnect');
 
         // Google Drive: credentials, connect, callback, root folder & disconnect
         // Save client ID & secret

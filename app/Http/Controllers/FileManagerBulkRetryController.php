@@ -17,7 +17,7 @@ class FileManagerBulkRetryController extends Controller
     public function bulkRetry(Request $request): JsonResponse
     {
         $request->validate([
-            'provider' => 'required|string|in:google-drive,dropbox,onedrive'
+            'provider' => 'required|string|in:google-drive,microsoft-teams'
         ]);
         
         $user = $request->user();

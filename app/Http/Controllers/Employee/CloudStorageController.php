@@ -148,7 +148,7 @@ class CloudStorageController extends Controller
     public function reconnectProvider(Request $request)
     {
         $validated = $request->validate([
-            'provider' => 'required|string|in:google-drive,amazon-s3,dropbox,onedrive'
+            'provider' => 'required|string|in:google-drive,amazon-s3,microsoft-teams'
         ]);
 
         try {
@@ -178,7 +178,7 @@ class CloudStorageController extends Controller
     public function testConnection(Request $request)
     {
         $validated = $request->validate([
-            'provider' => 'required|string|in:google-drive,dropbox,onedrive'
+            'provider' => 'required|string|in:google-drive,microsoft-teams'
         ]);
 
         try {

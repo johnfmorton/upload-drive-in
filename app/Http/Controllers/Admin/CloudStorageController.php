@@ -108,42 +108,7 @@ class CloudStorageController extends Controller
         }
     }
 
-    /**
-     * Update Dropbox configuration settings.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function updateDropbox(Request $request)
-    {
-        $validated = $request->validate([
-            'dropbox_client_id' => ['required', 'string'],
-            'dropbox_client_secret' => ['nullable', 'string'],
-            'dropbox_root_folder' => ['required', 'string'],
-        ]);
 
-        try {
-            // Save Dropbox credentials into .env
-            $this->updateEnvironmentValue('DROPBOX_CLIENT_ID', $validated['dropbox_client_id']);
-            if (!empty($validated['dropbox_client_secret'])) {
-                $this->updateEnvironmentValue('DROPBOX_CLIENT_SECRET', $validated['dropbox_client_secret']);
-            }
-            $this->updateEnvironmentValue('DROPBOX_ROOT_FOLDER', $validated['dropbox_root_folder']);
-
-            // Clear config cache to apply new environment values
-            Artisan::call('config:clear');
-
-            Log::info('Dropbox environment variables updated successfully');
-            return redirect()->back()->with('success', __('messages.settings_updated_successfully'));
-        } catch (\Exception $e) {
-            Log::error('Failed to update Dropbox environment variables', [
-                'error' => $e->getMessage(),
-            ]);
-            return redirect()->back()
-                ->withInput()
-                ->with('error', __('messages.settings_update_failed'));
-        }
-    }
 
     /**
      * Update Google Drive configuration settings.
@@ -833,7 +798,7 @@ class CloudStorageController extends Controller
     public function reconnectProvider(Request $request)
     {
         $validated = $request->validate([
-            'provider' => 'required|string|in:google-drive,amazon-s3,dropbox,onedrive'
+            'provider' => 'required|string|in:google-drive,amazon-s3,microsoft-teams'
         ]);
 
         try {
@@ -880,7 +845,7 @@ class CloudStorageController extends Controller
     public function testConnection(Request $request)
     {
         $validated = $request->validate([
-            'provider' => 'required|string|in:google-drive,amazon-s3,dropbox,onedrive'
+            'provider' => 'required|string|in:google-drive,amazon-s3,microsoft-teams'
         ]);
 
         try {

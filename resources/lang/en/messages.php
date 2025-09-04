@@ -323,8 +323,7 @@
     'configure_microsoft_teams_storage' => 'Configure Microsoft Teams storage settings and connection details.',
     'configure_microsoft_teams_storage_link' => 'Microsoft Teams Storage Settings',
     'configure_microsoft_teams_storage_link_description' => 'Configure Microsoft Teams storage settings and connection details.',
-    'configure_dropbox_storage_link' => 'Dropbox Storage Settings',
-    'configure_dropbox_storage_link_description' => 'Configure Dropbox storage settings and connection details.',
+
     'configure_google_drive_storage_link' => 'Google Drive Storage Settings',
     'configure_google_drive_storage_link_description' => 'Configure Google Drive storage settings and connection details.',
     'connected' => 'Connected',

@@ -99,42 +99,7 @@ return [
             ],
         ],
 
-        'azure-blob' => [
-            'driver' => 'azure-blob',
-            'class' => \App\Services\AzureBlobProvider::class,
-            'error_handler' => \App\Services\AzureBlobErrorHandler::class,
-            'auth_type' => 'connection_string',
-            'storage_model' => 'flat',
-            'enabled' => env('AZURE_STORAGE_ENABLED', false),
-            'config' => [
-                'connection_string' => env('AZURE_STORAGE_CONNECTION_STRING'),
-                'container' => env('AZURE_STORAGE_CONTAINER', 'uploads'),
-                'account_name' => env('AZURE_STORAGE_ACCOUNT_NAME'),
-                'account_key' => env('AZURE_STORAGE_ACCOUNT_KEY'),
-                'endpoint_suffix' => env('AZURE_STORAGE_ENDPOINT_SUFFIX', 'core.windows.net'),
-            ],
-            'features' => [
-                'folder_creation' => false, // Azure Blob uses virtual directories
-                'file_upload' => true,
-                'file_delete' => true,
-                'folder_delete' => false,
-                'file_sharing' => true,
-                'batch_operations' => true,
-                'resumable_uploads' => true,
-                'max_file_size' => 4398046511104, // 4TB for block blobs
-                'supported_file_types' => ['*'],
-                'metadata_support' => true,
-                'version_control' => true,
-                'access_tiers' => ['Hot', 'Cool', 'Archive'],
-                'server_side_encryption' => true,
-                'immutable_storage' => true,
-            ],
-            'limits' => [
-                'requests_per_second' => 20000,
-                'requests_per_day' => null, // No daily limit
-                'upload_bandwidth' => null, // No bandwidth limit
-            ],
-        ],
+
 
         'microsoft-teams' => [
             'driver' => 'microsoft-teams',
@@ -170,38 +135,7 @@ return [
             ],
         ],
 
-        'dropbox' => [
-            'driver' => 'dropbox',
-            'class' => \App\Services\DropboxProvider::class,
-            'error_handler' => \App\Services\DropboxErrorHandler::class,
-            'auth_type' => 'oauth',
-            'storage_model' => 'hierarchical',
-            'enabled' => env('DROPBOX_ENABLED', false),
-            'config' => [
-                'app_key' => env('DROPBOX_CLIENT_ID'),
-                'app_secret' => env('DROPBOX_CLIENT_SECRET'),
-                'redirect_uri' => config('app.url') . '/admin/cloud-storage/dropbox/callback',
-                'access_type' => 'offline',
-            ],
-            'features' => [
-                'folder_creation' => true,
-                'file_upload' => true,
-                'file_delete' => true,
-                'folder_delete' => true,
-                'file_sharing' => true,
-                'batch_operations' => true,
-                'resumable_uploads' => true,
-                'max_file_size' => 2147483648, // 2GB
-                'supported_file_types' => ['*'],
-                'metadata_support' => true,
-                'version_control' => true,
-            ],
-            'limits' => [
-                'requests_per_second' => 5,
-                'requests_per_day' => 1000000,
-                'upload_bandwidth' => '150MB',
-            ],
-        ],
+
     ],
 
     /*
@@ -217,9 +151,7 @@ return [
     'provider_availability' => [
         'google-drive' => 'fully_available',
         'amazon-s3' => 'coming_soon',
-        'azure-blob' => 'coming_soon',
         'microsoft-teams' => 'coming_soon',
-        'dropbox' => 'coming_soon',
     ],
 
     /*
@@ -262,8 +194,6 @@ return [
         'order' => [
             'google-drive',
             'amazon-s3',
-            'azure-blob',
-            'dropbox',
             'microsoft-teams',
         ],
         'max_retries' => 3,

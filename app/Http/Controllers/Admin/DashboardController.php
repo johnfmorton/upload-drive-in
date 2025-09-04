@@ -189,7 +189,7 @@ class DashboardController extends AdminController
     public function retryFailedUploads(Request $request)
     {
         $validated = $request->validate([
-            'provider' => 'nullable|string|in:google-drive,dropbox,onedrive'
+            'provider' => 'nullable|string|in:google-drive,microsoft-teams'
         ]);
 
         try {
