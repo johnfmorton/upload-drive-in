@@ -244,6 +244,16 @@
                         </button>
                     </template>
                 </div>
+
+                <!-- Enhanced Token Status Widget -->
+                <template x-if="provider.token_status">
+                    <x-dashboard.token-status-widget 
+                        :token-status="null" 
+                        :provider="'provider.provider'"
+                        x-data="{ tokenStatus: provider.token_status }"
+                        x-on:reconnect-provider.window="reconnectProvider($event.detail.provider)" />
+                </template>
+                </div>
             </div>
         </template>
     </div>
@@ -535,7 +545,7 @@ function cloudStorageStatusWidget(initialProviders) {
         },
         
         async testConnection(provider) {
-            console.log('🔍 Testing connection for provider:', provider);
+            console.log('🔍 Testing connection with real-time validation for provider:', provider);
             this.isTesting[provider] = true;
             
             try {
@@ -552,18 +562,42 @@ function cloudStorageStatusWidget(initialProviders) {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    console.log('🔍 Connection test completed:', data);
-                    if (data.success) {
-                        this.showSuccess(data.message || 'Connection test completed successfully');
-                    } else {
-                        this.showError(data.message || 'Connection test failed');
+                    console.log('🔍 Real-time connection test completed:', data);
+                    
+                    // Update provider data with enhanced information from test
+                    const providerIndex = this.providers.findIndex(p => p.provider === provider);
+                    if (providerIndex !== -1 && data.token_status) {
+                        this.providers[providerIndex].token_status = data.token_status;
+                        console.log('🔍 Updated token status for provider:', provider, data.token_status);
                     }
+                    
+                    // Show detailed test results
+                    if (data.success) {
+                        let message = data.message || 'Connection test completed successfully';
+                        if (data.validation_details && data.validation_details.validation_time_ms) {
+                            message += ` (${data.validation_details.validation_time_ms}ms)`;
+                        }
+                        this.showSuccess(message);
+                        
+                        // Log validation details for debugging
+                        if (data.validation_details) {
+                            console.log('🔍 Validation details:', data.validation_details);
+                        }
+                    } else {
+                        let errorMessage = data.message || 'Connection test failed';
+                        if (data.error_type_localized) {
+                            errorMessage += ` (${data.error_type_localized})`;
+                        }
+                        this.showError(errorMessage);
+                    }
+                    
+                    // Refresh status to get latest information
                     await this.refreshStatus(true);
                 } else {
                     throw new Error(data.message || 'Connection test failed');
                 }
             } catch (error) {
-                console.error('🔍 Connection test failed:', error);
+                console.error('🔍 Real-time connection test failed:', error);
                 this.showError(error.message || 'Connection test failed');
             } finally {
                 this.isTesting[provider] = false;

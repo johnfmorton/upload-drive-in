@@ -173,7 +173,7 @@ class CloudStorageController extends Controller
     }
 
     /**
-     * Test connection to a cloud storage provider.
+     * Test connection to a cloud storage provider using real-time health validation.
      */
     public function testConnection(Request $request)
     {
@@ -184,43 +184,70 @@ class CloudStorageController extends Controller
         try {
             $user = Auth::user();
             $provider = $validated['provider'];
-            $healthService = app(\App\Services\CloudStorageHealthService::class);
             
-            // Perform comprehensive health check using new proactive validation logic
-            $healthStatus = $healthService->checkConnectionHealth($user, $provider);
+            // Use RealTimeHealthValidator for live validation
+            $realTimeValidator = app(\App\Services\RealTimeHealthValidator::class);
+            $tokenStatusService = app(\App\Services\TokenStatusService::class);
             
-            // Use consolidated status for consistent messaging
-            $consolidatedStatus = $healthStatus->consolidated_status ?? 'connection_issues';
-            $isHealthy = $consolidatedStatus === 'healthy';
+            Log::info('Starting real-time connection test (employee)', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'test_type' => 'employee_dashboard_test_connection'
+            ]);
             
-            $message = match ($consolidatedStatus) {
+            // Perform live health validation
+            $healthStatus = $realTimeValidator->validateConnectionHealth($user, $provider);
+            
+            // Get comprehensive token status
+            $tokenStatus = $tokenStatusService->getTokenStatus($user, $provider);
+            
+            $isHealthy = $healthStatus->isHealthy();
+            $status = $healthStatus->getStatus();
+            
+            $message = match ($status) {
                 'healthy' => 'Connection test successful - your ' . ucfirst(str_replace('-', ' ', $provider)) . ' integration is working properly',
                 'authentication_required' => 'Authentication required - please reconnect your ' . ucfirst(str_replace('-', ' ', $provider)) . ' account',
-                'connection_issues' => 'Connection issues detected - ' . ($healthStatus->last_error_message ?? 'unable to connect to ' . ucfirst(str_replace('-', ' ', $provider))),
+                'connection_issues' => 'Connection issues detected - ' . ($healthStatus->getErrorMessage() ?? 'unable to connect to ' . ucfirst(str_replace('-', ' ', $provider))),
                 'not_connected' => 'Account not connected - please set up your ' . ucfirst(str_replace('-', ' ', $provider)) . ' integration',
-                default => 'Connection test failed - ' . ($healthStatus->last_error_message ?? 'unknown error')
+                default => 'Connection test completed with issues - ' . ($healthStatus->getErrorMessage() ?? 'unknown status')
             };
+            
+            Log::info('Real-time connection test completed (employee)', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'is_healthy' => $isHealthy,
+                'status' => $status,
+                'validation_time_ms' => $healthStatus->getValidationDetails()['validation_time_ms'] ?? null,
+            ]);
             
             return response()->json([
                 'success' => $isHealthy,
                 'message' => $message,
-                'status' => $healthStatus->status,
-                'consolidated_status' => $consolidatedStatus,
-                'status_message' => $healthStatus->getConsolidatedStatusMessage(),
-                'requires_reconnection' => $healthStatus->requires_reconnection ?? false,
-                'last_successful_operation' => $healthStatus->last_successful_operation_at?->toISOString()
+                'status' => $status,
+                'status_localized' => $healthStatus->getLocalizedStatus(),
+                'error_message' => $healthStatus->getErrorMessage(),
+                'error_type' => $healthStatus->getErrorType(),
+                'error_type_localized' => $healthStatus->getLocalizedErrorType(),
+                'validation_details' => $healthStatus->getValidationDetails(),
+                'validated_at' => $healthStatus->getValidatedAt()?->toISOString(),
+                'token_status' => $tokenStatus,
+                'test_type' => 'real_time_validation',
+                'cache_ttl_seconds' => $healthStatus->getCacheTtlSeconds(),
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to test connection', [
+            Log::error('Failed to test connection with real-time validation (employee)', [
                 'user_id' => Auth::id(),
                 'provider' => $validated['provider'],
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+            
             return response()->json([
                 'success' => false,
                 'error' => 'Connection test failed due to an unexpected error. Please try again.',
-                'message' => 'Connection test failed'
+                'message' => 'Connection test failed',
+                'test_type' => 'real_time_validation',
+                'error_details' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }

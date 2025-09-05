@@ -16,12 +16,13 @@ class CloudStorageDashboardController extends Controller
     ) {}
 
     /**
-     * Get cloud storage status for dashboard display
+     * Get cloud storage status for dashboard display with enhanced token information
      */
     public function getStatus(Request $request): JsonResponse
     {
         try {
             $user = $request->user();
+            $tokenStatusService = app(\App\Services\TokenStatusService::class);
             
             // Use the health service to get consolidated status for all providers
             $providersHealth = $this->healthService->getAllProvidersHealth($user);
@@ -41,6 +42,9 @@ class CloudStorageDashboardController extends Controller
                     ->where('storage_provider', $providerHealth['provider'])
                     ->whereNotNull('cloud_storage_error_type')
                     ->count();
+                
+                // Get comprehensive token status
+                $tokenStatus = $tokenStatusService->getTokenStatus($user, $providerHealth['provider']);
                 
                 // Get user-friendly error message
                 $userFriendlyMessage = null;
@@ -69,13 +73,17 @@ class CloudStorageDashboardController extends Controller
                     'user_friendly_message' => $userFriendlyMessage,
                     'provider_specific_data' => $providerHealth['provider_specific_data'],
                     'token_refresh_working' => $providerHealth['token_refresh_working'],
-                    'operational_test_result' => $providerHealth['operational_test_result']
+                    'operational_test_result' => $providerHealth['operational_test_result'],
+                    'token_status' => $tokenStatus, // Enhanced token information
                 ];
             }
             
             return response()->json([
                 'success' => true,
-                'data' => $statusData
+                'data' => $statusData,
+                'providers' => $statusData, // Alias for backward compatibility
+                'retrieved_at' => now()->toISOString(),
+                'status_type' => 'enhanced_with_token_details'
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to get cloud storage dashboard status', [
@@ -87,7 +95,8 @@ class CloudStorageDashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Unable to retrieve cloud storage status. Please try again.',
-                'message' => 'Failed to get status'
+                'message' => 'Failed to get status',
+                'status_type' => 'enhanced_with_token_details'
             ], 500);
         }
     }
@@ -126,48 +135,68 @@ class CloudStorageDashboardController extends Controller
     }
     
     /**
-     * Trigger comprehensive health check for a specific provider
+     * Trigger comprehensive health check for a specific provider using real-time validation
      */
     public function checkHealth(Request $request, string $provider): JsonResponse
     {
         $user = $request->user();
         
         try {
-            // Perform comprehensive health check using new proactive validation logic
-            $healthStatus = $this->healthService->checkConnectionHealth($user, $provider);
+            // Use RealTimeHealthValidator for live validation
+            $realTimeValidator = app(\App\Services\RealTimeHealthValidator::class);
+            $tokenStatusService = app(\App\Services\TokenStatusService::class);
             
-            // Get consolidated status information
-            $consolidatedStatus = $healthStatus->consolidated_status ?? 'connection_issues';
-            $isHealthy = $consolidatedStatus === 'healthy';
+            Log::info('Starting real-time health check', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'check_type' => 'dashboard_health_check'
+            ]);
             
-            $message = match ($consolidatedStatus) {
+            // Perform live health validation
+            $healthStatus = $realTimeValidator->validateConnectionHealth($user, $provider);
+            
+            // Get comprehensive token status
+            $tokenStatus = $tokenStatusService->getTokenStatus($user, $provider);
+            
+            $isHealthy = $healthStatus->isHealthy();
+            $status = $healthStatus->getStatus();
+            
+            $message = match ($status) {
                 'healthy' => 'Health check successful - your ' . ucfirst(str_replace('-', ' ', $provider)) . ' integration is working properly',
                 'authentication_required' => 'Authentication required - please reconnect your ' . ucfirst(str_replace('-', ' ', $provider)) . ' account',
-                'connection_issues' => 'Connection issues detected - ' . ($healthStatus->last_error_message ?? 'unable to connect to ' . ucfirst(str_replace('-', ' ', $provider))),
+                'connection_issues' => 'Connection issues detected - ' . ($healthStatus->getErrorMessage() ?? 'unable to connect to ' . ucfirst(str_replace('-', ' ', $provider))),
                 'not_connected' => 'Account not connected - please set up your ' . ucfirst(str_replace('-', ' ', $provider)) . ' integration',
-                default => 'Health check completed with issues - ' . ($healthStatus->last_error_message ?? 'unknown status')
+                default => 'Health check completed with issues - ' . ($healthStatus->getErrorMessage() ?? 'unknown status')
             };
+            
+            Log::info('Real-time health check completed', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'is_healthy' => $isHealthy,
+                'status' => $status,
+                'validation_time_ms' => $healthStatus->getValidationDetails()['validation_time_ms'] ?? null,
+            ]);
             
             return response()->json([
                 'success' => $isHealthy,
                 'data' => [
                     'provider' => $provider,
-                    'status' => $healthStatus->status,
-                    'consolidated_status' => $consolidatedStatus,
-                    'status_message' => $healthStatus->getConsolidatedStatusMessage(),
+                    'status' => $status,
+                    'status_localized' => $healthStatus->getLocalizedStatus(),
                     'is_healthy' => $isHealthy,
-                    'requires_reconnection' => $healthStatus->requires_reconnection ?? false,
-                    'last_successful_operation_at' => $healthStatus->last_successful_operation_at?->toISOString(),
-                    'consecutive_failures' => $healthStatus->consecutive_failures,
-                    'last_error_type' => $healthStatus->last_error_type,
-                    'last_error_message' => $healthStatus->last_error_message,
-                    'token_refresh_working' => $healthStatus->isTokenRefreshWorking(),
-                    'operational_test_result' => $healthStatus->operational_test_result
+                    'error_message' => $healthStatus->getErrorMessage(),
+                    'error_type' => $healthStatus->getErrorType(),
+                    'error_type_localized' => $healthStatus->getLocalizedErrorType(),
+                    'validation_details' => $healthStatus->getValidationDetails(),
+                    'validated_at' => $healthStatus->getValidatedAt()?->toISOString(),
+                    'token_status' => $tokenStatus,
+                    'check_type' => 'real_time_validation',
+                    'cache_ttl_seconds' => $healthStatus->getCacheTtlSeconds(),
                 ],
                 'message' => $message
             ]);
         } catch (\Exception $e) {
-            Log::error('Health check failed', [
+            Log::error('Health check failed with real-time validation', [
                 'user_id' => $user->id,
                 'provider' => $provider,
                 'error' => $e->getMessage(),
@@ -177,7 +206,9 @@ class CloudStorageDashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Health check failed due to an unexpected error. Please try again.',
-                'message' => 'Health check failed: ' . $e->getMessage()
+                'message' => 'Health check failed: ' . $e->getMessage(),
+                'check_type' => 'real_time_validation',
+                'error_details' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
     }

@@ -139,6 +139,35 @@ class Kernel extends ConsoleKernel
                  ->withoutOverlapping()
                  ->runInBackground()
                  ->appendOutputTo(storage_path('logs/config-validation.log'));
+
+        // Token maintenance jobs for proactive monitoring
+        
+        // Token maintenance every 15 minutes - finds and refreshes expiring tokens
+        $schedule->job(new \App\Jobs\TokenMaintenanceJob())
+                 ->everyFifteenMinutes()
+                 ->withoutOverlapping()
+                 ->name('token-maintenance')
+                 ->onFailure(function () {
+                     \Log::error('TokenMaintenanceJob failed');
+                 });
+
+        // Health status validation every 30 minutes for active users
+        $schedule->job(new \App\Jobs\HealthStatusValidationJob())
+                 ->everyThirtyMinutes()
+                 ->withoutOverlapping()
+                 ->name('health-status-validation')
+                 ->onFailure(function () {
+                     \Log::error('HealthStatusValidationJob failed');
+                 });
+
+        // Cleanup failed refresh attempts daily at 1 AM
+        $schedule->job(new \App\Jobs\CleanupFailedRefreshAttemptsJob())
+                 ->dailyAt('01:00')
+                 ->withoutOverlapping()
+                 ->name('cleanup-failed-refresh-attempts')
+                 ->onFailure(function () {
+                     \Log::error('CleanupFailedRefreshAttemptsJob failed');
+                 });
     }
 
     /**

@@ -16,7 +16,8 @@ class CloudStorageHealthService
 {
     public function __construct(
         private readonly CloudStorageLogService $logService,
-        private readonly CloudStorageManager $storageManager
+        private readonly CloudStorageManager $storageManager,
+        private readonly ?PerformanceOptimizedHealthValidator $performanceValidator = null
     ) {}
     /**
      * Ensure valid token by attempting refresh if needed with comprehensive error handling.
@@ -244,151 +245,72 @@ class CloudStorageHealthService
     }
 
     /**
-     * Determine consolidated status that prioritizes operational capability over token age.
-     * Enhanced with improved caching, rate limiting awareness, and comprehensive validation.
+     * Determine consolidated status using RealTimeHealthValidator for accurate live validation.
+     * Enhanced with real-time API calls and auto-correction of inconsistent health status.
      */
     public function determineConsolidatedStatus(User $user, string $provider): string
     {
         $startTime = microtime(true);
-        $cacheKey = "consolidated_status_{$user->id}_{$provider}";
-        
-        // Check for cached consolidated status (30 seconds cache)
-        $cachedStatus = Cache::get($cacheKey);
-        if ($cachedStatus !== null) {
-            $this->logService->logCacheOperation('get', $cacheKey, true, [
-                'operation' => 'consolidated_status_cache_hit',
-                'user_id' => $user->id,
-                'provider' => $provider,
-                'cached_status' => $cachedStatus
-            ]);
-            
-            Log::debug('Using cached consolidated status', [
-                'user_id' => $user->id,
-                'provider' => $provider,
-                'cached_status' => $cachedStatus,
-            ]);
-            return $cachedStatus;
-        }
         
         try {
             $healthStatus = $this->getOrCreateHealthStatus($user, $provider);
             
-            // Check if we're rate limited and should use last known status
-            if (!$this->canAttemptTokenRefresh($user, $provider) && 
-                !$this->canAttemptConnectivityTest($user, $provider)) {
-                
-                // Use last known consolidated status if available
-                if ($healthStatus->consolidated_status) {
-                    Log::info('Using last known status due to rate limiting', [
+            // Check rate limiting for health checks to prevent API abuse
+            if (!$this->canPerformHealthCheck($user, $provider)) {
+                // Use last known consolidated status if available and not too old
+                if ($healthStatus->consolidated_status && 
+                    $healthStatus->last_live_validation_at && 
+                    $healthStatus->last_live_validation_at->isAfter(now()->subMinutes(5))) {
+                    
+                    Log::info('Using cached status due to rate limiting', [
                         'user_id' => $user->id,
                         'provider' => $provider,
-                        'last_known_status' => $healthStatus->consolidated_status,
+                        'cached_status' => $healthStatus->consolidated_status,
+                        'last_validation' => $healthStatus->last_live_validation_at->toISOString(),
                     ]);
                     
-                    // Cache the last known status for a shorter period (10 seconds)
-                    Cache::put($cacheKey, $healthStatus->consolidated_status, now()->addSeconds(10));
                     return $healthStatus->consolidated_status;
                 }
             }
             
-            // 1. Enhanced token validation with detailed error tracking
-            $tokenValidationResult = $this->performEnhancedTokenValidation($user, $provider, $healthStatus);
-            
-            if (!$tokenValidationResult['valid']) {
-                $status = $this->determineStatusFromTokenValidation($tokenValidationResult);
-                $reason = $tokenValidationResult['reason'] ?? 'Token validation failed';
-                
-                $this->logService->logStatusDetermination($user, $provider, $status, $reason, [
-                    'token_validation_result' => false,
-                    'token_validation_details' => $tokenValidationResult,
-                    'determination_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
-                ]);
-                
-                Log::debug("Consolidated status: {$status} (token validation failed)", [
-                    'user_id' => $user->id,
-                    'provider' => $provider,
-                    'validation_details' => $tokenValidationResult,
-                ]);
-                
-                // Cache failed status for shorter period (10 seconds)
-                Cache::put($cacheKey, $status, now()->addSeconds(10));
-                return $status;
+            // Use PerformanceOptimizedHealthValidator if available, otherwise fall back to RealTimeHealthValidator
+            if ($this->performanceValidator) {
+                $realTimeHealthStatus = $this->performanceValidator->validateConnectionHealth($user, $provider);
+            } else {
+                $realTimeHealthStatus = $this->createRealTimeValidator()->validateConnectionHealth($user, $provider);
             }
             
-            // 2. Enhanced API connectivity testing with detailed diagnostics
-            $connectivityResult = $this->performEnhancedConnectivityTest($user, $provider, $healthStatus);
+            // Map HealthStatus to consolidated status string
+            $consolidatedStatus = $realTimeHealthStatus->getStatus();
             
-            if (!$connectivityResult['connected']) {
-                $status = $this->determineStatusFromConnectivityTest($connectivityResult);
-                $reason = $connectivityResult['reason'] ?? 'API connectivity test failed';
-                
-                $this->logService->logStatusDetermination($user, $provider, $status, $reason, [
-                    'token_validation_result' => true,
-                    'api_connectivity_result' => false,
-                    'connectivity_details' => $connectivityResult,
-                    'determination_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
-                ]);
-                
-                Log::debug("Consolidated status: {$status} (API connectivity failed)", [
-                    'user_id' => $user->id,
-                    'provider' => $provider,
-                    'connectivity_details' => $connectivityResult,
-                ]);
-                
-                // Cache failed status for shorter period (10 seconds)
-                Cache::put($cacheKey, $status, now()->addSeconds(10));
-                return $status;
-            }
+            // Update the health status record with live validation results
+            $this->updateHealthStatusFromLiveValidation($healthStatus, $realTimeHealthStatus);
             
-            // 3. Additional health checks for comprehensive validation
-            $additionalChecks = $this->performAdditionalHealthChecks($user, $provider, $healthStatus);
+            // Detect and auto-correct inconsistent health status
+            $this->detectAndCorrectInconsistentStatus($user, $provider, $healthStatus, $consolidatedStatus);
             
-            if (!$additionalChecks['healthy']) {
-                $status = $additionalChecks['suggested_status'] ?? 'connection_issues';
-                $reason = $additionalChecks['reason'] ?? 'Additional health checks failed';
-                
-                $this->logService->logStatusDetermination($user, $provider, $status, $reason, [
-                    'token_validation_result' => true,
-                    'api_connectivity_result' => true,
-                    'additional_checks_result' => false,
-                    'additional_checks_details' => $additionalChecks,
-                    'determination_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
-                ]);
-                
-                Log::debug("Consolidated status: {$status} (additional health checks failed)", [
-                    'user_id' => $user->id,
-                    'provider' => $provider,
-                    'additional_checks' => $additionalChecks,
-                ]);
-                
-                // Cache failed status for shorter period (10 seconds)
-                Cache::put($cacheKey, $status, now()->addSeconds(10));
-                return $status;
-            }
+            $determinationTime = round((microtime(true) - $startTime) * 1000, 2);
             
-            // 4. All checks passed - system is healthy
-            $reason = 'All validation checks passed - token valid, API connected, and additional health checks successful';
-            $this->logService->logStatusDetermination($user, $provider, 'healthy', $reason, [
-                'token_validation_result' => true,
-                'api_connectivity_result' => true,
-                'additional_checks_result' => true,
-                'determination_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
+            $this->logService->logStatusDetermination($user, $provider, $consolidatedStatus, 
+                'Status determined using real-time validation', [
+                'live_validation_used' => true,
+                'validation_details' => $realTimeHealthStatus->getValidationDetails(),
+                'determination_time_ms' => $determinationTime,
+                'validated_at' => $realTimeHealthStatus->getValidatedAt()?->toISOString(),
             ]);
             
-            Log::debug('Consolidated status: healthy (all checks passed)', [
+            Log::debug("Consolidated status determined via real-time validation: {$consolidatedStatus}", [
                 'user_id' => $user->id,
                 'provider' => $provider,
-                'token_validation' => $tokenValidationResult,
-                'connectivity_test' => $connectivityResult,
-                'additional_checks' => $additionalChecks,
+                'is_healthy' => $realTimeHealthStatus->isHealthy(),
+                'error_message' => $realTimeHealthStatus->getErrorMessage(),
+                'determination_time_ms' => $determinationTime,
             ]);
             
-            // Cache healthy status for longer period (30 seconds)
-            Cache::put($cacheKey, 'healthy', now()->addSeconds(30));
-            return 'healthy';
+            return $consolidatedStatus;
             
         } catch (\Exception $e) {
-            $reason = 'Exception occurred during status determination: ' . $e->getMessage();
+            $reason = 'Exception occurred during real-time status determination: ' . $e->getMessage();
             $this->logService->logStatusDetermination($user, $provider, 'connection_issues', $reason, [
                 'exception' => true,
                 'error_message' => $e->getMessage(),
@@ -396,15 +318,13 @@ class CloudStorageHealthService
                 'determination_time_ms' => round((microtime(true) - $startTime) * 1000, 2)
             ]);
             
-            Log::error('Failed to determine consolidated status', [
+            Log::error('Failed to determine consolidated status via real-time validation', [
                 'user_id' => $user->id,
                 'provider' => $provider,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
             
-            // Cache error status for very short period (5 seconds)
-            Cache::put($cacheKey, 'connection_issues', now()->addSeconds(5));
             return 'connection_issues';
         }
     }
@@ -550,7 +470,7 @@ class CloudStorageHealthService
     }
 
     /**
-     * Get health summary for a specific user and provider.
+     * Get health summary for a specific user and provider with live validation timestamps and results.
      */
     public function getHealthSummary(User $user, string $provider): array
     {
@@ -558,6 +478,7 @@ class CloudStorageHealthService
         
         // Auto-validate and recalculate consolidated status if it seems inconsistent
         $consolidatedStatus = $healthStatus->consolidated_status;
+        $liveValidationResult = null;
         
         // Check for inconsistencies that indicate stale data
         $needsRecalculation = false;
@@ -588,20 +509,30 @@ class CloudStorageHealthService
         }
         
         if ($needsRecalculation) {
-            $consolidatedStatus = $this->determineConsolidatedStatus($user, $provider);
+            // Use performance-optimized validation for recalculation
+            if ($this->performanceValidator) {
+                $liveValidationResult = $this->performanceValidator->validateConnectionHealth($user, $provider);
+            } else {
+                $liveValidationResult = $this->createRealTimeValidator()->validateConnectionHealth($user, $provider);
+            }
+            $consolidatedStatus = $liveValidationResult->getStatus();
             
-            // Update the database with the corrected status
-            $healthStatus->update(['consolidated_status' => $consolidatedStatus]);
+            // Update the database with the corrected status and live validation results
+            $this->updateHealthStatusFromLiveValidation($healthStatus, $liveValidationResult);
             
-            Log::info('Auto-corrected consolidated status', [
+            Log::info('Auto-corrected consolidated status using live validation', [
                 'user_id' => $user->id,
                 'provider' => $provider,
                 'old_status' => $healthStatus->consolidated_status,
-                'new_status' => $consolidatedStatus
+                'new_status' => $consolidatedStatus,
+                'live_validation_used' => true
             ]);
         }
         
         $isHealthy = $consolidatedStatus === 'healthy';
+        
+        // Get live validation timestamps from health status record
+        $liveValidationTimestamps = $this->getLiveValidationTimestamps($healthStatus);
         
         return [
             'provider' => $provider,
@@ -626,6 +557,19 @@ class CloudStorageHealthService
             'token_refresh_working' => $healthStatus->isTokenRefreshWorking(),
             'last_token_refresh_attempt' => $healthStatus->last_token_refresh_attempt_at?->toISOString(),
             'operational_test_result' => $healthStatus->operational_test_result,
+            
+            // Live validation timestamps and results
+            'live_validation' => [
+                'last_validation_at' => $liveValidationTimestamps['last_validation_at'],
+                'last_validation_result' => $liveValidationTimestamps['last_validation_result'],
+                'api_connectivity_last_tested_at' => $liveValidationTimestamps['api_connectivity_last_tested_at'],
+                'api_connectivity_result' => $liveValidationTimestamps['api_connectivity_result'],
+                'validation_details' => $liveValidationResult?->getValidationDetails(),
+                'cache_ttl_seconds' => $liveValidationResult?->getCacheTtlSeconds(),
+            ],
+            
+            // Rate limiting information
+            'rate_limits' => $this->getRateLimitStatus($user, $provider),
         ];
     }
 
@@ -1217,9 +1161,11 @@ class CloudStorageHealthService
     {
         $tokenRefreshKey = "token_refresh_rate_limit_{$user->id}_{$provider}";
         $connectivityTestKey = "connectivity_test_rate_limit_{$user->id}_{$provider}";
+        $healthCheckKey = "health_check_rate_limit_{$user->id}_{$provider}";
         
         $tokenRefreshAttempts = Cache::get($tokenRefreshKey, 0);
         $connectivityTestAttempts = Cache::get($connectivityTestKey, 0);
+        $healthCheckAttempts = Cache::get($healthCheckKey, 0);
         
         return [
             'token_refresh' => [
@@ -1233,6 +1179,12 @@ class CloudStorageHealthService
                 'max_attempts' => 20,
                 'window_minutes' => 60,
                 'can_attempt' => $connectivityTestAttempts < 20,
+            ],
+            'health_check' => [
+                'attempts' => $healthCheckAttempts,
+                'max_attempts' => 6,
+                'window_minutes' => 1,
+                'can_attempt' => $healthCheckAttempts < 6,
             ],
         ];
     }
@@ -2056,5 +2008,203 @@ class CloudStorageHealthService
                 'error' => 'Provider-specific health check failed: ' . $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Update health status record with live validation results from RealTimeHealthValidator.
+     */
+    private function updateHealthStatusFromLiveValidation(CloudStorageHealthStatus $healthStatus, HealthStatus $liveValidationResult): void
+    {
+        $updateData = [
+            'consolidated_status' => $liveValidationResult->getStatus(),
+            'last_live_validation_at' => $liveValidationResult->getValidatedAt(),
+            'live_validation_result' => $liveValidationResult->toArray(),
+        ];
+
+        // Update API connectivity test results if available
+        $validationDetails = $liveValidationResult->getValidationDetails();
+        if (isset($validationDetails['api_test'])) {
+            $updateData['api_connectivity_last_tested_at'] = now();
+            $updateData['api_connectivity_result'] = $validationDetails['api_test'];
+        }
+
+        // Update error information if validation failed
+        if (!$liveValidationResult->isHealthy()) {
+            $updateData['last_error_message'] = $liveValidationResult->getErrorMessage();
+            $updateData['last_error_type'] = $liveValidationResult->getErrorType();
+            $updateData['requires_reconnection'] = $liveValidationResult->getStatus() === 'authentication_required';
+        } else {
+            // Clear error information on successful validation
+            $updateData['last_error_message'] = null;
+            $updateData['last_error_type'] = null;
+            $updateData['requires_reconnection'] = false;
+            $updateData['consecutive_failures'] = 0;
+        }
+
+        $healthStatus->update($updateData);
+
+        Log::debug('Updated health status from live validation', [
+            'user_id' => $healthStatus->user_id,
+            'provider' => $healthStatus->provider,
+            'status' => $liveValidationResult->getStatus(),
+            'is_healthy' => $liveValidationResult->isHealthy(),
+        ]);
+    }
+
+    /**
+     * Detect and auto-correct inconsistent health status (healthy status with expired tokens).
+     */
+    private function detectAndCorrectInconsistentStatus(User $user, string $provider, CloudStorageHealthStatus $healthStatus, string $liveStatus): void
+    {
+        $storedStatus = $healthStatus->consolidated_status;
+        
+        // Check for inconsistencies between stored and live status
+        if ($storedStatus && $storedStatus !== $liveStatus) {
+            Log::info('Detected inconsistent health status, auto-correcting', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'stored_status' => $storedStatus,
+                'live_status' => $liveStatus,
+                'auto_correction_applied' => true,
+            ]);
+
+            // Update the stored status to match live validation
+            $healthStatus->update(['consolidated_status' => $liveStatus]);
+        }
+
+        // Check for specific inconsistency: healthy status with expired tokens
+        if ($liveStatus === 'healthy' && $healthStatus->token_expires_at && $healthStatus->token_expires_at->isPast()) {
+            Log::warning('Detected healthy status with expired token - investigating', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'status' => $liveStatus,
+                'token_expires_at' => $healthStatus->token_expires_at->toISOString(),
+                'token_expired_hours_ago' => $healthStatus->token_expires_at->diffInHours(now()),
+            ]);
+
+            // This suggests the token was successfully refreshed but expiration wasn't updated
+            // Try to get fresh token expiration from provider
+            try {
+                $freshExpiration = $this->getTokenExpiration($user, $provider);
+                if ($freshExpiration && $freshExpiration->isFuture()) {
+                    $healthStatus->update(['token_expires_at' => $freshExpiration]);
+                    Log::info('Auto-corrected token expiration time', [
+                        'user_id' => $user->id,
+                        'provider' => $provider,
+                        'old_expiration' => $healthStatus->token_expires_at->toISOString(),
+                        'new_expiration' => $freshExpiration->toISOString(),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::debug('Failed to get fresh token expiration for auto-correction', [
+                    'user_id' => $user->id,
+                    'provider' => $provider,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Check if a health check can be performed (rate limiting for API abuse prevention).
+     */
+    private function canPerformHealthCheck(User $user, string $provider): bool
+    {
+        $rateLimitKey = "health_check_rate_limit_{$user->id}_{$provider}";
+        $maxChecksPerMinute = 6; // Allow 6 health checks per minute (every 10 seconds)
+        
+        $currentCount = Cache::get($rateLimitKey, 0);
+        
+        if ($currentCount >= $maxChecksPerMinute) {
+            Log::debug('Health check rate limited', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'current_count' => $currentCount,
+                'max_per_minute' => $maxChecksPerMinute,
+            ]);
+            return false;
+        }
+        
+        // Increment the counter with 1-minute TTL
+        Cache::put($rateLimitKey, $currentCount + 1, now()->addMinute());
+        
+        return true;
+    }
+
+
+
+
+
+
+
+
+
+    /**
+     * Get live validation timestamps from health status record.
+     */
+    private function getLiveValidationTimestamps(CloudStorageHealthStatus $healthStatus): array
+    {
+        return [
+            'last_validation_at' => $healthStatus->last_live_validation_at?->toISOString(),
+            'last_validation_result' => $healthStatus->live_validation_result,
+            'api_connectivity_last_tested_at' => $healthStatus->api_connectivity_last_tested_at?->toISOString(),
+            'api_connectivity_result' => $healthStatus->api_connectivity_result,
+        ];
+    }
+
+    /**
+     * Create a RealTimeHealthValidator instance without circular dependency.
+     * This creates a simplified validator that doesn't depend on this service.
+     */
+    private function createRealTimeValidator(): RealTimeHealthValidator
+    {
+        // Create a simplified health service for the validator that doesn't use real-time validation
+        // to avoid circular dependency
+        $simplifiedHealthService = new class($this->logService, $this->storageManager) extends CloudStorageHealthService {
+            public function __construct(
+                CloudStorageLogService $logService,
+                CloudStorageManager $storageManager
+            ) {
+                parent::__construct($logService, $storageManager);
+            }
+
+            // Override determineConsolidatedStatus to use the original implementation
+            // without real-time validation to avoid circular dependency
+            public function determineConsolidatedStatus(\App\Models\User $user, string $provider): string
+            {
+                // Use basic token and connectivity validation without real-time validator
+                try {
+                    $healthStatus = $this->getOrCreateHealthStatus($user, $provider);
+                    
+                    // Check rate limiting
+                    if (!$this->canAttemptTokenRefresh($user, $provider) && 
+                        !$this->canAttemptConnectivityTest($user, $provider)) {
+                        
+                        if ($healthStatus->consolidated_status) {
+                            return $healthStatus->consolidated_status;
+                        }
+                    }
+                    
+                    // Basic token validation
+                    $tokenValid = $this->ensureValidToken($user, $provider);
+                    if (!$tokenValid) {
+                        return 'authentication_required';
+                    }
+                    
+                    // Basic API connectivity test
+                    $apiConnected = $this->testApiConnectivity($user, $provider);
+                    if (!$apiConnected) {
+                        return 'connection_issues';
+                    }
+                    
+                    return 'healthy';
+                    
+                } catch (\Exception $e) {
+                    return 'connection_issues';
+                }
+            }
+        };
+
+        return new RealTimeHealthValidator($simplifiedHealthService, $this->storageManager);
     }
 }

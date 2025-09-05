@@ -106,8 +106,15 @@ Route::prefix('cloud-storage')
     ->group(function () {
         Route::get('/', [CloudStorageController::class, 'index'])->name('index');
         Route::get('/status', [CloudStorageController::class, 'getStatus'])->name('status');
-        Route::post('/reconnect', [CloudStorageController::class, 'reconnectProvider'])->name('reconnect');
-        Route::post('/test', [CloudStorageController::class, 'testConnection'])->name('test');
+        Route::post('/reconnect', [CloudStorageController::class, 'reconnectProvider'])
+            ->middleware('token.refresh.rate.limit')
+            ->name('reconnect');
+        Route::post('/test', [CloudStorageController::class, 'testConnection'])
+            ->middleware('token.refresh.rate.limit')
+            ->name('test');
+        Route::post('/refresh-token', [CloudStorageController::class, 'refreshToken'])
+            ->middleware('token.refresh.rate.limit')
+            ->name('refresh-token');
 
         // Microsoft Teams routes
         Route::put('/microsoft-teams', [CloudStorageController::class, 'updateMicrosoftTeams'])->name('microsoft-teams.update');
@@ -122,9 +129,11 @@ Route::prefix('cloud-storage')
             ->name('google-drive.credentials.update');
         // Connect: save credentials and redirect to Google OAuth
         Route::post('/google-drive/connect', [CloudStorageController::class, 'saveAndConnectGoogleDrive'])
+            ->middleware('token.refresh.rate.limit')
             ->name('google-drive.connect');
         // OAuth callback — handled in CloudStorageController
         Route::get('/google-drive/callback', [CloudStorageController::class, 'callback'])
+            ->middleware('token.refresh.rate.limit')
             ->name('google-drive.callback');
         // Update selected root folder
         Route::put('/google-drive/folder', [CloudStorageController::class, 'updateGoogleDriveRootFolder'])
@@ -132,9 +141,15 @@ Route::prefix('cloud-storage')
         // Disconnect
         Route::post('/google-drive/disconnect', [CloudStorageController::class, 'disconnect'])
             ->name('google-drive.disconnect');
-        Route::get('/google-drive/folders', [GoogleDriveFolderController::class, 'index'])->name('google-drive.folders');
-        Route::get('/google-drive/folders/{folderId}', [GoogleDriveFolderController::class, 'show'])->name('google-drive.folders.show');
-        Route::post('/google-drive/folders', [GoogleDriveFolderController::class, 'store'])->name('google-drive.folders.store');
+        Route::get('/google-drive/folders', [GoogleDriveFolderController::class, 'index'])
+            ->middleware('token.refresh.rate.limit')
+            ->name('google-drive.folders');
+        Route::get('/google-drive/folders/{folderId}', [GoogleDriveFolderController::class, 'show'])
+            ->middleware('token.refresh.rate.limit')
+            ->name('google-drive.folders.show');
+        Route::post('/google-drive/folders', [GoogleDriveFolderController::class, 'store'])
+            ->middleware('token.refresh.rate.limit')
+            ->name('google-drive.folders.store');
 
         // Default provider route
         Route::put('/default', [CloudStorageController::class, 'updateDefault'])->name('default');

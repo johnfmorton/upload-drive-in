@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\CloudStorageErrorType;
+use App\Enums\TokenRefreshErrorType;
 use Exception;
 use Google\Service\Exception as GoogleServiceException;
 use Illuminate\Support\Facades\Log;
@@ -170,48 +171,50 @@ class GoogleDriveErrorHandler extends BaseCloudStorageErrorHandler
 
         return match ($type) {
             CloudStorageErrorType::TOKEN_EXPIRED => 
-                'Your Google Drive connection has expired. Please reconnect your Google Drive account to continue uploading files.',
+                __('messages.google_drive_error_token_expired'),
             
             CloudStorageErrorType::INSUFFICIENT_PERMISSIONS => 
-                'Insufficient Google Drive permissions. Please reconnect your account and ensure you grant full access to Google Drive.',
+                __('messages.google_drive_error_insufficient_permissions'),
             
             CloudStorageErrorType::API_QUOTA_EXCEEDED => 
-                'Google Drive API limit reached. Your uploads will resume automatically in ' . 
-                $this->getQuotaResetTimeMessage($context) . '. No action is required.',
+                __('messages.google_drive_error_api_quota_exceeded', [
+                    'time' => $this->getQuotaResetTimeMessage($context)
+                ]),
             
             CloudStorageErrorType::STORAGE_QUOTA_EXCEEDED => 
-                'Your Google Drive storage is full. Please free up space in your Google Drive account or upgrade your storage plan.',
+                __('messages.google_drive_error_storage_quota_exceeded'),
             
             CloudStorageErrorType::FILE_NOT_FOUND => 
-                "The file '{$fileName}' could not be found in Google Drive. It may have been deleted or moved.",
+                __('messages.google_drive_error_file_not_found', ['filename' => $fileName]),
             
             CloudStorageErrorType::FOLDER_ACCESS_DENIED => 
-                'Access denied to the Google Drive folder. Please check your folder permissions or reconnect your account.',
+                __('messages.google_drive_error_folder_access_denied'),
             
             CloudStorageErrorType::INVALID_FILE_TYPE => 
-                "The file type of '{$fileName}' is not supported by Google Drive. Please try a different file format.",
+                __('messages.google_drive_error_invalid_file_type', ['filename' => $fileName]),
             
             CloudStorageErrorType::FILE_TOO_LARGE => 
-                "The file '{$fileName}' is too large for Google Drive. Maximum file size is 5TB for most file types.",
+                __('messages.google_drive_error_file_too_large', ['filename' => $fileName]),
             
             CloudStorageErrorType::NETWORK_ERROR => 
-                'Network connection issue prevented the Google Drive upload. The upload will be retried automatically.',
+                __('messages.google_drive_error_network_error'),
             
             CloudStorageErrorType::SERVICE_UNAVAILABLE => 
-                'Google Drive is temporarily unavailable. Your uploads will be retried automatically when the service is restored.',
+                __('messages.google_drive_error_service_unavailable'),
             
             CloudStorageErrorType::INVALID_CREDENTIALS => 
-                'Invalid Google Drive credentials. Please reconnect your Google Drive account in the settings.',
+                __('messages.google_drive_error_invalid_credentials'),
             
             CloudStorageErrorType::TIMEOUT => 
-                "The Google Drive {$operation} timed out. This is usually temporary and will be retried automatically.",
+                __('messages.google_drive_error_timeout', ['operation' => $operation]),
             
             CloudStorageErrorType::INVALID_FILE_CONTENT => 
-                "The file '{$fileName}' appears to be corrupted or has invalid content. Please try uploading the file again.",
+                __('messages.google_drive_error_invalid_file_content', ['filename' => $fileName]),
             
             CloudStorageErrorType::UNKNOWN_ERROR => 
-                'An unexpected error occurred with Google Drive. ' . 
-                ($context['original_message'] ?? 'Please try again or contact support if the problem persists.'),
+                __('messages.google_drive_error_unknown_error', [
+                    'message' => $context['original_message'] ?? __('messages.error_generic')
+                ]),
             
             // Return null for error types that should use common messages
             default => null
@@ -233,6 +236,31 @@ class GoogleDriveErrorHandler extends BaseCloudStorageErrorHandler
         return 3600; // 1 hour for Google Drive quota issues
     }
 
+    /**
+     * Get a human-readable quota reset time message
+     *
+     * @param array $context Additional context
+     * @return string Formatted time message
+     */
+    protected function getQuotaResetTimeMessage(array $context = []): string
+    {
+        $delay = $this->getQuotaRetryDelay($context);
+        
+        if ($delay >= 3600) {
+            $hours = intval($delay / 3600);
+            return $hours === 1 
+                ? __('messages.quota_reset_time_1_hour')
+                : __('messages.quota_reset_time_hours', ['hours' => $hours]);
+        }
+        
+        if ($delay >= 60) {
+            $minutes = intval($delay / 60);
+            return __('messages.quota_reset_time_minutes', ['minutes' => $minutes]);
+        }
+        
+        return __('messages.quota_reset_time_unknown');
+    }
+
 
 
     /**
@@ -246,58 +274,232 @@ class GoogleDriveErrorHandler extends BaseCloudStorageErrorHandler
     {
         return match ($type) {
             CloudStorageErrorType::TOKEN_EXPIRED => [
-                'Go to Settings → Cloud Storage',
-                'Click "Reconnect Google Drive"',
-                'Complete the authorization process',
-                'Retry your upload'
+                __('messages.google_drive_action_token_expired_1'),
+                __('messages.google_drive_action_token_expired_2'),
+                __('messages.google_drive_action_token_expired_3'),
+                __('messages.google_drive_action_token_expired_4')
             ],
             
             CloudStorageErrorType::INSUFFICIENT_PERMISSIONS => [
-                'Go to Settings → Cloud Storage',
-                'Click "Reconnect Google Drive"',
-                'Ensure you grant full access when prompted',
-                'Check that you have edit permissions for the target folder'
+                __('messages.google_drive_action_insufficient_permissions_1'),
+                __('messages.google_drive_action_insufficient_permissions_2'),
+                __('messages.google_drive_action_insufficient_permissions_3'),
+                __('messages.google_drive_action_insufficient_permissions_4')
             ],
             
             CloudStorageErrorType::STORAGE_QUOTA_EXCEEDED => [
-                'Free up space in your Google Drive account',
-                'Empty your Google Drive trash',
-                'Consider upgrading your Google Drive storage plan',
-                'Contact your administrator if using a business account'
+                __('messages.google_drive_action_storage_quota_exceeded_1'),
+                __('messages.google_drive_action_storage_quota_exceeded_2'),
+                __('messages.google_drive_action_storage_quota_exceeded_3'),
+                __('messages.google_drive_action_storage_quota_exceeded_4')
             ],
             
             CloudStorageErrorType::API_QUOTA_EXCEEDED => [
-                'Wait for the quota to reset (usually within an hour)',
-                'Uploads will resume automatically',
-                'Consider spreading uploads across multiple days for large batches'
+                __('messages.google_drive_action_api_quota_exceeded_1'),
+                __('messages.google_drive_action_api_quota_exceeded_2'),
+                __('messages.google_drive_action_api_quota_exceeded_3')
             ],
             
             CloudStorageErrorType::INVALID_CREDENTIALS => [
-                'Go to Settings → Cloud Storage',
-                'Disconnect and reconnect your Google Drive account',
-                'Ensure your Google account is active and accessible'
+                __('messages.google_drive_action_invalid_credentials_1'),
+                __('messages.google_drive_action_invalid_credentials_2'),
+                __('messages.google_drive_action_invalid_credentials_3')
             ],
             
             CloudStorageErrorType::FOLDER_ACCESS_DENIED => [
-                'Check that the target folder exists in your Google Drive',
-                'Verify you have write permissions to the folder',
-                'Try reconnecting your Google Drive account'
+                __('messages.google_drive_action_folder_access_denied_1'),
+                __('messages.google_drive_action_folder_access_denied_2'),
+                __('messages.google_drive_action_folder_access_denied_3')
             ],
             
             CloudStorageErrorType::INVALID_FILE_TYPE => [
-                'Convert the file to a supported format',
-                'Check Google Drive\'s supported file types',
-                'Try uploading a different file to test'
+                __('messages.google_drive_action_invalid_file_type_1'),
+                __('messages.google_drive_action_invalid_file_type_2'),
+                __('messages.google_drive_action_invalid_file_type_3')
             ],
             
             CloudStorageErrorType::FILE_TOO_LARGE => [
-                'Compress the file to reduce its size',
-                'Split large files into smaller parts',
-                'Use Google Drive\'s web interface for very large files'
+                __('messages.google_drive_action_file_too_large_1'),
+                __('messages.google_drive_action_file_too_large_2'),
+                __('messages.google_drive_action_file_too_large_3')
             ],
             
             // Return null for error types that should use common actions
             default => null
         };
+    }
+
+    /**
+     * Classify token refresh specific errors
+     *
+     * Maps Google API exceptions to TokenRefreshErrorType for token refresh operations
+     *
+     * @param Exception $exception The exception that occurred during token refresh
+     * @return TokenRefreshErrorType The classified token refresh error type
+     */
+    public function classifyTokenRefreshError(Exception $exception): TokenRefreshErrorType
+    {
+        Log::debug('Classifying token refresh error', [
+            'exception_type' => get_class($exception),
+            'message' => $exception->getMessage(),
+            'code' => $exception->getCode()
+        ]);
+
+        // Handle Google Service API exceptions
+        if ($exception instanceof GoogleServiceException) {
+            return $this->classifyGoogleTokenRefreshException($exception);
+        }
+
+        // Handle network/timeout exceptions
+        if ($this->isNetworkTimeoutException($exception)) {
+            return TokenRefreshErrorType::NETWORK_TIMEOUT;
+        }
+
+        // Default to unknown error for unclassified exceptions
+        Log::warning('Unclassified token refresh error', [
+            'exception_type' => get_class($exception),
+            'message' => $exception->getMessage(),
+            'code' => $exception->getCode()
+        ]);
+
+        return TokenRefreshErrorType::UNKNOWN_ERROR;
+    }
+
+    /**
+     * Classify Google Service API exceptions for token refresh operations
+     *
+     * @param GoogleServiceException $exception
+     * @return TokenRefreshErrorType
+     */
+    private function classifyGoogleTokenRefreshException(GoogleServiceException $exception): TokenRefreshErrorType
+    {
+        $code = $exception->getCode();
+        $errors = $exception->getErrors();
+        $reason = $errors[0]['reason'] ?? null;
+        $message = strtolower($exception->getMessage());
+
+        Log::debug('Classifying Google token refresh exception', [
+            'code' => $code,
+            'reason' => $reason,
+            'errors' => $errors,
+            'message' => $message
+        ]);
+
+        return match ($code) {
+            400 => $this->classifyBadRequestTokenError($exception, $reason, $message),
+            401 => $this->classifyUnauthorizedTokenError($exception, $reason, $message),
+            403 => $this->classifyForbiddenTokenError($exception, $reason, $message),
+            429 => TokenRefreshErrorType::API_QUOTA_EXCEEDED,
+            500, 502, 503, 504 => TokenRefreshErrorType::SERVICE_UNAVAILABLE,
+            default => $this->classifyTokenErrorByReason($reason) ?? TokenRefreshErrorType::UNKNOWN_ERROR
+        };
+    }
+
+    /**
+     * Classify 400 Bad Request errors for token refresh
+     *
+     * @param GoogleServiceException $exception
+     * @param string|null $reason
+     * @param string $message
+     * @return TokenRefreshErrorType
+     */
+    private function classifyBadRequestTokenError(
+        GoogleServiceException $exception,
+        ?string $reason,
+        string $message
+    ): TokenRefreshErrorType {
+        if (str_contains($message, 'invalid_grant') || str_contains($message, 'invalid_request')) {
+            return TokenRefreshErrorType::INVALID_REFRESH_TOKEN;
+        }
+
+        if (str_contains($message, 'expired') || str_contains($message, 'token_expired')) {
+            return TokenRefreshErrorType::EXPIRED_REFRESH_TOKEN;
+        }
+
+        return TokenRefreshErrorType::INVALID_REFRESH_TOKEN; // Default for 400 errors
+    }
+
+    /**
+     * Classify 401 Unauthorized errors for token refresh
+     *
+     * @param GoogleServiceException $exception
+     * @param string|null $reason
+     * @param string $message
+     * @return TokenRefreshErrorType
+     */
+    private function classifyUnauthorizedTokenError(
+        GoogleServiceException $exception,
+        ?string $reason,
+        string $message
+    ): TokenRefreshErrorType {
+        if ($reason === 'authError' || str_contains($message, 'invalid_grant')) {
+            return TokenRefreshErrorType::INVALID_REFRESH_TOKEN;
+        }
+
+        if (str_contains($message, 'expired') || str_contains($message, 'token_expired')) {
+            return TokenRefreshErrorType::EXPIRED_REFRESH_TOKEN;
+        }
+
+        return TokenRefreshErrorType::INVALID_REFRESH_TOKEN; // Default for 401 errors
+    }
+
+    /**
+     * Classify 403 Forbidden errors for token refresh
+     *
+     * @param GoogleServiceException $exception
+     * @param string|null $reason
+     * @param string $message
+     * @return TokenRefreshErrorType
+     */
+    private function classifyForbiddenTokenError(
+        GoogleServiceException $exception,
+        ?string $reason,
+        string $message
+    ): TokenRefreshErrorType {
+        if ($reason === 'rateLimitExceeded' || $reason === 'userRateLimitExceeded' || str_contains($message, 'quota')) {
+            return TokenRefreshErrorType::API_QUOTA_EXCEEDED;
+        }
+
+        // Most 403 errors during token refresh indicate invalid tokens
+        return TokenRefreshErrorType::INVALID_REFRESH_TOKEN;
+    }
+
+    /**
+     * Classify token refresh error by Google API reason code
+     *
+     * @param string|null $reason
+     * @return TokenRefreshErrorType|null
+     */
+    private function classifyTokenErrorByReason(?string $reason): ?TokenRefreshErrorType
+    {
+        if (!$reason) {
+            return null;
+        }
+
+        return match ($reason) {
+            'invalid_grant', 'invalid_token', 'unauthorized' => TokenRefreshErrorType::INVALID_REFRESH_TOKEN,
+            'token_expired', 'expired_token' => TokenRefreshErrorType::EXPIRED_REFRESH_TOKEN,
+            'quotaExceeded', 'rateLimitExceeded', 'userRateLimitExceeded' => TokenRefreshErrorType::API_QUOTA_EXCEEDED,
+            'backendError', 'internalError', 'serviceUnavailable' => TokenRefreshErrorType::SERVICE_UNAVAILABLE,
+            default => null
+        };
+    }
+
+    /**
+     * Check if an exception is a network timeout error
+     *
+     * @param Exception $exception
+     * @return bool
+     */
+    private function isNetworkTimeoutException(Exception $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+        
+        return str_contains($message, 'timeout') ||
+               str_contains($message, 'connection timed out') ||
+               str_contains($message, 'network') ||
+               str_contains($message, 'curl error') ||
+               $exception->getCode() === CURLE_OPERATION_TIMEOUTED ||
+               (defined('CURLE_TIMEOUT') && $exception->getCode() === CURLE_TIMEOUT);
     }
 }

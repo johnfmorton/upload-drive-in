@@ -30,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'require.setup.enabled' => \App\Http\Middleware\RequireSetupEnabledMiddleware::class,
             'extend.setup.session' => \App\Http\Middleware\ExtendSetupSession::class,
             'queue.worker.test.rate.limit' => \App\Http\Middleware\QueueWorkerTestRateLimit::class,
+            'token.refresh.rate.limit' => \App\Http\Middleware\TokenRefreshRateLimit::class,
+            'token.refresh.feature' => \App\Http\Middleware\TokenRefreshFeatureMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

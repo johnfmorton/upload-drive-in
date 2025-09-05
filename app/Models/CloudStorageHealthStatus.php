@@ -26,6 +26,11 @@ class CloudStorageHealthStatus extends Model
         'operational_test_result',
         'requires_reconnection',
         'provider_specific_data',
+        // New fields for real-time validation
+        'last_live_validation_at',
+        'live_validation_result',
+        'api_connectivity_last_tested_at',
+        'api_connectivity_result',
     ];
 
     protected $casts = [
@@ -38,6 +43,11 @@ class CloudStorageHealthStatus extends Model
         'requires_reconnection' => 'boolean',
         'consecutive_failures' => 'integer',
         'token_refresh_failures' => 'integer',
+        // New fields for real-time validation
+        'last_live_validation_at' => 'datetime',
+        'live_validation_result' => 'array',
+        'api_connectivity_last_tested_at' => 'datetime',
+        'api_connectivity_result' => 'array',
     ];
 
     /**

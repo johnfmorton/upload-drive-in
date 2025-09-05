@@ -32,6 +32,14 @@ class GoogleDriveTokenFactory extends Factory
             'token_type' => 'Bearer',
             'expires_at' => now()->addHour(),
             'scopes' => ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive'],
+            'last_refresh_attempt_at' => null,
+            'refresh_failure_count' => 0,
+            'last_successful_refresh_at' => null,
+            'proactive_refresh_scheduled_at' => null,
+            'health_check_failures' => 0,
+            'requires_user_intervention' => false,
+            'last_notification_sent_at' => null,
+            'notification_failure_count' => 0,
         ];
     }
 
@@ -62,6 +70,50 @@ class GoogleDriveTokenFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'expires_at' => now()->addDays(30),
+        ]);
+    }
+
+    /**
+     * Indicate that the token is expiring soon.
+     */
+    public function expiringSoon(int $minutes = 10): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'expires_at' => now()->addMinutes($minutes),
+        ]);
+    }
+
+    /**
+     * Indicate that the token has failed refresh attempts.
+     */
+    public function withRefreshFailures(int $count = 3): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'refresh_failure_count' => $count,
+            'last_refresh_attempt_at' => now()->subMinutes(30),
+            'requires_user_intervention' => $count >= 5,
+        ]);
+    }
+
+    /**
+     * Indicate that the token requires user intervention.
+     */
+    public function requiresIntervention(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'requires_user_intervention' => true,
+            'refresh_failure_count' => 5,
+            'last_refresh_attempt_at' => now()->subHour(),
+        ]);
+    }
+
+    /**
+     * Indicate that proactive refresh is scheduled.
+     */
+    public function withScheduledRefresh(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'proactive_refresh_scheduled_at' => now()->addMinutes(15),
         ]);
     }
 }

@@ -11,13 +11,27 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 
 // Employee portal upload routes (protected by 'auth' + 'employee' middleware)
 Route::get('/', [UploadController::class, 'show'])->name('upload.show');
-Route::get('/google-drive/connect', [UploadController::class, 'connect'])->name('google-drive.connect');
-Route::get('/google-drive/callback', [UploadController::class, 'callback'])->name('google-drive.callback');
-Route::delete('/google-drive/disconnect', [UploadController::class, 'disconnect'])->name('google-drive.disconnect');
-Route::put('/google-drive/folder', [UploadController::class, 'updateFolder'])->name('google-drive.folder.update');
-Route::get('/google-drive/folders', [\App\Http\Controllers\Employee\GoogleDriveFolderController::class, 'index'])->name('google-drive.folders');
-Route::get('/google-drive/folders/{folderId}', [\App\Http\Controllers\Employee\GoogleDriveFolderController::class, 'show'])->name('google-drive.folders.show');
-Route::post('/google-drive/folders', [\App\Http\Controllers\Employee\GoogleDriveFolderController::class, 'store'])->name('google-drive.folders.store');
+Route::get('/google-drive/connect', [UploadController::class, 'connect'])
+    ->middleware('token.refresh.rate.limit')
+    ->name('google-drive.connect');
+Route::get('/google-drive/callback', [UploadController::class, 'callback'])
+    ->middleware('token.refresh.rate.limit')
+    ->name('google-drive.callback');
+Route::delete('/google-drive/disconnect', [UploadController::class, 'disconnect'])
+    ->middleware('token.refresh.rate.limit')
+    ->name('google-drive.disconnect');
+Route::put('/google-drive/folder', [UploadController::class, 'updateFolder'])
+    ->middleware('token.refresh.rate.limit')
+    ->name('google-drive.folder.update');
+Route::get('/google-drive/folders', [\App\Http\Controllers\Employee\GoogleDriveFolderController::class, 'index'])
+    ->middleware('token.refresh.rate.limit')
+    ->name('google-drive.folders');
+Route::get('/google-drive/folders/{folderId}', [\App\Http\Controllers\Employee\GoogleDriveFolderController::class, 'show'])
+    ->middleware('token.refresh.rate.limit')
+    ->name('google-drive.folders.show');
+Route::post('/google-drive/folders', [\App\Http\Controllers\Employee\GoogleDriveFolderController::class, 'store'])
+    ->middleware('token.refresh.rate.limit')
+    ->name('google-drive.folders.store');
 Route::post('/upload', [UploadController::class, 'upload'])->name('upload');
 
 // File Manager Routes
@@ -52,10 +66,18 @@ Route::prefix('file-manager')
     });
 
 // Cloud Storage Routes
-Route::get('/cloud-storage', [\App\Http\Controllers\Employee\CloudStorageController::class, 'index'])->name('cloud-storage.index');
-Route::get('/cloud-storage/status', [\App\Http\Controllers\Employee\CloudStorageController::class, 'getStatus'])->name('cloud-storage.status');
-Route::post('/cloud-storage/reconnect', [\App\Http\Controllers\Employee\CloudStorageController::class, 'reconnectProvider'])->name('cloud-storage.reconnect');
-Route::post('/cloud-storage/test', [\App\Http\Controllers\Employee\CloudStorageController::class, 'testConnection'])->name('cloud-storage.test');
+Route::get('/cloud-storage', [\App\Http\Controllers\Employee\CloudStorageController::class, 'index'])
+    ->middleware('token.refresh.rate.limit')
+    ->name('cloud-storage.index');
+Route::get('/cloud-storage/status', [\App\Http\Controllers\Employee\CloudStorageController::class, 'getStatus'])
+    ->middleware('token.refresh.rate.limit')
+    ->name('cloud-storage.status');
+Route::post('/cloud-storage/reconnect', [\App\Http\Controllers\Employee\CloudStorageController::class, 'reconnectProvider'])
+    ->middleware('token.refresh.rate.limit')
+    ->name('cloud-storage.reconnect');
+Route::post('/cloud-storage/test', [\App\Http\Controllers\Employee\CloudStorageController::class, 'testConnection'])
+    ->middleware('token.refresh.rate.limit')
+    ->name('cloud-storage.test');
 
 // File retry routes
 Route::post('/files/retry-failed', [\App\Http\Controllers\Employee\FileManagerController::class, 'retryFailedUploads'])

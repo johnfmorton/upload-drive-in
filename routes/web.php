@@ -122,13 +122,38 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/health/cloud-storage/user', [\App\Http\Controllers\CloudStorageHealthController::class, 'user'])->name('health.cloud-storage.user');
 });
 
+// Token Monitoring Dashboard Routes
+Route::middleware(['auth', 'admin'])->prefix('admin/token-monitoring')->name('admin.token-monitoring.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Admin\TokenMonitoringController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard-data', [\App\Http\Controllers\Admin\TokenMonitoringController::class, 'dashboardData'])->name('dashboard.data');
+    Route::get('/performance-metrics', [\App\Http\Controllers\Admin\TokenMonitoringController::class, 'performanceMetrics'])->name('performance.metrics');
+    Route::get('/log-analysis-queries', [\App\Http\Controllers\Admin\TokenMonitoringController::class, 'logAnalysisQueries'])->name('log.analysis.queries');
+    Route::get('/export', [\App\Http\Controllers\Admin\TokenMonitoringController::class, 'exportData'])->name('export');
+    Route::post('/reset-metrics', [\App\Http\Controllers\Admin\TokenMonitoringController::class, 'resetMetrics'])->name('reset.metrics');
+    Route::get('/system-status', [\App\Http\Controllers\Admin\TokenMonitoringController::class, 'systemStatus'])->name('system.status');
+    Route::get('/health-trends', [\App\Http\Controllers\Admin\TokenMonitoringController::class, 'healthTrends'])->name('health.trends');
+    Route::get('/recent-operations', [\App\Http\Controllers\Admin\TokenMonitoringController::class, 'recentOperations'])->name('recent.operations');
+});
+
+// Token Refresh Configuration Routes
+Route::middleware(['auth', 'admin'])->prefix('admin/token-refresh')->name('admin.token-refresh.')->group(function () {
+    Route::get('/config', [\App\Http\Controllers\Admin\TokenRefreshConfigController::class, 'index'])->name('config');
+    Route::post('/update-setting', [\App\Http\Controllers\Admin\TokenRefreshConfigController::class, 'updateSetting'])->name('update-setting');
+    Route::post('/toggle-feature', [\App\Http\Controllers\Admin\TokenRefreshConfigController::class, 'toggleFeature'])->name('toggle-feature');
+    Route::post('/clear-cache', [\App\Http\Controllers\Admin\TokenRefreshConfigController::class, 'clearCache'])->name('clear-cache');
+    Route::get('/status', [\App\Http\Controllers\Admin\TokenRefreshConfigController::class, 'getStatus'])->name('status');
+});
+
 // Cloud storage dashboard routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/admin/dashboard/cloud-storage-status', [\App\Http\Controllers\CloudStorageDashboardController::class, 'getStatus'])
+        ->middleware('token.refresh.rate.limit')
         ->name('admin.dashboard.cloud-storage-status');
     Route::get('/admin/dashboard/cloud-storage/{provider}/errors', [\App\Http\Controllers\CloudStorageDashboardController::class, 'getProviderErrors'])
+        ->middleware('token.refresh.rate.limit')
         ->name('admin.dashboard.cloud-storage.errors');
     Route::post('/admin/dashboard/cloud-storage/{provider}/health-check', [\App\Http\Controllers\CloudStorageDashboardController::class, 'checkHealth'])
+        ->middleware('token.refresh.rate.limit')
         ->name('admin.dashboard.cloud-storage.health-check');
     
     // File manager bulk retry routes
