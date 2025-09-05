@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Laravel Translation Monitor",
+  "description": "Monitor changes to files containing user-facing text content in the primary language. When changes are detected, automatically identify the new or modified text and generate translations for all configured target languages. Ensure translations maintain proper context and meaning while adhering to locale-specific conventions. Use Laravel's translations in the resources/lang directory.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "resources/lang/en/messages.php",
+      "resources/lang/en/messages.override.php",
+      "resources/views/**/*.blade.php",
+      "app/Http/Controllers/**/*.php",
+      "app/Services/**/*.php"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the changed files to identify new or modified user-facing text content. For Laravel language files (resources/lang/en/*.php), extract new translation keys and their values. For Blade templates, identify hardcoded text that should be translated using Laravel's translation helpers (__(), trans(), @lang). For PHP files, look for user-facing strings in validation messages, notifications, and responses. Generate appropriate translations for all configured target languages, maintaining context and meaning while following locale-specific conventions. Create or update corresponding language files in resources/lang/{locale}/ directories. Ensure translations use proper Laravel translation syntax and maintain the same array structure as the source files."
+  }
+}
