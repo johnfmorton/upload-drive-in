@@ -2,17 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\EmailVerificationMail;
 use App\Models\EmailValidation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Auth;
-use App\Mail\LoginVerificationMail;
 use App\Models\DomainAccessRule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
-use App\Services\ClientUserService;
+use App\Services\VerificationMailFactory;
 
 class PublicUploadController extends Controller
 {
@@ -114,8 +112,34 @@ class PublicUploadController extends Controller
                 'email' => $email
             ]);
 
-            // Use the correct mail class for login verification
-            Mail::to($email)->send(new LoginVerificationMail($verificationUrl));
+            // Check if user already exists to determine role context
+            $existingUser = \App\Models\User::where('email', $email)->first();
+            
+            // Use VerificationMailFactory to select appropriate template
+            $mailFactory = app(VerificationMailFactory::class);
+            
+            // For public upload context, we prioritize existing user roles but fallback to client
+            if ($existingUser) {
+                $verificationMail = $mailFactory->createForUser($existingUser, $verificationUrl);
+                $detectedContext = $mailFactory->determineContextForUser($existingUser);
+            } else {
+                // For unknown users in public upload context, use client template as default
+                $verificationMail = $mailFactory->createForContext('client', $verificationUrl);
+                $detectedContext = 'client';
+            }
+            
+            // Log template selection for debugging
+            Log::info('Email verification template selected for public upload', [
+                'email' => $email,
+                'user_exists' => (bool)$existingUser,
+                'user_role' => $existingUser?->role?->value ?? null,
+                'detected_context' => $detectedContext,
+                'mail_class' => get_class($verificationMail),
+                'context' => 'public_upload',
+                'fallback_used' => !$existingUser
+            ]);
+
+            Mail::to($email)->send($verificationMail);
 
             return response()->json([
                 'success' => true,

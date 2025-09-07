@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Log;
 use App\Mail\LoginVerificationMail;
+use App\Services\VerificationMailFactory;
 use Exception;
 
 class ClientManagementController extends Controller
@@ -165,7 +166,21 @@ class ClientManagementController extends Controller
                 'employee_id' => Auth::id(),
             ]);
 
-            Mail::to($clientUser->email)->send(new LoginVerificationMail($loginUrl));
+            // Use VerificationMailFactory to select appropriate template
+            $mailFactory = app(VerificationMailFactory::class);
+            $verificationMail = $mailFactory->createForUser($clientUser, $loginUrl);
+            
+            // Log template selection for debugging
+            Log::info('Email verification template selected for employee user creation', [
+                'client_id' => $clientUser->id,
+                'client_email' => $clientUser->email,
+                'client_role' => $clientUser->role,
+                'mail_class' => get_class($verificationMail),
+                'context' => 'employee_user_creation',
+                'employee_id' => Auth::id(),
+            ]);
+
+            Mail::to($clientUser->email)->send($verificationMail);
             
             // Log successful email sending
             Log::info('Invitation email sent successfully', [

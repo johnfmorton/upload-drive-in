@@ -614,4 +614,35 @@ return [
     'token_status_hours' => 'Stunden',
     'token_status_day' => 'Tag',
     'token_status_days' => 'Tage',
+
+    // E-Mail-Verifizierung
+    'verify_email_title' => 'Verifizieren Sie Ihre E-Mail-Adresse',
+    'verify_email_intro' => 'Um Dateien an :company_name hochzuladen, verifizieren Sie bitte Ihre E-Mail-Adresse, indem Sie auf den untenstehenden Link klicken.',
+    'verify_email_sent' => 'Ein neuer Verifizierungslink wurde an die E-Mail-Adresse gesendet, die Sie bei der Registrierung angegeben haben.',
+    'verify_email_resend_button' => 'Verifizierungs-E-Mail erneut senden',
+    'verify_email_button' => 'E-Mail-Adresse verifizieren',
+    'verify_email_ignore' => 'Wenn Sie diese Verifizierung nicht angefordert haben, können Sie diese E-Mail sicher ignorieren.',
+
+    // Rollenbasierte E-Mail-Verifizierung
+    // Administrator-Verifizierung
+    'admin_verify_email_subject' => 'Verifizieren Sie Ihre Administrator-E-Mail-Adresse',
+    'admin_verify_email_title' => 'Verifizieren Sie Ihre Administrator-E-Mail-Adresse',
+    'admin_verify_email_intro' => 'Willkommen im :company_name Dateiverwaltungssystem. Als Administrator haben Sie vollständigen Zugriff auf die Benutzerverwaltung, Cloud-Speicher-Konfiguration und die Überwachung aller Datei-Uploads. Bitte verifizieren Sie Ihre E-Mail-Adresse, um die Einrichtung Ihres Admin-Kontos abzuschließen.',
+    'admin_verify_email_button' => 'Administrator-Zugang verifizieren',
+
+    // Mitarbeiter-Verifizierung  
+    'employee_verify_email_subject' => 'Verifizieren Sie Ihre Mitarbeiter-E-Mail-Adresse',
+    'employee_verify_email_title' => 'Verifizieren Sie Ihre Mitarbeiter-E-Mail-Adresse',
+    'employee_verify_email_intro' => 'Willkommen bei :company_name! Als Mitarbeiter können Sie Kunden-Datei-Uploads direkt in Ihr Google Drive empfangen und Ihre eigenen Kundenbeziehungen verwalten. Bitte verifizieren Sie Ihre E-Mail-Adresse, um mit dem Empfang von Kundendateien zu beginnen.',
+    'employee_verify_email_button' => 'Mitarbeiter-Zugang verifizieren',
+
+    // Kunden-Verifizierung
+    'client_verify_email_subject' => 'Verifizieren Sie Ihre E-Mail-Adresse',
+    'client_verify_email_title' => 'Verifizieren Sie Ihre E-Mail-Adresse', 
+    'client_verify_email_intro' => 'Um Dateien an :company_name hochzuladen, verifizieren Sie bitte Ihre E-Mail-Adresse, indem Sie auf den untenstehenden Link klicken. Nach der Verifizierung können Sie sicher Dateien hochladen, die direkt an das entsprechende Teammitglied geliefert werden.',
+    'client_verify_email_button' => 'E-Mail-Adresse verifizieren',
+
+    // Gemeinsame Elemente
+    'thanks_signature' => 'Vielen Dank',
+
 ];

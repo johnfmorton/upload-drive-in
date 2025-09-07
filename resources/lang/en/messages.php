@@ -296,6 +296,25 @@
     'verify_email_button' => 'Verify Email Address',
     'verify_email_ignore' => 'If you did not request this verification, you can safely ignore this email.',
 
+    // Role-Based Email Verification
+    // Admin Verification
+    'admin_verify_email_subject' => 'Verify Your Administrator Email Address',
+    'admin_verify_email_title' => 'Verify Your Administrator Email Address',
+    'admin_verify_email_intro' => 'Welcome to the :company_name file management system. As an administrator, you have full access to manage users, configure cloud storage, and oversee all file uploads. Please verify your email address to complete your admin account setup.',
+    'admin_verify_email_button' => 'Verify Administrator Access',
+
+    // Employee Verification  
+    'employee_verify_email_subject' => 'Verify Your Employee Email Address',
+    'employee_verify_email_title' => 'Verify Your Employee Email Address',
+    'employee_verify_email_intro' => 'Welcome to :company_name! As an employee, you can receive client file uploads directly to your Google Drive and manage your own client relationships. Please verify your email address to start receiving client files.',
+    'employee_verify_email_button' => 'Verify Employee Access',
+
+    // Client Verification
+    'client_verify_email_subject' => 'Verify Your Email Address',
+    'client_verify_email_title' => 'Verify Your Email Address', 
+    'client_verify_email_intro' => 'To upload files to :company_name, please verify your email address by clicking on the link below. Once verified, you\'ll be able to securely upload files that will be delivered directly to the appropriate team member.',
+    'client_verify_email_button' => 'Verify Email Address',
+
     // Account Deletion Email
     'delete_account_email_title' => 'Confirm Account Deletion',
     'delete_account_email_request' => 'We received a request to delete your account at :app_name.',

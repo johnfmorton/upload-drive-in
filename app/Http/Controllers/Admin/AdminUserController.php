@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use App\Mail\LoginVerificationMail;
 use App\Enums\UserRole;
+use App\Services\VerificationMailFactory;
 // Remove Google Drive dependencies - they are now in the service
 // use Google\Client;
 // use Google\Service\Drive;
@@ -191,7 +192,21 @@ class AdminUserController extends Controller
                 'admin_id' => Auth::id(),
             ]);
 
-            Mail::to($clientUser->email)->send(new LoginVerificationMail($loginUrl));
+            // Use VerificationMailFactory to select appropriate template
+            $mailFactory = app(VerificationMailFactory::class);
+            $verificationMail = $mailFactory->createForUser($clientUser, $loginUrl);
+            
+            // Log template selection for debugging
+            Log::info('Email verification template selected for admin user creation', [
+                'client_id' => $clientUser->id,
+                'client_email' => $clientUser->email,
+                'client_role' => $clientUser->role,
+                'mail_class' => get_class($verificationMail),
+                'context' => 'admin_user_creation',
+                'admin_id' => Auth::id(),
+            ]);
+
+            Mail::to($clientUser->email)->send($verificationMail);
             
             // Log successful email sending
             Log::info('Invitation email sent successfully', [

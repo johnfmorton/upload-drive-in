@@ -578,4 +578,35 @@ return [
     'token_status_days' => 'días',
     'token_status_last_error_intervention' => 'El token requiere reconexión manual debido a fallos repetidos',
     'token_status_last_error_generic' => 'La renovación del token falló - se reintentará automáticamente',
+
+    // Verificación de Correo Electrónico
+    'verify_email_title' => 'Verifica Tu Dirección de Correo Electrónico',
+    'verify_email_intro' => 'Para subir archivos a :company_name, por favor verifica tu dirección de correo electrónico haciendo clic en el enlace de abajo.',
+    'verify_email_sent' => 'Un nuevo enlace de verificación ha sido enviado a la dirección de correo electrónico que proporcionaste durante el registro.',
+    'verify_email_resend_button' => 'Reenviar Correo de Verificación',
+    'verify_email_button' => 'Verificar Dirección de Correo Electrónico',
+    'verify_email_ignore' => 'Si no solicitaste esta verificación, puedes ignorar este correo electrónico de forma segura.',
+
+    // Verificación de Correo Electrónico Basada en Roles
+    // Verificación de Administrador
+    'admin_verify_email_subject' => 'Verifica Tu Dirección de Correo Electrónico de Administrador',
+    'admin_verify_email_title' => 'Verifica Tu Dirección de Correo Electrónico de Administrador',
+    'admin_verify_email_intro' => 'Bienvenido al sistema de gestión de archivos de :company_name. Como administrador, tienes acceso completo para gestionar usuarios, configurar almacenamiento en la nube y supervisar todas las subidas de archivos. Por favor verifica tu dirección de correo electrónico para completar la configuración de tu cuenta de administrador.',
+    'admin_verify_email_button' => 'Verificar Acceso de Administrador',
+
+    // Verificación de Empleado  
+    'employee_verify_email_subject' => 'Verifica Tu Dirección de Correo Electrónico de Empleado',
+    'employee_verify_email_title' => 'Verifica Tu Dirección de Correo Electrónico de Empleado',
+    'employee_verify_email_intro' => '¡Bienvenido a :company_name! Como empleado, puedes recibir subidas de archivos de clientes directamente en tu Google Drive y gestionar tus propias relaciones con clientes. Por favor verifica tu dirección de correo electrónico para comenzar a recibir archivos de clientes.',
+    'employee_verify_email_button' => 'Verificar Acceso de Empleado',
+
+    // Verificación de Cliente
+    'client_verify_email_subject' => 'Verifica Tu Dirección de Correo Electrónico',
+    'client_verify_email_title' => 'Verifica Tu Dirección de Correo Electrónico', 
+    'client_verify_email_intro' => 'Para subir archivos a :company_name, por favor verifica tu dirección de correo electrónico haciendo clic en el enlace de abajo. Una vez verificado, podrás subir archivos de forma segura que serán entregados directamente al miembro del equipo apropiado.',
+    'client_verify_email_button' => 'Verificar Dirección de Correo Electrónico',
+
+    // Elementos Comunes
+    'thanks_signature' => 'Gracias',
+
 ];

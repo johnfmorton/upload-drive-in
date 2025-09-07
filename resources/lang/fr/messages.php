@@ -690,4 +690,35 @@ return [
     'health_user_not_found' => 'Utilisateur non trouvé',
     'health_batch_processing_failed' => 'Traitement par lots échoué : :message',
     'health_validation_rate_limited' => 'Validation de santé limitée par débit - veuillez réessayer plus tard',
+
+    // Vérification d'Email
+    'verify_email_title' => 'Vérifiez Votre Adresse Email',
+    'verify_email_intro' => 'Pour télécharger des fichiers vers :company_name, veuillez vérifier votre adresse email en cliquant sur le lien ci-dessous.',
+    'verify_email_sent' => 'Un nouveau lien de vérification a été envoyé à l\'adresse email que vous avez fournie lors de l\'inscription.',
+    'verify_email_resend_button' => 'Renvoyer l\'Email de Vérification',
+    'verify_email_button' => 'Vérifier l\'Adresse Email',
+    'verify_email_ignore' => 'Si vous n\'avez pas demandé cette vérification, vous pouvez ignorer cet email en toute sécurité.',
+
+    // Vérification d'Email Basée sur les Rôles
+    // Vérification Administrateur
+    'admin_verify_email_subject' => 'Vérifiez Votre Adresse Email d\'Administrateur',
+    'admin_verify_email_title' => 'Vérifiez Votre Adresse Email d\'Administrateur',
+    'admin_verify_email_intro' => 'Bienvenue dans le système de gestion de fichiers de :company_name. En tant qu\'administrateur, vous avez un accès complet pour gérer les utilisateurs, configurer le stockage cloud et superviser tous les téléchargements de fichiers. Veuillez vérifier votre adresse email pour terminer la configuration de votre compte administrateur.',
+    'admin_verify_email_button' => 'Vérifier l\'Accès Administrateur',
+
+    // Vérification Employé  
+    'employee_verify_email_subject' => 'Vérifiez Votre Adresse Email d\'Employé',
+    'employee_verify_email_title' => 'Vérifiez Votre Adresse Email d\'Employé',
+    'employee_verify_email_intro' => 'Bienvenue chez :company_name ! En tant qu\'employé, vous pouvez recevoir les téléchargements de fichiers clients directement dans votre Google Drive et gérer vos propres relations clients. Veuillez vérifier votre adresse email pour commencer à recevoir les fichiers clients.',
+    'employee_verify_email_button' => 'Vérifier l\'Accès Employé',
+
+    // Vérification Client
+    'client_verify_email_subject' => 'Vérifiez Votre Adresse Email',
+    'client_verify_email_title' => 'Vérifiez Votre Adresse Email', 
+    'client_verify_email_intro' => 'Pour télécharger des fichiers vers :company_name, veuillez vérifier votre adresse email en cliquant sur le lien ci-dessous. Une fois vérifié, vous pourrez télécharger des fichiers en toute sécurité qui seront livrés directement au membre de l\'équipe approprié.',
+    'client_verify_email_button' => 'Vérifier l\'Adresse Email',
+
+    // Éléments Communs
+    'thanks_signature' => 'Merci',
+
 ];
