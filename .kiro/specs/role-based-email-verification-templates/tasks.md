@@ -66,7 +66,7 @@
   - Add logging for email template selection
   - _Requirements: 4.3, 4.4_
 
-- [ ] 7. Update admin user creation flows
+- [x] 7. Update admin user creation flows
   - Identify admin user creation endpoints that send verification emails
   - Update controllers to use AdminVerificationMail for admin users
   - Ensure proper role context is passed to mail factory
@@ -78,7 +78,7 @@
   - Ensure proper role context is passed to mail factory
   - _Requirements: 2.1, 4.1_
 
-- [ ] 9. Create unit tests for Mail classes
+- [x] 9. Create unit tests for Mail classes
   - [x] 9.1 Test AdminVerificationMail
     - Test template path is correct
     - Test subject line is correct
