@@ -64,6 +64,9 @@ class PublicUploadController extends Controller
             $email = $validated['email'];
             
             // Step 1: Check for existing user FIRST (before applying restrictions)
+            $existingUser = null;
+            $userLookupFailed = false;
+            
             try {
                 $existingUser = \App\Models\User::where('email', $email)->first();
                 
@@ -88,17 +91,50 @@ class PublicUploadController extends Controller
                         'timestamp' => now()->toISOString()
                     ]);
                 }
+            } catch (\Illuminate\Database\QueryException $e) {
+                $userLookupFailed = true;
+                Log::error('Database query failed during user lookup', [
+                    'email' => $email,
+                    'error' => $e->getMessage(),
+                    'error_code' => $e->getCode(),
+                    'error_type' => 'database_query_exception',
+                    'sql_state' => $e->errorInfo[0] ?? null,
+                    'fallback_action' => 'treat_as_new_user_apply_restrictions',
+                    'security_impact' => 'fail_closed_for_security',
+                    'context' => 'user_detection_database_error',
+                    'timestamp' => now()->toISOString()
+                ]);
+                // Fall back to treating as new user (apply all restrictions for security)
+                $existingUser = null;
+            } catch (\Illuminate\Database\ConnectionException $e) {
+                $userLookupFailed = true;
+                Log::critical('Database connection failed during user lookup', [
+                    'email' => $email,
+                    'error' => $e->getMessage(),
+                    'error_type' => 'database_connection_exception',
+                    'fallback_action' => 'treat_as_new_user_apply_restrictions',
+                    'security_impact' => 'fail_closed_for_security',
+                    'context' => 'user_detection_connection_error',
+                    'timestamp' => now()->toISOString(),
+                    'requires_investigation' => true
+                ]);
+                // Fall back to treating as new user (apply all restrictions for security)
+                $existingUser = null;
             } catch (\Exception $e) {
-                Log::error('Failed to check for existing user during validation', [
+                $userLookupFailed = true;
+                Log::error('Unexpected error during user lookup', [
                     'email' => $email,
                     'error' => $e->getMessage(),
                     'error_type' => get_class($e),
+                    'error_file' => $e->getFile(),
+                    'error_line' => $e->getLine(),
                     'fallback_action' => 'treat_as_new_user_apply_restrictions',
-                    'security_impact' => 'fail_closed_for_new_users',
-                    'context' => 'user_detection_error',
-                    'timestamp' => now()->toISOString()
+                    'security_impact' => 'fail_closed_for_security',
+                    'context' => 'user_detection_unexpected_error',
+                    'timestamp' => now()->toISOString(),
+                    'requires_investigation' => true
                 ]);
-                // Fall back to treating as new user (apply all restrictions)
+                // Fall back to treating as new user (apply all restrictions for security)
                 $existingUser = null;
             }
             
@@ -142,11 +178,56 @@ class PublicUploadController extends Controller
     private function sendVerificationEmailToExistingUser(\App\Models\User $user, string $email, array $validated)
     {
         // Get domain rules for enhanced logging context
+        $domainRules = null;
+        $domainRulesLookupFailed = false;
+        
         try {
             $domainRules = DomainAccessRule::first();
+        } catch (\Illuminate\Database\QueryException $e) {
+            $domainRulesLookupFailed = true;
+            Log::error('Database query failed during domain rules lookup for existing user', [
+                'email' => $email,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'error_type' => 'database_query_exception',
+                'sql_state' => $e->errorInfo[0] ?? null,
+                'fallback_action' => 'allow_existing_user_fail_open',
+                'security_impact' => 'existing_user_allowed_through',
+                'context' => 'domain_rules_lookup_error',
+                'timestamp' => now()->toISOString()
+            ]);
+            // Fall back to allowing the request (fail open for existing users)
+            $domainRules = null;
+        } catch (\Illuminate\Database\ConnectionException $e) {
+            $domainRulesLookupFailed = true;
+            Log::critical('Database connection failed during domain rules lookup for existing user', [
+                'email' => $email,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'error_type' => 'database_connection_exception',
+                'fallback_action' => 'allow_existing_user_fail_open',
+                'security_impact' => 'existing_user_allowed_through',
+                'context' => 'domain_rules_connection_error',
+                'timestamp' => now()->toISOString(),
+                'requires_investigation' => true
+            ]);
+            // Fall back to allowing the request (fail open for existing users)
+            $domainRules = null;
         } catch (\Exception $e) {
-            Log::error('Failed to load domain rules', [
-                'error' => $e->getMessage()
+            $domainRulesLookupFailed = true;
+            Log::error('Unexpected error during domain rules lookup for existing user', [
+                'email' => $email,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'error_type' => get_class($e),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'fallback_action' => 'allow_existing_user_fail_open',
+                'security_impact' => 'existing_user_allowed_through',
+                'context' => 'domain_rules_unexpected_error',
+                'timestamp' => now()->toISOString(),
+                'requires_investigation' => true
             ]);
             // Fall back to allowing the request (fail open for existing users)
             $domainRules = null;
@@ -210,11 +291,57 @@ class PublicUploadController extends Controller
     private function handleNewUserRegistration(string $email, array $validated)
     {
         // Apply existing security checks for new users
+        $domainRules = null;
+        $domainRulesLookupFailed = false;
+        
         try {
             $domainRules = DomainAccessRule::first();
+        } catch (\Illuminate\Database\QueryException $e) {
+            $domainRulesLookupFailed = true;
+            Log::error('Database query failed during domain rules lookup for new user', [
+                'email' => $email,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'error_type' => 'database_query_exception',
+                'sql_state' => $e->errorInfo[0] ?? null,
+                'fallback_action' => 'reject_new_user_fail_closed',
+                'security_impact' => 'new_user_registration_blocked',
+                'context' => 'domain_rules_lookup_error',
+                'timestamp' => now()->toISOString()
+            ]);
+            // For new users, fail closed (reject)
+            throw ValidationException::withMessages([
+                'email' => ['Unable to process registration at this time. Please try again later.'],
+            ]);
+        } catch (\Illuminate\Database\ConnectionException $e) {
+            $domainRulesLookupFailed = true;
+            Log::critical('Database connection failed during domain rules lookup for new user', [
+                'email' => $email,
+                'error' => $e->getMessage(),
+                'error_type' => 'database_connection_exception',
+                'fallback_action' => 'reject_new_user_fail_closed',
+                'security_impact' => 'new_user_registration_blocked',
+                'context' => 'domain_rules_connection_error',
+                'timestamp' => now()->toISOString(),
+                'requires_investigation' => true
+            ]);
+            // For new users, fail closed (reject)
+            throw ValidationException::withMessages([
+                'email' => ['Unable to process registration at this time. Please try again later.'],
+            ]);
         } catch (\Exception $e) {
-            Log::error('Failed to load domain rules', [
-                'error' => $e->getMessage()
+            $domainRulesLookupFailed = true;
+            Log::error('Unexpected error during domain rules lookup for new user', [
+                'email' => $email,
+                'error' => $e->getMessage(),
+                'error_type' => get_class($e),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'fallback_action' => 'reject_new_user_fail_closed',
+                'security_impact' => 'new_user_registration_blocked',
+                'context' => 'domain_rules_unexpected_error',
+                'timestamp' => now()->toISOString(),
+                'requires_investigation' => true
             ]);
             // For new users, fail closed (reject)
             throw ValidationException::withMessages([
@@ -415,44 +542,246 @@ class PublicUploadController extends Controller
     {
         $mailFactory = app(VerificationMailFactory::class);
         
-        $validation = EmailValidation::where('email', $email)
-            ->where('verification_code', $code)
-            ->where('expires_at', '>', now())
-            ->first();
+        $validation = null;
+        $validationLookupFailed = false;
+        
+        try {
+            $validation = EmailValidation::where('email', $email)
+                ->where('verification_code', $code)
+                ->where('expires_at', '>', now())
+                ->first();
+        } catch (\Illuminate\Database\QueryException $e) {
+            $validationLookupFailed = true;
+            Log::error('Database query failed during validation lookup', [
+                'email' => $email,
+                'verification_code' => $code,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'error_type' => 'database_query_exception',
+                'sql_state' => $e->errorInfo[0] ?? null,
+                'fallback_action' => 'treat_as_invalid_verification',
+                'security_impact' => 'verification_blocked_for_security',
+                'context' => 'verification_lookup_error',
+                'timestamp' => now()->toISOString()
+            ]);
+            $validation = null;
+        } catch (\Illuminate\Database\ConnectionException $e) {
+            $validationLookupFailed = true;
+            Log::critical('Database connection failed during validation lookup', [
+                'email' => $email,
+                'verification_code' => $code,
+                'error' => $e->getMessage(),
+                'error_type' => 'database_connection_exception',
+                'fallback_action' => 'treat_as_invalid_verification',
+                'security_impact' => 'verification_blocked_for_security',
+                'context' => 'verification_connection_error',
+                'timestamp' => now()->toISOString(),
+                'requires_investigation' => true
+            ]);
+            $validation = null;
+        } catch (\Exception $e) {
+            $validationLookupFailed = true;
+            Log::error('Unexpected error during validation lookup', [
+                'email' => $email,
+                'verification_code' => $code,
+                'error' => $e->getMessage(),
+                'error_type' => get_class($e),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'fallback_action' => 'treat_as_invalid_verification',
+                'security_impact' => 'verification_blocked_for_security',
+                'context' => 'verification_unexpected_error',
+                'timestamp' => now()->toISOString(),
+                'requires_investigation' => true
+            ]);
+            $validation = null;
+        }
 
         if (!$validation) {
             // Enhanced logging for verification failure
-            $mailFactory->logVerificationFailure('unknown', 'Invalid or expired verification code', $email);
+            $failureReason = $validationLookupFailed ? 'database_lookup_failed' : 'invalid_or_expired_code';
+            $mailFactory->logVerificationFailure('unknown', $failureReason, $email);
             
-            Log::warning('Email verification failed - invalid or expired code', [
+            Log::warning('Email verification failed', [
                 'email' => $email,
                 'verification_code' => $code,
-                'failure_reason' => 'invalid_or_expired_code',
+                'failure_reason' => $failureReason,
+                'validation_lookup_failed' => $validationLookupFailed,
                 'context' => 'email_verification_failure',
                 'timestamp' => now()->toISOString(),
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent()
             ]);
             
+            $errorMessage = $validationLookupFailed 
+                ? 'Unable to verify email at this time. Please try again later.'
+                : __('messages.account_deletion_verification_invalid');
+            
             return redirect()->route('home')
-                ->with('error', __('messages.account_deletion_verification_invalid'));
+                ->with('error', $errorMessage);
         }
 
-        $validation->update([
-            'verified_at' => now()
-        ]);
+        try {
+            $validation->update([
+                'verified_at' => now()
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Database query failed during validation update', [
+                'email' => $email,
+                'verification_code' => $code,
+                'validation_id' => $validation->id,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'error_type' => 'database_query_exception',
+                'sql_state' => $e->errorInfo[0] ?? null,
+                'context' => 'verification_update_error',
+                'timestamp' => now()->toISOString()
+            ]);
+            // Continue with verification process - the update failure doesn't prevent login
+        } catch (\Illuminate\Database\ConnectionException $e) {
+            Log::critical('Database connection failed during validation update', [
+                'email' => $email,
+                'verification_code' => $code,
+                'validation_id' => $validation->id,
+                'error' => $e->getMessage(),
+                'error_type' => 'database_connection_exception',
+                'context' => 'verification_update_connection_error',
+                'timestamp' => now()->toISOString(),
+                'requires_investigation' => true
+            ]);
+            // Continue with verification process - the update failure doesn't prevent login
+        } catch (\Exception $e) {
+            Log::error('Unexpected error during validation update', [
+                'email' => $email,
+                'verification_code' => $code,
+                'validation_id' => $validation->id,
+                'error' => $e->getMessage(),
+                'error_type' => get_class($e),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'context' => 'verification_update_unexpected_error',
+                'timestamp' => now()->toISOString(),
+                'requires_investigation' => true
+            ]);
+            // Continue with verification process - the update failure doesn't prevent login
+        }
 
         // Find existing user or create new client user
-        $user = \App\Models\User::where('email', $email)->first();
+        $user = null;
+        $userLookupFailed = false;
+        
+        try {
+            $user = \App\Models\User::where('email', $email)->first();
+        } catch (\Illuminate\Database\QueryException $e) {
+            $userLookupFailed = true;
+            Log::error('Database query failed during user lookup in verification', [
+                'email' => $email,
+                'verification_code' => $code,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'error_type' => 'database_query_exception',
+                'sql_state' => $e->errorInfo[0] ?? null,
+                'fallback_action' => 'create_new_client_user',
+                'security_impact' => 'potential_duplicate_user_creation',
+                'context' => 'verification_user_lookup_error',
+                'timestamp' => now()->toISOString()
+            ]);
+            // Fall back to creating new user (graceful degradation)
+            $user = null;
+        } catch (\Illuminate\Database\ConnectionException $e) {
+            $userLookupFailed = true;
+            Log::critical('Database connection failed during user lookup in verification', [
+                'email' => $email,
+                'verification_code' => $code,
+                'error' => $e->getMessage(),
+                'error_type' => 'database_connection_exception',
+                'fallback_action' => 'create_new_client_user',
+                'security_impact' => 'potential_duplicate_user_creation',
+                'context' => 'verification_connection_error',
+                'timestamp' => now()->toISOString(),
+                'requires_investigation' => true
+            ]);
+            // Fall back to creating new user (graceful degradation)
+            $user = null;
+        } catch (\Exception $e) {
+            $userLookupFailed = true;
+            Log::error('Unexpected error during user lookup in verification', [
+                'email' => $email,
+                'verification_code' => $code,
+                'error' => $e->getMessage(),
+                'error_type' => get_class($e),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'fallback_action' => 'create_new_client_user',
+                'security_impact' => 'potential_duplicate_user_creation',
+                'context' => 'verification_unexpected_error',
+                'timestamp' => now()->toISOString(),
+                'requires_investigation' => true
+            ]);
+            // Fall back to creating new user (graceful degradation)
+            $user = null;
+        }
         
         if (!$user) {
             // Create new client user if none exists
-            $user = \App\Models\User::create([
-                'name' => explode('@', $email)[0],
-                'email' => $email,
-                'password' => \Illuminate\Support\Str::random(32),
-                'role' => 'client'
-            ]);
+            try {
+                $user = \App\Models\User::create([
+                    'name' => explode('@', $email)[0],
+                    'email' => $email,
+                    'password' => \Illuminate\Support\Str::random(32),
+                    'role' => 'client'
+                ]);
+                
+                Log::info('New client user created during verification', [
+                    'email' => $email,
+                    'user_id' => $user->id,
+                    'user_lookup_failed' => $userLookupFailed,
+                    'context' => 'verification_user_creation',
+                    'timestamp' => now()->toISOString()
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                Log::error('Database query failed during user creation in verification', [
+                    'email' => $email,
+                    'verification_code' => $code,
+                    'error' => $e->getMessage(),
+                    'error_code' => $e->getCode(),
+                    'error_type' => 'database_query_exception',
+                    'sql_state' => $e->errorInfo[0] ?? null,
+                    'context' => 'verification_user_creation_error',
+                    'timestamp' => now()->toISOString()
+                ]);
+                
+                return redirect()->route('home')
+                    ->with('error', 'Unable to complete verification. Please try again later.');
+            } catch (\Illuminate\Database\ConnectionException $e) {
+                Log::critical('Database connection failed during user creation in verification', [
+                    'email' => $email,
+                    'verification_code' => $code,
+                    'error' => $e->getMessage(),
+                    'error_type' => 'database_connection_exception',
+                    'context' => 'verification_user_creation_connection_error',
+                    'timestamp' => now()->toISOString(),
+                    'requires_investigation' => true
+                ]);
+                
+                return redirect()->route('home')
+                    ->with('error', 'Unable to complete verification. Please try again later.');
+            } catch (\Exception $e) {
+                Log::error('Unexpected error during user creation in verification', [
+                    'email' => $email,
+                    'verification_code' => $code,
+                    'error' => $e->getMessage(),
+                    'error_type' => get_class($e),
+                    'error_file' => $e->getFile(),
+                    'error_line' => $e->getLine(),
+                    'context' => 'verification_user_creation_unexpected_error',
+                    'timestamp' => now()->toISOString(),
+                    'requires_investigation' => true
+                ]);
+                
+                return redirect()->route('home')
+                    ->with('error', 'Unable to complete verification. Please try again later.');
+            }
         }
 
         // Log the user in
@@ -488,10 +817,60 @@ class PublicUploadController extends Controller
                 $employeeName = $matches[1];
                 
                 // Find the employee by extracting name from email
-                $escapedName = str_replace(['%', '_'], ['\%', '\_'], $employeeName);
-                $employee = \App\Models\User::where('email', 'LIKE', $escapedName . '@%')
-                    ->whereIn('role', [\App\Enums\UserRole::EMPLOYEE, \App\Enums\UserRole::ADMIN])
-                    ->first();
+                $employee = null;
+                $employeeLookupFailed = false;
+                
+                try {
+                    $escapedName = str_replace(['%', '_'], ['\%', '\_'], $employeeName);
+                    $employee = \App\Models\User::where('email', 'LIKE', $escapedName . '@%')
+                        ->whereIn('role', [\App\Enums\UserRole::EMPLOYEE, \App\Enums\UserRole::ADMIN])
+                        ->first();
+                } catch (\Illuminate\Database\QueryException $e) {
+                    $employeeLookupFailed = true;
+                    Log::error('Database query failed during employee lookup in verification', [
+                        'email' => $email,
+                        'employee_name' => $employeeName,
+                        'intended_url' => $intendedUrl,
+                        'error' => $e->getMessage(),
+                        'error_code' => $e->getCode(),
+                        'error_type' => 'database_query_exception',
+                        'sql_state' => $e->errorInfo[0] ?? null,
+                        'fallback_action' => 'skip_employee_association',
+                        'context' => 'verification_employee_lookup_error',
+                        'timestamp' => now()->toISOString()
+                    ]);
+                    $employee = null;
+                } catch (\Illuminate\Database\ConnectionException $e) {
+                    $employeeLookupFailed = true;
+                    Log::critical('Database connection failed during employee lookup in verification', [
+                        'email' => $email,
+                        'employee_name' => $employeeName,
+                        'intended_url' => $intendedUrl,
+                        'error' => $e->getMessage(),
+                        'error_type' => 'database_connection_exception',
+                        'fallback_action' => 'skip_employee_association',
+                        'context' => 'verification_employee_connection_error',
+                        'timestamp' => now()->toISOString(),
+                        'requires_investigation' => true
+                    ]);
+                    $employee = null;
+                } catch (\Exception $e) {
+                    $employeeLookupFailed = true;
+                    Log::error('Unexpected error during employee lookup in verification', [
+                        'email' => $email,
+                        'employee_name' => $employeeName,
+                        'intended_url' => $intendedUrl,
+                        'error' => $e->getMessage(),
+                        'error_type' => get_class($e),
+                        'error_file' => $e->getFile(),
+                        'error_line' => $e->getLine(),
+                        'fallback_action' => 'skip_employee_association',
+                        'context' => 'verification_employee_unexpected_error',
+                        'timestamp' => now()->toISOString(),
+                        'requires_investigation' => true
+                    ]);
+                    $employee = null;
+                }
                 
                 if ($employee && $user->isClient()) {
                     // Create client-company user relationship using the service
@@ -523,16 +902,86 @@ class PublicUploadController extends Controller
             // Default redirect for client users
             // If this is a new client user with no company relationships, associate with admin
             if ($user->isClient() && $user->companyUsers()->count() === 0) {
-                $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
-                if ($adminUser) {
-                    $clientUserService = app(\App\Services\ClientUserService::class);
-                    $clientUserService->associateWithCompanyUser($user, $adminUser);
-                    
-                    \Illuminate\Support\Facades\Log::info('Associated new client with admin user as fallback', [
+                $adminUser = null;
+                $adminLookupFailed = false;
+                
+                try {
+                    $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
+                } catch (\Illuminate\Database\QueryException $e) {
+                    $adminLookupFailed = true;
+                    Log::error('Database query failed during admin lookup for fallback association', [
                         'client_user_id' => $user->id,
                         'client_email' => $user->email,
-                        'admin_user_id' => $adminUser->id,
-                        'admin_email' => $adminUser->email
+                        'error' => $e->getMessage(),
+                        'error_code' => $e->getCode(),
+                        'error_type' => 'database_query_exception',
+                        'sql_state' => $e->errorInfo[0] ?? null,
+                        'fallback_action' => 'skip_admin_association',
+                        'context' => 'verification_admin_lookup_error',
+                        'timestamp' => now()->toISOString()
+                    ]);
+                    $adminUser = null;
+                } catch (\Illuminate\Database\ConnectionException $e) {
+                    $adminLookupFailed = true;
+                    Log::critical('Database connection failed during admin lookup for fallback association', [
+                        'client_user_id' => $user->id,
+                        'client_email' => $user->email,
+                        'error' => $e->getMessage(),
+                        'error_type' => 'database_connection_exception',
+                        'fallback_action' => 'skip_admin_association',
+                        'context' => 'verification_admin_connection_error',
+                        'timestamp' => now()->toISOString(),
+                        'requires_investigation' => true
+                    ]);
+                    $adminUser = null;
+                } catch (\Exception $e) {
+                    $adminLookupFailed = true;
+                    Log::error('Unexpected error during admin lookup for fallback association', [
+                        'client_user_id' => $user->id,
+                        'client_email' => $user->email,
+                        'error' => $e->getMessage(),
+                        'error_type' => get_class($e),
+                        'error_file' => $e->getFile(),
+                        'error_line' => $e->getLine(),
+                        'fallback_action' => 'skip_admin_association',
+                        'context' => 'verification_admin_unexpected_error',
+                        'timestamp' => now()->toISOString(),
+                        'requires_investigation' => true
+                    ]);
+                    $adminUser = null;
+                }
+                
+                if ($adminUser) {
+                    try {
+                        $clientUserService = app(\App\Services\ClientUserService::class);
+                        $clientUserService->associateWithCompanyUser($user, $adminUser);
+                        
+                        \Illuminate\Support\Facades\Log::info('Associated new client with admin user as fallback', [
+                            'client_user_id' => $user->id,
+                            'client_email' => $user->email,
+                            'admin_user_id' => $adminUser->id,
+                            'admin_email' => $adminUser->email,
+                            'admin_lookup_failed' => $adminLookupFailed
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to associate client with admin user', [
+                            'client_user_id' => $user->id,
+                            'client_email' => $user->email,
+                            'admin_user_id' => $adminUser->id,
+                            'error' => $e->getMessage(),
+                            'error_type' => get_class($e),
+                            'context' => 'verification_admin_association_error',
+                            'timestamp' => now()->toISOString()
+                        ]);
+                        // Continue without association - user can still access upload interface
+                    }
+                } else {
+                    Log::warning('No admin user found for fallback association', [
+                        'client_user_id' => $user->id,
+                        'client_email' => $user->email,
+                        'admin_lookup_failed' => $adminLookupFailed,
+                        'context' => 'verification_no_admin_fallback',
+                        'timestamp' => now()->toISOString()
                     ]);
                 }
             }

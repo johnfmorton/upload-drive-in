@@ -34,7 +34,7 @@
   - Log new user restriction enforcement for comparison
   - _Requirements: 1.4, 2.3, 3.4, 4.4, 5.4, 6.5_
 
-- [ ] 4. Add error handling for database lookup failures
+- [x] 4. Add error handling for database lookup failures
   - Wrap existing user detection in try-catch blocks
   - Implement fallback behavior when user lookup fails
   - Log database errors without exposing sensitive information
@@ -43,8 +43,8 @@
 
 - [ ] 5. Update language files with enhanced error messages
   - Add new language keys for existing vs new user error messages
-  - Update public registration disabled message to mention existing users
-  - Update domain restriction message to mention existing users
+  - Update public registration disabled message to mention new and existing users
+  - Update domain restriction message to mention new and existing users
   - Add success messages that distinguish existing vs new users
   - _Requirements: 1.4, 2.4_
 
