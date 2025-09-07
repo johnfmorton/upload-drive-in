@@ -58,7 +58,16 @@ class PublicUploadController extends Controller
             $email = $validated['email'];
             
             // Step 1: Check for existing user FIRST (before applying restrictions)
-            $existingUser = \App\Models\User::where('email', $email)->first();
+            try {
+                $existingUser = \App\Models\User::where('email', $email)->first();
+            } catch (\Exception $e) {
+                Log::error('Failed to check for existing user', [
+                    'email' => $email,
+                    'error' => $e->getMessage()
+                ]);
+                // Fall back to treating as new user (apply all restrictions)
+                $existingUser = null;
+            }
             
             if ($existingUser) {
                 // Existing user - bypass all registration restrictions
@@ -99,11 +108,25 @@ class PublicUploadController extends Controller
      */
     private function sendVerificationEmailToExistingUser(\App\Models\User $user, string $email, array $validated)
     {
-        Log::info('Existing user email verification', [
+        // Get domain rules for enhanced logging context
+        try {
+            $domainRules = DomainAccessRule::first();
+        } catch (\Exception $e) {
+            Log::error('Failed to load domain rules', [
+                'error' => $e->getMessage()
+            ]);
+            // Fall back to allowing the request (fail open for existing users)
+            $domainRules = null;
+        }
+        
+        Log::info('Existing user bypassing registration restrictions', [
             'email' => $email,
             'user_id' => $user->id,
-            'role' => $user->role->value,
-            'restrictions_bypassed' => true
+            'user_role' => $user->role->value,
+            'public_registration_enabled' => $domainRules?->allow_public_registration ?? true,
+            'domain_restrictions_mode' => $domainRules?->mode ?? 'none',
+            'restrictions_bypassed' => true,
+            'context' => 'existing_user_login'
         ]);
 
         // Store intended URL if provided
@@ -128,7 +151,17 @@ class PublicUploadController extends Controller
     private function handleNewUserRegistration(string $email, array $validated)
     {
         // Apply existing security checks for new users
-        $domainRules = DomainAccessRule::first();
+        try {
+            $domainRules = DomainAccessRule::first();
+        } catch (\Exception $e) {
+            Log::error('Failed to load domain rules', [
+                'error' => $e->getMessage()
+            ]);
+            // For new users, fail closed (reject)
+            throw ValidationException::withMessages([
+                'email' => ['Unable to process registration at this time. Please try again later.'],
+            ]);
+        }
         
         Log::info('Domain rules check for new user', [
             'email' => $email,
@@ -139,9 +172,12 @@ class PublicUploadController extends Controller
 
         // Check public registration setting
         if ($domainRules && !$domainRules->allow_public_registration) {
-            Log::warning('Public registration attempt when disabled', [
+            Log::warning('New user blocked by registration restrictions', [
                 'email' => $email,
-                'user_exists' => false
+                'user_exists' => false,
+                'restriction_type' => 'public_registration_disabled',
+                'domain_rules_mode' => $domainRules->mode,
+                'context' => 'new_user_registration'
             ]);
             throw ValidationException::withMessages([
                 'email' => [__('messages.public_registration_disabled')],
@@ -150,10 +186,12 @@ class PublicUploadController extends Controller
 
         // Check domain restrictions
         if ($domainRules && !$domainRules->isEmailAllowed($email)) {
-            Log::warning('Email domain not allowed for new user', [
+            Log::warning('New user blocked by registration restrictions', [
                 'email' => $email,
-                'mode' => $domainRules->mode,
-                'user_exists' => false
+                'user_exists' => false,
+                'restriction_type' => 'domain_not_allowed',
+                'domain_rules_mode' => $domainRules->mode,
+                'context' => 'new_user_registration'
             ]);
             throw ValidationException::withMessages([
                 'email' => [__('messages.email_domain_not_allowed')],

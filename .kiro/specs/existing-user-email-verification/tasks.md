@@ -6,22 +6,22 @@
   - Separate logic for existing users vs new users into distinct code paths
   - _Requirements: 1.2, 2.2, 6.2_
 
-- [ ] 2. Create helper methods for user type handling
-- [ ] 2.1 Create sendVerificationEmailToExistingUser() method
+- [x] 2. Create helper methods for user type handling
+- [x] 2.1 Create sendVerificationEmailToExistingUser() method
   - Handle verification email sending for existing users
   - Bypass all registration restrictions for existing users
   - Add logging for existing user verification attempts
   - Store intended URL in session if provided
   - _Requirements: 1.1, 1.3, 3.1, 4.1, 5.1_
 
-- [ ] 2.2 Create handleNewUserRegistration() method
+- [x] 2.2 Create handleNewUserRegistration() method
   - Apply existing security checks (public registration, domain restrictions)
   - Handle new user verification email sending
   - Add logging for new user registration attempts and restrictions
   - Store intended URL in session if provided
   - _Requirements: 6.4, 6.5_
 
-- [ ] 2.3 Refactor createVerificationAndSendEmail() method
+- [x] 2.3 Refactor createVerificationAndSendEmail() method
   - Extract common verification email creation and sending logic
   - Handle both existing and new user scenarios
   - Maintain existing role-based email template selection
