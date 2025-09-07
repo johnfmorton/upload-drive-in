@@ -125,7 +125,7 @@
   - Ensure backward compatibility tests still pass
   - _Requirements: 4.3_
 
-- [ ] 14. Clean up unused components
+- [x] 14. Clean up unused components
   - Remove unused EmailVerificationMail class
   - Remove duplicate email-verification.blade.php template
   - Update any remaining references to old email classes

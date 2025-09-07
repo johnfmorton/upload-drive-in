@@ -12,7 +12,6 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use App\Models\EmailValidation;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\EmailVerificationMail;
 use Illuminate\Support\Facades\URL;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
