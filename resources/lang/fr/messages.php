@@ -830,5 +830,6 @@ return [
     // Messages de vérification améliorés pour les utilisateurs existants vs nouveaux
     'existing_user_verification_sent' => 'Email de vérification envoyé à votre compte existant. Veuillez vérifier votre boîte de réception.',
     'new_user_verification_sent' => 'Email de vérification envoyé. Veuillez vérifier votre boîte de réception pour compléter l\'inscription.',
+    'registration_temporarily_unavailable' => 'Impossible de traiter l\'inscription pour le moment. Veuillez réessayer plus tard.',
 
 ];

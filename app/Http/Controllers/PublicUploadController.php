@@ -311,7 +311,7 @@ class PublicUploadController extends Controller
             ]);
             // For new users, fail closed (reject)
             throw ValidationException::withMessages([
-                'email' => ['Unable to process registration at this time. Please try again later.'],
+                'email' => [__('messages.registration_temporarily_unavailable')],
             ]);
         } catch (\Illuminate\Database\ConnectionException $e) {
             $domainRulesLookupFailed = true;
@@ -327,7 +327,7 @@ class PublicUploadController extends Controller
             ]);
             // For new users, fail closed (reject)
             throw ValidationException::withMessages([
-                'email' => ['Unable to process registration at this time. Please try again later.'],
+                'email' => [__('messages.registration_temporarily_unavailable')],
             ]);
         } catch (\Exception $e) {
             $domainRulesLookupFailed = true;
@@ -345,7 +345,7 @@ class PublicUploadController extends Controller
             ]);
             // For new users, fail closed (reject)
             throw ValidationException::withMessages([
-                'email' => ['Unable to process registration at this time. Please try again later.'],
+                'email' => [__('messages.registration_temporarily_unavailable')],
             ]);
         }
         

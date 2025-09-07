@@ -754,5 +754,6 @@ return [
     // Erweiterte Verifizierungsnachrichten für bestehende vs. neue Benutzer
     'existing_user_verification_sent' => 'Verifizierungs-E-Mail an Ihr bestehendes Konto gesendet. Bitte überprüfen Sie Ihren Posteingang.',
     'new_user_verification_sent' => 'Verifizierungs-E-Mail gesendet. Bitte überprüfen Sie Ihren Posteingang, um die Registrierung abzuschließen.',
+    'registration_temporarily_unavailable' => 'Die Registrierung kann derzeit nicht verarbeitet werden. Bitte versuchen Sie es später erneut.',
 
 ];

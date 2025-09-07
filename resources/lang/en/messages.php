@@ -226,6 +226,7 @@
     // Enhanced verification messages for existing vs new users
     'existing_user_verification_sent' => 'Verification email sent to your existing account. Please check your inbox.',
     'new_user_verification_sent' => 'Verification email sent. Please check your inbox to complete registration.',
+    'registration_temporarily_unavailable' => 'Unable to process registration at this time. Please try again later.',
     'access_control_rules_updated' => 'Access control rules have been updated successfully.',
     'registration_security_updated' => 'Registration security settings have been updated successfully.',
     'domain_rules_validation_error' => 'Please check your domain rules format. Each rule should be on a separate line.',

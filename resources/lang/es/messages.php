@@ -718,5 +718,6 @@ return [
     // Mensajes de verificación mejorados para usuarios existentes vs nuevos
     'existing_user_verification_sent' => 'Correo de verificación enviado a tu cuenta existente. Por favor revisa tu bandeja de entrada.',
     'new_user_verification_sent' => 'Correo de verificación enviado. Por favor revisa tu bandeja de entrada para completar el registro.',
+    'registration_temporarily_unavailable' => 'No se puede procesar el registro en este momento. Por favor, inténtalo de nuevo más tarde.',
 
 ];

@@ -41,7 +41,7 @@
   - Ensure graceful degradation maintains security posture
   - _Requirements: 6.2, 6.3_
 
-- [ ] 5. Update language files with enhanced error messages
+- [x] 5. Update language files with enhanced error messages
   - Add new language keys for existing vs new user error messages
   - Update public registration disabled message to mention new and existing users
   - Update domain restriction message to mention new and existing users
