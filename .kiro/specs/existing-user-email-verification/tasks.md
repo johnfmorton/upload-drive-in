@@ -125,7 +125,7 @@
   - Verify existing users always bypass regardless of domain rule configuration
   - _Requirements: 2.1, 2.2, 6.1, 6.2_
 
-- [ ] 9. Update existing tests to work with new flow
+- [x] 9. Update existing tests to work with new flow
   - Review existing PublicUploadController tests
   - Update tests that expect specific error behaviors
   - Ensure backward compatibility tests still pass
