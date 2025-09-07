@@ -131,21 +131,24 @@
   - Update any remaining references to old email classes
   - _Requirements: 5.1_
 
-- [ ] 15. Update email verification notification controller
-  - Update EmailVerificationNotificationController to use VerificationMailFactory
-  - Add role-based template selection for resend verification emails
-  - Add structured logging for template selection and email sending
+- [x] 15. Update email verification notification controller
+  - [x] Update EmailVerificationNotificationController to use VerificationMailFactory
+  - [x] Add role-based template selection for resend verification emails
+  - [x] Add structured logging for template selection and email sending
   - _Requirements: 4.1, 4.2, 4.4_
 
-- [ ] 16. Update user creation controllers to use proper translation keys
-  - Update EmployeeController to use proper translation keys instead of hardcoded strings
-  - Add employee creation message translations to all language files (en, de, es, fr)
-  - Add role-based email verification translations to all language files
-  - Add validation message translations to all language files
-  - Ensure AdminUserController and ClientManagementController use existing translation keys
+- [x] 16. Update user creation controllers to use proper translation keys
+  - [x] Update EmployeeController to use proper translation keys instead of hardcoded strings
+  - [x] Add employee creation message translations to all language files (en, de, es, fr)
+  - [x] Add role-based email verification translations to all language files
+  - [x] Add validation message translations to all language files
+  - [x] Ensure AdminUserController and ClientManagementController use existing translation keys
+  - [x] Update ProfileController to use translation keys for account deletion messages
+  - [x] Update PublicUploadController to use translation keys for verification errors
+  - [x] Update GoogleDriveUnifiedCallbackController to use translation keys for OAuth errors
   - _Requirements: 6.1, 6.2, 6.3, 6.5_
 
-- [ ] 16. Add logging and monitoring
+- [ ] 17. Add logging and monitoring
   - Add structured logging for email template selection
   - Add error logging for role detection failures
   - Add metrics for email verification success rates by role

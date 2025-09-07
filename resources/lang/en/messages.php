@@ -448,6 +448,22 @@
     // Profile Status Messages
     'profile_update_success' => 'Profile updated successfully.',
 
+    // Account Deletion Messages
+    'account_deletion_request_failed' => 'Failed to process deletion request. Please try again.',
+    'account_deletion_link_invalid' => 'The deletion confirmation link is invalid or has expired.',
+    'account_deletion_verification_invalid' => 'Invalid or expired verification link.',
+    'account_deletion_user_invalid' => 'Invalid user account.',
+    'account_deletion_success' => 'Your account and all associated data have been permanently deleted.',
+    'account_deletion_error' => 'An error occurred while deleting your account. Please try again or contact support.',
+    'account_deletion_unexpected_error' => 'An unexpected error occurred. Please try again or contact support.',
+
+    // Google Drive OAuth Error Messages
+    'oauth_authorization_code_missing' => 'Authorization code not provided.',
+    'oauth_state_parameter_missing' => 'State parameter missing.',
+    'oauth_state_parameter_invalid' => 'Invalid state parameter.',
+    'oauth_user_not_found' => 'User not found.',
+    'oauth_connection_validation_failed' => 'Connection established but validation failed. Please try reconnecting again.',
+
     // Client Dashboard
     'client_dashboard_title' => 'My Dashboard',
 

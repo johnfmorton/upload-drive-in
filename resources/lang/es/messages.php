@@ -101,6 +101,22 @@ return [
     'employee_client_created_email_failed' => 'Usuario cliente creado exitosamente, pero el correo de invitación falló al enviarse. Puedes proporcionarles el enlace de inicio de sesión manualmente.',
     'employee_client_creation_failed' => 'Error al crear el usuario cliente. Por favor intenta de nuevo.',
 
+    // Account Deletion Messages
+    'account_deletion_request_failed' => 'Error al procesar la solicitud de eliminación. Por favor intenta de nuevo.',
+    'account_deletion_link_invalid' => 'El enlace de confirmación de eliminación es inválido o ha expirado.',
+    'account_deletion_verification_invalid' => 'Enlace de verificación inválido o expirado.',
+    'account_deletion_user_invalid' => 'Cuenta de usuario inválida.',
+    'account_deletion_success' => 'Tu cuenta y todos los datos asociados han sido eliminados permanentemente.',
+    'account_deletion_error' => 'Ocurrió un error al eliminar tu cuenta. Por favor intenta de nuevo o contacta al soporte.',
+    'account_deletion_unexpected_error' => 'Ocurrió un error inesperado. Por favor intenta de nuevo o contacta al soporte.',
+
+    // Google Drive OAuth Error Messages
+    'oauth_authorization_code_missing' => 'Código de autorización no proporcionado.',
+    'oauth_state_parameter_missing' => 'Parámetro de estado faltante.',
+    'oauth_state_parameter_invalid' => 'Parámetro de estado inválido.',
+    'oauth_user_not_found' => 'Usuario no encontrado.',
+    'oauth_connection_validation_failed' => 'Conexión establecida pero la validación falló. Por favor intenta reconectar de nuevo.',
+
     // Enhanced Validation Messages
     'validation_name_required' => 'El campo nombre es obligatorio.',
     'validation_name_string' => 'El nombre debe ser una cadena de texto válida.',

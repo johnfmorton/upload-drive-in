@@ -101,6 +101,22 @@ return [
     'employee_client_created_email_failed' => 'Kundenbenutzer erfolgreich erstellt, aber Einladungs-E-Mail konnte nicht gesendet werden. Sie können ihnen den Login-Link manuell bereitstellen.',
     'employee_client_creation_failed' => 'Fehler beim Erstellen des Kundenbenutzers. Bitte versuchen Sie es erneut.',
 
+    // Account Deletion Messages
+    'account_deletion_request_failed' => 'Fehler beim Verarbeiten der Löschungsanfrage. Bitte versuchen Sie es erneut.',
+    'account_deletion_link_invalid' => 'Der Bestätigungslink für die Löschung ist ungültig oder abgelaufen.',
+    'account_deletion_verification_invalid' => 'Ungültiger oder abgelaufener Bestätigungslink.',
+    'account_deletion_user_invalid' => 'Ungültiges Benutzerkonto.',
+    'account_deletion_success' => 'Ihr Konto und alle zugehörigen Daten wurden dauerhaft gelöscht.',
+    'account_deletion_error' => 'Ein Fehler ist beim Löschen Ihres Kontos aufgetreten. Bitte versuchen Sie es erneut oder kontaktieren Sie den Support.',
+    'account_deletion_unexpected_error' => 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut oder kontaktieren Sie den Support.',
+
+    // Google Drive OAuth Error Messages
+    'oauth_authorization_code_missing' => 'Autorisierungscode nicht bereitgestellt.',
+    'oauth_state_parameter_missing' => 'State-Parameter fehlt.',
+    'oauth_state_parameter_invalid' => 'Ungültiger State-Parameter.',
+    'oauth_user_not_found' => 'Benutzer nicht gefunden.',
+    'oauth_connection_validation_failed' => 'Verbindung hergestellt, aber Validierung fehlgeschlagen. Bitte versuchen Sie, die Verbindung erneut herzustellen.',
+
     // Enhanced Validation Messages
     'validation_name_required' => 'Das Namensfeld ist erforderlich.',
     'validation_name_string' => 'Der Name muss eine gültige Textzeichenfolge sein.',

@@ -183,7 +183,7 @@ class PublicUploadController extends Controller
 
         if (!$validation) {
             return redirect()->route('home')
-                ->with('error', 'Invalid or expired verification link.');
+                ->with('error', __('messages.account_deletion_verification_invalid'));
         }
 
         $validation->update([

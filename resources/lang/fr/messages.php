@@ -101,6 +101,22 @@ return [
     'employee_client_created_email_failed' => 'Utilisateur client créé avec succès, mais l\'e-mail d\'invitation n\'a pas pu être envoyé. Vous pouvez leur fournir le lien de connexion manuellement.',
     'employee_client_creation_failed' => 'Échec de la création de l\'utilisateur client. Veuillez réessayer.',
 
+    // Account Deletion Messages
+    'account_deletion_request_failed' => 'Échec du traitement de la demande de suppression. Veuillez réessayer.',
+    'account_deletion_link_invalid' => 'Le lien de confirmation de suppression est invalide ou a expiré.',
+    'account_deletion_verification_invalid' => 'Lien de vérification invalide ou expiré.',
+    'account_deletion_user_invalid' => 'Compte utilisateur invalide.',
+    'account_deletion_success' => 'Votre compte et toutes les données associées ont été supprimés définitivement.',
+    'account_deletion_error' => 'Une erreur s\'est produite lors de la suppression de votre compte. Veuillez réessayer ou contacter le support.',
+    'account_deletion_unexpected_error' => 'Une erreur inattendue s\'est produite. Veuillez réessayer ou contacter le support.',
+
+    // Google Drive OAuth Error Messages
+    'oauth_authorization_code_missing' => 'Code d\'autorisation non fourni.',
+    'oauth_state_parameter_missing' => 'Paramètre d\'état manquant.',
+    'oauth_state_parameter_invalid' => 'Paramètre d\'état invalide.',
+    'oauth_user_not_found' => 'Utilisateur non trouvé.',
+    'oauth_connection_validation_failed' => 'Connexion établie mais la validation a échoué. Veuillez essayer de vous reconnecter.',
+
     // Enhanced Validation Messages
     'validation_name_required' => 'Le champ nom est obligatoire.',
     'validation_name_string' => 'Le nom doit être une chaîne de texte valide.',
