@@ -27,7 +27,7 @@
   - Maintain existing role-based email template selection
   - _Requirements: 3.1, 4.1, 5.1_
 
-- [ ] 3. Enhance logging for existing user detection
+- [x] 3. Enhance logging for existing user detection
   - Add structured logging when existing users bypass restrictions
   - Log user ID, role, and which restrictions were bypassed
   - Add context about public registration and domain restriction settings

@@ -45,8 +45,14 @@ class PublicUploadController extends Controller
      */
     public function validateEmail(Request $request)
     {
-        Log::info('Email validation attempt', [
-            'email' => $request->email
+        Log::info('Email validation attempt initiated', [
+            'email' => $request->email,
+            'has_intended_url' => !empty($request->intended_url),
+            'intended_url' => $request->intended_url,
+            'context' => 'public_upload_form',
+            'timestamp' => now()->toISOString(),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent()
         ]);
 
         try {
@@ -60,10 +66,37 @@ class PublicUploadController extends Controller
             // Step 1: Check for existing user FIRST (before applying restrictions)
             try {
                 $existingUser = \App\Models\User::where('email', $email)->first();
+                
+                // Log the user detection result
+                if ($existingUser) {
+                    Log::info('Existing user detected during validation', [
+                        'email' => $email,
+                        'user_id' => $existingUser->id,
+                        'user_role' => $existingUser->role->value,
+                        'user_created_at' => $existingUser->created_at->toISOString(),
+                        'detection_successful' => true,
+                        'will_bypass_restrictions' => true,
+                        'context' => 'user_detection',
+                        'timestamp' => now()->toISOString()
+                    ]);
+                } else {
+                    Log::info('No existing user found during validation', [
+                        'email' => $email,
+                        'detection_successful' => true,
+                        'will_apply_restrictions' => true,
+                        'context' => 'user_detection',
+                        'timestamp' => now()->toISOString()
+                    ]);
+                }
             } catch (\Exception $e) {
-                Log::error('Failed to check for existing user', [
+                Log::error('Failed to check for existing user during validation', [
                     'email' => $email,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
+                    'error_type' => get_class($e),
+                    'fallback_action' => 'treat_as_new_user_apply_restrictions',
+                    'security_impact' => 'fail_closed_for_new_users',
+                    'context' => 'user_detection_error',
+                    'timestamp' => now()->toISOString()
                 ]);
                 // Fall back to treating as new user (apply all restrictions)
                 $existingUser = null;
@@ -119,14 +152,40 @@ class PublicUploadController extends Controller
             $domainRules = null;
         }
         
+        // Determine which restrictions would have been applied to a new user
+        $restrictionsThatWouldApply = [];
+        $domainAllowed = true;
+        
+        if ($domainRules) {
+            if (!$domainRules->allow_public_registration) {
+                $restrictionsThatWouldApply[] = 'public_registration_disabled';
+            }
+            
+            if (!$domainRules->isEmailAllowed($email)) {
+                $restrictionsThatWouldApply[] = 'domain_not_allowed';
+                $domainAllowed = false;
+            }
+        }
+        
+        // Enhanced structured logging for existing user bypass
         Log::info('Existing user bypassing registration restrictions', [
             'email' => $email,
             'user_id' => $user->id,
             'user_role' => $user->role->value,
-            'public_registration_enabled' => $domainRules?->allow_public_registration ?? true,
-            'domain_restrictions_mode' => $domainRules?->mode ?? 'none',
-            'restrictions_bypassed' => true,
-            'context' => 'existing_user_login'
+            'user_created_at' => $user->created_at->toISOString(),
+            'restrictions_bypassed' => $restrictionsThatWouldApply,
+            'restrictions_count' => count($restrictionsThatWouldApply),
+            'security_settings' => [
+                'public_registration_enabled' => $domainRules?->allow_public_registration ?? true,
+                'domain_restrictions_mode' => $domainRules?->mode ?? 'none',
+                'domain_rules_exist' => (bool)$domainRules,
+                'email_domain_would_be_allowed' => $domainAllowed,
+            ],
+            'bypass_reason' => 'existing_user_detected',
+            'context' => 'existing_user_login',
+            'timestamp' => now()->toISOString(),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent()
         ]);
 
         // Store intended URL if provided
@@ -163,11 +222,17 @@ class PublicUploadController extends Controller
             ]);
         }
         
-        Log::info('Domain rules check for new user', [
+        Log::info('Domain rules loaded for new user validation', [
             'email' => $email,
-            'rules_exist' => (bool)$domainRules,
-            'public_registration' => $domainRules ? $domainRules->allow_public_registration : true,
-            'user_exists' => false
+            'user_exists' => false,
+            'domain_rules_loaded' => (bool)$domainRules,
+            'security_settings' => [
+                'public_registration_enabled' => $domainRules?->allow_public_registration ?? true,
+                'domain_restrictions_mode' => $domainRules?->mode ?? 'none',
+                'domain_rules_count' => $domainRules ? count($domainRules->rules ?? []) : 0,
+            ],
+            'context' => 'new_user_security_check',
+            'timestamp' => now()->toISOString()
         ]);
 
         // Check public registration setting
@@ -176,8 +241,16 @@ class PublicUploadController extends Controller
                 'email' => $email,
                 'user_exists' => false,
                 'restriction_type' => 'public_registration_disabled',
-                'domain_rules_mode' => $domainRules->mode,
-                'context' => 'new_user_registration'
+                'restriction_enforced' => true,
+                'security_settings' => [
+                    'public_registration_enabled' => false,
+                    'domain_restrictions_mode' => $domainRules->mode,
+                    'domain_rules_exist' => true,
+                ],
+                'context' => 'new_user_registration',
+                'timestamp' => now()->toISOString(),
+                'ip_address' => request()->ip(),
+                'comparison_note' => 'existing_users_would_bypass_this_restriction'
             ]);
             throw ValidationException::withMessages([
                 'email' => [__('messages.public_registration_disabled')],
@@ -186,12 +259,24 @@ class PublicUploadController extends Controller
 
         // Check domain restrictions
         if ($domainRules && !$domainRules->isEmailAllowed($email)) {
+            $emailDomain = substr(strrchr($email, '@'), 1);
+            
             Log::warning('New user blocked by registration restrictions', [
                 'email' => $email,
+                'email_domain' => $emailDomain,
                 'user_exists' => false,
                 'restriction_type' => 'domain_not_allowed',
-                'domain_rules_mode' => $domainRules->mode,
-                'context' => 'new_user_registration'
+                'restriction_enforced' => true,
+                'security_settings' => [
+                    'public_registration_enabled' => $domainRules->allow_public_registration,
+                    'domain_restrictions_mode' => $domainRules->mode,
+                    'domain_rules_exist' => true,
+                    'configured_domains' => $domainRules->rules ?? [],
+                ],
+                'context' => 'new_user_registration',
+                'timestamp' => now()->toISOString(),
+                'ip_address' => request()->ip(),
+                'comparison_note' => 'existing_users_would_bypass_this_restriction'
             ]);
             throw ValidationException::withMessages([
                 'email' => [__('messages.email_domain_not_allowed')],
@@ -200,7 +285,16 @@ class PublicUploadController extends Controller
 
         Log::info('New user registration allowed', [
             'email' => $email,
-            'user_exists' => false
+            'user_exists' => false,
+            'restrictions_applied' => 'none',
+            'security_settings' => [
+                'public_registration_enabled' => $domainRules?->allow_public_registration ?? true,
+                'domain_restrictions_mode' => $domainRules?->mode ?? 'none',
+                'domain_rules_exist' => (bool)$domainRules,
+            ],
+            'context' => 'new_user_registration',
+            'timestamp' => now()->toISOString(),
+            'ip_address' => request()->ip()
         ]);
 
         // Store intended URL if provided
@@ -259,15 +353,28 @@ class PublicUploadController extends Controller
             $detectedContext = 'client';
         }
         
-        // Log template selection for debugging
+        // Enhanced logging for template selection
         Log::info('Email verification template selected for public upload', [
             'email' => $email,
             'user_exists' => (bool)$existingUser,
-            'user_role' => $existingUser?->role?->value ?? null,
-            'detected_context' => $detectedContext,
-            'mail_class' => get_class($verificationMail),
-            'context' => 'public_upload',
-            'fallback_used' => !$existingUser
+            'user_details' => $existingUser ? [
+                'user_id' => $existingUser->id,
+                'user_role' => $existingUser->role->value,
+                'user_created_at' => $existingUser->created_at->toISOString(),
+            ] : null,
+            'template_selection' => [
+                'detected_context' => $detectedContext,
+                'mail_class' => get_class($verificationMail),
+                'fallback_used' => !$existingUser,
+                'template_reason' => $existingUser ? 'role_based_existing_user' : 'default_client_template'
+            ],
+            'verification_details' => [
+                'verification_code_length' => strlen($verificationCode),
+                'expires_at' => $validation->expires_at->toISOString(),
+                'verification_url_generated' => !empty($verificationUrl)
+            ],
+            'context' => 'template_selection',
+            'timestamp' => now()->toISOString()
         ]);
 
         try {
@@ -314,8 +421,18 @@ class PublicUploadController extends Controller
             ->first();
 
         if (!$validation) {
-            // Log verification failure
+            // Enhanced logging for verification failure
             $mailFactory->logVerificationFailure('unknown', 'Invalid or expired verification code', $email);
+            
+            Log::warning('Email verification failed - invalid or expired code', [
+                'email' => $email,
+                'verification_code' => $code,
+                'failure_reason' => 'invalid_or_expired_code',
+                'context' => 'email_verification_failure',
+                'timestamp' => now()->toISOString(),
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent()
+            ]);
             
             return redirect()->route('home')
                 ->with('error', __('messages.account_deletion_verification_invalid'));
@@ -341,12 +458,28 @@ class PublicUploadController extends Controller
         // Log the user in
         \Illuminate\Support\Facades\Auth::login($user);
         
-        // Log successful verification
+        // Enhanced logging for successful verification by role
         $userRole = $mailFactory->determineContextForUser($user);
         $mailFactory->logVerificationSuccess($userRole, $email);
-
+        
         // Check if there's an intended URL in the session
         $intendedUrl = session('intended_url');
+        
+        // Additional structured logging for verification completion
+        Log::info('Email verification completed successfully', [
+            'email' => $email,
+            'user_id' => $user->id,
+            'user_role' => $user->role->value,
+            'verification_context' => $userRole,
+            'user_was_existing' => $user->created_at < $validation->created_at,
+            'verification_code_used' => $code,
+            'intended_url_present' => !empty($intendedUrl),
+            'intended_url' => $intendedUrl,
+            'context' => 'email_verification_success',
+            'timestamp' => now()->toISOString(),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent()
+        ]);
         if ($intendedUrl) {
             session()->forget('intended_url');
             
