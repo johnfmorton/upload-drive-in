@@ -105,14 +105,14 @@
   - Test createForContext() returns correct Mail class for each role string
   - _Requirements: 4.1, 4.2, 4.3_
 
-- [-] 11. Create integration tests for email sending
+- [x] 11. Create integration tests for email sending
   - Test admin verification email is sent with correct template
   - Test employee verification email is sent with correct template
   - Test client verification email is sent with correct template
   - Test fallback behavior when role detection fails
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 12. Create feature tests for complete verification flows
+- [x] 12. Create feature tests for complete verification flows
   - Test admin user email verification end-to-end flow
   - Test employee user email verification end-to-end flow
   - Test client user email verification end-to-end flow
