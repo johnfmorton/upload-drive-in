@@ -119,15 +119,22 @@
                                     
                                     @if($provider['is_configured'] ?? false)
                                         <button @click="testProvider('{{ $provider['name'] }}')"
-                                                :disabled="testingProvider === '{{ $provider['name'] }}'"
-                                                class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                            <span x-show="testingProvider !== '{{ $provider['name'] }}'">Test</span>
+                                                :disabled="testingProvider === '{{ $provider['name'] }}' || isProviderRateLimited('{{ $provider['name'] }}')"
+                                                :class="isProviderRateLimited('{{ $provider['name'] }}') ? 'px-3 py-1 text-sm bg-yellow-600 text-white rounded cursor-not-allowed opacity-75' : 'px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2'"
+                                                class="disabled:opacity-50 disabled:cursor-not-allowed">
+                                            <span x-show="testingProvider !== '{{ $provider['name'] }}' && !isProviderRateLimited('{{ $provider['name'] }}')">Test</span>
                                             <span x-show="testingProvider === '{{ $provider['name'] }}'" class="flex items-center">
                                                 <svg class="animate-spin -ml-1 mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24">
                                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                 </svg>
                                                 Testing
+                                            </span>
+                                            <span x-show="isProviderRateLimited('{{ $provider['name'] }}') && testingProvider !== '{{ $provider['name'] }}'" class="flex items-center">
+                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                <span x-text="'Rate Limited (' + getRateLimitCountdown('{{ $provider['name'] }}') + ')'"></span>
                                             </span>
                                         </button>
                                     @endif
@@ -415,6 +422,9 @@
                 testingProvider: null,
                 settingProvider: null,
                 testResult: null,
+                rateLimitedProviders: {},
+                rateLimitResetTimes: {},
+                countdownInterval: null,
 
                 async openProviderDetails(providerName) {
                     console.log('🔍 Opening provider details for:', providerName);
@@ -451,7 +461,15 @@
                 },
 
                 async testProvider(providerName) {
-                    console.log('🔍 Testing provider:', providerName);
+                    console.log('🔍 Testing provider with rate limiting protection:', providerName);
+                    
+                    // Check for rate limiting before attempting test
+                    if (this.isProviderRateLimited(providerName)) {
+                        const countdown = this.getRateLimitCountdown(providerName);
+                        this.showError(`Rate limited. Please wait ${countdown} before testing again.`);
+                        return;
+                    }
+                    
                     this.testingProvider = providerName;
 
                     try {
@@ -465,13 +483,26 @@
                         });
 
                         const data = await response.json();
+                        
+                        // Handle rate limiting in response
+                        if (response.status === 429 || data.error === 'Rate limit exceeded') {
+                            this.handleRateLimitResponse(providerName, data);
+                            return;
+                        }
+                        
                         this.testResult = data;
                         this.showTestModal = true;
                         
                         console.log('🔍 Test result:', data);
                     } catch (error) {
                         console.error('🔍 Error testing provider:', error);
-                        this.showError('Failed to test provider connection');
+                        
+                        // Handle network errors that might indicate rate limiting
+                        if (error.message.includes('429') || error.message.toLowerCase().includes('rate limit')) {
+                            this.handleRateLimitResponse(providerName, { message: 'Rate limited. Please wait before testing again.' });
+                        } else {
+                            this.showError('Failed to test provider connection');
+                        }
                     } finally {
                         this.testingProvider = null;
                     }
@@ -531,6 +562,82 @@
                     } catch (e) {
                         return 'Invalid date';
                     }
+                },
+
+                // Rate limiting helper functions
+                isProviderRateLimited(providerName) {
+                    return this.rateLimitedProviders[providerName] || false;
+                },
+
+                getRateLimitCountdown(providerName) {
+                    const resetTime = this.rateLimitResetTimes[providerName];
+                    if (!resetTime) return 'soon';
+                    
+                    const now = new Date();
+                    const diffMs = resetTime - now;
+                    if (diffMs <= 0) {
+                        // Rate limit has expired
+                        this.rateLimitedProviders[providerName] = false;
+                        delete this.rateLimitResetTimes[providerName];
+                        return 'now';
+                    }
+                    
+                    const minutes = Math.ceil(diffMs / 60000);
+                    const seconds = Math.ceil(diffMs / 1000);
+                    
+                    if (seconds < 60) {
+                        return `${seconds} second${seconds === 1 ? '' : 's'}`;
+                    } else {
+                        return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+                    }
+                },
+
+                handleRateLimitResponse(providerName, data) {
+                    this.rateLimitedProviders[providerName] = true;
+                    
+                    // Set reset time if provided
+                    if (data.retry_after) {
+                        this.rateLimitResetTimes[providerName] = new Date(Date.now() + (data.retry_after * 1000));
+                    } else if (data.reset_time) {
+                        this.rateLimitResetTimes[providerName] = new Date(data.reset_time);
+                    } else {
+                        // Default to 5 minutes if no specific time provided
+                        this.rateLimitResetTimes[providerName] = new Date(Date.now() + (5 * 60 * 1000));
+                    }
+                    
+                    const countdown = this.getRateLimitCountdown(providerName);
+                    this.showError(`Rate limited. Please wait ${countdown} before testing again.`);
+                    
+                    // Start countdown timer if not already running
+                    if (!this.countdownInterval) {
+                        this.startRateLimitCountdown();
+                    }
+                },
+
+                startRateLimitCountdown() {
+                    this.countdownInterval = setInterval(() => {
+                        let hasActiveRateLimits = false;
+                        
+                        Object.keys(this.rateLimitedProviders).forEach(providerName => {
+                            if (this.rateLimitedProviders[providerName]) {
+                                const resetTime = this.rateLimitResetTimes[providerName];
+                                if (resetTime && new Date() >= resetTime) {
+                                    // Rate limit has expired
+                                    this.rateLimitedProviders[providerName] = false;
+                                    delete this.rateLimitResetTimes[providerName];
+                                    console.log('🔍 Rate limit expired for provider:', providerName);
+                                } else {
+                                    hasActiveRateLimits = true;
+                                }
+                            }
+                        });
+                        
+                        // Stop countdown if no active rate limits
+                        if (!hasActiveRateLimits && this.countdownInterval) {
+                            clearInterval(this.countdownInterval);
+                            this.countdownInterval = null;
+                        }
+                    }, 1000);
                 },
 
                 showSuccess(message) {

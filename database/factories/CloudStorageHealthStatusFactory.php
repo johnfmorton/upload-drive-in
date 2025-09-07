@@ -34,7 +34,17 @@ class CloudStorageHealthStatusFactory extends Factory
                 'invalid_file_type',
                 'unknown_error',
             ]),
-            'last_error_message' => $this->faker->optional()->sentence(),
+            'last_error_message' => $this->faker->optional()->randomElement([
+                'Too many token refresh attempts. Please try again later.',
+                'Authentication required. Please reconnect your account.',
+                'Network connection timeout after 30 seconds',
+                'API rate limit exceeded - quota reset in 45 minutes',
+                'OAuth token has expired and refresh failed',
+                'Insufficient permissions - full access required',
+                'Storage quota exceeded - 15GB limit reached',
+                'Temporary service unavailability detected',
+                null,
+            ]),
             'token_expires_at' => $this->faker->optional()->dateTimeBetween('now', '+1 month'),
             'last_token_refresh_attempt_at' => $this->faker->optional()->dateTimeBetween('-1 day', 'now'),
             'token_refresh_failures' => $this->faker->numberBetween(0, 5),
@@ -86,7 +96,9 @@ class CloudStorageHealthStatusFactory extends Factory
                 'Network connection timeout after 30 seconds',
                 'API rate limit exceeded - quota reset in 45 minutes',
                 'Temporary service unavailability detected',
-                'Connection latency exceeds acceptable thresholds'
+                'Connection latency exceeds acceptable thresholds',
+                'Too many token refresh attempts. Please try again later.',
+                'Upload failed due to network instability'
             ]),
             'requires_reconnection' => false,
             'operational_test_result' => ['test' => 'failed', 'error' => 'Connection timeout'],
@@ -105,10 +117,12 @@ class CloudStorageHealthStatusFactory extends Factory
             'token_refresh_failures' => $this->faker->numberBetween(3, 5),
             'last_error_type' => $this->faker->randomElement(['token_expired', 'insufficient_permissions', 'invalid_credentials']),
             'last_error_message' => $this->faker->randomElement([
+                'Authentication required. Please reconnect your account.',
                 'OAuth token has expired and refresh failed',
                 'Insufficient permissions - full access required',
                 'Invalid client credentials detected',
-                'Authentication failed after multiple attempts'
+                'Authentication failed after multiple attempts',
+                'Account access has been revoked'
             ]),
             'requires_reconnection' => true,
             'operational_test_result' => ['test' => 'failed', 'error' => 'Authentication failed'],
@@ -175,9 +189,54 @@ class CloudStorageHealthStatusFactory extends Factory
             'token_refresh_failures' => $this->faker->numberBetween(5, 8),
             'last_token_refresh_attempt_at' => now()->subMinutes($this->faker->numberBetween(1, 30)),
             'last_error_type' => 'token_refresh_rate_limited',
-            'last_error_message' => 'Too many token refresh attempts - rate limit exceeded',
+            'last_error_message' => 'Too many token refresh attempts. Please try again later.',
             'requires_reconnection' => false,
             'operational_test_result' => ['test' => 'failed', 'error' => 'Rate limit exceeded'],
+            'provider_specific_data' => [
+                'rate_limited' => true,
+                'rate_limit_reset_at' => now()->addMinutes($this->faker->numberBetween(5, 60))->toISOString(),
+                'retry_after' => $this->faker->numberBetween(300, 3600), // 5 minutes to 1 hour
+                'remaining_attempts' => 0,
+            ],
+        ]);
+    }
+
+    /**
+     * Indicate that the provider has specific authentication errors.
+     */
+    public function authenticationRequired(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'unhealthy',
+            'consolidated_status' => 'authentication_required',
+            'consecutive_failures' => $this->faker->numberBetween(3, 7),
+            'token_refresh_failures' => $this->faker->numberBetween(2, 5),
+            'last_error_type' => $this->faker->randomElement(['token_expired', 'invalid_credentials', 'insufficient_permissions']),
+            'last_error_message' => 'Authentication required. Please reconnect your account.',
+            'requires_reconnection' => true,
+            'operational_test_result' => ['test' => 'failed', 'error' => 'Authentication failed'],
+        ]);
+    }
+
+    /**
+     * Indicate that the provider has realistic connection issues.
+     */
+    public function connectionIssues(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'degraded',
+            'consolidated_status' => 'connection_issues',
+            'consecutive_failures' => $this->faker->numberBetween(2, 5),
+            'token_refresh_failures' => $this->faker->numberBetween(0, 2),
+            'last_error_type' => $this->faker->randomElement(['network_error', 'timeout', 'api_quota_exceeded']),
+            'last_error_message' => $this->faker->randomElement([
+                'Network connection timeout after 30 seconds',
+                'API rate limit exceeded - quota reset in 45 minutes',
+                'Temporary service unavailability detected',
+                'Upload failed due to network instability'
+            ]),
+            'requires_reconnection' => false,
+            'operational_test_result' => ['test' => 'failed', 'error' => 'Connection timeout'],
         ]);
     }
 

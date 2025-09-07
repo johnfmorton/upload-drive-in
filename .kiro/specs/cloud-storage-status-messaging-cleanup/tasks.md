@@ -32,29 +32,29 @@
   - ✅ Add proper handling for rate limiting scenarios with retry time display (already implemented)
   - _Requirements: 2.1, 2.2, 2.3, 4.1, 4.2_
 
-- [-] 6. Create comprehensive unit tests for message consistency
-  - ✅ Test rate limiting message takes priority over generic connection issues
-  - ✅ Test that healthy status doesn't show contradictory error messages
-  - ✅ Test message generation for all error types and contexts
-  - ✅ Test priority resolution when multiple errors exist
+- [x] 6. Create comprehensive unit tests for message consistency
+  - Test rate limiting message takes priority over generic connection issues
+  - Test that healthy status doesn't show contradictory error messages
+  - Test message generation for all error types and contexts
+  - Test priority resolution when multiple errors exist
   - _Requirements: 3.3, 5.1, 5.2_
 
-- [ ] 7. Add integration tests for cross-component message consistency
-  - ✅ Test that dashboard and modal components show identical messages for same errors
-  - ✅ Test that admin and employee interfaces show consistent messaging
-  - ✅ Test that status refresh maintains message consistency
-  - ✅ Verify no redundant or contradictory messages appear in any interface
+- [x] 7. Add integration tests for cross-component message consistency
+  - Test that dashboard and modal components show identical messages for same errors
+  - Test that admin and employee interfaces show consistent messaging
+  - Test that status refresh maintains message consistency
+  - Verify no redundant or contradictory messages appear in any interface
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [ ] 8. Implement rate limiting protection for test connection buttons
-  - ✅ Add client-side button disabling after test attempts to prevent rapid clicking (already implemented in widget)
-  - ✅ Implement server-side rate limiting for test connection endpoints (token.refresh.rate.limit middleware)
-  - ✅ Show countdown timer when rate limit is reached instead of generic error (handled by centralized messaging)
-  - ✅ Add visual feedback showing remaining cooldown time before next test is allowed (implemented in status widget)
+- [x] 8. Implement rate limiting protection for test connection buttons
+  - Add client-side button disabling after test attempts to prevent rapid clicking (already implemented in widget)
+  - Implement server-side rate limiting for test connection endpoints (token.refresh.rate.limit middleware)
+  - Show countdown timer when rate limit is reached instead of generic error (handled by centralized messaging)
+  - Add visual feedback showing remaining cooldown time before next test is allowed (implemented in status widget)
   - _Requirements: 4.2, 4.4_
 
-- [x] 9. Update factory and test data to use realistic error scenarios
-  - ✅ Update `CloudStorageHealthStatusFactory` to generate realistic error contexts
-  - ✅ Remove generic "Connection issues detected" from test data
-  - ✅ Add factory states for rate limiting and specific error scenarios
+- [ ] 9. Update factory and test data to use realistic error scenarios
+  - Update `CloudStorageHealthStatusFactory` to generate realistic error contexts
+  - Remove generic "Connection issues detected" from test data
+  - Add factory states for rate limiting and specific error scenarios
   - _Requirements: 5.3, 5.4_

@@ -5,7 +5,7 @@ namespace Tests\Unit\Services;
 use App\Enums\CloudStorageErrorType;
 use App\Services\CloudStorageErrorMessageService;
 use App\Services\CloudStorageStatusMessages;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class CloudStorageErrorMessageServiceTest extends TestCase
 {
@@ -245,7 +245,7 @@ class CloudStorageErrorMessageServiceTest extends TestCase
 
         // Should not show technical HTTP error message to users
         $this->assertStringNotContainsString('HTTP 429', $message);
-        $this->assertStringContainsString('Connection issues detected', $message);
+        $this->assertStringContainsString('Connection issue detected', $message);
     }
 
     public function test_message_consistency_validation()
