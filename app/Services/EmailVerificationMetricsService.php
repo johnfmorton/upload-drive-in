@@ -132,7 +132,7 @@ class EmailVerificationMetricsService
             $alerts[] = [
                 'type' => 'bypass_spike',
                 'severity' => 'warning',
-                'message' => 'Unusual spike in existing user bypasses in the last hour',
+                'message' => __('messages.email_verification_bypass_spike_alert'),
                 'count' => count($recentEvents),
                 'threshold' => 10
             ];
@@ -145,7 +145,10 @@ class EmailVerificationMetricsService
                 $alerts[] = [
                     'type' => 'repeated_bypass',
                     'severity' => 'info',
-                    'message' => "User {$userId} has bypassed restrictions {$count} times",
+                    'message' => __('messages.email_verification_repeated_bypass_alert', [
+                        'user_id' => $userId,
+                        'count' => $count
+                    ]),
                     'user_id' => $userId,
                     'count' => $count
                 ];
@@ -163,7 +166,9 @@ class EmailVerificationMetricsService
                 $alerts[] = [
                     'type' => 'unusual_domain',
                     'severity' => 'info',
-                    'message' => "Multiple bypasses from domain: {$domain}",
+                    'message' => __('messages.email_verification_unusual_domain_alert', [
+                        'domain' => $domain
+                    ]),
                     'domain' => $domain,
                     'count' => $count
                 ];

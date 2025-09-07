@@ -139,7 +139,7 @@
   - Add alerting for unusual bypass patterns
   - _Requirements: 6.5_
 
-- [ ] 11. Update documentation
+- [x] 11. Update documentation
   - Update API documentation to reflect new behavior
   - Document the existing user bypass logic
   - Add troubleshooting guide for restriction issues

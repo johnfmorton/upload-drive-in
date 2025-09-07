@@ -47,7 +47,10 @@ class EmailVerificationAlertCommand extends Command
             $alerts[] = [
                 'type' => 'high_bypass_volume',
                 'severity' => 'warning',
-                'message' => "High volume of existing user bypasses: {$bypassPatterns['total_bypasses']} in the last hour (threshold: {$bypassThreshold})",
+                'message' => __('messages.email_verification_high_bypass_volume_alert', [
+                    'count' => $bypassPatterns['total_bypasses'],
+                    'threshold' => $bypassThreshold
+                ]),
                 'data' => [
                     'count' => $bypassPatterns['total_bypasses'],
                     'threshold' => $bypassThreshold,
@@ -61,7 +64,10 @@ class EmailVerificationAlertCommand extends Command
             $alerts[] = [
                 'type' => 'high_restriction_volume',
                 'severity' => 'warning',
-                'message' => "High volume of restriction enforcements: {$restrictionPatterns['total_restrictions']} in the last hour (threshold: {$restrictionThreshold})",
+                'message' => __('messages.email_verification_high_restriction_volume_alert', [
+                    'count' => $restrictionPatterns['total_restrictions'],
+                    'threshold' => $restrictionThreshold
+                ]),
                 'data' => [
                     'count' => $restrictionPatterns['total_restrictions'],
                     'threshold' => $restrictionThreshold,
@@ -84,13 +90,13 @@ class EmailVerificationAlertCommand extends Command
             $alerts[] = [
                 'type' => 'no_activity',
                 'severity' => 'info',
-                'message' => 'No email verification activity detected during business hours - possible system issue',
+                'message' => __('messages.email_verification_no_activity_alert'),
                 'data' => ['hour' => now()->format('H:i')]
             ];
         }
 
         if (empty($alerts)) {
-            $this->info('✅ No alerts detected');
+            $this->info('✅ ' . __('messages.email_verification_no_alerts_detected'));
             return Command::SUCCESS;
         }
 
@@ -108,7 +114,7 @@ class EmailVerificationAlertCommand extends Command
         // Check cooldown
         $lastAlert = Cache::get(self::ALERT_CACHE_KEY);
         if ($lastAlert && now()->diffInSeconds($lastAlert) < self::ALERT_COOLDOWN) {
-            $this->info('Alert cooldown active, skipping notifications');
+            $this->info(__('messages.email_verification_alert_cooldown_active'));
             return;
         }
 
@@ -178,7 +184,7 @@ class EmailVerificationAlertCommand extends Command
                         ->subject($subject);
             });
 
-            $this->info("📧 Alert email sent to {$email}");
+            $this->info('📧 ' . __('messages.email_verification_alert_email_sent', ['email' => $email]));
             
             Log::info('Email verification alert sent', [
                 'recipient' => $email,
@@ -187,7 +193,7 @@ class EmailVerificationAlertCommand extends Command
             ]);
 
         } catch (\Exception $e) {
-            $this->error("Failed to send alert email: {$e->getMessage()}");
+            $this->error(__('messages.email_verification_alert_email_failed', ['error' => $e->getMessage()]));
             
             Log::error('Failed to send email verification alert', [
                 'error' => $e->getMessage(),

@@ -153,7 +153,7 @@ class EmailVerificationMetricsCommand extends Command
         $alerts = $bypassPatterns['unusual_patterns'] ?? [];
 
         if (empty($alerts)) {
-            $this->info('✅ No unusual activity detected in the last 24 hours');
+            $this->info('✅ ' . __('messages.email_verification_no_unusual_activity_24h'));
             return;
         }
 
@@ -167,7 +167,7 @@ class EmailVerificationMetricsCommand extends Command
     private function displayUnusualActivity(array $alerts): void
     {
         if (empty($alerts)) {
-            $this->info('✅ No unusual activity detected');
+            $this->info('✅ ' . __('messages.email_verification_no_unusual_activity'));
             return;
         }
 

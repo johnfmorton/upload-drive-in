@@ -42,11 +42,11 @@ class EmailVerificationMetricsDashboard extends Component
         $ratio = $this->metrics['last_24_hours']['bypass_to_restriction_ratio'];
         
         if ($ratio === PHP_FLOAT_MAX) {
-            return 'All bypasses';
+            return __('messages.email_verification_dashboard_all_bypasses');
         }
         
         if ($ratio === 0) {
-            return 'No bypasses';
+            return __('messages.email_verification_dashboard_no_bypasses');
         }
         
         return number_format($ratio, 2) . ':1';
@@ -119,21 +119,21 @@ class EmailVerificationMetricsDashboard extends Component
                         $this->metrics['last_24_hours']['restriction_enforcements'];
         
         $status = 'normal';
-        $message = 'System operating normally';
+        $message = __('messages.email_verification_dashboard_system_normal');
         
         if ($this->hasHighSeverityAlerts()) {
             $status = 'warning';
-            $message = 'Unusual activity detected';
+            $message = __('messages.email_verification_dashboard_unusual_activity');
         }
         
         if ($totalActivity === 0) {
             $status = 'info';
-            $message = 'No recent activity';
+            $message = __('messages.email_verification_dashboard_no_recent_activity');
         }
         
         if ($this->metrics['last_24_hours']['existing_user_bypasses'] > 50) {
             $status = 'warning';
-            $message = 'High bypass volume';
+            $message = __('messages.email_verification_dashboard_high_bypass_volume');
         }
         
         return [
