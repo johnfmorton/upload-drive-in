@@ -219,9 +219,14 @@
     'breadcrumb_admin' => 'Admin',
 
     // Security and Registration Validation Messages
-    'public_registration_disabled' => 'Public registration is currently disabled for security reasons. Please contact the administrator for access.',
-    'email_domain_not_allowed' => 'This email domain is not allowed to register due to security policies. Please use an approved email domain.',
+    'public_registration_disabled' => 'New user registration is currently disabled. If you already have an account, please try again or contact support.',
+    'email_domain_not_allowed' => 'This email domain is not allowed for new registrations. If you already have an account, please try again or contact support.',
     'security_settings_saved' => 'Security settings have been updated successfully.',
+    
+    // Enhanced verification messages for existing vs new users
+    'existing_user_verification_sent' => 'Verification email sent to your existing account. Please check your inbox.',
+    'new_user_verification_sent' => 'Verification email sent. Please check your inbox to complete registration.',
+    'registration_temporarily_unavailable' => 'Unable to process registration at this time. Please try again later.',
     'access_control_rules_updated' => 'Access control rules have been updated successfully.',
     'registration_security_updated' => 'Registration security settings have been updated successfully.',
     'domain_rules_validation_error' => 'Please check your domain rules format. Each rule should be on a separate line.',
@@ -295,6 +300,25 @@
     'verify_email_resend_button' => 'Resend Verification Email',
     'verify_email_button' => 'Verify Email Address',
     'verify_email_ignore' => 'If you did not request this verification, you can safely ignore this email.',
+
+    // Role-Based Email Verification
+    // Admin Verification
+    'admin_verify_email_subject' => 'Verify Your Administrator Email Address',
+    'admin_verify_email_title' => 'Verify Your Administrator Email Address',
+    'admin_verify_email_intro' => 'Welcome to the :company_name file management system. As an administrator, you have full access to manage users, configure cloud storage, and oversee all file uploads. Please verify your email address to complete your admin account setup.',
+    'admin_verify_email_button' => 'Verify Administrator Access',
+
+    // Employee Verification  
+    'employee_verify_email_subject' => 'Verify Your Employee Email Address',
+    'employee_verify_email_title' => 'Verify Your Employee Email Address',
+    'employee_verify_email_intro' => 'Welcome to :company_name! As an employee, you can receive client file uploads directly to your Google Drive and manage your own client relationships. Please verify your email address to start receiving client files.',
+    'employee_verify_email_button' => 'Verify Employee Access',
+
+    // Client Verification
+    'client_verify_email_subject' => 'Verify Your Email Address',
+    'client_verify_email_title' => 'Verify Your Email Address', 
+    'client_verify_email_intro' => 'To upload files to :company_name, please verify your email address by clicking on the link below. Once verified, you\'ll be able to securely upload files that will be delivered directly to the appropriate team member.',
+    'client_verify_email_button' => 'Verify Email Address',
 
     // Account Deletion Email
     'delete_account_email_title' => 'Confirm Account Deletion',
@@ -413,6 +437,12 @@
     'column_reset_url' => 'Reset URL',
     'button_copy_reset_url' => 'Copy Reset URL',
 
+    // Employee Creation Messages
+    'employee_created_success' => 'Employee user created successfully.',
+    'employee_created_and_invited_success' => 'Employee user created and verification email sent successfully.',
+    'employee_created_email_failed' => 'Employee user created but verification email failed to send. Please check the logs.',
+    'employee_creation_failed' => 'Failed to create employee user. Please check the logs.',
+
     // Public Employee Upload Page
     'drop_files_for' => 'Drop files for :name',
     'choose_files' => 'Choose files',
@@ -422,6 +452,22 @@
 
     // Profile Status Messages
     'profile_update_success' => 'Profile updated successfully.',
+
+    // Account Deletion Messages
+    'account_deletion_request_failed' => 'Failed to process deletion request. Please try again.',
+    'account_deletion_link_invalid' => 'The deletion confirmation link is invalid or has expired.',
+    'account_deletion_verification_invalid' => 'Invalid or expired verification link.',
+    'account_deletion_user_invalid' => 'Invalid user account.',
+    'account_deletion_success' => 'Your account and all associated data have been permanently deleted.',
+    'account_deletion_error' => 'An error occurred while deleting your account. Please try again or contact support.',
+    'account_deletion_unexpected_error' => 'An unexpected error occurred. Please try again or contact support.',
+
+    // Google Drive OAuth Error Messages
+    'oauth_authorization_code_missing' => 'Authorization code not provided.',
+    'oauth_state_parameter_missing' => 'State parameter missing.',
+    'oauth_state_parameter_invalid' => 'Invalid state parameter.',
+    'oauth_user_not_found' => 'User not found.',
+    'oauth_connection_validation_failed' => 'Connection established but validation failed. Please try reconnecting again.',
 
     // Client Dashboard
     'client_dashboard_title' => 'My Dashboard',
@@ -1277,4 +1323,73 @@
     // Additional Cloud Storage Status Messages
     'cloud_storage_status_retrieval_failed' => 'Unable to retrieve cloud storage status. Please try again.',
     'cloud_storage_health_check_failed' => 'Health check failed due to an unexpected error. Please try again.',
+
+    // Email Verification Metrics Service
+    'email_verification_bypass_spike_alert' => 'Unusual spike in existing user bypasses in the last hour',
+    'email_verification_repeated_bypass_alert' => 'User :user_id has bypassed restrictions :count times',
+    'email_verification_unusual_domain_alert' => 'Multiple bypasses from domain: :domain',
+    'email_verification_high_bypass_volume_alert' => 'High volume of existing user bypasses: :count in the last hour (threshold: :threshold)',
+    'email_verification_high_restriction_volume_alert' => 'High volume of restriction enforcements: :count in the last hour (threshold: :threshold)',
+    'email_verification_no_activity_alert' => 'No email verification activity detected during business hours - possible system issue',
+    'email_verification_no_alerts_detected' => 'No alerts detected',
+    'email_verification_no_unusual_activity' => 'No unusual activity detected',
+    'email_verification_no_unusual_activity_24h' => 'No unusual activity detected in the last 24 hours',
+    'email_verification_alert_cooldown_active' => 'Alert cooldown active, skipping notifications',
+    'email_verification_alert_email_sent' => 'Alert email sent to :email',
+    'email_verification_alert_email_failed' => 'Failed to send alert email: :error',
+    'email_verification_dashboard_all_bypasses' => 'All bypasses',
+    'email_verification_dashboard_no_bypasses' => 'No bypasses',
+    'email_verification_dashboard_system_normal' => 'System operating normally',
+    'email_verification_dashboard_unusual_activity' => 'Unusual activity detected',
+    'email_verification_dashboard_no_recent_activity' => 'No recent activity',
+    'email_verification_dashboard_high_bypass_volume' => 'High bypass volume',
+    'email_verification_dashboard_title' => 'Email Verification Metrics',
+    'email_verification_dashboard_last_hours' => 'Last :hours hours',
+    'email_verification_dashboard_existing_user_bypasses' => 'Existing User Bypasses',
+    'email_verification_dashboard_restrictions_enforced' => 'Restrictions Enforced',
+    'email_verification_dashboard_bypass_ratio' => 'Bypass Ratio',
+    'email_verification_dashboard_unusual_activity_alerts' => 'Unusual Activity Alerts',
+    'email_verification_dashboard_bypass_patterns' => 'Bypass Patterns',
+    'email_verification_dashboard_by_user_role' => 'By User Role',
+    'email_verification_dashboard_by_restriction_type' => 'By Restriction Type',
+    'email_verification_dashboard_top_bypass_domains' => 'Top Bypass Domains',
+    'email_verification_dashboard_restriction_enforcement' => 'Restriction Enforcement',
+    'email_verification_dashboard_top_blocked_domains' => 'Top Blocked Domains',
+    'email_verification_dashboard_activity_timeline' => 'Activity Timeline (Last :hours hours)',
+    'email_verification_dashboard_bypasses' => 'Bypasses',
+    'email_verification_dashboard_restrictions' => 'Restrictions',
+    'email_verification_dashboard_last_updated' => 'Last updated',
+    'email_verification_dashboard_refresh' => 'Refresh',
+    'email_verification_dashboard_count' => 'Count',
+
+    // Domain Rules Cache Service Messages
+    'domain_rules_cache_failed' => 'Failed to retrieve domain access rules from cache',
+    'domain_rules_cache_cleared' => 'Domain access rules cache has been cleared',
+    'domain_rules_cache_warmed' => 'Domain access rules cache has been warmed up',
+    'domain_rules_not_configured' => 'No domain access rules configured - using default settings',
+    'domain_rules_email_check_completed' => 'Email domain validation completed',
+    'domain_rules_cache_statistics' => 'Domain Rules Cache Statistics',
+    'domain_rules_cache_performance' => 'Cache Performance',
+    'domain_rules_query_performance' => 'Database Query Performance',
+
+    // Cache Statistics Labels
+    'cache_hit' => 'Cache Hit',
+    'cache_miss' => 'Cache Miss',
+    'cache_key' => 'Cache Key',
+    'cache_ttl' => 'Cache TTL (seconds)',
+    'rules_loaded' => 'Rules Loaded',
+    'rules_mode' => 'Rules Mode',
+    'rules_count' => 'Number of Rules',
+    'query_time' => 'Query Time (ms)',
+    'total_time' => 'Total Time (ms)',
+    'warm_up_time' => 'Warm-up Time (ms)',
+
+    // Domain Rules Cache Command Messages
+    'domain_rules_cache_command_invalid_action' => 'Invalid action. Use: stats, clear, or warm',
+    'domain_rules_cache_command_stats_title' => 'Domain Rules Cache Statistics',
+    'domain_rules_cache_command_property' => 'Property',
+    'domain_rules_cache_command_value' => 'Value',
+    'domain_rules_cache_command_yes' => 'Yes',
+    'domain_rules_cache_command_no' => 'No',
+    'domain_rules_cache_command_seconds' => 'seconds',
 ];

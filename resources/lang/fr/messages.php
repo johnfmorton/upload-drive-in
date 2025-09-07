@@ -49,6 +49,95 @@ return [
     'google_drive_action_storage_quota_exceeded_1' => 'Libérez de l\'espace dans votre compte Google Drive',
     'google_drive_action_storage_quota_exceeded_2' => 'Videz votre corbeille Google Drive',
 
+    // Employee Management
+    'nav_employee_management' => 'Gestion des Employés',
+    'employee_management_title' => 'Gestion des Employés',
+    'create_employee_title' => 'Créer un Nouvel Employé',
+    'employees_list_title' => 'Utilisateurs Employés',
+    'button_create_employee' => 'Créer un Employé',
+    'no_employees_match_filter' => 'Aucun employé ne correspond à vos critères de filtre',
+    'no_employees_found' => 'Aucun employé trouvé',
+    'column_reset_url' => 'URL de Réinitialisation',
+    'button_copy_reset_url' => 'Copier l\'URL de Réinitialisation',
+
+    // Employee Creation Messages
+    'employee_created_success' => 'Utilisateur employé créé avec succès.',
+    'employee_created_and_invited_success' => 'Utilisateur employé créé et e-mail de vérification envoyé avec succès.',
+    'employee_created_email_failed' => 'Utilisateur employé créé mais l\'e-mail de vérification n\'a pas pu être envoyé. Veuillez vérifier les journaux.',
+    'employee_creation_failed' => 'Échec de la création de l\'utilisateur employé. Veuillez vérifier les journaux.',
+
+    // Role-Based Email Verification
+    // Admin Verification
+    'admin_verify_email_subject' => 'Vérifiez votre Adresse E-mail d\'Administrateur',
+    'admin_verify_email_title' => 'Vérifiez votre Adresse E-mail d\'Administrateur',
+    'admin_verify_email_intro' => 'Bienvenue dans le système de gestion de fichiers de :company_name. En tant qu\'administrateur, vous avez un accès complet pour gérer les utilisateurs, configurer le stockage cloud et superviser tous les téléchargements de fichiers. Veuillez vérifier votre adresse e-mail pour terminer la configuration de votre compte administrateur.',
+    'admin_verify_email_button' => 'Vérifier l\'Accès Administrateur',
+
+    // Employee Verification  
+    'employee_verify_email_subject' => 'Vérifiez votre Adresse E-mail d\'Employé',
+    'employee_verify_email_title' => 'Vérifiez votre Adresse E-mail d\'Employé',
+    'employee_verify_email_intro' => 'Bienvenue chez :company_name ! En tant qu\'employé, vous pouvez recevoir les téléchargements de fichiers clients directement dans votre Google Drive et gérer vos propres relations clients. Veuillez vérifier votre adresse e-mail pour commencer à recevoir les fichiers clients.',
+    'employee_verify_email_button' => 'Vérifier l\'Accès Employé',
+
+    // Client Verification
+    'client_verify_email_subject' => 'Vérifiez votre Adresse E-mail',
+    'client_verify_email_title' => 'Vérifiez votre Adresse E-mail', 
+    'client_verify_email_intro' => 'Pour télécharger des fichiers vers :company_name, veuillez vérifier votre adresse e-mail en cliquant sur le lien ci-dessous. Une fois vérifié, vous pourrez télécharger des fichiers en toute sécurité qui seront livrés directement au membre de l\'équipe approprié.',
+    'client_verify_email_button' => 'Vérifier l\'Adresse E-mail',
+
+    // Shared elements
+    'verify_email_ignore' => 'Si vous n\'avez pas demandé cette vérification, vous pouvez ignorer cet e-mail en toute sécurité.',
+    'thanks_signature' => 'Merci',
+
+    // Admin User Creation Messages
+    'admin_user_created' => 'Utilisateur client créé avec succès. Vous pouvez leur fournir le lien de connexion manuellement.',
+    'admin_user_created_and_invited' => 'Utilisateur client créé et invitation envoyée avec succès.',
+    'admin_user_created_email_failed' => 'Utilisateur client créé avec succès, mais l\'e-mail d\'invitation n\'a pas pu être envoyé. Vous pouvez leur fournir le lien de connexion manuellement.',
+    'admin_user_creation_failed' => 'Échec de la création de l\'utilisateur client. Veuillez réessayer.',
+
+    // Employee Client Creation Messages
+    'employee_client_created' => 'Utilisateur client créé avec succès. Vous pouvez leur fournir le lien de connexion manuellement.',
+    'employee_client_created_and_invited' => 'Utilisateur client créé et invitation envoyée avec succès.',
+    'employee_client_created_email_failed' => 'Utilisateur client créé avec succès, mais l\'e-mail d\'invitation n\'a pas pu être envoyé. Vous pouvez leur fournir le lien de connexion manuellement.',
+    'employee_client_creation_failed' => 'Échec de la création de l\'utilisateur client. Veuillez réessayer.',
+
+    // Account Deletion Messages
+    'account_deletion_request_failed' => 'Échec du traitement de la demande de suppression. Veuillez réessayer.',
+    'account_deletion_link_invalid' => 'Le lien de confirmation de suppression est invalide ou a expiré.',
+    'account_deletion_verification_invalid' => 'Lien de vérification invalide ou expiré.',
+    'account_deletion_user_invalid' => 'Compte utilisateur invalide.',
+    'account_deletion_success' => 'Votre compte et toutes les données associées ont été supprimés définitivement.',
+    'account_deletion_error' => 'Une erreur s\'est produite lors de la suppression de votre compte. Veuillez réessayer ou contacter le support.',
+    'account_deletion_unexpected_error' => 'Une erreur inattendue s\'est produite. Veuillez réessayer ou contacter le support.',
+
+    // Google Drive OAuth Error Messages
+    'oauth_authorization_code_missing' => 'Code d\'autorisation non fourni.',
+    'oauth_state_parameter_missing' => 'Paramètre d\'état manquant.',
+    'oauth_state_parameter_invalid' => 'Paramètre d\'état invalide.',
+    'oauth_user_not_found' => 'Utilisateur non trouvé.',
+    'oauth_connection_validation_failed' => 'Connexion établie mais la validation a échoué. Veuillez essayer de vous reconnecter.',
+
+    // Enhanced Validation Messages
+    'validation_name_required' => 'Le champ nom est obligatoire.',
+    'validation_name_string' => 'Le nom doit être une chaîne de texte valide.',
+    'validation_name_max' => 'Le nom ne peut pas dépasser 255 caractères.',
+    'validation_email_required' => 'Le champ e-mail est obligatoire.',
+    'validation_email_format' => 'L\'e-mail doit avoir un format valide.',
+    'validation_action_required' => 'Le champ action est obligatoire.',
+    'validation_action_invalid' => 'L\'action sélectionnée est invalide.',
+    'validation_team_members_required' => 'Au moins un membre de l\'équipe doit être sélectionné.',
+    'validation_team_members_min' => 'Au moins un membre de l\'équipe doit être sélectionné.',
+    'validation_team_member_invalid' => 'Un ou plusieurs membres de l\'équipe sélectionnés sont invalides.',
+    'validation_primary_contact_required' => 'Un contact principal doit être sélectionné.',
+    'validation_primary_contact_invalid' => 'Le contact principal sélectionné est invalide.',
+    'validation_primary_contact_not_in_team' => 'Le contact principal doit être membre de l\'équipe sélectionnée.',
+    'validation_team_members_unauthorized' => 'Vous n\'êtes pas autorisé à assigner un ou plusieurs des membres de l\'équipe sélectionnés.',
+    'validation_primary_contact_unauthorized' => 'Vous n\'êtes pas autorisé à assigner ce contact principal.',
+
+    // Team Assignment Messages
+    'team_assignments_updated_success' => 'Assignations d\'équipe mises à jour avec succès.',
+    'team_assignments_update_failed' => 'Échec de la mise à jour des assignations d\'équipe. Veuillez réessayer.',
+
     // Cloud Storage Status Messages (from CloudStorageStatusMessages class)
     'cloud_storage_rate_limited' => 'Trop de tentatives de renouvellement de token. Veuillez réessayer plus tard.',
     'cloud_storage_auth_required' => 'Authentification requise. Veuillez reconnecter votre compte.',
@@ -690,4 +779,126 @@ return [
     'health_user_not_found' => 'Utilisateur non trouvé',
     'health_batch_processing_failed' => 'Traitement par lots échoué : :message',
     'health_validation_rate_limited' => 'Validation de santé limitée par débit - veuillez réessayer plus tard',
+
+    // Vérification d'Email
+    'verify_email_title' => 'Vérifiez Votre Adresse Email',
+    'verify_email_intro' => 'Pour télécharger des fichiers vers :company_name, veuillez vérifier votre adresse email en cliquant sur le lien ci-dessous.',
+    'verify_email_sent' => 'Un nouveau lien de vérification a été envoyé à l\'adresse email que vous avez fournie lors de l\'inscription.',
+    'verify_email_resend_button' => 'Renvoyer l\'Email de Vérification',
+    'verify_email_button' => 'Vérifier l\'Adresse Email',
+    'verify_email_ignore' => 'Si vous n\'avez pas demandé cette vérification, vous pouvez ignorer cet email en toute sécurité.',
+
+    // Vérification d'Email Basée sur les Rôles
+    // Vérification Administrateur
+    'admin_verify_email_subject' => 'Vérifiez Votre Adresse Email d\'Administrateur',
+    'admin_verify_email_title' => 'Vérifiez Votre Adresse Email d\'Administrateur',
+    'admin_verify_email_intro' => 'Bienvenue dans le système de gestion de fichiers de :company_name. En tant qu\'administrateur, vous avez un accès complet pour gérer les utilisateurs, configurer le stockage cloud et superviser tous les téléchargements de fichiers. Veuillez vérifier votre adresse email pour terminer la configuration de votre compte administrateur.',
+    'admin_verify_email_button' => 'Vérifier l\'Accès Administrateur',
+
+    // Vérification Employé  
+    'employee_verify_email_subject' => 'Vérifiez Votre Adresse Email d\'Employé',
+    'employee_verify_email_title' => 'Vérifiez Votre Adresse Email d\'Employé',
+    'employee_verify_email_intro' => 'Bienvenue chez :company_name ! En tant qu\'employé, vous pouvez recevoir les téléchargements de fichiers clients directement dans votre Google Drive et gérer vos propres relations clients. Veuillez vérifier votre adresse email pour commencer à recevoir les fichiers clients.',
+    'employee_verify_email_button' => 'Vérifier l\'Accès Employé',
+
+    // Vérification Client
+    'client_verify_email_subject' => 'Vérifiez Votre Adresse Email',
+    'client_verify_email_title' => 'Vérifiez Votre Adresse Email', 
+    'client_verify_email_intro' => 'Pour télécharger des fichiers vers :company_name, veuillez vérifier votre adresse email en cliquant sur le lien ci-dessous. Une fois vérifié, vous pourrez télécharger des fichiers en toute sécurité qui seront livrés directement au membre de l\'équipe approprié.',
+    'client_verify_email_button' => 'Vérifier l\'Adresse Email',
+
+    // Éléments Communs
+    'thanks_signature' => 'Merci',
+
+    // Profil
+    'profile_information' => 'Informations du Profil',
+    'profile_update' => 'Mettre à Jour le Profil',
+    'profile_saved' => 'Profil mis à jour avec succès.',
+    'profile_update_info' => 'Mettez à jour les informations de profil et l\'adresse email de votre compte.',
+    'profile_name' => 'Nom',
+    'profile_email' => 'Email',
+    'profile_save' => 'Enregistrer',
+    'profile_email_unverified' => 'Votre adresse email n\'est pas vérifiée.',
+    'profile_email_verify_resend' => 'Cliquez ici pour renvoyer l\'email de vérification.',
+    'profile_email_verify_sent' => 'Un nouveau lien de vérification a été envoyé à votre adresse email.',
+
+    // Messages de Validation de Sécurité et d'Inscription
+    'public_registration_disabled' => 'L\'inscription de nouveaux utilisateurs est actuellement désactivée. Si vous avez déjà un compte, veuillez réessayer ou contacter le support.',
+    'email_domain_not_allowed' => 'Ce domaine email n\'est pas autorisé pour les nouvelles inscriptions. Si vous avez déjà un compte, veuillez réessayer ou contacter le support.',
+    'security_settings_saved' => 'Les paramètres de sécurité ont été mis à jour avec succès.',
+    
+    // Messages de vérification améliorés pour les utilisateurs existants vs nouveaux
+    'existing_user_verification_sent' => 'Email de vérification envoyé à votre compte existant. Veuillez vérifier votre boîte de réception.',
+    'new_user_verification_sent' => 'Email de vérification envoyé. Veuillez vérifier votre boîte de réception pour compléter l\'inscription.',
+    'registration_temporarily_unavailable' => 'Impossible de traiter l\'inscription pour le moment. Veuillez réessayer plus tard.',
+
+    // Service de Métriques de Vérification Email
+    'email_verification_bypass_spike_alert' => 'Pic inhabituel de contournements d\'utilisateurs existants dans la dernière heure',
+    'email_verification_repeated_bypass_alert' => 'L\'utilisateur :user_id a contourné les restrictions :count fois',
+    'email_verification_unusual_domain_alert' => 'Multiples contournements du domaine : :domain',
+    'email_verification_high_bypass_volume_alert' => 'Volume élevé de contournements d\'utilisateurs existants : :count dans la dernière heure (seuil : :threshold)',
+    'email_verification_high_restriction_volume_alert' => 'Volume élevé d\'application de restrictions : :count dans la dernière heure (seuil : :threshold)',
+    'email_verification_no_activity_alert' => 'Aucune activité de vérification email détectée pendant les heures ouvrables - problème système possible',
+    'email_verification_no_alerts_detected' => 'Aucune alerte détectée',
+    'email_verification_no_unusual_activity' => 'Aucune activité inhabituelle détectée',
+    'email_verification_no_unusual_activity_24h' => 'Aucune activité inhabituelle détectée dans les dernières 24 heures',
+    'email_verification_alert_cooldown_active' => 'Période de refroidissement des alertes active, notifications ignorées',
+    'email_verification_alert_email_sent' => 'Email d\'alerte envoyé à :email',
+    'email_verification_alert_email_failed' => 'Échec de l\'envoi de l\'email d\'alerte : :error',
+    'email_verification_dashboard_all_bypasses' => 'Tous les contournements',
+    'email_verification_dashboard_no_bypasses' => 'Aucun contournement',
+    'email_verification_dashboard_system_normal' => 'Système fonctionnant normalement',
+    'email_verification_dashboard_unusual_activity' => 'Activité inhabituelle détectée',
+    'email_verification_dashboard_no_recent_activity' => 'Aucune activité récente',
+    'email_verification_dashboard_high_bypass_volume' => 'Volume élevé de contournements',
+    'email_verification_dashboard_title' => 'Métriques de Vérification Email',
+    'email_verification_dashboard_last_hours' => 'Dernières :hours heures',
+    'email_verification_dashboard_existing_user_bypasses' => 'Contournements d\'Utilisateurs Existants',
+    'email_verification_dashboard_restrictions_enforced' => 'Restrictions Appliquées',
+    'email_verification_dashboard_bypass_ratio' => 'Ratio de Contournement',
+    'email_verification_dashboard_unusual_activity_alerts' => 'Alertes d\'Activité Inhabituelle',
+    'email_verification_dashboard_bypass_patterns' => 'Modèles de Contournement',
+    'email_verification_dashboard_by_user_role' => 'Par Rôle d\'Utilisateur',
+    'email_verification_dashboard_by_restriction_type' => 'Par Type de Restriction',
+    'email_verification_dashboard_top_bypass_domains' => 'Principaux Domaines de Contournement',
+    'email_verification_dashboard_restriction_enforcement' => 'Application des Restrictions',
+    'email_verification_dashboard_top_blocked_domains' => 'Principaux Domaines Bloqués',
+    'email_verification_dashboard_activity_timeline' => 'Chronologie d\'Activité (Dernières :hours heures)',
+    'email_verification_dashboard_bypasses' => 'Contournements',
+    'email_verification_dashboard_restrictions' => 'Restrictions',
+    'email_verification_dashboard_last_updated' => 'Dernière mise à jour',
+    'email_verification_dashboard_refresh' => 'Actualiser',
+    'email_verification_dashboard_count' => 'Nombre',
+
+    // Domain Rules Cache Service Messages
+    'domain_rules_cache_failed' => 'Échec de la récupération des règles d\'accès de domaine depuis le cache',
+    'domain_rules_cache_cleared' => 'Le cache des règles d\'accès de domaine a été vidé',
+    'domain_rules_cache_warmed' => 'Le cache des règles d\'accès de domaine a été préchauffé',
+    'domain_rules_not_configured' => 'Aucune règle d\'accès de domaine configurée - utilisation des paramètres par défaut',
+    'domain_rules_email_check_completed' => 'Validation du domaine de l\'e-mail terminée',
+    'domain_rules_cache_statistics' => 'Statistiques du Cache des Règles de Domaine',
+    'domain_rules_cache_performance' => 'Performance du Cache',
+    'domain_rules_query_performance' => 'Performance des Requêtes de Base de Données',
+
+    // Cache Statistics Labels
+    'cache_hit' => 'Succès de Cache',
+    'cache_miss' => 'Échec de Cache',
+    'cache_key' => 'Clé de Cache',
+    'cache_ttl' => 'TTL de Cache (secondes)',
+    'rules_loaded' => 'Règles Chargées',
+    'rules_mode' => 'Mode des Règles',
+    'rules_count' => 'Nombre de Règles',
+    'query_time' => 'Temps de Requête (ms)',
+    'total_time' => 'Temps Total (ms)',
+    'warm_up_time' => 'Temps de Préchauffage (ms)',
+
+    // Domain Rules Cache Command Messages
+    'domain_rules_cache_command_invalid_action' => 'Action invalide. Utilisez : stats, clear, ou warm',
+    'domain_rules_cache_command_stats_title' => 'Statistiques du Cache des Règles de Domaine',
+    'domain_rules_cache_command_property' => 'Propriété',
+    'domain_rules_cache_command_value' => 'Valeur',
+    'domain_rules_cache_command_yes' => 'Oui',
+    'domain_rules_cache_command_no' => 'Non',
+    'domain_rules_cache_command_seconds' => 'secondes',
+
 ];

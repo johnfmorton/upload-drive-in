@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Enums\UserRole;
-use App\Mail\LoginVerificationMail;
+use App\Mail\ClientVerificationMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -14,23 +14,23 @@ class EmailInvitationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_login_verification_mail_can_be_created()
+    public function test_client_verification_mail_can_be_created()
     {
         $loginUrl = 'http://example.com/login/token/123';
         
-        $mail = new LoginVerificationMail($loginUrl);
+        $mail = new ClientVerificationMail($loginUrl, 'client');
         
-        $this->assertInstanceOf(LoginVerificationMail::class, $mail);
+        $this->assertInstanceOf(ClientVerificationMail::class, $mail);
     }
 
-    public function test_login_verification_mail_has_correct_subject()
+    public function test_client_verification_mail_has_correct_subject()
     {
         $loginUrl = 'http://example.com/login/token/123';
         
-        $mail = new LoginVerificationMail($loginUrl);
+        $mail = new ClientVerificationMail($loginUrl, 'client');
         
         // Test that the mail object can be created successfully
-        $this->assertInstanceOf(LoginVerificationMail::class, $mail);
+        $this->assertInstanceOf(ClientVerificationMail::class, $mail);
         
         // Test that the mail has the login URL property
         $this->assertNotEmpty($loginUrl);
@@ -64,9 +64,9 @@ class EmailInvitationTest extends TestCase
         
         $loginUrl = 'http://example.com/login/token/123';
         
-        Mail::to($user->email)->send(new LoginVerificationMail($loginUrl));
+        Mail::to($user->email)->send(new ClientVerificationMail($loginUrl, 'client'));
         
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) use ($user) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) use ($user) {
             return $mail->hasTo($user->email);
         });
     }
@@ -82,9 +82,9 @@ class EmailInvitationTest extends TestCase
         
         $loginUrl = 'http://example.com/login/token/123';
         
-        Mail::to($user->email)->queue(new LoginVerificationMail($loginUrl));
+        Mail::to($user->email)->queue(new ClientVerificationMail($loginUrl, 'client'));
         
-        Mail::assertQueued(LoginVerificationMail::class, function ($mail) use ($user) {
+        Mail::assertQueued(ClientVerificationMail::class, function ($mail) use ($user) {
             return $mail->hasTo($user->email);
         });
     }
@@ -148,7 +148,7 @@ class EmailInvitationTest extends TestCase
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('SMTP connection failed');
         
-        Mail::to($user->email)->send(new LoginVerificationMail($loginUrl));
+        Mail::to($user->email)->send(new ClientVerificationMail($loginUrl, 'client'));
     }
 
     public function test_url_generation_with_expiration()
@@ -180,13 +180,13 @@ class EmailInvitationTest extends TestCase
         $loginUrl = 'http://example.com/login/token/123';
         
         foreach ($users as $user) {
-            Mail::to($user->email)->send(new LoginVerificationMail($loginUrl));
+            Mail::to($user->email)->send(new ClientVerificationMail($loginUrl, 'client'));
         }
         
-        Mail::assertSent(LoginVerificationMail::class, 3);
+        Mail::assertSent(ClientVerificationMail::class, 3);
         
         foreach ($users as $user) {
-            Mail::assertSent(LoginVerificationMail::class, function ($mail) use ($user) {
+            Mail::assertSent(ClientVerificationMail::class, function ($mail) use ($user) {
                 return $mail->hasTo($user->email);
             });
         }

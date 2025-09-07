@@ -49,6 +49,95 @@ return [
     'google_drive_action_storage_quota_exceeded_1' => 'Schaffen Sie Platz in Ihrem Google Drive-Konto',
     'google_drive_action_storage_quota_exceeded_2' => 'Leeren Sie Ihren Google Drive-Papierkorb',
 
+    // Employee Management
+    'nav_employee_management' => 'Mitarbeiterverwaltung',
+    'employee_management_title' => 'Mitarbeiterverwaltung',
+    'create_employee_title' => 'Neuen Mitarbeiter erstellen',
+    'employees_list_title' => 'Mitarbeiterbenutzer',
+    'button_create_employee' => 'Mitarbeiter erstellen',
+    'no_employees_match_filter' => 'Keine Mitarbeiter entsprechen Ihren Filterkriterien',
+    'no_employees_found' => 'Keine Mitarbeiter gefunden',
+    'column_reset_url' => 'Reset-URL',
+    'button_copy_reset_url' => 'Reset-URL kopieren',
+
+    // Employee Creation Messages
+    'employee_created_success' => 'Mitarbeiterbenutzer erfolgreich erstellt.',
+    'employee_created_and_invited_success' => 'Mitarbeiterbenutzer erstellt und Bestätigungs-E-Mail erfolgreich gesendet.',
+    'employee_created_email_failed' => 'Mitarbeiterbenutzer erstellt, aber Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte überprüfen Sie die Logs.',
+    'employee_creation_failed' => 'Fehler beim Erstellen des Mitarbeiterbenutzers. Bitte überprüfen Sie die Logs.',
+
+    // Role-Based Email Verification
+    // Admin Verification
+    'admin_verify_email_subject' => 'Bestätigen Sie Ihre Administrator-E-Mail-Adresse',
+    'admin_verify_email_title' => 'Bestätigen Sie Ihre Administrator-E-Mail-Adresse',
+    'admin_verify_email_intro' => 'Willkommen im :company_name Dateiverwaltungssystem. Als Administrator haben Sie vollständigen Zugriff auf die Benutzerverwaltung, Cloud-Speicher-Konfiguration und die Überwachung aller Datei-Uploads. Bitte bestätigen Sie Ihre E-Mail-Adresse, um die Einrichtung Ihres Admin-Kontos abzuschließen.',
+    'admin_verify_email_button' => 'Administrator-Zugang bestätigen',
+
+    // Employee Verification  
+    'employee_verify_email_subject' => 'Bestätigen Sie Ihre Mitarbeiter-E-Mail-Adresse',
+    'employee_verify_email_title' => 'Bestätigen Sie Ihre Mitarbeiter-E-Mail-Adresse',
+    'employee_verify_email_intro' => 'Willkommen bei :company_name! Als Mitarbeiter können Sie Kunden-Datei-Uploads direkt in Ihr Google Drive empfangen und Ihre eigenen Kundenbeziehungen verwalten. Bitte bestätigen Sie Ihre E-Mail-Adresse, um mit dem Empfang von Kundendateien zu beginnen.',
+    'employee_verify_email_button' => 'Mitarbeiter-Zugang bestätigen',
+
+    // Client Verification
+    'client_verify_email_subject' => 'Bestätigen Sie Ihre E-Mail-Adresse',
+    'client_verify_email_title' => 'Bestätigen Sie Ihre E-Mail-Adresse', 
+    'client_verify_email_intro' => 'Um Dateien an :company_name zu senden, bestätigen Sie bitte Ihre E-Mail-Adresse, indem Sie auf den untenstehenden Link klicken. Nach der Bestätigung können Sie sicher Dateien hochladen, die direkt an das entsprechende Teammitglied geliefert werden.',
+    'client_verify_email_button' => 'E-Mail-Adresse bestätigen',
+
+    // Shared elements
+    'verify_email_ignore' => 'Falls Sie diese Bestätigung nicht angefordert haben, können Sie diese E-Mail sicher ignorieren.',
+    'thanks_signature' => 'Vielen Dank',
+
+    // Admin User Creation Messages
+    'admin_user_created' => 'Kundenbenutzer erfolgreich erstellt. Sie können ihnen den Login-Link manuell bereitstellen.',
+    'admin_user_created_and_invited' => 'Kundenbenutzer erstellt und Einladung erfolgreich gesendet.',
+    'admin_user_created_email_failed' => 'Kundenbenutzer erfolgreich erstellt, aber Einladungs-E-Mail konnte nicht gesendet werden. Sie können ihnen den Login-Link manuell bereitstellen.',
+    'admin_user_creation_failed' => 'Fehler beim Erstellen des Kundenbenutzers. Bitte versuchen Sie es erneut.',
+
+    // Employee Client Creation Messages
+    'employee_client_created' => 'Kundenbenutzer erfolgreich erstellt. Sie können ihnen den Login-Link manuell bereitstellen.',
+    'employee_client_created_and_invited' => 'Kundenbenutzer erstellt und Einladung erfolgreich gesendet.',
+    'employee_client_created_email_failed' => 'Kundenbenutzer erfolgreich erstellt, aber Einladungs-E-Mail konnte nicht gesendet werden. Sie können ihnen den Login-Link manuell bereitstellen.',
+    'employee_client_creation_failed' => 'Fehler beim Erstellen des Kundenbenutzers. Bitte versuchen Sie es erneut.',
+
+    // Account Deletion Messages
+    'account_deletion_request_failed' => 'Fehler beim Verarbeiten der Löschungsanfrage. Bitte versuchen Sie es erneut.',
+    'account_deletion_link_invalid' => 'Der Bestätigungslink für die Löschung ist ungültig oder abgelaufen.',
+    'account_deletion_verification_invalid' => 'Ungültiger oder abgelaufener Bestätigungslink.',
+    'account_deletion_user_invalid' => 'Ungültiges Benutzerkonto.',
+    'account_deletion_success' => 'Ihr Konto und alle zugehörigen Daten wurden dauerhaft gelöscht.',
+    'account_deletion_error' => 'Ein Fehler ist beim Löschen Ihres Kontos aufgetreten. Bitte versuchen Sie es erneut oder kontaktieren Sie den Support.',
+    'account_deletion_unexpected_error' => 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut oder kontaktieren Sie den Support.',
+
+    // Google Drive OAuth Error Messages
+    'oauth_authorization_code_missing' => 'Autorisierungscode nicht bereitgestellt.',
+    'oauth_state_parameter_missing' => 'State-Parameter fehlt.',
+    'oauth_state_parameter_invalid' => 'Ungültiger State-Parameter.',
+    'oauth_user_not_found' => 'Benutzer nicht gefunden.',
+    'oauth_connection_validation_failed' => 'Verbindung hergestellt, aber Validierung fehlgeschlagen. Bitte versuchen Sie, die Verbindung erneut herzustellen.',
+
+    // Enhanced Validation Messages
+    'validation_name_required' => 'Das Namensfeld ist erforderlich.',
+    'validation_name_string' => 'Der Name muss eine gültige Textzeichenfolge sein.',
+    'validation_name_max' => 'Der Name darf nicht länger als 255 Zeichen sein.',
+    'validation_email_required' => 'Das E-Mail-Feld ist erforderlich.',
+    'validation_email_format' => 'Die E-Mail-Adresse muss ein gültiges Format haben.',
+    'validation_action_required' => 'Das Aktionsfeld ist erforderlich.',
+    'validation_action_invalid' => 'Die ausgewählte Aktion ist ungültig.',
+    'validation_team_members_required' => 'Mindestens ein Teammitglied muss ausgewählt werden.',
+    'validation_team_members_min' => 'Mindestens ein Teammitglied muss ausgewählt werden.',
+    'validation_team_member_invalid' => 'Ein oder mehrere ausgewählte Teammitglieder sind ungültig.',
+    'validation_primary_contact_required' => 'Ein Hauptansprechpartner muss ausgewählt werden.',
+    'validation_primary_contact_invalid' => 'Der ausgewählte Hauptansprechpartner ist ungültig.',
+    'validation_primary_contact_not_in_team' => 'Der Hauptansprechpartner muss ein Mitglied des ausgewählten Teams sein.',
+    'validation_team_members_unauthorized' => 'Sie sind nicht berechtigt, einen oder mehrere der ausgewählten Teammitglieder zuzuweisen.',
+    'validation_primary_contact_unauthorized' => 'Sie sind nicht berechtigt, diesen Hauptansprechpartner zuzuweisen.',
+
+    // Team Assignment Messages
+    'team_assignments_updated_success' => 'Teamzuweisungen erfolgreich aktualisiert.',
+    'team_assignments_update_failed' => 'Fehler beim Aktualisieren der Teamzuweisungen. Bitte versuchen Sie es erneut.',
+
     // Cloud Storage Status Messages (from CloudStorageStatusMessages class)
     'cloud_storage_rate_limited' => 'Zu viele Token-Erneuerungsversuche. Bitte versuchen Sie es später erneut.',
     'cloud_storage_auth_required' => 'Authentifizierung erforderlich. Bitte verbinden Sie Ihr Konto erneut.',
@@ -614,4 +703,57 @@ return [
     'token_status_hours' => 'Stunden',
     'token_status_day' => 'Tag',
     'token_status_days' => 'Tage',
+
+    // E-Mail-Verifizierung
+    'verify_email_title' => 'Verifizieren Sie Ihre E-Mail-Adresse',
+    'verify_email_intro' => 'Um Dateien an :company_name hochzuladen, verifizieren Sie bitte Ihre E-Mail-Adresse, indem Sie auf den untenstehenden Link klicken.',
+    'verify_email_sent' => 'Ein neuer Verifizierungslink wurde an die E-Mail-Adresse gesendet, die Sie bei der Registrierung angegeben haben.',
+    'verify_email_resend_button' => 'Verifizierungs-E-Mail erneut senden',
+    'verify_email_button' => 'E-Mail-Adresse verifizieren',
+    'verify_email_ignore' => 'Wenn Sie diese Verifizierung nicht angefordert haben, können Sie diese E-Mail sicher ignorieren.',
+
+    // Rollenbasierte E-Mail-Verifizierung
+    // Administrator-Verifizierung
+    'admin_verify_email_subject' => 'Verifizieren Sie Ihre Administrator-E-Mail-Adresse',
+    'admin_verify_email_title' => 'Verifizieren Sie Ihre Administrator-E-Mail-Adresse',
+    'admin_verify_email_intro' => 'Willkommen im :company_name Dateiverwaltungssystem. Als Administrator haben Sie vollständigen Zugriff auf die Benutzerverwaltung, Cloud-Speicher-Konfiguration und die Überwachung aller Datei-Uploads. Bitte verifizieren Sie Ihre E-Mail-Adresse, um die Einrichtung Ihres Admin-Kontos abzuschließen.',
+    'admin_verify_email_button' => 'Administrator-Zugang verifizieren',
+
+    // Mitarbeiter-Verifizierung  
+    'employee_verify_email_subject' => 'Verifizieren Sie Ihre Mitarbeiter-E-Mail-Adresse',
+    'employee_verify_email_title' => 'Verifizieren Sie Ihre Mitarbeiter-E-Mail-Adresse',
+    'employee_verify_email_intro' => 'Willkommen bei :company_name! Als Mitarbeiter können Sie Kunden-Datei-Uploads direkt in Ihr Google Drive empfangen und Ihre eigenen Kundenbeziehungen verwalten. Bitte verifizieren Sie Ihre E-Mail-Adresse, um mit dem Empfang von Kundendateien zu beginnen.',
+    'employee_verify_email_button' => 'Mitarbeiter-Zugang verifizieren',
+
+    // Kunden-Verifizierung
+    'client_verify_email_subject' => 'Verifizieren Sie Ihre E-Mail-Adresse',
+    'client_verify_email_title' => 'Verifizieren Sie Ihre E-Mail-Adresse', 
+    'client_verify_email_intro' => 'Um Dateien an :company_name hochzuladen, verifizieren Sie bitte Ihre E-Mail-Adresse, indem Sie auf den untenstehenden Link klicken. Nach der Verifizierung können Sie sicher Dateien hochladen, die direkt an das entsprechende Teammitglied geliefert werden.',
+    'client_verify_email_button' => 'E-Mail-Adresse verifizieren',
+
+    // Gemeinsame Elemente
+    'thanks_signature' => 'Vielen Dank',
+
+    // Profil
+    'profile_information' => 'Profilinformationen',
+    'profile_update' => 'Profil aktualisieren',
+    'profile_saved' => 'Profil erfolgreich aktualisiert.',
+    'profile_update_info' => 'Aktualisieren Sie die Profilinformationen und E-Mail-Adresse Ihres Kontos.',
+    'profile_name' => 'Name',
+    'profile_email' => 'E-Mail',
+    'profile_save' => 'Speichern',
+    'profile_email_unverified' => 'Ihre E-Mail-Adresse ist nicht verifiziert.',
+    'profile_email_verify_resend' => 'Klicken Sie hier, um die Verifizierungs-E-Mail erneut zu senden.',
+    'profile_email_verify_sent' => 'Ein neuer Verifizierungslink wurde an Ihre E-Mail-Adresse gesendet.',
+
+    // Sicherheits- und Registrierungsvalidierungsnachrichten
+    'public_registration_disabled' => 'Die Registrierung neuer Benutzer ist derzeit deaktiviert. Wenn Sie bereits ein Konto haben, versuchen Sie es erneut oder kontaktieren Sie den Support.',
+    'email_domain_not_allowed' => 'Diese E-Mail-Domain ist für neue Registrierungen nicht zugelassen. Wenn Sie bereits ein Konto haben, versuchen Sie es erneut oder kontaktieren Sie den Support.',
+    'security_settings_saved' => 'Die Sicherheitseinstellungen wurden erfolgreich aktualisiert.',
+    
+    // Erweiterte Verifizierungsnachrichten für bestehende vs. neue Benutzer
+    'existing_user_verification_sent' => 'Verifizierungs-E-Mail an Ihr bestehendes Konto gesendet. Bitte überprüfen Sie Ihren Posteingang.',
+    'new_user_verification_sent' => 'Verifizierungs-E-Mail gesendet. Bitte überprüfen Sie Ihren Posteingang, um die Registrierung abzuschließen.',
+    'registration_temporarily_unavailable' => 'Die Registrierung kann derzeit nicht verarbeitet werden. Bitte versuchen Sie es später erneut.',
+
 ];

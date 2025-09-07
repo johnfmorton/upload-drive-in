@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
-use App\Mail\LoginVerificationMail;
+use App\Mail\ClientVerificationMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -100,7 +100,7 @@ class DualUserCreationIntegrationTest extends TestCase
         ]);
 
         // Verify invitation email was sent
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('invited@example.com');
         });
     }
@@ -170,7 +170,7 @@ class DualUserCreationIntegrationTest extends TestCase
         ]);
 
         // Verify invitation email was sent
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('employee-invited@example.com');
         });
     }
@@ -204,7 +204,7 @@ class DualUserCreationIntegrationTest extends TestCase
         ]);
 
         // Verify invitation email was still sent
-        Mail::assertSent(LoginVerificationMail::class);
+        Mail::assertSent(ClientVerificationMail::class);
     }
 
     /** @test */
@@ -236,7 +236,7 @@ class DualUserCreationIntegrationTest extends TestCase
         ]);
 
         // Verify invitation email was still sent
-        Mail::assertSent(LoginVerificationMail::class);
+        Mail::assertSent(ClientVerificationMail::class);
     }
 
     /** @test */

@@ -36,7 +36,7 @@ class GoogleDriveUnifiedCallbackController extends Controller
             // Get the authorization code
             $code = $request->get('code');
             if (!$code) {
-                return $this->redirectWithError('Authorization code not provided.');
+                return $this->redirectWithError(__('messages.oauth_authorization_code_missing'));
             }
 
             // Handle error responses from OAuth provider
@@ -55,18 +55,18 @@ class GoogleDriveUnifiedCallbackController extends Controller
             // Decode state parameter to get user information
             $state = $request->get('state');
             if (!$state) {
-                return $this->redirectWithError('State parameter missing.');
+                return $this->redirectWithError(__('messages.oauth_state_parameter_missing'));
             }
 
             $stateData = json_decode(base64_decode($state), true);
             if (!$stateData || !isset($stateData['user_id'])) {
-                return $this->redirectWithError('Invalid state parameter.');
+                return $this->redirectWithError(__('messages.oauth_state_parameter_invalid'));
             }
 
             // Find the user
             $user = User::find($stateData['user_id']);
             if (!$user) {
-                return $this->redirectWithError('User not found.');
+                return $this->redirectWithError(__('messages.oauth_user_not_found'));
             }
 
             // Log the user in if they're not already authenticated
@@ -90,7 +90,7 @@ class GoogleDriveUnifiedCallbackController extends Controller
                 Log::error('Connection validation failed after OAuth callback', [
                     'user_id' => $user->id
                 ]);
-                return $this->redirectWithError('Connection established but validation failed. Please try reconnecting again.');
+                return $this->redirectWithError(__('messages.oauth_connection_validation_failed'));
             }
 
             // If this was a reconnection, attempt to retry pending uploads

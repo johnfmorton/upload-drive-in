@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
-use App\Models\EmailValidation;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\EmailVerificationMail;
 use Illuminate\Support\Facades\URL;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +19,6 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\FileUpload;
 use App\Mail\AccountDeletionMail;
 use App\Models\AccountDeletionRequest;
-use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -126,7 +123,7 @@ class ProfileController extends Controller
                     'trace' => $e->getTraceAsString()
                 ]);
 
-                return back()->withErrors(['userDeletion' => 'Failed to process deletion request. Please try again.']);
+                return back()->withErrors(['userDeletion' => __('messages.account_deletion_request_failed')]);
             }
         }
     }
@@ -137,7 +134,7 @@ class ProfileController extends Controller
             if (!$request->hasValidSignature()) {
                 Log::warning('Invalid or expired deletion confirmation URL accessed', ['email' => $email]);
                 return redirect()->route('home')
-                    ->with('error', 'The deletion confirmation link is invalid or has expired.');
+                    ->with('error', __('messages.account_deletion_link_invalid'));
             }
 
             $validation = AccountDeletionRequest::where('email', $email)
@@ -148,7 +145,7 @@ class ProfileController extends Controller
             if (!$validation) {
                 Log::warning('Invalid deletion confirmation attempt', ['email' => $email]);
                 return redirect()->route('home')
-                    ->with('error', 'Invalid or expired verification link.');
+                    ->with('error', __('messages.account_deletion_verification_invalid'));
             }
 
             $user = User::where('email', $email)->first();
@@ -156,7 +153,7 @@ class ProfileController extends Controller
             if (!$user || $user->isAdmin()) {
                 Log::warning('Invalid user account in deletion confirmation', ['email' => $email]);
                 return redirect()->route('home')
-                    ->with('error', 'Invalid user account.');
+                    ->with('error', __('messages.account_deletion_user_invalid'));
             }
 
             // Get the Google Drive service
@@ -177,7 +174,7 @@ class ProfileController extends Controller
                 DB::commit();
 
                 return redirect()->route('home')
-                    ->with('status', 'Your account and all associated data have been permanently deleted.');
+                    ->with('status', __('messages.account_deletion_success'));
             } catch (\Exception $e) {
                 DB::rollBack();
                 Log::error('Failed to delete user account during confirmation', [
@@ -187,7 +184,7 @@ class ProfileController extends Controller
                 ]);
 
                 return redirect()->route('home')
-                    ->with('error', 'An error occurred while deleting your account. Please try again or contact support.');
+                    ->with('error', __('messages.account_deletion_error'));
             }
         } catch (\Exception $e) {
             Log::error('Unexpected error in deletion confirmation', [
@@ -197,7 +194,7 @@ class ProfileController extends Controller
             ]);
 
             return redirect()->route('home')
-                ->with('error', 'An unexpected error occurred. Please try again or contact support.');
+                ->with('error', __('messages.account_deletion_unexpected_error'));
         }
     }
 

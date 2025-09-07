@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Mail\LoginVerificationMail;
+use App\Mail\ClientVerificationMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
@@ -67,7 +67,7 @@ class DualUserCreationEndToEndAdminTest extends TestCase
         ]);
         
         // Step 6: Verify no email was sent
-        Mail::assertNotSent(LoginVerificationMail::class);
+        Mail::assertNotSent(ClientVerificationMail::class);
         
         // Step 7: Verify admin can see the created user
         $response = $this->actingAs($this->adminUser)
@@ -112,7 +112,7 @@ class DualUserCreationEndToEndAdminTest extends TestCase
         
         // Step 5: Verify email was sent
         $clientUser = User::where('email', 'invited@example.com')->first();
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) use ($clientUser) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) use ($clientUser) {
             return $mail->hasTo('invited@example.com');
         });
         
@@ -155,7 +155,7 @@ class DualUserCreationEndToEndAdminTest extends TestCase
         $this->assertEquals(1, User::where('email', 'existing@example.com')->count());
         
         // Verify no email was sent for existing user
-        Mail::assertNotSent(LoginVerificationMail::class);
+        Mail::assertNotSent(ClientVerificationMail::class);
     }
 
     /** @test */

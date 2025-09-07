@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Admin\AdminUserController;
-use App\Mail\LoginVerificationMail;
+use App\Mail\ClientVerificationMail;
 use App\Models\User;
 use App\Services\ClientUserService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -171,7 +171,7 @@ class AdminUserControllerTest extends TestCase
         $this->assertEquals(302, $response->getStatusCode());
         $this->assertEquals(route('admin.users.index'), $response->getTargetUrl());
         
-        Mail::assertNotSent(LoginVerificationMail::class);
+        Mail::assertNotSent(ClientVerificationMail::class);
     }
 
     public function test_store_creates_user_with_invitation()
@@ -213,7 +213,7 @@ class AdminUserControllerTest extends TestCase
         $this->assertEquals(302, $response->getStatusCode());
         $this->assertEquals(route('admin.users.index'), $response->getTargetUrl());
         
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('client@example.com');
         });
     }
@@ -302,7 +302,7 @@ class AdminUserControllerTest extends TestCase
         $this->assertEquals(302, $response->getStatusCode());
         $this->assertEquals(route('admin.users.index'), $response->getTargetUrl());
         
-        Mail::assertNotSent(LoginVerificationMail::class);
+        Mail::assertNotSent(ClientVerificationMail::class);
     }
 
     public function test_store_accepts_valid_action_create()
@@ -330,7 +330,7 @@ class AdminUserControllerTest extends TestCase
         $response = $this->controller->store($request);
         
         $this->assertEquals(302, $response->getStatusCode());
-        Mail::assertNotSent(LoginVerificationMail::class);
+        Mail::assertNotSent(ClientVerificationMail::class);
     }
 
     public function test_store_accepts_valid_action_create_and_invite()
@@ -361,7 +361,7 @@ class AdminUserControllerTest extends TestCase
         $response = $this->controller->store($request);
         
         $this->assertEquals(302, $response->getStatusCode());
-        Mail::assertSent(LoginVerificationMail::class);
+        Mail::assertSent(ClientVerificationMail::class);
     }
 
     public function test_store_logs_user_creation_attempt()

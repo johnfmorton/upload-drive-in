@@ -14,6 +14,7 @@ This directory contains documentation for various aspects of the Upload Drive-In
 - [Admin Upload Page](admin-upload-page.md) - Admin upload functionality
 - [Client Recipient Selection](CLIENT_RECIPIENT_SELECTION.md) - Client upload recipient configuration
 - [Pending Uploads](pending-uploads.md) - Managing pending file uploads
+- [Existing User Email Verification System](existing-user-email-verification-system.md) - Complete guide to the existing user bypass system
 
 ## Technical Documentation
 
@@ -27,10 +28,12 @@ This directory contains documentation for various aspects of the Upload Drive-In
 
 - [Cloud Storage Status Endpoints](api/cloud-storage-status-endpoints.md) - API endpoints for cloud storage status
 - [File Management Endpoints](api/file-management-endpoints.md) - API endpoints for file operations
+- [Email Verification Endpoints](api/email-verification-endpoints.md) - Email verification API with existing user bypass logic
 
 ## Troubleshooting
 
 - [Google Drive Connection Issues](troubleshooting/google-drive-connection-issues.md) - Comprehensive troubleshooting guide
+- [Email Verification Issues](troubleshooting/email-verification-issues.md) - Troubleshooting email verification and restriction bypass issues
 
 ## Migration Guides
 
@@ -48,3 +51,8 @@ This directory contains documentation for various aspects of the Upload Drive-In
 ## User Guides
 
 - [File Management Dashboard](user-guide/file-management-dashboard.md) - User guide for file management
+- [Email Verification](user-guide/email-verification.md) - User guide for email verification system
+
+## Security Documentation
+
+- [Email Verification Security](security/email-verification-security.md) - Security model and rationale for existing user bypass logic

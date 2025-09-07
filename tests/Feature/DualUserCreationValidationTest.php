@@ -213,7 +213,7 @@ class DualUserCreationValidationTest extends TestCase
             'name' => 'Test User',
         ]);
         
-        Mail::assertSent(\App\Mail\LoginVerificationMail::class);
+        Mail::assertSent(\App\Mail\ClientVerificationMail::class);
     }
 
     public function test_employee_successful_user_creation_with_invitation()
@@ -237,6 +237,6 @@ class DualUserCreationValidationTest extends TestCase
             'name' => 'Test User',
         ]);
         
-        Mail::assertSent(\App\Mail\LoginVerificationMail::class);
+        Mail::assertSent(\App\Mail\ClientVerificationMail::class);
     }
 }
