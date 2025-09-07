@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 use App\Services\VerificationMailFactory;
 use App\Services\EmailVerificationMetricsService;
+use App\Services\DomainRulesCacheService;
+use App\Services\UserLookupPerformanceService;
 
 class PublicUploadController extends Controller
 {
@@ -69,7 +71,9 @@ class PublicUploadController extends Controller
             $userLookupFailed = false;
             
             try {
-                $existingUser = \App\Models\User::where('email', $email)->first();
+                // Use performance-optimized user lookup service
+                $userLookupService = app(UserLookupPerformanceService::class);
+                $existingUser = $userLookupService->findUserByEmail($email);
                 
                 // Log the user detection result
                 if ($existingUser) {
@@ -178,12 +182,13 @@ class PublicUploadController extends Controller
      */
     private function sendVerificationEmailToExistingUser(\App\Models\User $user, string $email, array $validated)
     {
-        // Get domain rules for enhanced logging context
+        // Get domain rules for enhanced logging context using cached service
         $domainRules = null;
         $domainRulesLookupFailed = false;
         
         try {
-            $domainRules = DomainAccessRule::first();
+            $domainRulesCache = app(DomainRulesCacheService::class);
+            $domainRules = $domainRulesCache->getDomainRules();
         } catch (\Illuminate\Database\QueryException $e) {
             $domainRulesLookupFailed = true;
             Log::error('Database query failed during domain rules lookup for existing user', [
@@ -295,12 +300,13 @@ class PublicUploadController extends Controller
      */
     private function handleNewUserRegistration(string $email, array $validated)
     {
-        // Apply existing security checks for new users
+        // Apply existing security checks for new users using cached service
         $domainRules = null;
         $domainRulesLookupFailed = false;
         
         try {
-            $domainRules = DomainAccessRule::first();
+            $domainRulesCache = app(DomainRulesCacheService::class);
+            $domainRules = $domainRulesCache->getDomainRules();
         } catch (\Illuminate\Database\QueryException $e) {
             $domainRulesLookupFailed = true;
             Log::error('Database query failed during domain rules lookup for new user', [

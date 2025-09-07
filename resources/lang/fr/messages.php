@@ -870,4 +870,35 @@ return [
     'email_verification_dashboard_refresh' => 'Actualiser',
     'email_verification_dashboard_count' => 'Nombre',
 
+    // Domain Rules Cache Service Messages
+    'domain_rules_cache_failed' => 'Échec de la récupération des règles d\'accès de domaine depuis le cache',
+    'domain_rules_cache_cleared' => 'Le cache des règles d\'accès de domaine a été vidé',
+    'domain_rules_cache_warmed' => 'Le cache des règles d\'accès de domaine a été préchauffé',
+    'domain_rules_not_configured' => 'Aucune règle d\'accès de domaine configurée - utilisation des paramètres par défaut',
+    'domain_rules_email_check_completed' => 'Validation du domaine de l\'e-mail terminée',
+    'domain_rules_cache_statistics' => 'Statistiques du Cache des Règles de Domaine',
+    'domain_rules_cache_performance' => 'Performance du Cache',
+    'domain_rules_query_performance' => 'Performance des Requêtes de Base de Données',
+
+    // Cache Statistics Labels
+    'cache_hit' => 'Succès de Cache',
+    'cache_miss' => 'Échec de Cache',
+    'cache_key' => 'Clé de Cache',
+    'cache_ttl' => 'TTL de Cache (secondes)',
+    'rules_loaded' => 'Règles Chargées',
+    'rules_mode' => 'Mode des Règles',
+    'rules_count' => 'Nombre de Règles',
+    'query_time' => 'Temps de Requête (ms)',
+    'total_time' => 'Temps Total (ms)',
+    'warm_up_time' => 'Temps de Préchauffage (ms)',
+
+    // Domain Rules Cache Command Messages
+    'domain_rules_cache_command_invalid_action' => 'Action invalide. Utilisez : stats, clear, ou warm',
+    'domain_rules_cache_command_stats_title' => 'Statistiques du Cache des Règles de Domaine',
+    'domain_rules_cache_command_property' => 'Propriété',
+    'domain_rules_cache_command_value' => 'Valeur',
+    'domain_rules_cache_command_yes' => 'Oui',
+    'domain_rules_cache_command_no' => 'Non',
+    'domain_rules_cache_command_seconds' => 'secondes',
+
 ];

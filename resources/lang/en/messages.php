@@ -1361,4 +1361,35 @@
     'email_verification_dashboard_last_updated' => 'Last updated',
     'email_verification_dashboard_refresh' => 'Refresh',
     'email_verification_dashboard_count' => 'Count',
+
+    // Domain Rules Cache Service Messages
+    'domain_rules_cache_failed' => 'Failed to retrieve domain access rules from cache',
+    'domain_rules_cache_cleared' => 'Domain access rules cache has been cleared',
+    'domain_rules_cache_warmed' => 'Domain access rules cache has been warmed up',
+    'domain_rules_not_configured' => 'No domain access rules configured - using default settings',
+    'domain_rules_email_check_completed' => 'Email domain validation completed',
+    'domain_rules_cache_statistics' => 'Domain Rules Cache Statistics',
+    'domain_rules_cache_performance' => 'Cache Performance',
+    'domain_rules_query_performance' => 'Database Query Performance',
+
+    // Cache Statistics Labels
+    'cache_hit' => 'Cache Hit',
+    'cache_miss' => 'Cache Miss',
+    'cache_key' => 'Cache Key',
+    'cache_ttl' => 'Cache TTL (seconds)',
+    'rules_loaded' => 'Rules Loaded',
+    'rules_mode' => 'Rules Mode',
+    'rules_count' => 'Number of Rules',
+    'query_time' => 'Query Time (ms)',
+    'total_time' => 'Total Time (ms)',
+    'warm_up_time' => 'Warm-up Time (ms)',
+
+    // Domain Rules Cache Command Messages
+    'domain_rules_cache_command_invalid_action' => 'Invalid action. Use: stats, clear, or warm',
+    'domain_rules_cache_command_stats_title' => 'Domain Rules Cache Statistics',
+    'domain_rules_cache_command_property' => 'Property',
+    'domain_rules_cache_command_value' => 'Value',
+    'domain_rules_cache_command_yes' => 'Yes',
+    'domain_rules_cache_command_no' => 'No',
+    'domain_rules_cache_command_seconds' => 'seconds',
 ];

@@ -45,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register model observers
         \App\Models\FileUpload::observe(\App\Observers\FileUploadObserver::class);
+        \App\Models\DomainAccessRule::observe(\App\Observers\DomainAccessRuleObserver::class);
         
         // Initialize setup state checking
         $this->initializeSetupIntegration();
