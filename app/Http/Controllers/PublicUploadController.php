@@ -139,12 +139,31 @@ class PublicUploadController extends Controller
                 'fallback_used' => !$existingUser
             ]);
 
-            Mail::to($email)->send($verificationMail);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Verification email sent successfully.'
-            ]);
+            try {
+                Mail::to($email)->send($verificationMail);
+                
+                // Log successful email sending
+                $mailFactory->logEmailSent($detectedContext, $email);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Verification email sent successfully.'
+                ]);
+            } catch (\Exception $mailException) {
+                // Log email sending failure
+                $mailFactory->logEmailSendError($detectedContext, $mailException->getMessage(), $email);
+                
+                Log::error('Failed to send verification email', [
+                    'email' => $email,
+                    'error' => $mailException->getMessage(),
+                    'context' => 'public_upload'
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send verification email. Please try again.'
+                ], 500);
+            }
 
         } catch (ValidationException $e) {
             Log::warning('Validation failed', [
@@ -176,12 +195,17 @@ class PublicUploadController extends Controller
      */
     public function verifyEmail($code, $email)
     {
+        $mailFactory = app(VerificationMailFactory::class);
+        
         $validation = EmailValidation::where('email', $email)
             ->where('verification_code', $code)
             ->where('expires_at', '>', now())
             ->first();
 
         if (!$validation) {
+            // Log verification failure
+            $mailFactory->logVerificationFailure('unknown', 'Invalid or expired verification code', $email);
+            
             return redirect()->route('home')
                 ->with('error', __('messages.account_deletion_verification_invalid'));
         }
@@ -205,6 +229,10 @@ class PublicUploadController extends Controller
 
         // Log the user in
         \Illuminate\Support\Facades\Auth::login($user);
+        
+        // Log successful verification
+        $userRole = $mailFactory->determineContextForUser($user);
+        $mailFactory->logVerificationSuccess($userRole, $email);
 
         // Check if there's an intended URL in the session
         $intendedUrl = session('intended_url');

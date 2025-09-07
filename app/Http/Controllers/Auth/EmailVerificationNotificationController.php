@@ -43,15 +43,26 @@ class EmailVerificationNotificationController extends Controller
             'context' => 'email_verification_notification',
         ]);
 
-        Mail::to($user->email)->send($verificationMail);
-        
-        // Log successful email sending
-        Log::info('Email verification notification sent successfully', [
-            'user_id' => $user->id,
-            'user_email' => $user->email,
-            'user_role' => $user->role->value,
-        ]);
-
-        return back()->with('status', 'verification-link-sent');
+        try {
+            Mail::to($user->email)->send($verificationMail);
+            
+            // Log successful email sending using factory method
+            $userRole = $mailFactory->determineContextForUser($user);
+            $mailFactory->logEmailSent($userRole, $user->email);
+            
+            return back()->with('status', 'verification-link-sent');
+        } catch (\Exception $e) {
+            // Log email sending failure using factory method
+            $userRole = $mailFactory->determineContextForUser($user);
+            $mailFactory->logEmailSendError($userRole, $e->getMessage(), $user->email);
+            
+            Log::error('Failed to send email verification notification', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return back()->with('error', 'Failed to send verification email. Please try again.');
+        }
     }
 }
