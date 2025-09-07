@@ -784,9 +784,13 @@ class CloudStorageController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+            
+            $errorMessageService = app(\App\Services\CloudStorageErrorMessageService::class);
+            $errorMessage = __('messages.cloud_storage_status_retrieval_failed');
+            
             return response()->json([
                 'success' => false,
-                'error' => 'Unable to retrieve cloud storage status. Please try again.',
+                'error' => $errorMessage,
                 'message' => 'Failed to get status'
             ], 500);
         }
@@ -855,6 +859,7 @@ class CloudStorageController extends Controller
             // Use RealTimeHealthValidator for live validation
             $realTimeValidator = app(\App\Services\RealTimeHealthValidator::class);
             $tokenStatusService = app(\App\Services\TokenStatusService::class);
+            $errorMessageService = app(\App\Services\CloudStorageErrorMessageService::class);
             
             Log::info('Starting real-time connection test', [
                 'user_id' => $user->id,
@@ -871,13 +876,16 @@ class CloudStorageController extends Controller
             $isHealthy = $healthStatus->isHealthy();
             $status = $healthStatus->getStatus();
             
-            $message = match ($status) {
-                'healthy' => 'Connection test successful - your ' . ucfirst(str_replace('-', ' ', $provider)) . ' integration is working properly',
-                'authentication_required' => 'Authentication required - please reconnect your ' . ucfirst(str_replace('-', ' ', $provider)) . ' account',
-                'connection_issues' => 'Connection issues detected - ' . ($healthStatus->getErrorMessage() ?? 'unable to connect to ' . ucfirst(str_replace('-', ' ', $provider))),
-                'not_connected' => 'Account not connected - please set up your ' . ucfirst(str_replace('-', ' ', $provider)) . ' integration',
-                default => 'Connection test completed with issues - ' . ($healthStatus->getErrorMessage() ?? 'unknown status')
-            };
+            // Use centralized messaging instead of inline generation
+            $errorContext = [
+                'provider' => $provider,
+                'error_type' => $healthStatus->getErrorType(),
+                'error_message' => $healthStatus->getErrorMessage(),
+                'consecutive_failures' => $healthStatus->getConsecutiveFailures() ?? 0,
+                'user' => $user
+            ];
+            
+            $message = $errorMessageService->getStatusDisplayMessage($status, $errorContext);
             
             Log::info('Real-time connection test completed', [
                 'user_id' => $user->id,

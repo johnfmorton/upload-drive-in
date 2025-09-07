@@ -1273,4 +1273,8 @@
     'token_config_cmd_validation_failed_title' => 'Configuration validation failed:',
     'token_config_cmd_cache_cleared' => 'Configuration cache cleared successfully',
     'token_config_cmd_cache_clear_failed' => 'Failed to clear configuration cache: :error',
+    
+    // Additional Cloud Storage Status Messages
+    'cloud_storage_status_retrieval_failed' => 'Unable to retrieve cloud storage status. Please try again.',
+    'cloud_storage_health_check_failed' => 'Health check failed due to an unexpected error. Please try again.',
 ];

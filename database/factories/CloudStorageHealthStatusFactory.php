@@ -81,8 +81,13 @@ class CloudStorageHealthStatusFactory extends Factory
             'consolidated_status' => 'connection_issues',
             'consecutive_failures' => $this->faker->numberBetween(2, 4),
             'token_refresh_failures' => $this->faker->numberBetween(1, 2),
-            'last_error_type' => $this->faker->randomElement(['network_error', 'api_quota_exceeded']),
-            'last_error_message' => 'Connection issues detected',
+            'last_error_type' => $this->faker->randomElement(['network_error', 'api_quota_exceeded', 'timeout']),
+            'last_error_message' => $this->faker->randomElement([
+                'Network connection timeout after 30 seconds',
+                'API rate limit exceeded - quota reset in 45 minutes',
+                'Temporary service unavailability detected',
+                'Connection latency exceeds acceptable thresholds'
+            ]),
             'requires_reconnection' => false,
             'operational_test_result' => ['test' => 'failed', 'error' => 'Connection timeout'],
         ]);
@@ -98,8 +103,13 @@ class CloudStorageHealthStatusFactory extends Factory
             'consolidated_status' => 'authentication_required',
             'consecutive_failures' => $this->faker->numberBetween(5, 10),
             'token_refresh_failures' => $this->faker->numberBetween(3, 5),
-            'last_error_type' => $this->faker->randomElement(['token_expired', 'insufficient_permissions']),
-            'last_error_message' => 'Multiple failures detected',
+            'last_error_type' => $this->faker->randomElement(['token_expired', 'insufficient_permissions', 'invalid_credentials']),
+            'last_error_message' => $this->faker->randomElement([
+                'OAuth token has expired and refresh failed',
+                'Insufficient permissions - full access required',
+                'Invalid client credentials detected',
+                'Authentication failed after multiple attempts'
+            ]),
             'requires_reconnection' => true,
             'operational_test_result' => ['test' => 'failed', 'error' => 'Authentication failed'],
         ]);
@@ -150,6 +160,45 @@ class CloudStorageHealthStatusFactory extends Factory
             'last_error_message' => 'Access token has expired',
             'requires_reconnection' => true,
             'operational_test_result' => ['test' => 'failed', 'error' => 'Token expired'],
+        ]);
+    }
+
+    /**
+     * Indicate that the provider is rate limited.
+     */
+    public function rateLimited(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'degraded',
+            'consolidated_status' => 'connection_issues',
+            'consecutive_failures' => $this->faker->numberBetween(6, 10),
+            'token_refresh_failures' => $this->faker->numberBetween(5, 8),
+            'last_token_refresh_attempt_at' => now()->subMinutes($this->faker->numberBetween(1, 30)),
+            'last_error_type' => 'token_refresh_rate_limited',
+            'last_error_message' => 'Too many token refresh attempts - rate limit exceeded',
+            'requires_reconnection' => false,
+            'operational_test_result' => ['test' => 'failed', 'error' => 'Rate limit exceeded'],
+        ]);
+    }
+
+    /**
+     * Indicate that the provider has storage quota issues.
+     */
+    public function quotaExceeded(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'degraded',
+            'consolidated_status' => 'connection_issues',
+            'consecutive_failures' => $this->faker->numberBetween(3, 6),
+            'token_refresh_failures' => 0,
+            'last_error_type' => $this->faker->randomElement(['storage_quota_exceeded', 'api_quota_exceeded']),
+            'last_error_message' => $this->faker->randomElement([
+                'Storage quota exceeded - 15GB limit reached',
+                'API quota exceeded - daily limit of 1000 requests reached',
+                'Upload quota exceeded for current billing period'
+            ]),
+            'requires_reconnection' => false,
+            'operational_test_result' => ['test' => 'failed', 'error' => 'Quota exceeded'],
         ]);
     }
 }

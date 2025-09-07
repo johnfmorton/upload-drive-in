@@ -92,9 +92,11 @@ class CloudStorageDashboardController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             
+            $errorMessage = __('messages.cloud_storage_status_retrieval_failed');
+            
             return response()->json([
                 'success' => false,
-                'error' => 'Unable to retrieve cloud storage status. Please try again.',
+                'error' => $errorMessage,
                 'message' => 'Failed to get status',
                 'status_type' => 'enhanced_with_token_details'
             ], 500);
@@ -161,13 +163,17 @@ class CloudStorageDashboardController extends Controller
             $isHealthy = $healthStatus->isHealthy();
             $status = $healthStatus->getStatus();
             
-            $message = match ($status) {
-                'healthy' => 'Health check successful - your ' . ucfirst(str_replace('-', ' ', $provider)) . ' integration is working properly',
-                'authentication_required' => 'Authentication required - please reconnect your ' . ucfirst(str_replace('-', ' ', $provider)) . ' account',
-                'connection_issues' => 'Connection issues detected - ' . ($healthStatus->getErrorMessage() ?? 'unable to connect to ' . ucfirst(str_replace('-', ' ', $provider))),
-                'not_connected' => 'Account not connected - please set up your ' . ucfirst(str_replace('-', ' ', $provider)) . ' integration',
-                default => 'Health check completed with issues - ' . ($healthStatus->getErrorMessage() ?? 'unknown status')
-            };
+            // Use centralized messaging instead of inline generation
+            $errorMessageService = app(\App\Services\CloudStorageErrorMessageService::class);
+            $errorContext = [
+                'provider' => $provider,
+                'error_type' => $healthStatus->getErrorType(),
+                'error_message' => $healthStatus->getErrorMessage(),
+                'consecutive_failures' => $healthStatus->getConsecutiveFailures() ?? 0,
+                'user' => $user
+            ];
+            
+            $message = $errorMessageService->getStatusDisplayMessage($status, $errorContext);
             
             Log::info('Real-time health check completed', [
                 'user_id' => $user->id,
@@ -203,9 +209,11 @@ class CloudStorageDashboardController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             
+            $errorMessage = __('messages.cloud_storage_health_check_failed');
+            
             return response()->json([
                 'success' => false,
-                'error' => 'Health check failed due to an unexpected error. Please try again.',
+                'error' => $errorMessage,
                 'message' => 'Health check failed: ' . $e->getMessage(),
                 'check_type' => 'real_time_validation',
                 'error_details' => config('app.debug') ? $e->getMessage() : null

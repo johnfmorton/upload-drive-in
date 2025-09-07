@@ -82,7 +82,7 @@
                         
                         <div>
                             <h3 class="text-sm font-medium text-gray-900" x-text="getProviderDisplayName(provider.provider)"></h3>
-                            <p class="text-xs text-gray-500" x-text="provider.status_message || getConsolidatedStatusMessage(provider.consolidated_status)"></p>
+                            <p class="text-xs text-gray-500" x-text="getProviderStatusMessage(provider)"></p>
                         </div>
                     </div>
                     
@@ -140,29 +140,37 @@
                     </div>
 
                     <!-- Enhanced Error Information with Actionable Messages -->
-                    <div x-show="provider.last_error_message" class="p-3 bg-red-50 border border-red-200 rounded-md">
+                    <div x-show="shouldShowErrorDetails(provider)" class="p-3 border rounded-md" :class="getErrorDisplayClass(provider)">
                         <div class="flex items-start">
-                            <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" :class="getErrorIconClass(provider)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <div class="flex-1">
-                                <div class="font-medium text-red-800 text-sm">Connection Issue</div>
-                                <div class="text-red-700 text-sm mt-1" x-text="getActionableErrorMessage(provider)"></div>
+                                <div class="font-medium text-sm" :class="getErrorTitleClass(provider)" x-text="getErrorTitle(provider)"></div>
+                                <div class="text-sm mt-1" :class="getErrorMessageClass(provider)" x-text="getProviderStatusMessage(provider)"></div>
+                                <!-- Rate Limiting Information with Countdown -->
+                                <div x-show="isProviderRateLimited(provider)" class="mt-2">
+                                    <div class="text-xs font-medium" :class="getErrorMessageClass(provider)">Next retry available:</div>
+                                    <div class="text-xs" :class="getErrorMessageClass(provider)" x-text="getRateLimitCountdown(provider)"></div>
+                                </div>
                                 <!-- Recovery Instructions -->
                                 <div x-show="getRecoveryInstructions(provider)" class="mt-2">
-                                    <div class="text-red-600 text-xs font-medium">Recommended Action:</div>
-                                    <div class="text-red-600 text-xs" x-text="getRecoveryInstructions(provider)"></div>
+                                    <div class="text-xs font-medium" :class="getErrorMessageClass(provider)">Recommended Action:</div>
+                                    <div class="text-xs" :class="getErrorMessageClass(provider)" x-text="getRecoveryInstructions(provider)"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Rate Limiting Information -->
-                    <div x-show="provider.is_rate_limited" class="flex items-center text-sm text-yellow-600">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <span>Rate limited - next check in <span x-text="getRateLimitResetTime(provider)"></span></span>
+                    <!-- Rate Limiting Information with Enhanced Display -->
+                    <div x-show="isProviderRateLimited(provider)" class="flex items-center justify-between text-sm p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <div class="flex items-center text-yellow-700">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Rate limited</span>
+                        </div>
+                        <div class="text-yellow-600 text-xs font-medium" x-text="getRateLimitCountdown(provider)"></div>
                     </div>
 
                     <!-- Consecutive Failures with Trend -->
@@ -228,19 +236,23 @@
                         </button>
                     </template>
 
-                    <!-- Test Connection Button -->
-                    <template x-if="(provider.consolidated_status && (provider.consolidated_status === 'healthy' || provider.consolidated_status === 'connection_issues')) || provider.is_healthy || provider.is_degraded">
+                    <!-- Test Connection Button with Rate Limiting Protection -->
+                    <template x-if="shouldShowTestButton(provider)">
                         <button @click="testConnection(provider.provider)"
-                                :disabled="isTesting[provider.provider]"
-                                class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <svg x-show="!isTesting[provider.provider]" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                :disabled="isTesting[provider.provider] || isProviderRateLimited(provider)"
+                                :class="getTestButtonClass(provider)"
+                                class="inline-flex items-center px-3 py-2 border text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg x-show="!isTesting[provider.provider] && !isProviderRateLimited(provider)" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <svg x-show="isTesting[provider.provider]" class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            <span x-text="isTesting[provider.provider] ? '{{ __('Testing...') }}' : '{{ __('Test Connection') }}'"></span>
+                            <svg x-show="isProviderRateLimited(provider)" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span x-text="getTestButtonText(provider)"></span>
                         </button>
                     </template>
                 </div>
@@ -284,6 +296,7 @@ function cloudStorageStatusWidget(initialProviders) {
         isOnline: navigator.onLine,
         lastRefreshTime: Date.now(),
         refreshInterval: null,
+        countdownInterval: null,
         errorCount: 0,
         maxRetries: 3,
         backoffMultiplier: 1,
@@ -296,6 +309,7 @@ function cloudStorageStatusWidget(initialProviders) {
             this.startPeriodicRefresh();
             this.setupVisibilityHandling();
             this.validateInitialStatus();
+            this.startRateLimitCountdown();
         },
         
         initializeLoadingStates() {
@@ -545,7 +559,16 @@ function cloudStorageStatusWidget(initialProviders) {
         },
         
         async testConnection(provider) {
-            console.log('🔍 Testing connection with real-time validation for provider:', provider);
+            console.log('🔍 Testing connection with rate limiting protection for provider:', provider);
+            
+            // Check for rate limiting before attempting test
+            const providerData = this.providers.find(p => p.provider === provider);
+            if (this.isProviderRateLimited(providerData)) {
+                const countdown = this.getRateLimitCountdown(providerData);
+                this.showError(`Rate limited. Please wait ${countdown} before testing again.`);
+                return;
+            }
+            
             this.isTesting[provider] = true;
             
             try {
@@ -562,43 +585,82 @@ function cloudStorageStatusWidget(initialProviders) {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    console.log('🔍 Real-time connection test completed:', data);
+                    console.log('🔍 Connection test completed:', data);
                     
                     // Update provider data with enhanced information from test
                     const providerIndex = this.providers.findIndex(p => p.provider === provider);
-                    if (providerIndex !== -1 && data.token_status) {
-                        this.providers[providerIndex].token_status = data.token_status;
-                        console.log('🔍 Updated token status for provider:', provider, data.token_status);
+                    if (providerIndex !== -1) {
+                        // Update with latest status information from test
+                        if (data.token_status) {
+                            this.providers[providerIndex].token_status = data.token_status;
+                        }
+                        
+                        // Update rate limiting status if returned
+                        if (data.is_rate_limited !== undefined) {
+                            this.providers[providerIndex].is_rate_limited = data.is_rate_limited;
+                        }
+                        
+                        if (data.rate_limit_reset_at) {
+                            this.providers[providerIndex].rate_limit_reset_at = data.rate_limit_reset_at;
+                        }
+                        
+                        console.log('🔍 Updated provider status for:', provider);
                     }
                     
-                    // Show detailed test results
+                    // Show appropriate message based on test result
                     if (data.success) {
                         let message = data.message || 'Connection test completed successfully';
                         if (data.validation_details && data.validation_details.validation_time_ms) {
                             message += ` (${data.validation_details.validation_time_ms}ms)`;
                         }
                         this.showSuccess(message);
-                        
-                        // Log validation details for debugging
-                        if (data.validation_details) {
-                            console.log('🔍 Validation details:', data.validation_details);
-                        }
                     } else {
-                        let errorMessage = data.message || 'Connection test failed';
-                        if (data.error_type_localized) {
-                            errorMessage += ` (${data.error_type_localized})`;
+                        // Handle rate limiting in test response
+                        if (data.is_rate_limited || (data.message && data.message.toLowerCase().includes('rate limit'))) {
+                            const retryTime = data.retry_after ? `${Math.ceil(data.retry_after / 60)} minutes` : 'a few minutes';
+                            this.showError(`Rate limited. Please wait ${retryTime} before testing again.`);
+                            
+                            // Update provider rate limiting status
+                            if (providerIndex !== -1) {
+                                this.providers[providerIndex].is_rate_limited = true;
+                                if (data.rate_limit_reset_at) {
+                                    this.providers[providerIndex].rate_limit_reset_at = data.rate_limit_reset_at;
+                                }
+                            }
+                        } else {
+                            let errorMessage = data.message || 'Connection test failed';
+                            if (data.error_type_localized) {
+                                errorMessage += ` (${data.error_type_localized})`;
+                            }
+                            this.showError(errorMessage);
                         }
-                        this.showError(errorMessage);
                     }
                     
                     // Refresh status to get latest information
                     await this.refreshStatus(true);
                 } else {
-                    throw new Error(data.message || 'Connection test failed');
+                    // Handle HTTP error responses
+                    if (response.status === 429) {
+                        this.showError('Rate limited. Please wait before testing again.');
+                        
+                        // Mark provider as rate limited
+                        const providerIndex = this.providers.findIndex(p => p.provider === provider);
+                        if (providerIndex !== -1) {
+                            this.providers[providerIndex].is_rate_limited = true;
+                        }
+                    } else {
+                        throw new Error(data.message || 'Connection test failed');
+                    }
                 }
             } catch (error) {
-                console.error('🔍 Real-time connection test failed:', error);
-                this.showError(error.message || 'Connection test failed');
+                console.error('🔍 Connection test failed:', error);
+                
+                // Handle network errors that might indicate rate limiting
+                if (error.message.includes('429') || error.message.toLowerCase().includes('rate limit')) {
+                    this.showError('Rate limited. Please wait before testing again.');
+                } else {
+                    this.showError(error.message || 'Connection test failed');
+                }
             } finally {
                 this.isTesting[provider] = false;
             }
@@ -612,14 +674,24 @@ function cloudStorageStatusWidget(initialProviders) {
             return names[provider] || provider;
         },
         
+        getProviderStatusMessage(provider) {
+            // Use single message source from backend - prioritize status_message from backend
+            if (provider.status_message && provider.status_message.trim()) {
+                return provider.status_message;
+            }
+            
+            // Fallback to consolidated status message if no specific message
+            return this.getConsolidatedStatusMessage(provider.consolidated_status || provider.status);
+        },
+        
         getConsolidatedStatusMessage(consolidatedStatus) {
             const messages = {
-                'healthy': 'Connection is working properly',
-                'authentication_required': 'Please reconnect your account',
-                'connection_issues': 'Experiencing connectivity problems',
-                'not_connected': 'Account not connected'
+                'healthy': 'Connected and working properly',
+                'authentication_required': 'Authentication required. Please reconnect your account.',
+                'connection_issues': 'Connection issue detected. Please test your connection.',
+                'not_connected': 'Account not connected. Please set up your cloud storage connection.'
             };
-            return messages[consolidatedStatus] || 'Status unknown';
+            return messages[consolidatedStatus] || 'Status unknown. Please refresh or contact support.';
         },
         
         getStatusIndicatorClass(status) {
@@ -766,22 +838,88 @@ function cloudStorageStatusWidget(initialProviders) {
             return texts[status] || 'Token Status Unknown';
         },
         
-        getActionableErrorMessage(provider) {
-            // Use enhanced error message service logic
-            if (provider.last_error_type) {
-                const errorMessages = {
-                    'authentication_error': 'Your account needs to be reconnected. Click "Reconnect" to authenticate again.',
-                    'token_expired': 'Your access token has expired. The system will attempt to refresh it automatically.',
-                    'insufficient_permissions': 'The application needs additional permissions. Please reconnect to grant access.',
-                    'quota_exceeded': 'Your storage quota has been exceeded. Free up space or upgrade your plan.',
-                    'network_error': 'Unable to connect to the service. Check your internet connection.',
-                    'rate_limit_exceeded': 'Too many requests. The system will retry automatically.',
-                    'service_unavailable': 'The cloud storage service is temporarily unavailable.',
-                    'configuration_error': 'There is a configuration issue. Contact support if this persists.'
-                };
-                return errorMessages[provider.last_error_type] || provider.last_error_message;
+        shouldShowErrorDetails(provider) {
+            // Only show error details if there's an actual issue and we're not in a healthy state
+            const consolidatedStatus = provider.consolidated_status || provider.status;
+            
+            // Don't show error details for healthy connections
+            if (consolidatedStatus === 'healthy') {
+                return false;
             }
-            return provider.last_error_message || 'An unknown error occurred.';
+            
+            // Show error details for problematic states
+            return ['authentication_required', 'connection_issues', 'not_connected'].includes(consolidatedStatus) ||
+                   provider.last_error_message ||
+                   this.isProviderRateLimited(provider);
+        },
+        
+        getErrorDisplayClass(provider) {
+            if (this.isProviderRateLimited(provider)) {
+                return 'bg-yellow-50 border-yellow-200';
+            }
+            
+            const consolidatedStatus = provider.consolidated_status || provider.status;
+            if (consolidatedStatus === 'authentication_required') {
+                return 'bg-orange-50 border-orange-200';
+            }
+            
+            return 'bg-red-50 border-red-200';
+        },
+        
+        getErrorIconClass(provider) {
+            if (this.isProviderRateLimited(provider)) {
+                return 'text-yellow-500';
+            }
+            
+            const consolidatedStatus = provider.consolidated_status || provider.status;
+            if (consolidatedStatus === 'authentication_required') {
+                return 'text-orange-500';
+            }
+            
+            return 'text-red-500';
+        },
+        
+        getErrorTitle(provider) {
+            if (this.isProviderRateLimited(provider)) {
+                return 'Rate Limited';
+            }
+            
+            const consolidatedStatus = provider.consolidated_status || provider.status;
+            if (consolidatedStatus === 'authentication_required') {
+                return 'Authentication Required';
+            }
+            
+            if (consolidatedStatus === 'not_connected') {
+                return 'Not Connected';
+            }
+            
+            return 'Connection Issue';
+        },
+        
+        getErrorTitleClass(provider) {
+            if (this.isProviderRateLimited(provider)) {
+                return 'text-yellow-800';
+            }
+            
+            const consolidatedStatus = provider.consolidated_status || provider.status;
+            if (consolidatedStatus === 'authentication_required') {
+                return 'text-orange-800';
+            }
+            
+            return 'text-red-800';
+        },
+        
+        getErrorMessageClass(provider) {
+            if (this.isProviderRateLimited(provider)) {
+                return 'text-yellow-700';
+            }
+            
+            const consolidatedStatus = provider.consolidated_status || provider.status;
+            if (consolidatedStatus === 'authentication_required') {
+                return 'text-orange-700';
+            }
+            
+            return 'text-red-700';
         },
         
         getRecoveryInstructions(provider) {
@@ -801,16 +939,39 @@ function cloudStorageStatusWidget(initialProviders) {
             return null;
         },
         
-        getRateLimitResetTime(provider) {
+        isProviderRateLimited(provider) {
+            // Check multiple indicators for rate limiting
+            return provider.is_rate_limited || 
+                   provider.last_error_type === 'token_refresh_rate_limited' ||
+                   (provider.status_message && provider.status_message.toLowerCase().includes('too many')) ||
+                   (provider.last_error_message && provider.last_error_message.toLowerCase().includes('rate limit'));
+        },
+        
+        getRateLimitCountdown(provider) {
+            // Try to get countdown from various sources
             if (provider.rate_limit_reset_at) {
                 const resetTime = new Date(provider.rate_limit_reset_at);
                 const now = new Date();
                 const diffMs = resetTime - now;
                 if (diffMs > 0) {
                     const minutes = Math.ceil(diffMs / 60000);
-                    return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+                    const seconds = Math.ceil(diffMs / 1000);
+                    
+                    if (seconds < 60) {
+                        return `${seconds} second${seconds === 1 ? '' : 's'}`;
+                    } else {
+                        return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+                    }
                 }
             }
+            
+            // Fallback to extracting time from status message
+            const message = provider.status_message || provider.last_error_message || '';
+            const timeMatch = message.match(/(\d+)\s+(minute|second)s?/i);
+            if (timeMatch) {
+                return `${timeMatch[1]} ${timeMatch[2]}${parseInt(timeMatch[1]) === 1 ? '' : 's'}`;
+            }
+            
             return 'soon';
         },
         
@@ -830,6 +991,36 @@ function cloudStorageStatusWidget(initialProviders) {
                 'worsening': 'Worsening'
             };
             return texts[trend] || 'Unknown';
+        },
+        
+        shouldShowTestButton(provider) {
+            const consolidatedStatus = provider.consolidated_status || provider.status;
+            
+            // Show test button for healthy and connection issues states, but not for disconnected/auth required
+            return ['healthy', 'connection_issues'].includes(consolidatedStatus) || 
+                   provider.is_healthy || 
+                   provider.is_degraded;
+        },
+        
+        getTestButtonClass(provider) {
+            if (this.isProviderRateLimited(provider)) {
+                return 'border-yellow-300 text-yellow-700 bg-yellow-50 cursor-not-allowed';
+            }
+            
+            return 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50';
+        },
+        
+        getTestButtonText(provider) {
+            if (this.isTesting[provider.provider]) {
+                return '{{ __('Testing...') }}';
+            }
+            
+            if (this.isProviderRateLimited(provider)) {
+                const countdown = this.getRateLimitCountdown(provider);
+                return `{{ __('Rate Limited') }} (${countdown})`;
+            }
+            
+            return '{{ __('Test Connection') }}';
         },
         
         formatTimestamp(timestamp) {
@@ -1019,12 +1210,36 @@ function cloudStorageStatusWidget(initialProviders) {
             }, 5000);
         },
         
+        startRateLimitCountdown() {
+            // Update rate limit countdowns every second
+            this.countdownInterval = setInterval(() => {
+                this.providers.forEach(provider => {
+                    if (this.isProviderRateLimited(provider) && provider.rate_limit_reset_at) {
+                        const resetTime = new Date(provider.rate_limit_reset_at);
+                        const now = new Date();
+                        const diffMs = resetTime - now;
+                        
+                        // If rate limit has expired, mark as no longer rate limited
+                        if (diffMs <= 0) {
+                            provider.is_rate_limited = false;
+                            provider.rate_limit_reset_at = null;
+                            console.log('🔍 Rate limit expired for provider:', provider.provider);
+                        }
+                    }
+                });
+            }, 1000);
+        },
+        
         // Cleanup method for component destruction
         destroy() {
             console.log('🔍 Cleaning up Cloud Storage Status Widget');
             if (this.refreshInterval) {
                 clearTimeout(this.refreshInterval);
                 this.refreshInterval = null;
+            }
+            if (this.countdownInterval) {
+                clearInterval(this.countdownInterval);
+                this.countdownInterval = null;
             }
         }
     };

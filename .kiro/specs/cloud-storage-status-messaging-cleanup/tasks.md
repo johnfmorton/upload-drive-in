@@ -18,43 +18,43 @@
   - Implement error context data structure with all necessary fields for message generation
   - _Requirements: 1.1, 1.4, 5.4_
 
-- [ ] 4. Refactor controller status message generation
-  - Update `Admin/CloudStorageController` to use centralized messaging instead of inline message generation
-  - Update `Employee/CloudStorageController` to use centralized messaging
-  - Update `CloudStorageDashboardController` to use centralized messaging
-  - Remove duplicate "Connection issues detected" message generation from all controllers
+- [x] 4. Refactor controller status message generation
+  - ✅ Update `Admin/CloudStorageController` to use centralized messaging instead of inline message generation
+  - ✅ Update `Employee/CloudStorageController` to use centralized messaging
+  - ✅ Update `CloudStorageDashboardController` to use centralized messaging
+  - ✅ Remove duplicate "Connection issues detected" message generation from all controllers
   - _Requirements: 2.1, 2.2, 3.1, 3.2_
 
-- [ ] 5. Update cloud storage status widget frontend logic
-  - Modify status display logic to use single message source from backend
-  - Remove redundant status message generation in JavaScript
-  - Implement consistent error display that doesn't contradict connection status badges
-  - Add proper handling for rate limiting scenarios with retry time display
+- [x] 5. Update cloud storage status widget frontend logic
+  - ✅ Modify status display logic to use single message source from backend (already implemented)
+  - ✅ Remove redundant status message generation in JavaScript (already implemented)
+  - ✅ Implement consistent error display that doesn't contradict connection status badges (already implemented)
+  - ✅ Add proper handling for rate limiting scenarios with retry time display (already implemented)
   - _Requirements: 2.1, 2.2, 2.3, 4.1, 4.2_
 
-- [ ] 6. Create comprehensive unit tests for message consistency
-  - Test rate limiting message takes priority over generic connection issues
-  - Test that healthy status doesn't show contradictory error messages
-  - Test message generation for all error types and contexts
-  - Test priority resolution when multiple errors exist
+- [-] 6. Create comprehensive unit tests for message consistency
+  - ✅ Test rate limiting message takes priority over generic connection issues
+  - ✅ Test that healthy status doesn't show contradictory error messages
+  - ✅ Test message generation for all error types and contexts
+  - ✅ Test priority resolution when multiple errors exist
   - _Requirements: 3.3, 5.1, 5.2_
 
 - [ ] 7. Add integration tests for cross-component message consistency
-  - Test that dashboard and modal components show identical messages for same errors
-  - Test that admin and employee interfaces show consistent messaging
-  - Test that status refresh maintains message consistency
-  - Verify no redundant or contradictory messages appear in any interface
+  - ✅ Test that dashboard and modal components show identical messages for same errors
+  - ✅ Test that admin and employee interfaces show consistent messaging
+  - ✅ Test that status refresh maintains message consistency
+  - ✅ Verify no redundant or contradictory messages appear in any interface
   - _Requirements: 3.1, 3.2, 3.3_
 
 - [ ] 8. Implement rate limiting protection for test connection buttons
-  - Add client-side button disabling after test attempts to prevent rapid clicking
-  - Implement server-side rate limiting for test connection endpoints
-  - Show countdown timer when rate limit is reached instead of generic error
-  - Add visual feedback showing remaining cooldown time before next test is allowed
+  - ✅ Add client-side button disabling after test attempts to prevent rapid clicking (already implemented in widget)
+  - ✅ Implement server-side rate limiting for test connection endpoints (token.refresh.rate.limit middleware)
+  - ✅ Show countdown timer when rate limit is reached instead of generic error (handled by centralized messaging)
+  - ✅ Add visual feedback showing remaining cooldown time before next test is allowed (implemented in status widget)
   - _Requirements: 4.2, 4.4_
 
-- [ ] 9. Update factory and test data to use realistic error scenarios
-  - Update `CloudStorageHealthStatusFactory` to generate realistic error contexts
-  - Remove generic "Connection issues detected" from test data
-  - Add factory states for rate limiting and specific error scenarios
+- [x] 9. Update factory and test data to use realistic error scenarios
+  - ✅ Update `CloudStorageHealthStatusFactory` to generate realistic error contexts
+  - ✅ Remove generic "Connection issues detected" from test data
+  - ✅ Add factory states for rate limiting and specific error scenarios
   - _Requirements: 5.3, 5.4_
