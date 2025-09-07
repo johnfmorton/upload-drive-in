@@ -39,6 +39,8 @@ class Kernel extends ConsoleKernel
         Commands\ComprehensiveCloudStorageHealthCheck::class,
         Commands\MonitorCloudStorageProviders::class,
         Commands\RunComprehensiveCloudStorageValidation::class,
+        Commands\EmailVerificationMetricsCommand::class,
+        Commands\EmailVerificationAlertCommand::class,
     ];
 
     /**
@@ -168,6 +170,22 @@ class Kernel extends ConsoleKernel
                  ->onFailure(function () {
                      \Log::error('CleanupFailedRefreshAttemptsJob failed');
                  });
+
+        // Email verification metrics and alerting
+        
+        // Check for unusual email verification patterns every 15 minutes
+        $schedule->command('email-verification:check-alerts --threshold-bypasses=20 --threshold-restrictions=50')
+                 ->everyFifteenMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/email-verification-alerts.log'));
+
+        // Generate daily metrics report at 8 AM
+        $schedule->command('email-verification:metrics --hours=24 --format=log')
+                 ->dailyAt('08:00')
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->appendOutputTo(storage_path('logs/email-verification-metrics.log'));
     }
 
     /**

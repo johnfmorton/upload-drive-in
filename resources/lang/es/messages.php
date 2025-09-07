@@ -720,4 +720,9 @@ return [
     'new_user_verification_sent' => 'Correo de verificación enviado. Por favor revisa tu bandeja de entrada para completar el registro.',
     'registration_temporarily_unavailable' => 'No se puede procesar el registro en este momento. Por favor, inténtalo de nuevo más tarde.',
 
+    // Servicio de Métricas de Verificación de Email
+    'email_verification_bypass_spike_alert' => 'Pico inusual en omisiones de usuarios existentes en la última hora',
+    'email_verification_repeated_bypass_alert' => 'El usuario :user_id ha omitido restricciones :count veces',
+    'email_verification_unusual_domain_alert' => 'Múltiples omisiones del dominio: :domain',
+
 ];

@@ -11,6 +11,7 @@ use App\Models\DomainAccessRule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 use App\Services\VerificationMailFactory;
+use App\Services\EmailVerificationMetricsService;
 
 class PublicUploadController extends Controller
 {
@@ -269,6 +270,10 @@ class PublicUploadController extends Controller
             'user_agent' => request()->userAgent()
         ]);
 
+        // Record metrics for existing user bypass
+        $metricsService = app(EmailVerificationMetricsService::class);
+        $metricsService->recordExistingUserBypass($user, $restrictionsThatWouldApply);
+
         // Store intended URL if provided
         if (!empty($validated['intended_url'])) {
             session(['intended_url' => $validated['intended_url']]);
@@ -379,6 +384,14 @@ class PublicUploadController extends Controller
                 'ip_address' => request()->ip(),
                 'comparison_note' => 'existing_users_would_bypass_this_restriction'
             ]);
+
+            // Record metrics for restriction enforcement
+            $metricsService = app(EmailVerificationMetricsService::class);
+            $metricsService->recordRestrictionEnforcement($email, 'public_registration_disabled', [
+                'domain_restrictions_mode' => $domainRules->mode,
+                'domain_rules_exist' => true
+            ]);
+
             throw ValidationException::withMessages([
                 'email' => [__('messages.public_registration_disabled')],
             ]);
@@ -405,6 +418,15 @@ class PublicUploadController extends Controller
                 'ip_address' => request()->ip(),
                 'comparison_note' => 'existing_users_would_bypass_this_restriction'
             ]);
+
+            // Record metrics for restriction enforcement
+            $metricsService = app(EmailVerificationMetricsService::class);
+            $metricsService->recordRestrictionEnforcement($email, 'domain_not_allowed', [
+                'email_domain' => $emailDomain,
+                'domain_restrictions_mode' => $domainRules->mode,
+                'configured_domains' => $domainRules->rules ?? []
+            ]);
+
             throw ValidationException::withMessages([
                 'email' => [__('messages.email_domain_not_allowed')],
             ]);

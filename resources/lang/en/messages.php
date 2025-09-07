@@ -1323,4 +1323,9 @@
     // Additional Cloud Storage Status Messages
     'cloud_storage_status_retrieval_failed' => 'Unable to retrieve cloud storage status. Please try again.',
     'cloud_storage_health_check_failed' => 'Health check failed due to an unexpected error. Please try again.',
+
+    // Email Verification Metrics Service
+    'email_verification_bypass_spike_alert' => 'Unusual spike in existing user bypasses in the last hour',
+    'email_verification_repeated_bypass_alert' => 'User :user_id has bypassed restrictions :count times',
+    'email_verification_unusual_domain_alert' => 'Multiple bypasses from domain: :domain',
 ];
