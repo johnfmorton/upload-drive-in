@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
-use App\Mail\LoginVerificationMail;
+use App\Mail\ClientVerificationMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -53,7 +53,7 @@ class DualUserCreationEmailQueueIntegrationTest extends TestCase
         $response->assertSessionHas('success', 'Client user created and invitation sent successfully.');
 
         // Verify email was sent (not queued in this case as we're sending directly)
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('client@example.com');
         });
     }
@@ -76,7 +76,7 @@ class DualUserCreationEmailQueueIntegrationTest extends TestCase
         $response->assertSessionHas('status', 'employee-client-created-and-invited');
 
         // Verify email was sent (not queued in this case as we're sending directly)
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('employee-client@example.com');
         });
     }
@@ -101,7 +101,7 @@ class DualUserCreationEmailQueueIntegrationTest extends TestCase
         $this->assertNotNull($clientUser);
 
         // Verify email was sent to correct recipient
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('client@example.com') && 
                    $mail->verificationUrl !== null;
         });
@@ -127,7 +127,7 @@ class DualUserCreationEmailQueueIntegrationTest extends TestCase
         $this->assertNotNull($clientUser);
 
         // Verify email was sent to correct recipient
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('employee-client@example.com') && 
                    $mail->verificationUrl !== null;
         });
@@ -158,11 +158,11 @@ class DualUserCreationEmailQueueIntegrationTest extends TestCase
         }
 
         // Verify all emails were sent
-        Mail::assertSent(LoginVerificationMail::class, 3);
+        Mail::assertSent(ClientVerificationMail::class, 3);
 
         // Verify each email was sent to correct recipient
         foreach ($users as $userData) {
-            Mail::assertSent(LoginVerificationMail::class, function ($mail) use ($userData) {
+            Mail::assertSent(ClientVerificationMail::class, function ($mail) use ($userData) {
                 return $mail->hasTo($userData['email']);
             });
         }
@@ -193,11 +193,11 @@ class DualUserCreationEmailQueueIntegrationTest extends TestCase
         }
 
         // Verify all emails were sent
-        Mail::assertSent(LoginVerificationMail::class, 3);
+        Mail::assertSent(ClientVerificationMail::class, 3);
 
         // Verify each email was sent to correct recipient
         foreach ($users as $userData) {
-            Mail::assertSent(LoginVerificationMail::class, function ($mail) use ($userData) {
+            Mail::assertSent(ClientVerificationMail::class, function ($mail) use ($userData) {
                 return $mail->hasTo($userData['email']);
             });
         }
@@ -253,7 +253,7 @@ class DualUserCreationEmailQueueIntegrationTest extends TestCase
         $response->assertRedirect(route('admin.users.index'));
 
         // Verify email was sent to correct recipient with verification URL
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('client@example.com') && 
                    $mail->verificationUrl !== null;
         });

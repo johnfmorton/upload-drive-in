@@ -119,7 +119,7 @@
   - Test public upload email verification uses client template
   - _Requirements: 1.1, 2.1, 3.1, 4.3_
 
-- [ ] 13. Update existing tests to work with new system
+- [x] 13. Update existing tests to work with new system
   - Update tests that expect LoginVerificationMail to work with new factory
   - Update tests that check email content to expect role-specific content
   - Ensure backward compatibility tests still pass

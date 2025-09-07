@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Mail\LoginVerificationMail;
+use App\Mail\ClientVerificationMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -123,15 +123,15 @@ class DualUserCreationConsistencyTest extends TestCase
         $this->actingAs($this->employeeUser)
             ->post("/employee/{$this->employeeUser->username}/clients", $userData);
         
-        // Both should send LoginVerificationMail
-        Mail::assertSent(LoginVerificationMail::class, 2);
+        // Both should send ClientVerificationMail (clients get client template)
+        Mail::assertSent(ClientVerificationMail::class, 2);
         
         // Verify emails were sent to correct addresses
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('admin-invite@example.com');
         });
         
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('employee-invite@example.com');
         });
     }
@@ -203,7 +203,7 @@ class DualUserCreationConsistencyTest extends TestCase
         $this->assertEquals(1, User::where('email', 'existing@example.com')->count());
         
         // No emails should be sent for existing users
-        Mail::assertNotSent(LoginVerificationMail::class);
+        Mail::assertNotSent(ClientVerificationMail::class);
     }
 
     /** @test */
@@ -252,7 +252,7 @@ class DualUserCreationConsistencyTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'employee-invite@example.com']);
         
         // Verify correct number of emails sent (only for invite actions)
-        Mail::assertSent(LoginVerificationMail::class, 2);
+        Mail::assertSent(ClientVerificationMail::class, 2);
     }
 
     /** @test */

@@ -4,7 +4,7 @@ namespace Tests\Unit;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Employee\ClientManagementController;
-use App\Mail\LoginVerificationMail;
+use App\Mail\ClientVerificationMail;
 use App\Models\User;
 use App\Services\ClientUserService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -165,7 +165,7 @@ class ClientManagementControllerTest extends TestCase
         
         $this->assertEquals(302, $response->getStatusCode());
         
-        Mail::assertNotSent(LoginVerificationMail::class);
+        Mail::assertNotSent(ClientVerificationMail::class);
     }
 
     public function test_store_creates_client_with_invitation()
@@ -206,7 +206,7 @@ class ClientManagementControllerTest extends TestCase
         
         $this->assertEquals(302, $response->getStatusCode());
         
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('client@example.com');
         });
     }
@@ -292,7 +292,7 @@ class ClientManagementControllerTest extends TestCase
         
         $this->assertEquals(302, $response->getStatusCode());
         
-        Mail::assertNotSent(LoginVerificationMail::class);
+        Mail::assertNotSent(ClientVerificationMail::class);
     }
 
     public function test_store_accepts_valid_action_create()
@@ -320,7 +320,7 @@ class ClientManagementControllerTest extends TestCase
         $response = $this->controller->store($request, $this->clientUserService);
         
         $this->assertEquals(302, $response->getStatusCode());
-        Mail::assertNotSent(LoginVerificationMail::class);
+        Mail::assertNotSent(ClientVerificationMail::class);
     }
 
     public function test_store_accepts_valid_action_create_and_invite()
@@ -351,7 +351,7 @@ class ClientManagementControllerTest extends TestCase
         $response = $this->controller->store($request, $this->clientUserService);
         
         $this->assertEquals(302, $response->getStatusCode());
-        Mail::assertSent(LoginVerificationMail::class);
+        Mail::assertSent(ClientVerificationMail::class);
     }
 
     public function test_store_returns_correct_status_for_create_action()
@@ -410,7 +410,7 @@ class ClientManagementControllerTest extends TestCase
         $response = $this->controller->store($request, $this->clientUserService);
         
         $this->assertEquals(302, $response->getStatusCode());
-        Mail::assertSent(LoginVerificationMail::class);
+        Mail::assertSent(ClientVerificationMail::class);
     }
 
     public function test_store_logs_client_creation_attempt()

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Mail\LoginVerificationMail;
+use App\Mail\ClientVerificationMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
@@ -49,7 +49,7 @@ class DualUserCreationEmailDeliveryTest extends TestCase
         
         $clientUser = User::where('email', 'client@example.com')->first();
         
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) use ($clientUser) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) use ($clientUser) {
             // Verify email is sent to correct recipient
             if (!$mail->hasTo('client@example.com')) {
                 return false;
@@ -85,7 +85,7 @@ class DualUserCreationEmailDeliveryTest extends TestCase
         
         $clientUser = User::where('email', 'employee-client@example.com')->first();
         
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) use ($clientUser) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) use ($clientUser) {
             // Verify email is sent to correct recipient
             if (!$mail->hasTo('employee-client@example.com')) {
                 return false;
@@ -198,7 +198,7 @@ class DualUserCreationEmailDeliveryTest extends TestCase
             ]);
         
         // Verify emails were sent (not queued in this case, but would be in production)
-        Mail::assertSent(LoginVerificationMail::class, 2);
+        Mail::assertSent(ClientVerificationMail::class, 2);
     }
 
     /** @test */
@@ -215,7 +215,7 @@ class DualUserCreationEmailDeliveryTest extends TestCase
         $this->actingAs($this->adminUser)
             ->post('/admin/users', $userData);
         
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             $reflection = new \ReflectionClass($mail);
             $property = $reflection->getProperty('verificationUrl');
             $property->setAccessible(true);
@@ -266,15 +266,15 @@ class DualUserCreationEmailDeliveryTest extends TestCase
         }
         
         // Verify all emails were sent
-        Mail::assertSent(LoginVerificationMail::class, 6);
+        Mail::assertSent(ClientVerificationMail::class, 6);
         
         // Verify each email was sent to correct recipient
         foreach ($clients as $client) {
-            Mail::assertSent(LoginVerificationMail::class, function ($mail) use ($client) {
+            Mail::assertSent(ClientVerificationMail::class, function ($mail) use ($client) {
                 return $mail->hasTo($client['email']);
             });
             
-            Mail::assertSent(LoginVerificationMail::class, function ($mail) use ($client) {
+            Mail::assertSent(ClientVerificationMail::class, function ($mail) use ($client) {
                 return $mail->hasTo("employee-{$client['email']}");
             });
         }
@@ -294,9 +294,9 @@ class DualUserCreationEmailDeliveryTest extends TestCase
         $this->actingAs($this->adminUser)
             ->post('/admin/users', $userData);
         
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             // Verify the mail is using the correct mailable class
-            $this->assertInstanceOf(LoginVerificationMail::class, $mail);
+            $this->assertInstanceOf(ClientVerificationMail::class, $mail);
             
             // Verify it has the correct recipient
             $this->assertTrue($mail->hasTo('content@example.com'));
@@ -327,7 +327,7 @@ class DualUserCreationEmailDeliveryTest extends TestCase
             ]);
         
         // Verify no emails were sent
-        Mail::assertNotSent(LoginVerificationMail::class);
+        Mail::assertNotSent(ClientVerificationMail::class);
         
         // But users should still be created
         $this->assertDatabaseHas('users', ['email' => 'no-email-admin@example.com']);

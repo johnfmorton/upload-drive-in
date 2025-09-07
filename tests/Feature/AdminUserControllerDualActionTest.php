@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\UserRole;
-use App\Mail\LoginVerificationMail;
+use App\Mail\ClientVerificationMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -44,7 +44,7 @@ class AdminUserControllerDualActionTest extends TestCase
             'role' => UserRole::CLIENT,
         ]);
 
-        Mail::assertNotSent(LoginVerificationMail::class);
+        Mail::assertNotSent(ClientVerificationMail::class);
     }
 
     public function test_admin_can_create_user_with_invitation()
@@ -66,7 +66,7 @@ class AdminUserControllerDualActionTest extends TestCase
             'role' => UserRole::CLIENT,
         ]);
 
-        Mail::assertSent(LoginVerificationMail::class, function ($mail) {
+        Mail::assertSent(ClientVerificationMail::class, function ($mail) {
             return $mail->hasTo('client@example.com');
         });
     }
@@ -118,6 +118,6 @@ class AdminUserControllerDualActionTest extends TestCase
             'role' => UserRole::CLIENT,
         ]);
 
-        Mail::assertSent(LoginVerificationMail::class);
+        Mail::assertSent(ClientVerificationMail::class);
     }
 }
