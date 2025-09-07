@@ -28,53 +28,58 @@ class CloudStorageErrorMessageService
 
         return match ($errorType) {
             CloudStorageErrorType::TOKEN_EXPIRED => 
-                "Your {$providerName} connection has expired. Please reconnect your account to continue.",
+                __('messages.cloud_storage_error_token_expired', ['provider' => $providerName]),
+            
+            CloudStorageErrorType::TOKEN_REFRESH_RATE_LIMITED => 
+                $this->getTokenRefreshRateLimitMessage($context),
             
             CloudStorageErrorType::INVALID_CREDENTIALS => 
-                "Invalid {$providerName} credentials. Please check your configuration and reconnect your account.",
+                __('messages.cloud_storage_error_invalid_credentials', ['provider' => $providerName]),
             
             CloudStorageErrorType::INSUFFICIENT_PERMISSIONS => 
-                "Insufficient {$providerName} permissions. Please reconnect your account and ensure you grant full access.",
+                __('messages.cloud_storage_error_insufficient_permissions', ['provider' => $providerName]),
             
             CloudStorageErrorType::API_QUOTA_EXCEEDED => 
-                "{$providerName} API limit reached. Your operations will resume automatically when the limit resets.",
+                __('messages.cloud_storage_error_api_quota_exceeded', ['provider' => $providerName]),
             
             CloudStorageErrorType::STORAGE_QUOTA_EXCEEDED => 
-                "Your {$providerName} storage is full. Please free up space or upgrade your storage plan.",
+                __('messages.cloud_storage_error_storage_quota_exceeded', ['provider' => $providerName]),
             
             CloudStorageErrorType::NETWORK_ERROR => 
-                "Network connection issue prevented the {$providerName} operation. Please check your internet connection and try again.",
+                __('messages.cloud_storage_error_network_error', ['provider' => $providerName]),
             
             CloudStorageErrorType::SERVICE_UNAVAILABLE => 
-                "{$providerName} is temporarily unavailable. Please try again in a few minutes.",
+                __('messages.cloud_storage_error_service_unavailable', ['provider' => $providerName]),
             
             CloudStorageErrorType::TIMEOUT => 
-                "The {$providerName} {$operation} timed out. This is usually temporary - please try again.",
+                __('messages.cloud_storage_error_timeout', ['provider' => $providerName, 'operation' => $operation]),
             
             CloudStorageErrorType::FILE_NOT_FOUND => 
-                "The file '{$fileName}' could not be found in {$providerName}. It may have been deleted or moved.",
+                __('messages.cloud_storage_error_file_not_found', ['filename' => $fileName, 'provider' => $providerName]),
             
             CloudStorageErrorType::FOLDER_ACCESS_DENIED => 
-                "Access denied to the {$providerName} folder. Please check your folder permissions.",
+                __('messages.cloud_storage_error_folder_access_denied', ['provider' => $providerName]),
             
             CloudStorageErrorType::INVALID_FILE_TYPE => 
-                "The file type of '{$fileName}' is not supported by {$providerName}. Please try a different file format.",
+                __('messages.cloud_storage_error_invalid_file_type', ['filename' => $fileName, 'provider' => $providerName]),
             
             CloudStorageErrorType::FILE_TOO_LARGE => 
-                "The file '{$fileName}' is too large for {$providerName}. Please reduce the file size and try again.",
+                __('messages.cloud_storage_error_file_too_large', ['filename' => $fileName, 'provider' => $providerName]),
             
             CloudStorageErrorType::INVALID_FILE_CONTENT => 
-                "The file '{$fileName}' appears to be corrupted. Please try uploading the file again.",
+                __('messages.cloud_storage_error_invalid_file_content', ['filename' => $fileName]),
             
             CloudStorageErrorType::PROVIDER_NOT_CONFIGURED => 
-                "{$providerName} is not properly configured. Please check your settings and try again.",
+                __('messages.cloud_storage_error_provider_not_configured', ['provider' => $providerName]),
             
             CloudStorageErrorType::UNKNOWN_ERROR => 
-                "An unexpected error occurred with {$providerName}. " . 
-                ($context['original_message'] ?? 'Please try again or contact support if the problem persists.'),
+                __('messages.cloud_storage_error_unknown_error', [
+                    'provider' => $providerName,
+                    'message' => $context['original_message'] ?? __('messages.cloud_storage_recovery_default_3')
+                ]),
             
             default => 
-                "An error occurred during the {$providerName} {$operation}. Please try again."
+                __('messages.cloud_storage_error_default', ['provider' => $providerName, 'operation' => $operation])
         };
     }
 
@@ -93,92 +98,99 @@ class CloudStorageErrorMessageService
         return match ($errorType) {
             CloudStorageErrorType::TOKEN_EXPIRED, 
             CloudStorageErrorType::INVALID_CREDENTIALS => [
-                'Go to Settings → Cloud Storage',
-                "Click \"Reconnect {$providerName}\"",
-                'Complete the authorization process',
-                'Retry your operation'
+                __('messages.cloud_storage_recovery_token_expired_1'),
+                __('messages.cloud_storage_recovery_token_expired_2', ['provider' => $providerName]),
+                __('messages.cloud_storage_recovery_token_expired_3'),
+                __('messages.cloud_storage_recovery_token_expired_4')
+            ],
+            
+            CloudStorageErrorType::TOKEN_REFRESH_RATE_LIMITED => [
+                __('messages.cloud_storage_recovery_rate_limited_1'),
+                __('messages.cloud_storage_recovery_rate_limited_2'),
+                __('messages.cloud_storage_recovery_rate_limited_3'),
+                __('messages.cloud_storage_recovery_rate_limited_4')
             ],
             
             CloudStorageErrorType::INSUFFICIENT_PERMISSIONS => [
-                'Go to Settings → Cloud Storage',
-                "Click \"Reconnect {$providerName}\"",
-                'Ensure you grant full access when prompted',
-                'Check that you have the necessary permissions'
+                __('messages.cloud_storage_recovery_insufficient_permissions_1'),
+                __('messages.cloud_storage_recovery_insufficient_permissions_2', ['provider' => $providerName]),
+                __('messages.cloud_storage_recovery_insufficient_permissions_3'),
+                __('messages.cloud_storage_recovery_insufficient_permissions_4')
             ],
             
             CloudStorageErrorType::STORAGE_QUOTA_EXCEEDED => [
-                "Free up space in your {$providerName} account",
-                "Empty your {$providerName} trash",
-                "Consider upgrading your {$providerName} storage plan",
-                'Contact your administrator if using a business account'
+                __('messages.cloud_storage_recovery_storage_quota_exceeded_1', ['provider' => $providerName]),
+                __('messages.cloud_storage_recovery_storage_quota_exceeded_2', ['provider' => $providerName]),
+                __('messages.cloud_storage_recovery_storage_quota_exceeded_3', ['provider' => $providerName]),
+                __('messages.cloud_storage_recovery_storage_quota_exceeded_4')
             ],
             
             CloudStorageErrorType::API_QUOTA_EXCEEDED => [
-                'Wait for the quota to reset (usually within an hour)',
-                'Operations will resume automatically',
-                'Consider spreading large operations across multiple days'
+                __('messages.cloud_storage_recovery_api_quota_exceeded_1'),
+                __('messages.cloud_storage_recovery_api_quota_exceeded_2'),
+                __('messages.cloud_storage_recovery_api_quota_exceeded_3')
             ],
             
             CloudStorageErrorType::NETWORK_ERROR => [
-                'Check your internet connection',
-                'Try again in a few minutes',
-                'Contact your network administrator if the problem persists'
+                __('messages.cloud_storage_recovery_network_error_1'),
+                __('messages.cloud_storage_recovery_network_error_2'),
+                __('messages.cloud_storage_recovery_network_error_3')
             ],
             
             CloudStorageErrorType::SERVICE_UNAVAILABLE => [
-                'Wait a few minutes and try again',
-                "Check {$providerName} status page for service updates",
-                'Operations will be retried automatically'
+                __('messages.cloud_storage_recovery_service_unavailable_1'),
+                __('messages.cloud_storage_recovery_service_unavailable_2', ['provider' => $providerName]),
+                __('messages.cloud_storage_recovery_service_unavailable_3')
             ],
             
             CloudStorageErrorType::TIMEOUT => [
-                'Try again - timeouts are usually temporary',
-                'Check your internet connection speed',
-                'For large files, try uploading during off-peak hours'
+                __('messages.cloud_storage_recovery_timeout_1'),
+                __('messages.cloud_storage_recovery_timeout_2'),
+                __('messages.cloud_storage_recovery_timeout_3')
             ],
             
             CloudStorageErrorType::FOLDER_ACCESS_DENIED => [
-                "Check that the target folder exists in your {$providerName}",
-                'Verify you have write permissions to the folder',
-                "Try reconnecting your {$providerName} account"
+                __('messages.cloud_storage_recovery_folder_access_denied_1', ['provider' => $providerName]),
+                __('messages.cloud_storage_recovery_folder_access_denied_2'),
+                __('messages.cloud_storage_recovery_folder_access_denied_3', ['provider' => $providerName])
             ],
             
             CloudStorageErrorType::INVALID_FILE_TYPE => [
-                'Convert the file to a supported format',
-                "Check {$providerName}'s supported file types",
-                'Try uploading a different file to test'
+                __('messages.cloud_storage_recovery_invalid_file_type_1'),
+                __('messages.cloud_storage_recovery_invalid_file_type_2', ['provider' => $providerName]),
+                __('messages.cloud_storage_recovery_invalid_file_type_3')
             ],
             
             CloudStorageErrorType::FILE_TOO_LARGE => [
-                'Compress the file to reduce its size',
-                'Split large files into smaller parts',
-                "Use {$providerName}'s web interface for very large files"
+                __('messages.cloud_storage_recovery_file_too_large_1'),
+                __('messages.cloud_storage_recovery_file_too_large_2'),
+                __('messages.cloud_storage_recovery_file_too_large_3', ['provider' => $providerName])
             ],
             
             CloudStorageErrorType::INVALID_FILE_CONTENT => [
-                'Check that the file is not corrupted',
-                'Try re-creating or re-downloading the file',
-                'Scan the file for viruses or malware'
+                __('messages.cloud_storage_recovery_invalid_file_content_1'),
+                __('messages.cloud_storage_recovery_invalid_file_content_2'),
+                __('messages.cloud_storage_recovery_invalid_file_content_3')
             ],
             
             CloudStorageErrorType::PROVIDER_NOT_CONFIGURED => [
-                'Go to Settings → Cloud Storage',
-                'Check your configuration settings',
-                'Ensure all required fields are filled correctly',
-                'Contact support if you need assistance'
+                __('messages.cloud_storage_recovery_provider_not_configured_1'),
+                __('messages.cloud_storage_recovery_provider_not_configured_2'),
+                __('messages.cloud_storage_recovery_provider_not_configured_3'),
+                __('messages.cloud_storage_recovery_provider_not_configured_4')
             ],
             
             CloudStorageErrorType::UNKNOWN_ERROR => [
-                'Try the operation again',
-                'Check your internet connection',
-                'Contact support if the problem persists',
-                'Include any error details when contacting support'
+                __('messages.cloud_storage_recovery_unknown_error_1'),
+                __('messages.cloud_storage_recovery_unknown_error_2'),
+                __('messages.cloud_storage_recovery_unknown_error_3'),
+                __('messages.cloud_storage_recovery_unknown_error_4')
             ],
             
             default => [
-                'Try the operation again',
-                'Check your connection and settings',
-                'Contact support if the problem persists'
+                __('messages.cloud_storage_recovery_default_1'),
+                __('messages.cloud_storage_recovery_default_2'),
+                __('messages.cloud_storage_recovery_default_3')
             ]
         };
     }
@@ -214,6 +226,108 @@ class CloudStorageErrorMessageService
     }
 
     /**
+     * Generate status display message based on consolidated status and error context
+     *
+     * @param string $consolidatedStatus The consolidated status from health service
+     * @param array $context Additional error context
+     * @return string User-friendly status message
+     */
+    public function getStatusDisplayMessage(string $consolidatedStatus, array $context = []): string
+    {
+        // Handle specific error contexts first (priority-based resolution)
+        if (isset($context['error_type'])) {
+            $errorType = is_string($context['error_type']) 
+                ? CloudStorageErrorType::from($context['error_type'])
+                : $context['error_type'];
+            
+            return $this->getActionableErrorMessage($errorType, $context);
+        }
+        
+        // Handle consolidated status
+        return match ($consolidatedStatus) {
+            'healthy' => __('messages.' . CloudStorageStatusMessages::CONNECTION_HEALTHY_MESSAGE),
+            'authentication_required' => __('messages.' . CloudStorageStatusMessages::AUTH_REQUIRED_MESSAGE),
+            'connection_issues' => $this->getConnectionIssueMessage($context),
+            'not_connected' => __('messages.' . CloudStorageStatusMessages::NOT_CONNECTED_MESSAGE),
+            default => __('messages.' . CloudStorageStatusMessages::STATUS_UNKNOWN_MESSAGE)
+        };
+    }
+
+    /**
+     * Generate context-aware connection issue message
+     *
+     * @param array $context Error context including consecutive failures and error details
+     * @return string Specific connection issue message
+     */
+    private function getConnectionIssueMessage(array $context): string
+    {
+        $consecutiveFailures = $context['consecutive_failures'] ?? 0;
+        $errorType = $context['error_type'] ?? null;
+        
+        // Handle specific connection issues with priority
+        if ($errorType === 'token_refresh_rate_limited' || $errorType === CloudStorageErrorType::TOKEN_REFRESH_RATE_LIMITED) {
+            return $this->getTokenRefreshRateLimitMessage($context);
+        }
+        
+        return __('messages.' . CloudStorageStatusMessages::getConsecutiveFailureMessage($consecutiveFailures));
+    }
+
+    /**
+     * Generate token refresh rate limit message with retry time if available
+     *
+     * @param array $context Context including retry_after time
+     * @return string Rate limit message with timing information
+     */
+    private function getTokenRefreshRateLimitMessage(array $context): string
+    {
+        $retryAfter = $context['retry_after'] ?? null;
+        
+        if ($retryAfter && $retryAfter > 0) {
+            return CloudStorageStatusMessages::getRetryTimeMessage($retryAfter);
+        }
+        
+        return __('messages.' . CloudStorageStatusMessages::RATE_LIMITED_MESSAGE);
+    }
+
+    /**
+     * Resolve message priority when multiple errors exist
+     *
+     * @param array $errorContexts Array of error contexts
+     * @return string The highest priority message
+     */
+    public function resolveMessagePriority(array $errorContexts): string
+    {
+        // Priority order: Rate limiting > Auth required > Connection issues > Generic
+        foreach ($errorContexts as $context) {
+            if (isset($context['error_type']) && 
+                ($context['error_type'] === 'token_refresh_rate_limited' || 
+                 $context['error_type'] === CloudStorageErrorType::TOKEN_REFRESH_RATE_LIMITED)) {
+                return $this->getTokenRefreshRateLimitMessage($context);
+            }
+        }
+        
+        foreach ($errorContexts as $context) {
+            if (isset($context['consolidated_status']) && $context['consolidated_status'] === 'authentication_required') {
+                return __('messages.' . CloudStorageStatusMessages::AUTH_REQUIRED_MESSAGE);
+            }
+        }
+        
+        foreach ($errorContexts as $context) {
+            if (isset($context['consolidated_status']) && $context['consolidated_status'] === 'connection_issues') {
+                return $this->getConnectionIssueMessage($context);
+            }
+        }
+        
+        // Fallback to first available message
+        if (!empty($errorContexts)) {
+            $firstContext = reset($errorContexts);
+            return $this->getStatusDisplayMessage($firstContext['consolidated_status'] ?? 'unknown', $firstContext);
+        }
+        
+        return __('messages.' . CloudStorageStatusMessages::STATUS_UNKNOWN_MESSAGE);
+    }
+
+    /**
      * Get user-friendly provider display name
      *
      * @param string $provider The provider identifier
@@ -221,15 +335,21 @@ class CloudStorageErrorMessageService
      */
     private function getProviderDisplayName(string $provider): string
     {
-        return match ($provider) {
-            'google-drive' => 'Google Drive',
-            'amazon-s3' => 'Amazon S3',
-            'azure-blob' => 'Azure Blob Storage',
-            'microsoft-teams' => 'Microsoft Teams',
-            'dropbox' => 'Dropbox',
-            'onedrive' => 'OneDrive',
-            default => ucfirst(str_replace('-', ' ', $provider))
+        $translationKey = match ($provider) {
+            'google-drive' => 'cloud_storage_provider_google_drive',
+            'amazon-s3' => 'cloud_storage_provider_amazon_s3',
+            'azure-blob' => 'cloud_storage_provider_azure_blob',
+            'microsoft-teams' => 'cloud_storage_provider_microsoft_teams',
+            'dropbox' => 'cloud_storage_provider_dropbox',
+            'onedrive' => 'cloud_storage_provider_onedrive',
+            default => null
         };
+
+        if ($translationKey && __('messages.' . $translationKey) !== 'messages.' . $translationKey) {
+            return __('messages.' . $translationKey);
+        }
+
+        return ucfirst(str_replace('-', ' ', $provider));
     }
 
     /**
@@ -276,7 +396,8 @@ class CloudStorageErrorMessageService
             CloudStorageErrorType::NETWORK_ERROR,
             CloudStorageErrorType::SERVICE_UNAVAILABLE,
             CloudStorageErrorType::TIMEOUT,
-            CloudStorageErrorType::API_QUOTA_EXCEEDED => true,
+            CloudStorageErrorType::API_QUOTA_EXCEEDED,
+            CloudStorageErrorType::TOKEN_REFRESH_RATE_LIMITED => true,
             default => false
         };
     }
@@ -291,6 +412,7 @@ class CloudStorageErrorMessageService
     {
         return match ($errorType) {
             CloudStorageErrorType::TOKEN_EXPIRED,
+            CloudStorageErrorType::TOKEN_REFRESH_RATE_LIMITED,
             CloudStorageErrorType::INVALID_CREDENTIALS,
             CloudStorageErrorType::INSUFFICIENT_PERMISSIONS,
             CloudStorageErrorType::STORAGE_QUOTA_EXCEEDED,

@@ -16,6 +16,11 @@ enum CloudStorageErrorType: string
     case TOKEN_EXPIRED = 'token_expired';
 
     /**
+     * Token refresh rate limit exceeded - too many refresh attempts
+     */
+    case TOKEN_REFRESH_RATE_LIMITED = 'token_refresh_rate_limited';
+
+    /**
      * Insufficient permissions to perform the requested operation
      */
     case INSUFFICIENT_PERMISSIONS = 'insufficient_permissions';
@@ -152,6 +157,7 @@ enum CloudStorageErrorType: string
     {
         return match ($this) {
             self::TOKEN_EXPIRED => 'Authentication token has expired',
+            self::TOKEN_REFRESH_RATE_LIMITED => 'Token refresh rate limit exceeded',
             self::INSUFFICIENT_PERMISSIONS => 'Insufficient permissions for the operation',
             self::API_QUOTA_EXCEEDED => 'API quota or rate limit exceeded',
             self::NETWORK_ERROR => 'Network connectivity issue',
@@ -205,6 +211,7 @@ enum CloudStorageErrorType: string
     {
         return match ($this) {
             self::TOKEN_EXPIRED,
+            self::TOKEN_REFRESH_RATE_LIMITED,
             self::INSUFFICIENT_PERMISSIONS,
             self::STORAGE_QUOTA_EXCEEDED,
             self::INVALID_CREDENTIALS,
@@ -229,6 +236,7 @@ enum CloudStorageErrorType: string
     {
         return match ($this) {
             self::TOKEN_EXPIRED,
+            self::TOKEN_REFRESH_RATE_LIMITED,
             self::INSUFFICIENT_PERMISSIONS,
             self::INVALID_CREDENTIALS => 'high',
             self::STORAGE_QUOTA_EXCEEDED,

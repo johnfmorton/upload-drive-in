@@ -49,6 +49,124 @@ return [
     'google_drive_action_storage_quota_exceeded_1' => 'Schaffen Sie Platz in Ihrem Google Drive-Konto',
     'google_drive_action_storage_quota_exceeded_2' => 'Leeren Sie Ihren Google Drive-Papierkorb',
 
+    // Cloud Storage Status Messages
+    'cloud_storage_status_rate_limited' => 'Zu viele Token-Erneuerungsversuche. Bitte versuchen Sie es später erneut.',
+    'cloud_storage_status_auth_required' => 'Authentifizierung erforderlich. Bitte verbinden Sie Ihr Konto erneut.',
+    'cloud_storage_status_connection_healthy' => 'Verbunden und funktioniert ordnungsgemäß',
+    'cloud_storage_status_not_connected' => 'Konto nicht verbunden. Bitte richten Sie Ihre Cloud-Speicher-Verbindung ein.',
+    'cloud_storage_status_connection_issues' => 'Verbindungsproblem erkannt. Bitte testen Sie Ihre Verbindung.',
+    'cloud_storage_status_multiple_failures' => 'Mehrere Verbindungsfehler erkannt. Bitte überprüfen Sie Ihre Kontoeinstellungen.',
+    'cloud_storage_status_unknown' => 'Status unbekannt. Bitte aktualisieren Sie oder kontaktieren Sie den Support.',
+    'cloud_storage_retry_time_message' => 'Zu viele Versuche. Bitte versuchen Sie es in :minutes Minute erneut.|Zu viele Versuche. Bitte versuchen Sie es in :minutes Minuten erneut.',
+
+    // Cloud Storage Error Messages - Generic
+    'cloud_storage_error_token_expired' => 'Ihre :provider-Verbindung ist abgelaufen. Bitte verbinden Sie Ihr Konto erneut, um fortzufahren.',
+    'cloud_storage_error_token_refresh_rate_limited' => 'Zu viele Token-Erneuerungsversuche. Bitte versuchen Sie es später erneut.',
+    'cloud_storage_error_invalid_credentials' => 'Ungültige :provider-Anmeldedaten. Bitte überprüfen Sie Ihre Konfiguration und verbinden Sie Ihr Konto erneut.',
+    'cloud_storage_error_insufficient_permissions' => 'Unzureichende :provider-Berechtigungen. Bitte verbinden Sie Ihr Konto erneut und stellen Sie sicher, dass Sie vollständigen Zugriff gewähren.',
+    'cloud_storage_error_api_quota_exceeded' => ':provider API-Limit erreicht. Ihre Vorgänge werden automatisch fortgesetzt, wenn das Limit zurückgesetzt wird.',
+    'cloud_storage_error_storage_quota_exceeded' => 'Ihr :provider-Speicher ist voll. Bitte schaffen Sie Platz oder upgraden Sie Ihren Speicherplan.',
+    'cloud_storage_error_network_error' => 'Ein Netzwerkverbindungsproblem verhinderte den :provider-Vorgang. Bitte überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.',
+    'cloud_storage_error_service_unavailable' => ':provider ist vorübergehend nicht verfügbar. Bitte versuchen Sie es in ein paar Minuten erneut.',
+    'cloud_storage_error_timeout' => 'Der :provider :operation ist abgelaufen. Dies ist normalerweise vorübergehend - bitte versuchen Sie es erneut.',
+    'cloud_storage_error_file_not_found' => 'Die Datei \':filename\' konnte in :provider nicht gefunden werden. Sie wurde möglicherweise gelöscht oder verschoben.',
+    'cloud_storage_error_folder_access_denied' => 'Zugriff auf den :provider-Ordner verweigert. Bitte überprüfen Sie Ihre Ordnerberechtigungen.',
+    'cloud_storage_error_invalid_file_type' => 'Der Dateityp von \':filename\' wird von :provider nicht unterstützt. Bitte versuchen Sie ein anderes Dateiformat.',
+    'cloud_storage_error_file_too_large' => 'Die Datei \':filename\' ist zu groß für :provider. Bitte reduzieren Sie die Dateigröße und versuchen Sie es erneut.',
+    'cloud_storage_error_invalid_file_content' => 'Die Datei \':filename\' scheint beschädigt zu sein. Bitte versuchen Sie, die Datei erneut hochzuladen.',
+    'cloud_storage_error_provider_not_configured' => ':provider ist nicht ordnungsgemäß konfiguriert. Bitte überprüfen Sie Ihre Einstellungen und versuchen Sie es erneut.',
+    'cloud_storage_error_unknown_error' => 'Ein unerwarteter Fehler ist mit :provider aufgetreten. :message',
+    'cloud_storage_error_default' => 'Ein Fehler ist während des :provider :operation aufgetreten. Bitte versuchen Sie es erneut.',
+
+    // Cloud Storage Recovery Instructions - Token Expired
+    'cloud_storage_recovery_token_expired_1' => 'Gehen Sie zu Einstellungen → Cloud-Speicher',
+    'cloud_storage_recovery_token_expired_2' => 'Klicken Sie auf ":provider erneut verbinden"',
+    'cloud_storage_recovery_token_expired_3' => 'Schließen Sie den Autorisierungsprozess ab',
+    'cloud_storage_recovery_token_expired_4' => 'Wiederholen Sie Ihren Vorgang',
+
+    // Cloud Storage Recovery Instructions - Rate Limited
+    'cloud_storage_recovery_rate_limited_1' => 'Warten Sie, bis das Rate-Limit zurückgesetzt wird',
+    'cloud_storage_recovery_rate_limited_2' => 'Vermeiden Sie wiederholtes Klicken auf Verbindungstest-Schaltflächen',
+    'cloud_storage_recovery_rate_limited_3' => 'Vorgänge werden automatisch fortgesetzt, wenn das Limit zurückgesetzt wird',
+    'cloud_storage_recovery_rate_limited_4' => 'Kontaktieren Sie den Support, wenn das Problem über die erwartete Zeit hinaus anhält',
+
+    // Cloud Storage Recovery Instructions - Insufficient Permissions
+    'cloud_storage_recovery_insufficient_permissions_1' => 'Gehen Sie zu Einstellungen → Cloud-Speicher',
+    'cloud_storage_recovery_insufficient_permissions_2' => 'Klicken Sie auf ":provider erneut verbinden"',
+    'cloud_storage_recovery_insufficient_permissions_3' => 'Stellen Sie sicher, dass Sie vollständigen Zugriff gewähren, wenn Sie dazu aufgefordert werden',
+    'cloud_storage_recovery_insufficient_permissions_4' => 'Überprüfen Sie, dass Sie die erforderlichen Berechtigungen haben',
+
+    // Cloud Storage Recovery Instructions - Storage Quota Exceeded
+    'cloud_storage_recovery_storage_quota_exceeded_1' => 'Schaffen Sie Platz in Ihrem :provider-Konto',
+    'cloud_storage_recovery_storage_quota_exceeded_2' => 'Leeren Sie Ihren :provider-Papierkorb',
+    'cloud_storage_recovery_storage_quota_exceeded_3' => 'Erwägen Sie ein Upgrade Ihres :provider-Speicherplans',
+    'cloud_storage_recovery_storage_quota_exceeded_4' => 'Kontaktieren Sie Ihren Administrator, wenn Sie ein Geschäftskonto verwenden',
+
+    // Cloud Storage Recovery Instructions - API Quota Exceeded
+    'cloud_storage_recovery_api_quota_exceeded_1' => 'Warten Sie, bis das Kontingent zurückgesetzt wird (normalerweise innerhalb einer Stunde)',
+    'cloud_storage_recovery_api_quota_exceeded_2' => 'Vorgänge werden automatisch fortgesetzt',
+    'cloud_storage_recovery_api_quota_exceeded_3' => 'Erwägen Sie, große Vorgänge auf mehrere Tage zu verteilen',
+
+    // Cloud Storage Recovery Instructions - Network Error
+    'cloud_storage_recovery_network_error_1' => 'Überprüfen Sie Ihre Internetverbindung',
+    'cloud_storage_recovery_network_error_2' => 'Versuchen Sie es in ein paar Minuten erneut',
+    'cloud_storage_recovery_network_error_3' => 'Kontaktieren Sie Ihren Netzwerkadministrator, wenn das Problem anhält',
+
+    // Cloud Storage Recovery Instructions - Service Unavailable
+    'cloud_storage_recovery_service_unavailable_1' => 'Warten Sie ein paar Minuten und versuchen Sie es erneut',
+    'cloud_storage_recovery_service_unavailable_2' => 'Überprüfen Sie die :provider-Statusseite für Service-Updates',
+    'cloud_storage_recovery_service_unavailable_3' => 'Vorgänge werden automatisch wiederholt',
+
+    // Cloud Storage Recovery Instructions - Timeout
+    'cloud_storage_recovery_timeout_1' => 'Versuchen Sie es erneut - Timeouts sind normalerweise vorübergehend',
+    'cloud_storage_recovery_timeout_2' => 'Überprüfen Sie Ihre Internetverbindungsgeschwindigkeit',
+    'cloud_storage_recovery_timeout_3' => 'Für große Dateien versuchen Sie das Hochladen außerhalb der Stoßzeiten',
+
+    // Cloud Storage Recovery Instructions - Folder Access Denied
+    'cloud_storage_recovery_folder_access_denied_1' => 'Überprüfen Sie, dass der Zielordner in Ihrem :provider existiert',
+    'cloud_storage_recovery_folder_access_denied_2' => 'Überprüfen Sie, dass Sie Schreibberechtigungen für den Ordner haben',
+    'cloud_storage_recovery_folder_access_denied_3' => 'Versuchen Sie, Ihr :provider-Konto erneut zu verbinden',
+
+    // Cloud Storage Recovery Instructions - Invalid File Type
+    'cloud_storage_recovery_invalid_file_type_1' => 'Konvertieren Sie die Datei in ein unterstütztes Format',
+    'cloud_storage_recovery_invalid_file_type_2' => 'Überprüfen Sie die unterstützten Dateitypen von :provider',
+    'cloud_storage_recovery_invalid_file_type_3' => 'Versuchen Sie, eine andere Datei zum Testen hochzuladen',
+
+    // Cloud Storage Recovery Instructions - File Too Large
+    'cloud_storage_recovery_file_too_large_1' => 'Komprimieren Sie die Datei, um ihre Größe zu reduzieren',
+    'cloud_storage_recovery_file_too_large_2' => 'Teilen Sie große Dateien in kleinere Teile auf',
+    'cloud_storage_recovery_file_too_large_3' => 'Verwenden Sie die Web-Oberfläche von :provider für sehr große Dateien',
+
+    // Cloud Storage Recovery Instructions - Invalid File Content
+    'cloud_storage_recovery_invalid_file_content_1' => 'Überprüfen Sie, dass die Datei nicht beschädigt ist',
+    'cloud_storage_recovery_invalid_file_content_2' => 'Versuchen Sie, die Datei neu zu erstellen oder erneut herunterzuladen',
+    'cloud_storage_recovery_invalid_file_content_3' => 'Scannen Sie die Datei auf Viren oder Malware',
+
+    // Cloud Storage Recovery Instructions - Provider Not Configured
+    'cloud_storage_recovery_provider_not_configured_1' => 'Gehen Sie zu Einstellungen → Cloud-Speicher',
+    'cloud_storage_recovery_provider_not_configured_2' => 'Überprüfen Sie Ihre Konfigurationseinstellungen',
+    'cloud_storage_recovery_provider_not_configured_3' => 'Stellen Sie sicher, dass alle erforderlichen Felder korrekt ausgefüllt sind',
+    'cloud_storage_recovery_provider_not_configured_4' => 'Kontaktieren Sie den Support, wenn Sie Hilfe benötigen',
+
+    // Cloud Storage Recovery Instructions - Unknown Error
+    'cloud_storage_recovery_unknown_error_1' => 'Versuchen Sie den Vorgang erneut',
+    'cloud_storage_recovery_unknown_error_2' => 'Überprüfen Sie Ihre Internetverbindung',
+    'cloud_storage_recovery_unknown_error_3' => 'Kontaktieren Sie den Support, wenn das Problem anhält',
+    'cloud_storage_recovery_unknown_error_4' => 'Fügen Sie alle Fehlerdetails hinzu, wenn Sie den Support kontaktieren',
+
+    // Cloud Storage Recovery Instructions - Default
+    'cloud_storage_recovery_default_1' => 'Versuchen Sie den Vorgang erneut',
+    'cloud_storage_recovery_default_2' => 'Überprüfen Sie Ihre Verbindung und Einstellungen',
+    'cloud_storage_recovery_default_3' => 'Kontaktieren Sie den Support, wenn das Problem anhält',
+
+    // Cloud Storage Provider Display Names
+    'cloud_storage_provider_google_drive' => 'Google Drive',
+    'cloud_storage_provider_amazon_s3' => 'Amazon S3',
+    'cloud_storage_provider_azure_blob' => 'Azure Blob Storage',
+    'cloud_storage_provider_microsoft_teams' => 'Microsoft Teams',
+    'cloud_storage_provider_dropbox' => 'Dropbox',
+    'cloud_storage_provider_onedrive' => 'OneDrive',
+
     // Recovery Strategy Messages
     'recovery_strategy_token_refresh' => 'Versuche Authentifizierungs-Token zu erneuern',
     'recovery_strategy_network_retry' => 'Wiederholung nach Netzwerkverbindungsproblemen',
