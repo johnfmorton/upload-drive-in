@@ -106,20 +106,20 @@
   - Verify client is logged in after verification
   - _Requirements: 5.1, 5.2, 5.3_
 
-- [ ] 8. Create feature tests for edge cases
-- [ ] 8.1 Test intended URL handling for existing users
+- [x] 8. Create feature tests for edge cases
+- [x] 8.1 Test intended URL handling for existing users
   - Test existing user with intended URL parameter
   - Verify intended URL is stored and used after verification
   - Test both employee upload URLs and general intended URLs
   - _Requirements: 1.3, 2.3, 5.3_
 
-- [ ] 8.2 Test multiple verification attempts by existing users
+- [x] 8.2 Test multiple verification attempts by existing users
   - Test existing user requesting multiple verification emails
   - Verify each attempt bypasses restrictions consistently
   - Verify email template selection remains consistent
   - _Requirements: 6.1, 6.2, 6.3_
 
-- [ ] 8.3 Test mixed scenarios with domain rules
+- [x] 8.3 Test mixed scenarios with domain rules
   - Test existing user with whitelisted domain when public registration disabled
   - Test existing user with blacklisted domain in blacklist mode
   - Verify existing users always bypass regardless of domain rule configuration
