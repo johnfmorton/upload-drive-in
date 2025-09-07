@@ -72,7 +72,7 @@
   - Ensure proper role context is passed to mail factory
   - _Requirements: 1.1, 4.1_
 
-- [ ] 8. Update employee user creation flows
+- [x] 8. Update employee user creation flows
   - Identify employee user creation endpoints that send verification emails
   - Update controllers to use EmployeeVerificationMail for employee users
   - Ensure proper role context is passed to mail factory
@@ -97,7 +97,7 @@
     - Test mail can be instantiated and rendered
     - _Requirements: 3.1, 3.4_
 
-- [ ] 10. Create unit tests for VerificationMailFactory
+- [x] 10. Create unit tests for VerificationMailFactory
   - Test createForUser() returns correct Mail class for admin users
   - Test createForUser() returns correct Mail class for employee users
   - Test createForUser() returns correct Mail class for client users
@@ -105,7 +105,7 @@
   - Test createForContext() returns correct Mail class for each role string
   - _Requirements: 4.1, 4.2, 4.3_
 
-- [ ] 11. Create integration tests for email sending
+- [-] 11. Create integration tests for email sending
   - Test admin verification email is sent with correct template
   - Test employee verification email is sent with correct template
   - Test client verification email is sent with correct template
@@ -131,7 +131,21 @@
   - Update any remaining references to old email classes
   - _Requirements: 5.1_
 
-- [ ] 15. Add logging and monitoring
+- [ ] 15. Update email verification notification controller
+  - Update EmailVerificationNotificationController to use VerificationMailFactory
+  - Add role-based template selection for resend verification emails
+  - Add structured logging for template selection and email sending
+  - _Requirements: 4.1, 4.2, 4.4_
+
+- [ ] 16. Update user creation controllers to use proper translation keys
+  - Update EmployeeController to use proper translation keys instead of hardcoded strings
+  - Add employee creation message translations to all language files (en, de, es, fr)
+  - Add role-based email verification translations to all language files
+  - Add validation message translations to all language files
+  - Ensure AdminUserController and ClientManagementController use existing translation keys
+  - _Requirements: 6.1, 6.2, 6.3, 6.5_
+
+- [ ] 16. Add logging and monitoring
   - Add structured logging for email template selection
   - Add error logging for role detection failures
   - Add metrics for email verification success rates by role

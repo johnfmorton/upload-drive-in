@@ -8,6 +8,7 @@ use App\Mail\EmployeeVerificationMail;
 use App\Models\User;
 use App\Services\VerificationMailFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class VerificationMailFactoryTest extends TestCase
@@ -22,7 +23,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->factory = new VerificationMailFactory();
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_admin_verification_mail_for_admin_user()
     {
         $user = User::factory()->create(['role' => 'admin']);
@@ -35,7 +36,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals('admin', $mail->userRole);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_employee_verification_mail_for_employee_user()
     {
         $user = User::factory()->create(['role' => 'employee']);
@@ -48,7 +49,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals('employee', $mail->userRole);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_client_verification_mail_for_client_user()
     {
         $user = User::factory()->create(['role' => 'client']);
@@ -61,7 +62,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals('client', $mail->userRole);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_client_verification_mail_for_null_user()
     {
         $verificationUrl = 'https://example.com/verify';
@@ -73,7 +74,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals('client', $mail->userRole);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_admin_verification_mail_for_admin_context()
     {
         $verificationUrl = 'https://example.com/verify';
@@ -85,7 +86,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals('admin', $mail->userRole);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_employee_verification_mail_for_employee_context()
     {
         $verificationUrl = 'https://example.com/verify';
@@ -97,7 +98,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals('employee', $mail->userRole);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_client_verification_mail_for_client_context()
     {
         $verificationUrl = 'https://example.com/verify';
@@ -109,7 +110,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals('client', $mail->userRole);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_client_verification_mail_for_unknown_context()
     {
         $verificationUrl = 'https://example.com/verify';
@@ -121,7 +122,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals('client', $mail->userRole);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_case_insensitive_contexts()
     {
         $verificationUrl = 'https://example.com/verify';
@@ -135,7 +136,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertInstanceOf(ClientVerificationMail::class, $clientMail);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_available_contexts()
     {
         $contexts = $this->factory->getAvailableContexts();
@@ -143,7 +144,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals(['admin', 'employee', 'client'], $contexts);
     }
 
-    /** @test */
+    #[Test]
     public function it_determines_context_for_admin_user()
     {
         $user = User::factory()->create(['role' => 'admin']);
@@ -153,7 +154,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals('admin', $context);
     }
 
-    /** @test */
+    #[Test]
     public function it_determines_context_for_employee_user()
     {
         $user = User::factory()->create(['role' => 'employee']);
@@ -163,7 +164,7 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals('employee', $context);
     }
 
-    /** @test */
+    #[Test]
     public function it_determines_context_for_client_user()
     {
         $user = User::factory()->create(['role' => 'client']);
@@ -173,11 +174,51 @@ class VerificationMailFactoryTest extends TestCase
         $this->assertEquals('client', $context);
     }
 
-    /** @test */
+    #[Test]
     public function it_determines_context_for_null_user()
     {
         $context = $this->factory->determineContextForUser(null);
 
         $this->assertEquals('client', $context);
+    }
+
+    #[Test]
+    public function it_handles_empty_string_context()
+    {
+        $verificationUrl = 'https://example.com/verify';
+
+        $mail = $this->factory->createForContext('', $verificationUrl);
+
+        $this->assertInstanceOf(ClientVerificationMail::class, $mail);
+        $this->assertEquals($verificationUrl, $mail->verificationUrl);
+        $this->assertEquals('client', $mail->userRole);
+    }
+
+    #[Test]
+    public function it_handles_whitespace_context()
+    {
+        $verificationUrl = 'https://example.com/verify';
+
+        $mail = $this->factory->createForContext('  admin  ', $verificationUrl);
+
+        // Should still fallback to client since the match is exact after strtolower
+        $this->assertInstanceOf(ClientVerificationMail::class, $mail);
+        $this->assertEquals($verificationUrl, $mail->verificationUrl);
+        $this->assertEquals('client', $mail->userRole);
+    }
+
+    #[Test]
+    public function it_creates_different_instances_for_multiple_calls()
+    {
+        $verificationUrl = 'https://example.com/verify';
+
+        $mail1 = $this->factory->createForContext('admin', $verificationUrl);
+        $mail2 = $this->factory->createForContext('admin', $verificationUrl);
+
+        $this->assertInstanceOf(AdminVerificationMail::class, $mail1);
+        $this->assertInstanceOf(AdminVerificationMail::class, $mail2);
+        $this->assertNotSame($mail1, $mail2); // Different instances
+        $this->assertEquals($mail1->verificationUrl, $mail2->verificationUrl);
+        $this->assertEquals($mail1->userRole, $mail2->userRole);
     }
 }

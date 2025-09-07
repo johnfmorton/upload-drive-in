@@ -432,6 +432,12 @@
     'column_reset_url' => 'Reset URL',
     'button_copy_reset_url' => 'Copy Reset URL',
 
+    // Employee Creation Messages
+    'employee_created_success' => 'Employee user created successfully.',
+    'employee_created_and_invited_success' => 'Employee user created and verification email sent successfully.',
+    'employee_created_email_failed' => 'Employee user created but verification email failed to send. Please check the logs.',
+    'employee_creation_failed' => 'Failed to create employee user. Please check the logs.',
+
     // Public Employee Upload Page
     'drop_files_for' => 'Drop files for :name',
     'choose_files' => 'Choose files',

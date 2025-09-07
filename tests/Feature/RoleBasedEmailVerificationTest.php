@@ -112,7 +112,7 @@ class RoleBasedEmailVerificationTest extends TestCase
         $employee = User::factory()->create(['role' => 'employee']);
         $this->actingAs($employee);
 
-        $response = $this->post('/employee/clients', [
+        $response = $this->post("/employee/{$employee->username}/clients", [
             'name' => 'Test Client',
             'email' => 'testclient@example.com',
             'action' => 'create_and_invite'

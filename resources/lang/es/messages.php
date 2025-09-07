@@ -49,6 +49,79 @@ return [
     'google_drive_action_storage_quota_exceeded_1' => 'Libera espacio en tu cuenta de Google Drive',
     'google_drive_action_storage_quota_exceeded_2' => 'Vacía la papelera de tu Google Drive',
 
+    // Employee Management
+    'nav_employee_management' => 'Gestión de Empleados',
+    'employee_management_title' => 'Gestión de Empleados',
+    'create_employee_title' => 'Crear Nuevo Empleado',
+    'employees_list_title' => 'Usuarios Empleados',
+    'button_create_employee' => 'Crear Empleado',
+    'no_employees_match_filter' => 'Ningún empleado coincide con tus criterios de filtro',
+    'no_employees_found' => 'No se encontraron empleados',
+    'column_reset_url' => 'URL de Restablecimiento',
+    'button_copy_reset_url' => 'Copiar URL de Restablecimiento',
+
+    // Employee Creation Messages
+    'employee_created_success' => 'Usuario empleado creado exitosamente.',
+    'employee_created_and_invited_success' => 'Usuario empleado creado y correo de verificación enviado exitosamente.',
+    'employee_created_email_failed' => 'Usuario empleado creado pero el correo de verificación falló al enviarse. Por favor revisa los registros.',
+    'employee_creation_failed' => 'Error al crear el usuario empleado. Por favor revisa los registros.',
+
+    // Role-Based Email Verification
+    // Admin Verification
+    'admin_verify_email_subject' => 'Verifica tu Dirección de Correo de Administrador',
+    'admin_verify_email_title' => 'Verifica tu Dirección de Correo de Administrador',
+    'admin_verify_email_intro' => 'Bienvenido al sistema de gestión de archivos de :company_name. Como administrador, tienes acceso completo para gestionar usuarios, configurar almacenamiento en la nube y supervisar todas las subidas de archivos. Por favor verifica tu dirección de correo para completar la configuración de tu cuenta de administrador.',
+    'admin_verify_email_button' => 'Verificar Acceso de Administrador',
+
+    // Employee Verification  
+    'employee_verify_email_subject' => 'Verifica tu Dirección de Correo de Empleado',
+    'employee_verify_email_title' => 'Verifica tu Dirección de Correo de Empleado',
+    'employee_verify_email_intro' => '¡Bienvenido a :company_name! Como empleado, puedes recibir subidas de archivos de clientes directamente en tu Google Drive y gestionar tus propias relaciones con clientes. Por favor verifica tu dirección de correo para comenzar a recibir archivos de clientes.',
+    'employee_verify_email_button' => 'Verificar Acceso de Empleado',
+
+    // Client Verification
+    'client_verify_email_subject' => 'Verifica tu Dirección de Correo',
+    'client_verify_email_title' => 'Verifica tu Dirección de Correo', 
+    'client_verify_email_intro' => 'Para subir archivos a :company_name, por favor verifica tu dirección de correo haciendo clic en el enlace de abajo. Una vez verificado, podrás subir archivos de forma segura que serán entregados directamente al miembro del equipo apropiado.',
+    'client_verify_email_button' => 'Verificar Dirección de Correo',
+
+    // Shared elements
+    'verify_email_ignore' => 'Si no solicitaste esta verificación, puedes ignorar este correo de forma segura.',
+    'thanks_signature' => 'Gracias',
+
+    // Admin User Creation Messages
+    'admin_user_created' => 'Usuario cliente creado exitosamente. Puedes proporcionarles el enlace de inicio de sesión manualmente.',
+    'admin_user_created_and_invited' => 'Usuario cliente creado e invitación enviada exitosamente.',
+    'admin_user_created_email_failed' => 'Usuario cliente creado exitosamente, pero el correo de invitación falló al enviarse. Puedes proporcionarles el enlace de inicio de sesión manualmente.',
+    'admin_user_creation_failed' => 'Error al crear el usuario cliente. Por favor intenta de nuevo.',
+
+    // Employee Client Creation Messages
+    'employee_client_created' => 'Usuario cliente creado exitosamente. Puedes proporcionarles el enlace de inicio de sesión manualmente.',
+    'employee_client_created_and_invited' => 'Usuario cliente creado e invitación enviada exitosamente.',
+    'employee_client_created_email_failed' => 'Usuario cliente creado exitosamente, pero el correo de invitación falló al enviarse. Puedes proporcionarles el enlace de inicio de sesión manualmente.',
+    'employee_client_creation_failed' => 'Error al crear el usuario cliente. Por favor intenta de nuevo.',
+
+    // Enhanced Validation Messages
+    'validation_name_required' => 'El campo nombre es obligatorio.',
+    'validation_name_string' => 'El nombre debe ser una cadena de texto válida.',
+    'validation_name_max' => 'El nombre no puede tener más de 255 caracteres.',
+    'validation_email_required' => 'El campo correo electrónico es obligatorio.',
+    'validation_email_format' => 'El correo electrónico debe tener un formato válido.',
+    'validation_action_required' => 'El campo acción es obligatorio.',
+    'validation_action_invalid' => 'La acción seleccionada es inválida.',
+    'validation_team_members_required' => 'Debe seleccionarse al menos un miembro del equipo.',
+    'validation_team_members_min' => 'Debe seleccionarse al menos un miembro del equipo.',
+    'validation_team_member_invalid' => 'Uno o más miembros del equipo seleccionados son inválidos.',
+    'validation_primary_contact_required' => 'Debe seleccionarse un contacto principal.',
+    'validation_primary_contact_invalid' => 'El contacto principal seleccionado es inválido.',
+    'validation_primary_contact_not_in_team' => 'El contacto principal debe ser miembro del equipo seleccionado.',
+    'validation_team_members_unauthorized' => 'No tienes autorización para asignar uno o más de los miembros del equipo seleccionados.',
+    'validation_primary_contact_unauthorized' => 'No tienes autorización para asignar este contacto principal.',
+
+    // Team Assignment Messages
+    'team_assignments_updated_success' => 'Asignaciones de equipo actualizadas exitosamente.',
+    'team_assignments_update_failed' => 'Error al actualizar las asignaciones de equipo. Por favor intenta de nuevo.',
+
     // Cloud Storage Status Messages (from CloudStorageStatusMessages class)
     'cloud_storage_rate_limited' => 'Demasiados intentos de renovación de token. Por favor, inténtalo de nuevo más tarde.',
     'cloud_storage_auth_required' => 'Autenticación requerida. Por favor, reconecta tu cuenta.',
@@ -608,5 +681,17 @@ return [
 
     // Elementos Comunes
     'thanks_signature' => 'Gracias',
+
+    // Perfil
+    'profile_information' => 'Información del Perfil',
+    'profile_update' => 'Actualizar Perfil',
+    'profile_saved' => 'Perfil actualizado exitosamente.',
+    'profile_update_info' => 'Actualiza la información del perfil y la dirección de correo electrónico de tu cuenta.',
+    'profile_name' => 'Nombre',
+    'profile_email' => 'Correo Electrónico',
+    'profile_save' => 'Guardar',
+    'profile_email_unverified' => 'Tu dirección de correo electrónico no está verificada.',
+    'profile_email_verify_resend' => 'Haz clic aquí para reenviar el correo de verificación.',
+    'profile_email_verify_sent' => 'Un nuevo enlace de verificación ha sido enviado a tu dirección de correo electrónico.',
 
 ];
