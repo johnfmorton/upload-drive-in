@@ -48,36 +48,36 @@
   - Add success messages that distinguish existing vs new users
   - _Requirements: 1.4, 2.4_
 
-- [ ] 6. Create unit tests for existing user bypass logic
-- [ ] 6.1 Test existing admin user bypasses public registration restrictions
+- [x] 6. Create unit tests for existing user bypass logic
+- [x] 6.1 Test existing admin user bypasses public registration restrictions
   - Create admin user and disable public registration
   - Verify admin receives verification email despite restrictions
   - Verify admin-specific email template is used
   - Verify appropriate logging occurs
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 6.2 Test existing employee user bypasses domain restrictions
+- [x] 6.2 Test existing employee user bypasses domain restrictions
   - Create employee user with non-whitelisted domain
   - Set up domain whitelist that excludes employee's domain
   - Verify employee receives verification email despite domain restrictions
   - Verify employee-specific email template is used
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 6.3 Test existing client user bypasses all restrictions
+- [x] 6.3 Test existing client user bypasses all restrictions
   - Create client user with restricted domain and disabled public registration
   - Verify client receives verification email despite all restrictions
   - Verify client-specific email template is used
   - Verify appropriate logging occurs
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 6.4 Test new users are still blocked by restrictions
+- [x] 6.4 Test new users are still blocked by restrictions
   - Test new user blocked when public registration is disabled
   - Test new user blocked when domain is not whitelisted
   - Verify no verification emails are sent to blocked new users
   - Verify appropriate error messages are returned
   - _Requirements: 6.4_
 
-- [ ] 6.5 Test database error handling
+- [x] 6.5 Test database error handling
   - Mock database connection failures during user lookup
   - Verify graceful fallback behavior
   - Verify appropriate error logging
