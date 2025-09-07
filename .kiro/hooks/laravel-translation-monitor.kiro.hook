@@ -1,5 +1,5 @@
 {
-  "enabled": true,
+  "enabled": false,
   "name": "Laravel Translation Monitor",
   "description": "Monitor changes to files containing user-facing text content in the primary language. When changes are detected, automatically identify the new or modified text and generate translations for all configured target languages. Ensure translations maintain proper context and meaning while adhering to locale-specific conventions. Use Laravel's translations in the resources/lang directory.",
   "version": "1",

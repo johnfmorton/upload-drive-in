@@ -730,6 +730,126 @@
     'google_drive_error_file_not_found' => 'The file \':filename\' could not be found in Google Drive. It may have been deleted or moved.',
     'google_drive_error_folder_access_denied' => 'Access denied to the Google Drive folder. Please check your folder permissions or reconnect your account.',
     'google_drive_error_invalid_file_type' => 'The file type of \':filename\' is not supported by Google Drive. Please try a different file format.',
+
+    // Cloud Storage Status Messages (from CloudStorageStatusMessages class)
+    'cloud_storage_rate_limited' => 'Too many token refresh attempts. Please try again later.',
+    'cloud_storage_auth_required' => 'Authentication required. Please reconnect your account.',
+    'cloud_storage_connection_healthy' => 'Connected and working properly',
+    'cloud_storage_not_connected' => 'Account not connected. Please set up your cloud storage connection.',
+    'cloud_storage_connection_issues' => 'Connection issue detected. Please test your connection.',
+    'cloud_storage_multiple_failures' => 'Multiple connection failures detected. Please check your account settings.',
+    'cloud_storage_status_unknown' => 'Status unknown. Please refresh or contact support.',
+    'cloud_storage_retry_time_message' => '{1} Too many attempts. Please try again in :minutes minute.|[2,*] Too many attempts. Please try again in :minutes minutes.',
+    'cloud_storage_retry_seconds_message' => '{1} Too many attempts. Please try again in :seconds second.|[2,*] Too many attempts. Please try again in :seconds seconds.',
+    'cloud_storage_retry_persistent_message' => '{1} Persistent connection issues with :provider. Please try again in :minutes minute.|[2,*] Persistent connection issues with :provider. Please try again in :minutes minutes.',
+    'cloud_storage_retry_multiple_message' => '{1} Multiple connection attempts detected. Please try again in :minutes minute.|[2,*] Multiple connection attempts detected. Please try again in :minutes minutes.',
+
+    // Cloud Storage Error Messages (from CloudStorageErrorMessageService class)
+    'cloud_storage_token_expired' => 'Your :provider connection has expired. Please reconnect your account to continue.',
+    'cloud_storage_token_refresh_rate_limited' => 'Too many :provider connection attempts. Please wait before trying again to avoid extended delays.',
+    'cloud_storage_invalid_credentials' => 'Invalid :provider credentials. Please check your configuration and reconnect your account.',
+    'cloud_storage_insufficient_permissions' => 'Insufficient :provider permissions. Please reconnect your account and ensure you grant full access.',
+    'cloud_storage_api_quota_exceeded' => ':provider API limit reached. Your operations will resume automatically when the limit resets.',
+    'cloud_storage_storage_quota_exceeded' => 'Your :provider storage is full. Please free up space or upgrade your storage plan.',
+    'cloud_storage_network_error' => 'Network connection issue prevented the :provider operation. Please check your internet connection and try again.',
+    'cloud_storage_service_unavailable' => ':provider is temporarily unavailable. Please try again in a few minutes.',
+    'cloud_storage_timeout' => 'The :provider :operation timed out. This is usually temporary - please try again.',
+    'cloud_storage_file_not_found' => 'The file \':filename\' could not be found in :provider. It may have been deleted or moved.',
+    'cloud_storage_folder_access_denied' => 'Access denied to the :provider folder. Please check your folder permissions.',
+    'cloud_storage_invalid_file_type' => 'The file type of \':filename\' is not supported by :provider. Please try a different file format.',
+    'cloud_storage_file_too_large' => 'The file \':filename\' is too large for :provider. Please reduce the file size and try again.',
+    'cloud_storage_invalid_file_content' => 'The file \':filename\' appears to be corrupted. Please try uploading the file again.',
+    'cloud_storage_provider_not_configured' => ':provider is not properly configured. Please check your settings and try again.',
+    'cloud_storage_unknown_error' => 'An unexpected error occurred with :provider. Please try again or contact support if the problem persists.',
+    'cloud_storage_default_error' => 'An error occurred during the :provider :operation. Please try again.',
+
+    // Connection Issue Context Messages
+    'cloud_storage_persistent_failures' => 'Persistent connection failures detected. Please check your :provider account settings and network connection.',
+    'cloud_storage_multiple_token_refresh_attempts' => 'Multiple token refresh attempts detected. Please wait a few minutes before trying again.',
+    'cloud_storage_retry_with_time' => 'Too many token refresh attempts. Please wait :minutes more minute before trying again.|Too many token refresh attempts. Please wait :minutes more minutes before trying again.',
+
+    // Recovery Instructions
+    'recovery_instructions_token_expired' => [
+        'Go to Settings → Cloud Storage',
+        'Click "Reconnect :provider"',
+        'Complete the authorization process',
+        'Retry your operation'
+    ],
+    'recovery_instructions_rate_limited' => [
+        'Wait for the rate limit to reset',
+        'Avoid repeatedly clicking connection test buttons',
+        'Operations will resume automatically when the limit resets',
+        'Contact support if the issue persists beyond the expected time'
+    ],
+    'recovery_instructions_insufficient_permissions' => [
+        'Go to Settings → Cloud Storage',
+        'Click "Reconnect :provider"',
+        'Ensure you grant full access when prompted',
+        'Check that you have the necessary permissions'
+    ],
+    'recovery_instructions_storage_quota_exceeded' => [
+        'Free up space in your :provider account',
+        'Empty your :provider trash',
+        'Consider upgrading your :provider storage plan',
+        'Contact your administrator if using a business account'
+    ],
+    'recovery_instructions_api_quota_exceeded' => [
+        'Wait for the quota to reset (usually within an hour)',
+        'Operations will resume automatically',
+        'Consider spreading large operations across multiple days'
+    ],
+    'recovery_instructions_network_error' => [
+        'Check your internet connection',
+        'Try again in a few minutes',
+        'Contact your network administrator if the problem persists'
+    ],
+    'recovery_instructions_service_unavailable' => [
+        'Wait a few minutes and try again',
+        'Check :provider status page for service updates',
+        'Operations will be retried automatically'
+    ],
+    'recovery_instructions_timeout' => [
+        'Try again - timeouts are usually temporary',
+        'Check your internet connection speed',
+        'For large files, try uploading during off-peak hours'
+    ],
+    'recovery_instructions_folder_access_denied' => [
+        'Check that the target folder exists in your :provider',
+        'Verify you have write permissions to the folder',
+        'Try reconnecting your :provider account'
+    ],
+    'recovery_instructions_invalid_file_type' => [
+        'Convert the file to a supported format',
+        'Check :provider\'s supported file types',
+        'Try uploading a different file to test'
+    ],
+    'recovery_instructions_file_too_large' => [
+        'Compress the file to reduce its size',
+        'Split large files into smaller parts',
+        'Use :provider\'s web interface for very large files'
+    ],
+    'recovery_instructions_invalid_file_content' => [
+        'Check that the file is not corrupted',
+        'Try re-creating or re-downloading the file',
+        'Scan the file for viruses or malware'
+    ],
+    'recovery_instructions_provider_not_configured' => [
+        'Go to Settings → Cloud Storage',
+        'Check your configuration settings',
+        'Ensure all required fields are filled correctly',
+        'Contact support if you need assistance'
+    ],
+    'recovery_instructions_unknown_error' => [
+        'Try the operation again',
+        'Check your internet connection',
+        'Contact support if the problem persists',
+        'Include any error details when contacting support'
+    ],
+    'recovery_instructions_default' => [
+        'Try the operation again',
+        'Check your connection and settings',
+        'Contact support if the problem persists'
+    ],
     'google_drive_error_file_too_large' => 'The file \':filename\' is too large for Google Drive. Maximum file size is 5TB for most file types.',
     'google_drive_error_network_error' => 'Network connection issue prevented the Google Drive upload. The upload will be retried automatically.',
     'google_drive_error_service_unavailable' => 'Google Drive is temporarily unavailable. Your uploads will be retried automatically when the service is restored.',
@@ -753,16 +873,6 @@
     // Google Drive Error Recovery Actions - Storage Quota Exceeded
     'google_drive_action_storage_quota_exceeded_1' => 'Free up space in your Google Drive account',
     'google_drive_action_storage_quota_exceeded_2' => 'Empty your Google Drive trash',
-
-    // Cloud Storage Status Messages
-    'cloud_storage_status_rate_limited' => 'Too many token refresh attempts. Please try again later.',
-    'cloud_storage_status_auth_required' => 'Authentication required. Please reconnect your account.',
-    'cloud_storage_status_connection_healthy' => 'Connected and working properly',
-    'cloud_storage_status_not_connected' => 'Account not connected. Please set up your cloud storage connection.',
-    'cloud_storage_status_connection_issues' => 'Connection issue detected. Please test your connection.',
-    'cloud_storage_status_multiple_failures' => 'Multiple connection failures detected. Please check your account settings.',
-    'cloud_storage_status_unknown' => 'Status unknown. Please refresh or contact support.',
-    'cloud_storage_retry_time_message' => 'Too many attempts. Please try again in :minutes minute|Too many attempts. Please try again in :minutes minutes.',
 
     // Cloud Storage Error Messages - Generic
     'cloud_storage_error_token_expired' => 'Your :provider connection has expired. Please reconnect your account to continue.',

@@ -470,6 +470,38 @@ class CloudStorageHealthService
     }
 
     /**
+     * Get provider health with structured error context for message generation.
+     * This method provides detailed error context instead of generic messages.
+     */
+    public function getProviderHealthWithContext(User $user, string $provider): array
+    {
+        $healthStatus = $this->getOrCreateHealthStatus($user, $provider);
+        
+        // Get consolidated status using existing logic
+        $consolidatedStatus = $this->determineConsolidatedStatus($user, $provider);
+        
+        // Build comprehensive error context
+        $errorContext = $this->buildErrorContext($user, $provider, $healthStatus);
+        
+        return [
+            'status' => $healthStatus->status,
+            'consolidated_status' => $consolidatedStatus,
+            'error_context' => $errorContext,
+            'provider' => $provider,
+            'user_id' => $user->id,
+        ];
+    }
+
+    /**
+     * Get provider health information (legacy method for backward compatibility).
+     * Delegates to getProviderHealthWithContext for consistency.
+     */
+    public function getProviderHealth(User $user, string $provider): array
+    {
+        return $this->getProviderHealthWithContext($user, $provider);
+    }
+
+    /**
      * Get health summary for a specific user and provider with live validation timestamps and results.
      */
     public function getHealthSummary(User $user, string $provider): array
@@ -534,6 +566,9 @@ class CloudStorageHealthService
         // Get live validation timestamps from health status record
         $liveValidationTimestamps = $this->getLiveValidationTimestamps($healthStatus);
         
+        // Get structured error context for enhanced messaging
+        $errorContext = $this->buildErrorContext($user, $provider, $healthStatus);
+
         return [
             'provider' => $provider,
             'status' => $healthStatus->status,
@@ -568,7 +603,10 @@ class CloudStorageHealthService
                 'cache_ttl_seconds' => $liveValidationResult?->getCacheTtlSeconds(),
             ],
             
-            // Rate limiting information
+            // Enhanced error context for message generation
+            'error_context' => $errorContext,
+            
+            // Rate limiting information (kept for backward compatibility)
             'rate_limits' => $this->getRateLimitStatus($user, $provider),
         ];
     }
@@ -1151,6 +1189,217 @@ class CloudStorageHealthService
             'user_id' => $user->id,
             'provider' => $provider,
         ]);
+    }
+
+    /**
+     * Build comprehensive error context for message generation.
+     * Includes all necessary fields for the CloudStorageErrorMessageService.
+     */
+    private function buildErrorContext(User $user, string $provider, CloudStorageHealthStatus $healthStatus): array
+    {
+        // Detect rate limiting status
+        $rateLimitInfo = $this->detectRateLimiting($user, $provider);
+        
+        // Get token refresh attempt tracking
+        $tokenRefreshInfo = $this->getTokenRefreshAttemptInfo($user, $provider);
+        
+        // Build base error context
+        $context = [
+            'error_type' => $healthStatus->last_error_type,
+            'error_details' => $healthStatus->last_error_message,
+            'consecutive_failures' => $healthStatus->consecutive_failures,
+            'token_status' => $this->getTokenStatusInfo($user, $provider),
+            'provider' => $provider,
+            'user' => $user,
+            'last_successful_operation_at' => $healthStatus->last_successful_operation_at?->toISOString(),
+            'requires_reconnection' => $healthStatus->requires_reconnection,
+            'last_error_context' => $healthStatus->last_error_context,
+        ];
+        
+        // Add rate limiting information with priority handling
+        $context['is_rate_limited'] = $rateLimitInfo['is_rate_limited'];
+        $context['rate_limit_type'] = $rateLimitInfo['type'];
+        $context['retry_after'] = $rateLimitInfo['retry_after'];
+        $context['rate_limit_details'] = $rateLimitInfo['details'];
+        
+        // Override error type if token refresh rate limiting is detected
+        // This ensures the CloudStorageErrorMessageService shows the correct message
+        if ($rateLimitInfo['is_rate_limited'] && $rateLimitInfo['type'] === 'token_refresh') {
+            $context['error_type'] = 'token_refresh_rate_limited';
+        }
+        
+        // Add token refresh attempt information
+        $context['token_refresh_attempts'] = $tokenRefreshInfo['attempts'];
+        $context['last_attempt_time'] = $tokenRefreshInfo['last_attempt_time'];
+        $context['refresh_failure_count'] = $tokenRefreshInfo['failure_count'];
+        $context['requires_user_intervention'] = $tokenRefreshInfo['requires_user_intervention'];
+        
+        // Add timing information for message generation
+        $context['last_activity_minutes'] = $this->getMinutesSinceLastActivity($healthStatus);
+        $context['error_age_minutes'] = $this->getMinutesSinceLastError($healthStatus);
+        
+        return $context;
+    }
+
+    /**
+     * Detect rate limiting status using token refresh attempt tracking.
+     * Returns comprehensive rate limiting information with priority for token refresh limits.
+     */
+    private function detectRateLimiting(User $user, string $provider): array
+    {
+        // Use specific token refresh rate limiting detection
+        $isTokenRefreshLimited = $this->isTokenRefreshRateLimited($user, $provider);
+        
+        // Get general rate limit status for other types
+        $rateLimitStatus = $this->getRateLimitStatus($user, $provider);
+        $isConnectivityTestLimited = !$rateLimitStatus['connectivity_test']['can_attempt'];
+        $isHealthCheckLimited = !$rateLimitStatus['health_check']['can_attempt'];
+        
+        $isRateLimited = $isTokenRefreshLimited || $isConnectivityTestLimited || $isHealthCheckLimited;
+        
+        // Determine primary rate limit type and retry time (prioritize token refresh)
+        $rateLimitType = null;
+        $retryAfter = 0;
+        
+        if ($isTokenRefreshLimited) {
+            $rateLimitType = 'token_refresh';
+            $retryAfter = $this->getTokenRefreshRetryAfter($user, $provider);
+        } elseif ($isConnectivityTestLimited) {
+            $rateLimitType = 'connectivity_test';
+            $retryAfter = $this->calculateRetryAfter($rateLimitStatus['connectivity_test']);
+        } elseif ($isHealthCheckLimited) {
+            $rateLimitType = 'health_check';
+            $retryAfter = $this->calculateRetryAfter($rateLimitStatus['health_check']);
+        }
+        
+        return [
+            'is_rate_limited' => $isRateLimited,
+            'type' => $rateLimitType,
+            'retry_after' => $retryAfter,
+            'details' => [
+                'token_refresh_limited' => $isTokenRefreshLimited,
+                'connectivity_test_limited' => $isConnectivityTestLimited,
+                'health_check_limited' => $isHealthCheckLimited,
+                'rate_limit_status' => $rateLimitStatus,
+            ],
+        ];
+    }
+
+    /**
+     * Get token refresh attempt information for error context.
+     */
+    private function getTokenRefreshAttemptInfo(User $user, string $provider): array
+    {
+        // Get information from cache (current session attempts)
+        $rateLimitKey = "token_refresh_rate_limit_{$user->id}_{$provider}";
+        $currentAttempts = Cache::get($rateLimitKey, 0);
+        
+        // Get information from GoogleDriveToken model if available
+        $tokenInfo = [
+            'attempts' => $currentAttempts,
+            'last_attempt_time' => null,
+            'failure_count' => 0,
+            'requires_user_intervention' => false,
+        ];
+        
+        if ($provider === 'google-drive') {
+            $token = \App\Models\GoogleDriveToken::where('user_id', $user->id)->first();
+            if ($token) {
+                $tokenInfo['last_attempt_time'] = $token->last_refresh_attempt_at?->toISOString();
+                $tokenInfo['failure_count'] = $token->refresh_failure_count;
+                $tokenInfo['requires_user_intervention'] = $token->requires_user_intervention;
+            }
+        }
+        
+        return $tokenInfo;
+    }
+
+    /**
+     * Get token status information for error context.
+     */
+    private function getTokenStatusInfo(User $user, string $provider): ?string
+    {
+        try {
+            if ($provider === 'google-drive') {
+                $token = \App\Models\GoogleDriveToken::where('user_id', $user->id)->first();
+                if (!$token) {
+                    return 'not_found';
+                }
+                
+                if ($token->hasExpired()) {
+                    return 'expired';
+                }
+                
+                if ($token->isExpiringSoon()) {
+                    return 'expiring_soon';
+                }
+                
+                if (!$token->canBeRefreshed()) {
+                    return 'refresh_blocked';
+                }
+                
+                return 'valid';
+            }
+            
+            // For other providers, use generic token validation
+            return $this->ensureValidToken($user, $provider) ? 'valid' : 'invalid';
+            
+        } catch (\Exception $e) {
+            Log::warning('Failed to get token status info', [
+                'user_id' => $user->id,
+                'provider' => $provider,
+                'error' => $e->getMessage(),
+            ]);
+            return 'unknown';
+        }
+    }
+
+    /**
+     * Calculate retry after time in seconds based on rate limit info.
+     */
+    private function calculateRetryAfter(array $rateLimitInfo): int
+    {
+        $windowMinutes = $rateLimitInfo['window_minutes'] ?? 60;
+        
+        // For simplicity, assume the full window needs to pass
+        // In a more sophisticated implementation, we could track when the first attempt was made
+        return $windowMinutes * 60;
+    }
+
+    /**
+     * Get minutes since last activity for timing context.
+     */
+    private function getMinutesSinceLastActivity(CloudStorageHealthStatus $healthStatus): ?int
+    {
+        $lastActivity = $healthStatus->last_successful_operation_at ?? $healthStatus->updated_at;
+        
+        if (!$lastActivity) {
+            return null;
+        }
+        
+        return $lastActivity->diffInMinutes(now());
+    }
+
+    /**
+     * Get minutes since last error for timing context.
+     */
+    private function getMinutesSinceLastError(CloudStorageHealthStatus $healthStatus): ?int
+    {
+        if (!$healthStatus->last_error_message || !$healthStatus->updated_at) {
+            return null;
+        }
+        
+        // Use the last error context timestamp if available, otherwise use updated_at
+        if ($healthStatus->last_error_context && isset($healthStatus->last_error_context['timestamp'])) {
+            try {
+                $errorTime = new \DateTime($healthStatus->last_error_context['timestamp']);
+                return (int) ((now()->timestamp - $errorTime->getTimestamp()) / 60);
+            } catch (\Exception $e) {
+                // Fall back to updated_at
+            }
+        }
+        
+        return $healthStatus->updated_at->diffInMinutes(now());
     }
 
     /**
@@ -2103,6 +2352,34 @@ class CloudStorageHealthService
                 ]);
             }
         }
+    }
+
+    /**
+     * Check if token refresh rate limiting is active for a user and provider.
+     * This is used specifically for detecting "Too many token refresh attempts" scenarios.
+     */
+    public function isTokenRefreshRateLimited(User $user, string $provider): bool
+    {
+        $rateLimitKey = "token_refresh_rate_limit_{$user->id}_{$provider}";
+        $attempts = Cache::get($rateLimitKey, 0);
+        $maxAttempts = 10; // Same as in canAttemptTokenRefresh
+        
+        return $attempts >= $maxAttempts;
+    }
+
+    /**
+     * Get token refresh rate limit retry time in seconds.
+     * Returns the number of seconds until the user can attempt token refresh again.
+     */
+    public function getTokenRefreshRetryAfter(User $user, string $provider): int
+    {
+        if (!$this->isTokenRefreshRateLimited($user, $provider)) {
+            return 0;
+        }
+        
+        // For simplicity, return the full window time (60 minutes)
+        // In a more sophisticated implementation, we could track the exact time of the first attempt
+        return 60 * 60; // 1 hour in seconds
     }
 
     /**
