@@ -219,9 +219,13 @@
     'breadcrumb_admin' => 'Admin',
 
     // Security and Registration Validation Messages
-    'public_registration_disabled' => 'Public registration is currently disabled for security reasons. Please contact the administrator for access.',
-    'email_domain_not_allowed' => 'This email domain is not allowed to register due to security policies. Please use an approved email domain.',
+    'public_registration_disabled' => 'New user registration is currently disabled. If you already have an account, please try again or contact support.',
+    'email_domain_not_allowed' => 'This email domain is not allowed for new registrations. If you already have an account, please try again or contact support.',
     'security_settings_saved' => 'Security settings have been updated successfully.',
+    
+    // Enhanced verification messages for existing vs new users
+    'existing_user_verification_sent' => 'Verification email sent to your existing account. Please check your inbox.',
+    'new_user_verification_sent' => 'Verification email sent. Please check your inbox to complete registration.',
     'access_control_rules_updated' => 'Access control rules have been updated successfully.',
     'registration_security_updated' => 'Registration security settings have been updated successfully.',
     'domain_rules_validation_error' => 'Please check your domain rules format. Each rule should be on a separate line.',

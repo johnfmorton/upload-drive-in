@@ -746,4 +746,13 @@ return [
     'profile_email_verify_resend' => 'Klicken Sie hier, um die Verifizierungs-E-Mail erneut zu senden.',
     'profile_email_verify_sent' => 'Ein neuer Verifizierungslink wurde an Ihre E-Mail-Adresse gesendet.',
 
+    // Sicherheits- und Registrierungsvalidierungsnachrichten
+    'public_registration_disabled' => 'Die Registrierung neuer Benutzer ist derzeit deaktiviert. Wenn Sie bereits ein Konto haben, versuchen Sie es erneut oder kontaktieren Sie den Support.',
+    'email_domain_not_allowed' => 'Diese E-Mail-Domain ist für neue Registrierungen nicht zugelassen. Wenn Sie bereits ein Konto haben, versuchen Sie es erneut oder kontaktieren Sie den Support.',
+    'security_settings_saved' => 'Die Sicherheitseinstellungen wurden erfolgreich aktualisiert.',
+    
+    // Erweiterte Verifizierungsnachrichten für bestehende vs. neue Benutzer
+    'existing_user_verification_sent' => 'Verifizierungs-E-Mail an Ihr bestehendes Konto gesendet. Bitte überprüfen Sie Ihren Posteingang.',
+    'new_user_verification_sent' => 'Verifizierungs-E-Mail gesendet. Bitte überprüfen Sie Ihren Posteingang, um die Registrierung abzuschließen.',
+
 ];

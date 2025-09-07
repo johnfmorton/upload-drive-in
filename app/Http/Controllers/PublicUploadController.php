@@ -55,114 +55,17 @@ class PublicUploadController extends Controller
                 'intended_url' => ['nullable', 'string', 'url'],
             ]);
 
-            // Check if public registration is allowed
-            $domainRules = DomainAccessRule::first();
-            Log::info('Domain rules check', [
-                'rules_exist' => (bool)$domainRules,
-                'public_registration' => $domainRules ? $domainRules->allow_public_registration : true
-            ]);
-
-            if ($domainRules && !$domainRules->allow_public_registration) {
-                Log::warning('Public registration attempt when disabled', [
-                    'email' => $validated['email']
-                ]);
-                throw ValidationException::withMessages([
-                    'email' => [__('messages.public_registration_disabled')],
-                ]);
-            }
-
-            // Check if the email domain is allowed
-            if ($domainRules && !$domainRules->isEmailAllowed($validated['email'])) {
-                Log::warning('Email domain not allowed', [
-                    'email' => $validated['email'],
-                    'mode' => $domainRules->mode
-                ]);
-                throw ValidationException::withMessages([
-                    'email' => [__('messages.email_domain_not_allowed')],
-                ]);
-            }
-
             $email = $validated['email'];
-            $verificationCode = Str::random(32);
-
-            // Store intended URL if provided
-            if (!empty($validated['intended_url'])) {
-                session(['intended_url' => $validated['intended_url']]);
-                Log::info('Storing intended URL from form', [
-                    'intended_url' => $validated['intended_url']
-                ]);
-            }
-
-            Log::info('Creating email validation record', [
-                'email' => $email
-            ]);
-
-            // Create or update email validation record
-            $validation = EmailValidation::updateOrCreate(
-                ['email' => $email],
-                [
-                    'verification_code' => $verificationCode,
-                    'expires_at' => now()->addHours(24)
-                ]
-            );
-
-            // Generate verification URL
-            $verificationUrl = route('verify-email', [
-                'code' => $verificationCode,
-                'email' => $email
-            ]);
-
-            // Check if user already exists to determine role context
+            
+            // Step 1: Check for existing user FIRST (before applying restrictions)
             $existingUser = \App\Models\User::where('email', $email)->first();
             
-            // Use VerificationMailFactory to select appropriate template
-            $mailFactory = app(VerificationMailFactory::class);
-            
-            // For public upload context, we prioritize existing user roles but fallback to client
             if ($existingUser) {
-                $verificationMail = $mailFactory->createForUser($existingUser, $verificationUrl);
-                $detectedContext = $mailFactory->determineContextForUser($existingUser);
+                // Existing user - bypass all registration restrictions
+                return $this->sendVerificationEmailToExistingUser($existingUser, $email, $validated);
             } else {
-                // For unknown users in public upload context, use client template as default
-                $verificationMail = $mailFactory->createForContext('client', $verificationUrl);
-                $detectedContext = 'client';
-            }
-            
-            // Log template selection for debugging
-            Log::info('Email verification template selected for public upload', [
-                'email' => $email,
-                'user_exists' => (bool)$existingUser,
-                'user_role' => $existingUser?->role?->value ?? null,
-                'detected_context' => $detectedContext,
-                'mail_class' => get_class($verificationMail),
-                'context' => 'public_upload',
-                'fallback_used' => !$existingUser
-            ]);
-
-            try {
-                Mail::to($email)->send($verificationMail);
-                
-                // Log successful email sending
-                $mailFactory->logEmailSent($detectedContext, $email);
-                
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Verification email sent successfully.'
-                ]);
-            } catch (\Exception $mailException) {
-                // Log email sending failure
-                $mailFactory->logEmailSendError($detectedContext, $mailException->getMessage(), $email);
-                
-                Log::error('Failed to send verification email', [
-                    'email' => $email,
-                    'error' => $mailException->getMessage(),
-                    'context' => 'public_upload'
-                ]);
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to send verification email. Please try again.'
-                ], 500);
+                // New user - apply all registration restrictions
+                return $this->handleNewUserRegistration($email, $validated);
             }
 
         } catch (ValidationException $e) {
@@ -182,6 +85,176 @@ class PublicUploadController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An unexpected error occurred. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Send verification email to existing user, bypassing all registration restrictions.
+     *
+     * @param  \App\Models\User  $user
+     * @param  string  $email
+     * @param  array  $validated
+     * @return \Illuminate\Http\JsonResponse
+     */
+    private function sendVerificationEmailToExistingUser(\App\Models\User $user, string $email, array $validated)
+    {
+        Log::info('Existing user email verification', [
+            'email' => $email,
+            'user_id' => $user->id,
+            'role' => $user->role->value,
+            'restrictions_bypassed' => true
+        ]);
+
+        // Store intended URL if provided
+        if (!empty($validated['intended_url'])) {
+            session(['intended_url' => $validated['intended_url']]);
+            Log::info('Storing intended URL from form', [
+                'intended_url' => $validated['intended_url']
+            ]);
+        }
+
+        // Create verification record and send email
+        return $this->createVerificationAndSendEmail($email, $user);
+    }
+
+    /**
+     * Handle new user registration with all security restrictions applied.
+     *
+     * @param  string  $email
+     * @param  array  $validated
+     * @return \Illuminate\Http\JsonResponse
+     */
+    private function handleNewUserRegistration(string $email, array $validated)
+    {
+        // Apply existing security checks for new users
+        $domainRules = DomainAccessRule::first();
+        
+        Log::info('Domain rules check for new user', [
+            'email' => $email,
+            'rules_exist' => (bool)$domainRules,
+            'public_registration' => $domainRules ? $domainRules->allow_public_registration : true,
+            'user_exists' => false
+        ]);
+
+        // Check public registration setting
+        if ($domainRules && !$domainRules->allow_public_registration) {
+            Log::warning('Public registration attempt when disabled', [
+                'email' => $email,
+                'user_exists' => false
+            ]);
+            throw ValidationException::withMessages([
+                'email' => [__('messages.public_registration_disabled')],
+            ]);
+        }
+
+        // Check domain restrictions
+        if ($domainRules && !$domainRules->isEmailAllowed($email)) {
+            Log::warning('Email domain not allowed for new user', [
+                'email' => $email,
+                'mode' => $domainRules->mode,
+                'user_exists' => false
+            ]);
+            throw ValidationException::withMessages([
+                'email' => [__('messages.email_domain_not_allowed')],
+            ]);
+        }
+
+        Log::info('New user registration allowed', [
+            'email' => $email,
+            'user_exists' => false
+        ]);
+
+        // Store intended URL if provided
+        if (!empty($validated['intended_url'])) {
+            session(['intended_url' => $validated['intended_url']]);
+            Log::info('Storing intended URL from form', [
+                'intended_url' => $validated['intended_url']
+            ]);
+        }
+
+        // Create verification record and send email (no existing user)
+        return $this->createVerificationAndSendEmail($email, null);
+    }
+
+    /**
+     * Create verification record and send appropriate email.
+     *
+     * @param  string  $email
+     * @param  \App\Models\User|null  $existingUser
+     * @return \Illuminate\Http\JsonResponse
+     */
+    private function createVerificationAndSendEmail(string $email, ?\App\Models\User $existingUser)
+    {
+        $verificationCode = Str::random(32);
+
+        Log::info('Creating email validation record', [
+            'email' => $email,
+            'user_exists' => (bool)$existingUser
+        ]);
+
+        // Create or update email validation record
+        $validation = EmailValidation::updateOrCreate(
+            ['email' => $email],
+            [
+                'verification_code' => $verificationCode,
+                'expires_at' => now()->addHours(24)
+            ]
+        );
+
+        // Generate verification URL
+        $verificationUrl = route('verify-email', [
+            'code' => $verificationCode,
+            'email' => $email
+        ]);
+
+        // Use VerificationMailFactory to select appropriate template
+        $mailFactory = app(VerificationMailFactory::class);
+        
+        // For public upload context, we prioritize existing user roles but fallback to client
+        if ($existingUser) {
+            $verificationMail = $mailFactory->createForUser($existingUser, $verificationUrl);
+            $detectedContext = $mailFactory->determineContextForUser($existingUser);
+        } else {
+            // For unknown users in public upload context, use client template as default
+            $verificationMail = $mailFactory->createForContext('client', $verificationUrl);
+            $detectedContext = 'client';
+        }
+        
+        // Log template selection for debugging
+        Log::info('Email verification template selected for public upload', [
+            'email' => $email,
+            'user_exists' => (bool)$existingUser,
+            'user_role' => $existingUser?->role?->value ?? null,
+            'detected_context' => $detectedContext,
+            'mail_class' => get_class($verificationMail),
+            'context' => 'public_upload',
+            'fallback_used' => !$existingUser
+        ]);
+
+        try {
+            Mail::to($email)->send($verificationMail);
+            
+            // Log successful email sending
+            $mailFactory->logEmailSent($detectedContext, $email);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Verification email sent successfully.'
+            ]);
+        } catch (\Exception $mailException) {
+            // Log email sending failure
+            $mailFactory->logEmailSendError($detectedContext, $mailException->getMessage(), $email);
+            
+            Log::error('Failed to send verification email', [
+                'email' => $email,
+                'error' => $mailException->getMessage(),
+                'context' => 'public_upload'
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send verification email. Please try again.'
             ], 500);
         }
     }

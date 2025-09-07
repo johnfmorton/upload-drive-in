@@ -710,4 +710,13 @@ return [
     'profile_email_verify_resend' => 'Haz clic aquí para reenviar el correo de verificación.',
     'profile_email_verify_sent' => 'Un nuevo enlace de verificación ha sido enviado a tu dirección de correo electrónico.',
 
+    // Mensajes de Validación de Seguridad y Registro
+    'public_registration_disabled' => 'El registro de nuevos usuarios está actualmente deshabilitado. Si ya tienes una cuenta, por favor inténtalo de nuevo o contacta al soporte.',
+    'email_domain_not_allowed' => 'Este dominio de correo electrónico no está permitido para nuevos registros. Si ya tienes una cuenta, por favor inténtalo de nuevo o contacta al soporte.',
+    'security_settings_saved' => 'La configuración de seguridad se ha actualizado exitosamente.',
+    
+    // Mensajes de verificación mejorados para usuarios existentes vs nuevos
+    'existing_user_verification_sent' => 'Correo de verificación enviado a tu cuenta existente. Por favor revisa tu bandeja de entrada.',
+    'new_user_verification_sent' => 'Correo de verificación enviado. Por favor revisa tu bandeja de entrada para completar el registro.',
+
 ];
