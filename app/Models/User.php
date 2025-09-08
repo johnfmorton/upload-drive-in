@@ -178,7 +178,15 @@ class User extends Authenticatable
     public function hasGoogleDriveConnected(): bool
     {
         $token = $this->googleDriveToken;
-        return $token && !$token->hasExpired();
+        
+        if (!$token) {
+            return false;
+        }
+        
+        // User is connected if:
+        // 1. Token hasn't expired, OR
+        // 2. Token has expired but can be refreshed (has refresh token and doesn't require user intervention)
+        return !$token->hasExpired() || $token->canBeRefreshed();
     }
 
     /**
