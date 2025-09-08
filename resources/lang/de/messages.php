@@ -756,4 +756,17 @@ return [
     'new_user_verification_sent' => 'Verifizierungs-E-Mail gesendet. Bitte überprüfen Sie Ihren Posteingang, um die Registrierung abzuschließen.',
     'registration_temporarily_unavailable' => 'Die Registrierung kann derzeit nicht verarbeitet werden. Bitte versuchen Sie es später erneut.',
 
+    // Upload Progress Overlay
+    'upload_progress_title' => 'Dateien werden hochgeladen',
+    'upload_progress_preparing' => 'Upload wird vorbereitet...',
+    'upload_progress_overall' => 'Gesamtfortschritt',
+    'upload_progress_cancel_button' => 'Upload abbrechen',
+    'upload_progress_cancel_confirm' => 'Sind Sie sicher, dass Sie den Upload abbrechen möchten?',
+    
+    // Upload Progress Status Messages (for JavaScript)
+    'upload_status_processing' => 'Uploads werden verarbeitet...',
+    'upload_status_uploading_files' => 'Lade :remaining von :total Dateien hoch...',
+    'upload_status_upload_completed_with_errors' => 'Upload abgeschlossen mit :count Fehler|Upload abgeschlossen mit :count Fehlern',
+    'upload_button_uploading' => 'Dateien werden hochgeladen...',
+
 ];

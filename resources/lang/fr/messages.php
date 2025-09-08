@@ -901,4 +901,17 @@ return [
     'domain_rules_cache_command_no' => 'Non',
     'domain_rules_cache_command_seconds' => 'secondes',
 
+    // Upload Progress Overlay
+    'upload_progress_title' => 'Téléchargement de Fichiers',
+    'upload_progress_preparing' => 'Préparation du téléchargement...',
+    'upload_progress_overall' => 'Progrès Global',
+    'upload_progress_cancel_button' => 'Annuler le Téléchargement',
+    'upload_progress_cancel_confirm' => 'Êtes-vous sûr de vouloir annuler le téléchargement ?',
+    
+    // Upload Progress Status Messages (for JavaScript)
+    'upload_status_processing' => 'Traitement des téléchargements...',
+    'upload_status_uploading_files' => 'Téléchargement de :remaining sur :total fichiers...',
+    'upload_status_upload_completed_with_errors' => 'Téléchargement terminé avec :count erreur|Téléchargement terminé avec :count erreurs',
+    'upload_button_uploading' => 'Téléchargement de Fichiers...',
+
 ];

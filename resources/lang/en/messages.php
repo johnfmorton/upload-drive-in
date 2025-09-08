@@ -352,6 +352,19 @@
     'file_upload_message_required_text' => 'Please enter a message before submitting.',
     'file_upload_close_button' => 'Close',
 
+    // Upload Progress Overlay
+    'upload_progress_title' => 'Uploading Files',
+    'upload_progress_preparing' => 'Preparing upload...',
+    'upload_progress_overall' => 'Overall Progress',
+    'upload_progress_cancel_button' => 'Cancel Upload',
+    'upload_progress_cancel_confirm' => 'Are you sure you want to cancel the upload?',
+    
+    // Upload Progress Status Messages (for JavaScript)
+    'upload_status_processing' => 'Processing uploads...',
+    'upload_status_uploading_files' => 'Uploading :remaining of :total files...',
+    'upload_status_upload_completed_with_errors' => 'Upload completed with :count error|Upload completed with :count errors',
+    'upload_button_uploading' => 'Uploading Files...',
+
     // Notifications
     'notification_go_home' => 'Go Home',
 

@@ -789,4 +789,17 @@ return [
     'domain_rules_cache_command_no' => 'No',
     'domain_rules_cache_command_seconds' => 'segundos',
 
+    // Upload Progress Overlay
+    'upload_progress_title' => 'Subiendo Archivos',
+    'upload_progress_preparing' => 'Preparando subida...',
+    'upload_progress_overall' => 'Progreso General',
+    'upload_progress_cancel_button' => 'Cancelar Subida',
+    'upload_progress_cancel_confirm' => '¿Estás seguro de que quieres cancelar la subida?',
+    
+    // Upload Progress Status Messages (for JavaScript)
+    'upload_status_processing' => 'Procesando subidas...',
+    'upload_status_uploading_files' => 'Subiendo :remaining de :total archivos...',
+    'upload_status_upload_completed_with_errors' => 'Subida completada con :count error|Subida completada con :count errores',
+    'upload_button_uploading' => 'Subiendo Archivos...',
+
 ];

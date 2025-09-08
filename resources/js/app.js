@@ -9,8 +9,6 @@ import "./setup-wizard";
 // Import Admin Queue Testing functionality
 import "./admin-queue-testing";
 
-
-
 // Import Dropzone CSS
 import "dropzone/dist/dropzone.css";
 
@@ -83,12 +81,15 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                     params.dzchunkindex = chunk.index;
                     params.dztotalfilesize = chunk.file.size;
                     params.dzchunksize = this.options.chunkSize;
-                    params.dztotalchunkcount = chunk.file.upload.totalChunkCount;
-                    params.dzchunkbyteoffset = chunk.index * this.options.chunkSize;
+                    params.dztotalchunkcount =
+                        chunk.file.upload.totalChunkCount;
+                    params.dzchunkbyteoffset =
+                        chunk.index * this.options.chunkSize;
                 }
 
                 // Add selected company user ID if available
-                const companyUserSelect = document.getElementById('company_user_id');
+                const companyUserSelect =
+                    document.getElementById("company_user_id");
                 if (companyUserSelect && companyUserSelect.value) {
                     params.company_user_id = companyUserSelect.value;
                 }
@@ -96,8 +97,9 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                 return params;
             },
             uploadprogress: function (file, progress, bytesSent) {
-                // Update progress (optional, Dropzone handles visually)
-                // console.log('Progress:', progress);
+                // Update our custom progress display
+                updateFileProgress(file, progress);
+                updateOverallProgress();
             },
             success: function (file, response) {
                 // This callback can be triggered for each chunk OR for the final request.
@@ -115,6 +117,9 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                     if (!file.finalIdReceived) {
                         file.finalIdReceived = true; // Mark that we got the final ID
                         file.file_upload_id = response.file_upload_id; // Store it on the file object for reference
+
+                        // Mark file as complete in progress display
+                        markFileComplete(file, true);
 
                         // Add the ID to our hidden input for the form submission
                         let currentIds = fileIdsInput.value
@@ -142,6 +147,10 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                     message,
                     xhr
                 );
+
+                // Mark file as failed in progress display
+                markFileComplete(file, false);
+
                 const errorDisplay = document.getElementById("upload-errors");
                 if (errorDisplay) {
                     // Handle both string and object error messages
@@ -168,6 +177,230 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
             // }
         });
 
+        // --- Progress tracking functions ---
+        function showProgressOverlay() {
+            const overlay = document.getElementById("upload-progress-overlay");
+            if (overlay) {
+                overlay.classList.remove("hidden");
+                overlay.classList.add("flex");
+            }
+        }
+
+        function hideProgressOverlay() {
+            const overlay = document.getElementById("upload-progress-overlay");
+            if (overlay) {
+                overlay.classList.add("hidden");
+                overlay.classList.remove("flex");
+            }
+        }
+
+        function updateFileProgress(file, progress) {
+            const progressContainer = document.getElementById(
+                "file-progress-container"
+            );
+            if (!progressContainer) return;
+
+            let fileProgressElement = document.getElementById(
+                `progress-${file.upload.uuid}`
+            );
+
+            if (!fileProgressElement) {
+                // Create progress element for this file
+                fileProgressElement = document.createElement("div");
+                fileProgressElement.id = `progress-${file.upload.uuid}`;
+                fileProgressElement.className = "mb-3 last:mb-0";
+                fileProgressElement.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium text-gray-700 truncate max-w-xs" title="${
+                            file.name
+                        }">${file.name}</span>
+                        <span class="text-sm text-gray-500">${Math.round(
+                            progress
+                        )}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out" style="width: ${progress}%"></div>
+                    </div>
+                `;
+                progressContainer.appendChild(fileProgressElement);
+            } else {
+                // Update existing progress
+                const percentageSpan =
+                    fileProgressElement.querySelector(".text-gray-500");
+                const progressBar =
+                    fileProgressElement.querySelector(".bg-blue-600");
+
+                if (percentageSpan)
+                    percentageSpan.textContent = `${Math.round(progress)}%`;
+                if (progressBar) progressBar.style.width = `${progress}%`;
+            }
+        }
+
+        function updateOverallProgress() {
+            const files = myDropzone.files;
+            if (files.length === 0) return;
+
+            let totalProgress = 0;
+            let completedFiles = 0;
+            let uploadingFiles = 0;
+            let errorFiles = 0;
+
+            files.forEach((file) => {
+                if (file.status === Dropzone.SUCCESS) {
+                    totalProgress += 100;
+                    completedFiles++;
+                } else if (file.status === Dropzone.UPLOADING) {
+                    totalProgress += file.upload.progress || 0;
+                    uploadingFiles++;
+                } else if (file.status === Dropzone.ERROR) {
+                    errorFiles++;
+                    completedFiles++; // Count errors as "completed" for progress calculation
+                }
+            });
+
+            const overallProgress = totalProgress / files.length;
+            const overallProgressBar = document.getElementById(
+                "overall-progress-bar"
+            );
+            const overallProgressText = document.getElementById(
+                "overall-progress-text"
+            );
+            const progressStatus = document.getElementById("progress-status");
+
+            if (overallProgressBar) {
+                overallProgressBar.style.width = `${overallProgress}%`;
+
+                // Change color based on status
+                if (errorFiles > 0 && completedFiles === files.length) {
+                    overallProgressBar.classList.remove(
+                        "bg-blue-600",
+                        "bg-green-600"
+                    );
+                    overallProgressBar.classList.add("bg-yellow-600");
+                } else if (
+                    completedFiles === files.length &&
+                    errorFiles === 0
+                ) {
+                    overallProgressBar.classList.remove(
+                        "bg-blue-600",
+                        "bg-yellow-600"
+                    );
+                    overallProgressBar.classList.add("bg-green-600");
+                }
+            }
+
+            if (overallProgressText) {
+                overallProgressText.textContent = `${Math.round(
+                    overallProgress
+                )}%`;
+            }
+
+            if (progressStatus) {
+                if (completedFiles === files.length) {
+                    if (errorFiles > 0) {
+                        progressStatus.textContent = `Upload completed with ${errorFiles} error${
+                            errorFiles > 1 ? "s" : ""
+                        }`;
+                    } else {
+                        progressStatus.textContent = "Processing uploads...";
+                    }
+                } else {
+                    const remainingFiles = files.length - completedFiles;
+                    progressStatus.textContent = `Uploading ${remainingFiles} of ${files.length} files...`;
+                }
+            }
+        }
+
+        function markFileComplete(file, success = true) {
+            const fileProgressElement = document.getElementById(
+                `progress-${file.upload.uuid}`
+            );
+            if (!fileProgressElement) return;
+
+            const progressBar =
+                fileProgressElement.querySelector(".bg-blue-600");
+            const percentageSpan =
+                fileProgressElement.querySelector(".text-gray-500");
+
+            if (success) {
+                if (progressBar) {
+                    progressBar.classList.remove("bg-blue-600");
+                    progressBar.classList.add("bg-green-600");
+                    progressBar.style.width = "100%";
+                }
+                if (percentageSpan) {
+                    percentageSpan.textContent = "✓ Complete";
+                    percentageSpan.classList.remove("text-gray-500");
+                    percentageSpan.classList.add("text-green-600");
+                }
+            } else {
+                if (progressBar) {
+                    progressBar.classList.remove("bg-blue-600");
+                    progressBar.classList.add("bg-red-600");
+                }
+                if (percentageSpan) {
+                    percentageSpan.textContent = "✗ Failed";
+                    percentageSpan.classList.remove("text-gray-500");
+                    percentageSpan.classList.add("text-red-600");
+                }
+            }
+        }
+
+        function clearProgressDisplay() {
+            const progressContainer = document.getElementById(
+                "file-progress-container"
+            );
+            if (progressContainer) {
+                progressContainer.innerHTML = "";
+            }
+
+            const overallProgressBar = document.getElementById(
+                "overall-progress-bar"
+            );
+            if (overallProgressBar) {
+                overallProgressBar.style.width = "0%";
+                overallProgressBar.classList.remove(
+                    "bg-green-600",
+                    "bg-yellow-600"
+                );
+                overallProgressBar.classList.add("bg-blue-600");
+            }
+
+            const overallProgressText = document.getElementById(
+                "overall-progress-text"
+            );
+            if (overallProgressText) {
+                overallProgressText.textContent = "0%";
+            }
+
+            const progressStatus = document.getElementById("progress-status");
+            if (progressStatus) {
+                progressStatus.textContent = "Preparing upload...";
+            }
+        }
+
+        // Prevent accidental navigation during upload
+        let uploadInProgress = false;
+
+        function setUploadInProgress(inProgress) {
+            uploadInProgress = inProgress;
+            if (inProgress) {
+                window.addEventListener("beforeunload", handleBeforeUnload);
+            } else {
+                window.removeEventListener("beforeunload", handleBeforeUnload);
+            }
+        }
+
+        function handleBeforeUnload(e) {
+            if (uploadInProgress) {
+                const message =
+                    "Files are currently uploading. Are you sure you want to leave?";
+                e.preventDefault();
+                e.returnValue = message;
+                return message;
+            }
+        }
+
         // --- Handle message form submission ---
         messageForm.addEventListener("submit", function (e) {
             e.preventDefault(); // Prevent default form submission
@@ -189,6 +422,12 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                 console.log("Starting file uploads for queue..."); // <-- ADD LOG
                 submitButton.disabled = true;
                 submitButton.textContent = "Uploading Files...";
+
+                // Show progress overlay and clear any previous progress
+                clearProgressDisplay();
+                showProgressOverlay();
+                setUploadInProgress(true);
+
                 myDropzone.processQueue(); // Start uploading queued files
             } else if (
                 myDropzone.getFilesWithStatus(Dropzone.SUCCESS).length > 0
@@ -256,6 +495,14 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                 console.log("Attempting to associate message..."); // <-- LOG: Associating message path
                 submitButton.textContent = "Associating Message..."; // Update button text
 
+                // Update progress status
+                const progressStatus =
+                    document.getElementById("progress-status");
+                if (progressStatus) {
+                    progressStatus.textContent =
+                        "Associating message with uploaded files...";
+                }
+
                 // Use employee upload config if available, otherwise use client endpoint
                 const associateUrl = window.employeeUploadConfig
                     ? window.employeeUploadConfig.associateMessageUrl
@@ -293,6 +540,9 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                         messageInput.value = ""; // Clear message field
                         fileIdsInput.value = "[]"; // Clear hidden input
                         myDropzone.removeAllFiles(true); // Clear Dropzone queue
+
+                        // Hide progress overlay
+                        hideProgressOverlay();
                         // alert('Files uploaded and message associated successfully!');
                         window.dispatchEvent(
                             new CustomEvent("open-modal", {
@@ -313,6 +563,7 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                         // Re-enable button regardless of association outcome, allowing retry if needed
                         submitButton.disabled = false;
                         submitButton.textContent = "Upload and Send Message";
+                        setUploadInProgress(false);
                     });
             } else if (successfulFileIds.length > 0 && !message) {
                 console.log(
@@ -324,6 +575,14 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                 console.log("Calling /api/uploads/batch-complete...");
                 submitButton.textContent = "Finalizing Upload..."; // Update button text
                 submitButton.disabled = true; // Keep disabled while finalizing
+
+                // Update progress status
+                const progressStatus =
+                    document.getElementById("progress-status");
+                if (progressStatus) {
+                    progressStatus.textContent =
+                        "Finalizing upload and sending notifications...";
+                }
 
                 // Use employee upload config if available, otherwise use client endpoint
                 const batchCompleteUrl = window.employeeUploadConfig
@@ -382,6 +641,10 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                         console.log("Attempting to clear file IDs input...");
                         fileIdsInput.value = "[]";
                         console.log("File IDs input cleared.");
+
+                        // Hide progress overlay
+                        hideProgressOverlay();
+                        setUploadInProgress(false);
                     })
                     .catch((error) => {
                         console.error(
@@ -400,6 +663,7 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                         // Re-enable button and reset text, regardless of API call outcome
                         submitButton.disabled = false;
                         submitButton.textContent = "Upload and Send Message";
+                        setUploadInProgress(false);
 
                         // Check for rejected files AFTER attempting batch complete
                         if (myDropzone.getRejectedFiles().length > 0) {
