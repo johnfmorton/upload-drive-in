@@ -769,4 +769,13 @@ return [
     'upload_status_upload_completed_with_errors' => 'Upload abgeschlossen mit :count Fehler|Upload abgeschlossen mit :count Fehlern',
     'upload_button_uploading' => 'Dateien werden hochgeladen...',
 
+    // Google Drive OAuth Callback Messages
+    'google_drive_connected_success' => 'Erfolgreich mit Google Drive verbunden!',
+    'google_drive_pending_uploads_queued' => ':count ausstehende Uploads wurden zur Wiederholung eingereiht.',
+    'google_drive_connection_failed' => 'Verbindung zu Google Drive fehlgeschlagen',
+    'google_drive_auth_code_expired' => 'Der Autorisierungscode ist abgelaufen. Bitte versuchen Sie erneut, eine Verbindung herzustellen.',
+    'google_drive_access_denied' => 'Zugriff wurde verweigert. Bitte gewähren Sie die erforderlichen Berechtigungen, um Google Drive zu verbinden.',
+    'google_drive_invalid_configuration' => 'Ungültige Google Drive-Konfiguration. Bitte wenden Sie sich an Ihren Administrator.',
+    'google_drive_authorization_failed' => 'Autorisierung fehlgeschlagen: :error',
+
 ];

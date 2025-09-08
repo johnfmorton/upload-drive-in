@@ -31,7 +31,7 @@ class GoogleDriveUnifiedCallbackController extends Controller
     {
         $stateData = null;
         $user = null;
-        
+
         try {
             // Get the authorization code
             $code = $request->get('code');
@@ -43,13 +43,13 @@ class GoogleDriveUnifiedCallbackController extends Controller
             if ($request->has('error')) {
                 $error = $request->get('error');
                 $errorDescription = $request->get('error_description', 'OAuth authorization failed');
-                
+
                 Log::warning('OAuth callback received error', [
                     'error' => $error,
                     'error_description' => $errorDescription
                 ]);
-                
-                return $this->redirectWithError("Authorization failed: {$errorDescription}");
+
+                return $this->redirectWithError(__('messages.google_drive_authorization_failed', ['error' => $errorDescription]));
             }
 
             // Decode state parameter to get user information
@@ -109,7 +109,6 @@ class GoogleDriveUnifiedCallbackController extends Controller
 
             // Redirect based on user type with success message
             return $this->redirectBasedOnUserType($user, $retriedUploads);
-
         } catch (\Exception $e) {
             Log::error('Google Drive OAuth callback failed', [
                 'error' => $e->getMessage(),
@@ -136,18 +135,17 @@ class GoogleDriveUnifiedCallbackController extends Controller
             // Use CloudStorageManager to get the provider and check connection health
             $provider = $this->storageManager->getProvider('google-drive');
             $healthStatus = $provider->getConnectionHealth($user);
-            
+
             $isValid = $healthStatus->isHealthy() || $healthStatus->isDegraded();
-            
+
             Log::info('Connection validation completed', [
                 'user_id' => $user->id,
                 'is_valid' => $isValid,
                 'health_status' => $healthStatus->status,
-                'requires_reconnection' => $healthStatus->requiresReconnection
+                'requires_reconnection' => $healthStatus->requires_reconnection
             ]);
 
             return $isValid;
-
         } catch (\Exception $e) {
             Log::error('Connection validation failed with exception', [
                 'user_id' => $user->id,
@@ -168,21 +166,21 @@ class GoogleDriveUnifiedCallbackController extends Controller
             ]);
 
             // Find pending uploads for this user
-            $pendingUploads = FileUpload::where(function($query) use ($user) {
+            $pendingUploads = FileUpload::where(function ($query) use ($user) {
                 $query->where('company_user_id', $user->id)
-                      ->orWhere('uploaded_by_user_id', $user->id);
+                    ->orWhere('uploaded_by_user_id', $user->id);
             })
-            ->whereNull('google_drive_file_id')
-            ->where(function($query) {
-                // Only retry uploads that failed due to connection issues
-                $query->whereIn('cloud_storage_error_type', [
-                    'token_expired',
-                    'insufficient_permissions',
-                    'invalid_credentials'
-                ])->orWhereNull('cloud_storage_error_type');
-            })
-            ->limit(50) // Limit to prevent overwhelming the queue
-            ->get();
+                ->whereNull('google_drive_file_id')
+                ->where(function ($query) {
+                    // Only retry uploads that failed due to connection issues
+                    $query->whereIn('cloud_storage_error_type', [
+                        'token_expired',
+                        'insufficient_permissions',
+                        'invalid_credentials'
+                    ])->orWhereNull('cloud_storage_error_type');
+                })
+                ->limit(50) // Limit to prevent overwhelming the queue
+                ->get();
 
             if ($pendingUploads->isEmpty()) {
                 Log::info('No pending uploads found for retry after reconnection', [
@@ -213,7 +211,6 @@ class GoogleDriveUnifiedCallbackController extends Controller
                         'filename' => $upload->original_filename,
                         'user_id' => $user->id
                     ]);
-
                 } catch (\Exception $e) {
                     Log::warning('Failed to queue upload for retry after reconnection', [
                         'upload_id' => $upload->id,
@@ -230,7 +227,6 @@ class GoogleDriveUnifiedCallbackController extends Controller
             ]);
 
             return $retriedCount;
-
         } catch (\Exception $e) {
             Log::error('Failed to retry pending uploads after reconnection', [
                 'user_id' => $user->id,
@@ -245,17 +241,17 @@ class GoogleDriveUnifiedCallbackController extends Controller
      */
     private function handleCallbackFailure(User $user = null, \Exception $exception, array $stateData = null): RedirectResponse
     {
-        $errorMessage = 'Failed to connect to Google Drive';
-        
+        $errorMessage = __('messages.google_drive_connection_failed');
+
         // Classify the error for better user feedback
         if (str_contains($exception->getMessage(), 'invalid_grant')) {
-            $errorMessage = 'The authorization code has expired. Please try connecting again.';
+            $errorMessage = __('messages.google_drive_auth_code_expired');
         } elseif (str_contains($exception->getMessage(), 'access_denied')) {
-            $errorMessage = 'Access was denied. Please grant the required permissions to connect Google Drive.';
+            $errorMessage = __('messages.google_drive_access_denied');
         } elseif (str_contains($exception->getMessage(), 'invalid_client')) {
-            $errorMessage = 'Invalid Google Drive configuration. Please contact your administrator.';
+            $errorMessage = __('messages.google_drive_invalid_configuration');
         } else {
-            $errorMessage .= ': ' . $exception->getMessage();
+            $errorMessage = __('messages.google_drive_authorization_failed', ['error' => $exception->getMessage()]);
         }
 
         // If we have user context, mark the connection as requiring attention
@@ -283,10 +279,10 @@ class GoogleDriveUnifiedCallbackController extends Controller
      */
     private function redirectBasedOnUserType(User $user, int $retriedUploads = 0): RedirectResponse
     {
-        $baseMessage = 'Successfully connected to Google Drive!';
-        
+        $baseMessage = __('messages.google_drive_connected_success');
+
         if ($retriedUploads > 0) {
-            $baseMessage .= " {$retriedUploads} pending uploads have been queued for retry.";
+            $baseMessage .= ' ' . __('messages.google_drive_pending_uploads_queued', ['count' => $retriedUploads]);
         }
 
         if ($user->isAdmin()) {
@@ -313,7 +309,7 @@ class GoogleDriveUnifiedCallbackController extends Controller
     private function redirectWithError(string $message): RedirectResponse
     {
         $user = Auth::user();
-        
+
         if (!$user) {
             return redirect()->route('login')->with('error', $message);
         }

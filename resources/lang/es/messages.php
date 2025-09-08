@@ -802,4 +802,13 @@ return [
     'upload_status_upload_completed_with_errors' => 'Subida completada con :count error|Subida completada con :count errores',
     'upload_button_uploading' => 'Subiendo Archivos...',
 
+    // Google Drive OAuth Callback Messages
+    'google_drive_connected_success' => '¡Conectado exitosamente a Google Drive!',
+    'google_drive_pending_uploads_queued' => ':count subidas pendientes han sido puestas en cola para reintentar.',
+    'google_drive_connection_failed' => 'Error al conectar con Google Drive',
+    'google_drive_auth_code_expired' => 'El código de autorización ha expirado. Por favor, intente conectarse nuevamente.',
+    'google_drive_access_denied' => 'Se denegó el acceso. Por favor, otorgue los permisos requeridos para conectar Google Drive.',
+    'google_drive_invalid_configuration' => 'Configuración de Google Drive inválida. Por favor, contacte a su administrador.',
+    'google_drive_authorization_failed' => 'Autorización fallida: :error',
+
 ];

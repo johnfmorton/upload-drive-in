@@ -914,4 +914,13 @@ return [
     'upload_status_upload_completed_with_errors' => 'Téléchargement terminé avec :count erreur|Téléchargement terminé avec :count erreurs',
     'upload_button_uploading' => 'Téléchargement de Fichiers...',
 
+    // Google Drive OAuth Callback Messages
+    'google_drive_connected_success' => 'Connecté avec succès à Google Drive !',
+    'google_drive_pending_uploads_queued' => ':count téléchargements en attente ont été mis en file d\'attente pour une nouvelle tentative.',
+    'google_drive_connection_failed' => 'Échec de la connexion à Google Drive',
+    'google_drive_auth_code_expired' => 'Le code d\'autorisation a expiré. Veuillez essayer de vous reconnecter.',
+    'google_drive_access_denied' => 'L\'accès a été refusé. Veuillez accorder les permissions requises pour connecter Google Drive.',
+    'google_drive_invalid_configuration' => 'Configuration Google Drive invalide. Veuillez contacter votre administrateur.',
+    'google_drive_authorization_failed' => 'Autorisation échouée : :error',
+
 ];

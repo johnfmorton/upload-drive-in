@@ -1405,4 +1405,13 @@
     'domain_rules_cache_command_yes' => 'Yes',
     'domain_rules_cache_command_no' => 'No',
     'domain_rules_cache_command_seconds' => 'seconds',
+
+    // Google Drive OAuth Callback Messages
+    'google_drive_connected_success' => 'Successfully connected to Google Drive!',
+    'google_drive_pending_uploads_queued' => ':count pending uploads have been queued for retry.',
+    'google_drive_connection_failed' => 'Failed to connect to Google Drive',
+    'google_drive_auth_code_expired' => 'The authorization code has expired. Please try connecting again.',
+    'google_drive_access_denied' => 'Access was denied. Please grant the required permissions to connect Google Drive.',
+    'google_drive_invalid_configuration' => 'Invalid Google Drive configuration. Please contact your administrator.',
+    'google_drive_authorization_failed' => 'Authorization failed: :error',
 ];

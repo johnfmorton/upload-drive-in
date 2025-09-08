@@ -224,4 +224,14 @@ class HealthStatus
             'cache_ttl_seconds' => $this->cacheTtlSeconds,
         ];
     }
+
+    /**
+     * Get consecutive failures count.
+     * Note: Real-time health status doesn't track consecutive failures,
+     * so this returns null to indicate it's not applicable for this context.
+     */
+    public function getConsecutiveFailures(): ?int
+    {
+        return null;
+    }
 }
