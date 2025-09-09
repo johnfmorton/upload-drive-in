@@ -27,6 +27,8 @@ Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'login
     ->middleware('signed')
     ->name('login.via.token');
 
+
+
 Route::middleware(['guest'])->group(function () {
     Route::post('/validate-email', [PublicUploadController::class, 'validateEmail'])->name('validate-email');
     Route::get('/verify-email/{code}/{email}', [PublicUploadController::class, 'verifyEmail'])->name('verify-email');
@@ -56,8 +58,7 @@ Route::get('/google-drive/callback', [\App\Http\Controllers\GoogleDriveUnifiedCa
 // Auth routes
 Route::middleware(['guest'])->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
-    Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-        ->middleware(\App\Http\Middleware\PreventClientPasswordLogin::class);
+    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])

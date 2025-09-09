@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 use App\Models\User;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Log;
-use App\Enums\UserRole;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -30,32 +28,41 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+
+
         $request->authenticate();
 
         $request->session()->regenerate();
 
         // Check if the user is an admin and has 2FA enabled
         $user = Auth::user();
-        
+
+
+
         // Update last login timestamp
         if ($user) {
             $user->update(['last_login_at' => now()]);
         }
-        
+
         if ($user && $user->isAdmin()) {
             if ($user->two_factor_enabled) {
                 // Store the intended URL before redirecting to 2FA verification
                 session(['url.intended' => route('admin.dashboard')]);
 
                 return redirect()->route('admin.2fa.verify')
-                    ->with('warning', 'Please verify your two-factor authentication code.');
+                    ->with('warning', __('messages.auth_2fa_verification_required'));
             }
 
             // If admin but no 2FA, redirect to admin dashboard
             return redirect()->route('admin.dashboard');
+        } elseif ($user && $user->isClient()) {
+            // Redirect clients to their dashboard
+            return redirect()->route('client.dashboard');
+        } elseif ($user && $user->isEmployee()) {
+            // Redirect employees to their dashboard
+            return redirect()->route('employee.dashboard', ['username' => $user->username]);
         }
-
-        // For non-admin users, redirect to the default home
+        // For any other case, redirect to the default home
         return redirect()->intended(RouteServiceProvider::HOME);
     }
 
@@ -85,7 +92,7 @@ class AuthenticatedSessionController extends Controller
         // Allow admin, client, and employee users via token.
         if (!$user || (!$user->isAdmin() && !$user->isClient() && !$user->isEmployee())) {
             Log::warning("Attempt to use login token for invalid user: {$user->id}");
-            return redirect()->route('home')->with('error', 'Invalid login link.');
+            return redirect()->route('home')->with('error', __('messages.auth_invalid_login_link'));
         }
 
         // Log the user in
@@ -104,9 +111,9 @@ class AuthenticatedSessionController extends Controller
                 // Store the intended URL before redirecting to 2FA verification
                 session(['url.intended' => route('admin.dashboard')]);
                 return redirect()->route('admin.2fa.verify')
-                    ->with('warning', 'Please verify your two-factor authentication code.');
+                    ->with('warning', __('messages.auth_2fa_verification_required'));
             }
-            
+
             // If admin but no 2FA, redirect to admin dashboard
             return redirect()->route('admin.dashboard')
                 ->with('success', 'Logged in successfully.');

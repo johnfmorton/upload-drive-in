@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'welcome' => '¡Bienvenido a nuestra aplicación!',
+    'login-message' => 'Los usuarios de <b>' . config('app.company_name') . '</b> pueden iniciar sesión con su correo electrónico y contraseña.',
+    'email-validation-message' => 'Recibirás un correo electrónico con un enlace para validar tu dirección de correo. Al hacer clic en el enlace que te enviamos, podrás subir archivos a ' . config('app.company_name') . '.',
+
     // Token Refresh Error Types - Descriptions
     'token_refresh_error_network_timeout' => 'Tiempo de espera de red agotado durante la renovación del token',
     'token_refresh_error_invalid_refresh_token' => 'Token de renovación inválido proporcionado',
@@ -811,4 +815,8 @@ return [
     'google_drive_invalid_configuration' => 'Configuración de Google Drive inválida. Por favor, contacte a su administrador.',
     'google_drive_authorization_failed' => 'Autorización fallida: :error',
 
+    // Authentication Messages
+    'auth_2fa_verification_required' => 'Por favor, verifique su código de autenticación de dos factores.',
+    'auth_invalid_login_link' => 'Enlace de inicio de sesión inválido.',
+    'auth_login_successful' => 'Sesión iniciada exitosamente.',
 ];

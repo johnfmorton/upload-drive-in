@@ -1,6 +1,6 @@
 <?php return [
     'welcome' => 'Welcome to our application!',
-    'login-message' => 'Admin users at <b>' . config('app.company_name') . '</b> can log in with their email and password. Client users must use email verification on  at <a href="' . config('app.url') . '" class="text-blue-500 underline">the home page</a>.',
+    'login-message' => 'Users at <b>' . config('app.company_name') . '</b> can log in with their email and password.',
     'email-validation-message' => 'You will receive an email with a link to validate your email address. Clicking the link we send you will allow you to upload files to ' . config('app.company_name') . '.',
 
     // Navigation & General UI
@@ -1414,4 +1414,9 @@
     'google_drive_access_denied' => 'Access was denied. Please grant the required permissions to connect Google Drive.',
     'google_drive_invalid_configuration' => 'Invalid Google Drive configuration. Please contact your administrator.',
     'google_drive_authorization_failed' => 'Authorization failed: :error',
+
+    // Authentication Messages
+    'auth_2fa_verification_required' => 'Please verify your two-factor authentication code.',
+    'auth_invalid_login_link' => 'Invalid login link.',
+    'auth_login_successful' => 'Logged in successfully.',
 ];

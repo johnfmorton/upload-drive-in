@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'welcome' => 'Willkommen in unserer Anwendung!',
+    'login-message' => 'Benutzer bei <b>' . config('app.company_name') . '</b> können sich mit ihrer E-Mail-Adresse und ihrem Passwort anmelden.',
+    'email-validation-message' => 'Sie erhalten eine E-Mail mit einem Link zur Bestätigung Ihrer E-Mail-Adresse. Durch Klicken auf den Link, den wir Ihnen senden, können Sie Dateien an ' . config('app.company_name') . ' hochladen.',
+
     // Token Refresh Error Types - Descriptions
     'token_refresh_error_network_timeout' => 'Netzwerk-Timeout während der Token-Erneuerung',
     'token_refresh_error_invalid_refresh_token' => 'Ungültiger Erneuerungs-Token bereitgestellt',
@@ -778,4 +782,8 @@ return [
     'google_drive_invalid_configuration' => 'Ungültige Google Drive-Konfiguration. Bitte wenden Sie sich an Ihren Administrator.',
     'google_drive_authorization_failed' => 'Autorisierung fehlgeschlagen: :error',
 
+    // Authentication Messages
+    'auth_2fa_verification_required' => 'Bitte verifizieren Sie Ihren Zwei-Faktor-Authentifizierungscode.',
+    'auth_invalid_login_link' => 'Ungültiger Anmelde-Link.',
+    'auth_login_successful' => 'Erfolgreich angemeldet.',
 ];
