@@ -93,6 +93,10 @@ return [
     'verify_email_ignore' => 'Falls Sie diese Bestätigung nicht angefordert haben, können Sie diese E-Mail sicher ignorieren.',
     'thanks_signature' => 'Vielen Dank',
 
+    // Button Loading States
+    'button_create_user_loading' => 'Benutzer wird erstellt...',
+    'button_create_and_invite_loading' => 'Erstellen und Senden...',
+
     // Admin User Creation Messages
     'admin_user_created' => 'Kundenbenutzer erfolgreich erstellt. Sie können ihnen den Login-Link manuell bereitstellen.',
     'admin_user_created_and_invited' => 'Kundenbenutzer erstellt und Einladung erfolgreich gesendet.',
