@@ -1,6 +1,6 @@
 <?php return [
     'welcome' => 'Welcome to our application!',
-    'login-message' => 'Users at <b>' . config('app.company_name') . '</b> can log in with their email and password.',
+    'login-message' => 'Users at <b>' . config('app.company_name') . '</b> can log in with their email and password. If you don\'t know your password, <a href="/" class="underline">log in</a> with your email addrees and we\'ll send you a link.',
     'email-validation-message' => 'You will receive an email with a link to validate your email address. Clicking the link we send you will allow you to upload files to ' . config('app.company_name') . '.',
 
     // Navigation & General UI
@@ -222,7 +222,7 @@
     'public_registration_disabled' => 'New user registration is currently disabled. If you already have an account, please try again or contact support.',
     'email_domain_not_allowed' => 'This email domain is not allowed for new registrations. If you already have an account, please try again or contact support.',
     'security_settings_saved' => 'Security settings have been updated successfully.',
-    
+
     // Enhanced verification messages for existing vs new users
     'existing_user_verification_sent' => 'Verification email sent to your existing account. Please check your inbox.',
     'new_user_verification_sent' => 'Verification email sent. Please check your inbox to complete registration.',
@@ -316,7 +316,7 @@
 
     // Client Verification
     'client_verify_email_subject' => 'Verify Your Email Address',
-    'client_verify_email_title' => 'Verify Your Email Address', 
+    'client_verify_email_title' => 'Verify Your Email Address',
     'client_verify_email_intro' => 'To upload files to :company_name, please verify your email address by clicking on the link below. Once verified, you\'ll be able to securely upload files that will be delivered directly to the appropriate team member.',
     'client_verify_email_button' => 'Verify Email Address',
 
@@ -340,7 +340,9 @@
 
     // Email Validation Form
     'email_validation_title' => 'Upload files to :company_name',
-    'email_validation_subtitle' => 'Begin by validating your email address.',
+    'email_validation_subtitle' => 'Validate your email address to log in.',
+    'already_have_account' => 'Already have an account?',
+    'sign_in' => 'Sign In',
 
     // Common Elements
     'app_name_default' => 'Upload Drive-In',
@@ -358,7 +360,7 @@
     'upload_progress_overall' => 'Overall Progress',
     'upload_progress_cancel_button' => 'Cancel Upload',
     'upload_progress_cancel_confirm' => 'Are you sure you want to cancel the upload?',
-    
+
     // Upload Progress Status Messages (for JavaScript)
     'upload_status_processing' => 'Processing uploads...',
     'upload_status_uploading_files' => 'Uploading :remaining of :total files...',
@@ -1272,13 +1274,13 @@
     'token_config_notification_throttle_hours_min' => 'Notification throttle hours must be at least 1',
     'token_config_max_attempts_per_hour_min' => 'Max attempts per hour must be at least 1',
     'token_config_max_health_checks_per_minute_min' => 'Max health checks per minute must be at least 1',
-    
+
     // Token Refresh Admin Controller Validation Messages
     'token_config_proactive_refresh_range' => 'Proactive refresh minutes must be between 1 and 60',
     'token_config_background_refresh_range' => 'Background refresh minutes must be between 5 and 120',
     'token_config_notification_throttle_range' => 'Notification throttle hours must be between 1 and 168 (1 week)',
     'token_config_max_attempts_per_hour_range' => 'Max attempts per hour must be between 1 and 100',
-    
+
     // Token Refresh Admin Interface Messages
     'token_config_admin_interface_disabled' => 'Admin interface is disabled',
     'token_config_runtime_changes_disabled' => 'Runtime changes are disabled',
@@ -1291,7 +1293,7 @@
     'token_config_cache_cleared' => 'Configuration cache cleared successfully.',
     'token_config_change_requires_confirmation' => 'Changing \':key\' requires confirmation as it may affect system behavior.',
     'token_config_toggle_requires_confirmation' => 'Toggling \':feature\' requires confirmation as it may significantly affect system behavior.',
-    
+
     // Token Refresh Configuration Dashboard
     'token_config_dashboard_title' => 'Token Refresh Configuration',
     'token_config_dashboard_description' => 'Manage token refresh settings and feature flags for gradual rollout.',
@@ -1314,7 +1316,7 @@
     'token_config_confirm_change_title' => 'Confirm Configuration Change',
     'token_config_confirm_button' => 'Confirm',
     'token_config_cancel_button' => 'Cancel',
-    
+
     // Token Refresh Console Command Messages
     'token_config_cmd_unknown_action' => 'Unknown action: :action',
     'token_config_cmd_key_value_required' => 'Both --key and --value options are required for set action',
@@ -1332,7 +1334,7 @@
     'token_config_cmd_validation_failed_title' => 'Configuration validation failed:',
     'token_config_cmd_cache_cleared' => 'Configuration cache cleared successfully',
     'token_config_cmd_cache_clear_failed' => 'Failed to clear configuration cache: :error',
-    
+
     // Additional Cloud Storage Status Messages
     'cloud_storage_status_retrieval_failed' => 'Unable to retrieve cloud storage status. Please try again.',
     'cloud_storage_health_check_failed' => 'Health check failed due to an unexpected error. Please try again.',

@@ -2,7 +2,7 @@
 
 return [
     'welcome' => 'Willkommen in unserer Anwendung!',
-    'login-message' => 'Benutzer bei <b>' . config('app.company_name') . '</b> können sich mit ihrer E-Mail-Adresse und ihrem Passwort anmelden.',
+    'login-message' => 'Benutzer bei <b>' . config('app.company_name') . '</b> können sich mit ihrer E-Mail-Adresse und ihrem Passwort anmelden. Wenn Sie Ihr Passwort nicht kennen, <a href="/">melden Sie sich an</a> mit Ihrer E-Mail-Adresse und wir senden Ihnen einen Link.',
     'email-validation-message' => 'Sie erhalten eine E-Mail mit einem Link zur Bestätigung Ihrer E-Mail-Adresse. Durch Klicken auf den Link, den wir Ihnen senden, können Sie Dateien an ' . config('app.company_name') . ' hochladen.',
 
     // Token Refresh Error Types - Descriptions
@@ -786,4 +786,17 @@ return [
     'auth_2fa_verification_required' => 'Bitte verifizieren Sie Ihren Zwei-Faktor-Authentifizierungscode.',
     'auth_invalid_login_link' => 'Ungültiger Anmelde-Link.',
     'auth_login_successful' => 'Erfolgreich angemeldet.',
+
+    // Navigation & Email Validation
+    'nav_email_label' => 'E-Mail-Adresse',
+    'nav_email_placeholder' => 'Geben Sie Ihre E-Mail-Adresse ein',
+    'nav_validate_email_button' => 'E-Mail Validieren',
+    'nav_validate_email_sending' => 'Wird gesendet...',
+    'nav_validation_success' => 'Sie erhalten eine E-Mail mit einem Link zur Validierung Ihrer E-Mail-Adresse. Durch Klicken auf den Link, den wir Ihnen senden, können Sie Dateien zu :company_name hochladen.',
+    'nav_validation_error' => 'Bei der Bearbeitung Ihrer Anfrage ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.',
+    'nav_logo_alt' => ':company_name Logo',
+    'email_validation_title' => 'Dateien zu :company_name hochladen',
+    'email_validation_subtitle' => 'Beginnen Sie mit der Validierung Ihrer E-Mail-Adresse.',
+    'already_have_account' => 'Haben Sie bereits ein Konto?',
+    'sign_in' => 'Anmelden',
 ];

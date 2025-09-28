@@ -819,4 +819,17 @@ return [
     'auth_2fa_verification_required' => 'Por favor, verifique su código de autenticación de dos factores.',
     'auth_invalid_login_link' => 'Enlace de inicio de sesión inválido.',
     'auth_login_successful' => 'Sesión iniciada exitosamente.',
+
+    // Navigation & Email Validation
+    'nav_email_label' => 'Dirección de Correo Electrónico',
+    'nav_email_placeholder' => 'Ingresa tu dirección de correo electrónico',
+    'nav_validate_email_button' => 'Validar Correo',
+    'nav_validate_email_sending' => 'Enviando...',
+    'nav_validation_success' => 'Recibirás un correo electrónico con un enlace para validar tu dirección de correo. Al hacer clic en el enlace que te enviamos, podrás subir archivos a :company_name.',
+    'nav_validation_error' => 'Hubo un error procesando tu solicitud. Por favor intenta de nuevo.',
+    'nav_logo_alt' => 'Logo de :company_name',
+    'email_validation_title' => 'Subir archivos a :company_name',
+    'email_validation_subtitle' => 'Comienza validando tu dirección de correo electrónico.',
+    'already_have_account' => '¿Ya tienes una cuenta?',
+    'sign_in' => 'Iniciar Sesión',
 ];

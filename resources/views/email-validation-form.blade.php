@@ -37,10 +37,10 @@
                     </div>
 
                     <div class="mt-8 pt-6 border-t border-gray-200 text-center">
-                        <p class="text-sm text-gray-600 mb-2">Already have an account?</p>
+                        <p class="text-sm text-gray-600 mb-2">{{ __('messages.already_have_account') }}</p>
                         <a href="{{ route('login') }}" 
                            class="inline-flex items-center px-4 py-2 text-sm font-medium text-[var(--brand-color)] bg-white border border-[var(--brand-color)] rounded-md hover:bg-[var(--brand-color)] hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)] transition-colors duration-200">
-                            Sign In
+                            {{ __('messages.sign_in') }}
                         </a>
                     </div>
     </div>

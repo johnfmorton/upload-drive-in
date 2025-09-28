@@ -2,7 +2,7 @@
 
 return [
     'welcome' => 'Bienvenue dans notre application !',
-    'login-message' => 'Les utilisateurs de <b>' . config('app.company_name') . '</b> peuvent se connecter avec leur adresse e-mail et leur mot de passe.',
+    'login-message' => 'Les utilisateurs de <b>' . config('app.company_name') . '</b> peuvent se connecter avec leur adresse e-mail et leur mot de passe. Si vous ne connaissez pas votre mot de passe, <a href="/">connectez-vous</a> avec votre adresse e-mail et nous vous enverrons un lien.',
     'email-validation-message' => 'Vous recevrez un e-mail avec un lien pour valider votre adresse e-mail. En cliquant sur le lien que nous vous envoyons, vous pourrez télécharger des fichiers vers ' . config('app.company_name') . '.',
 
     // Token Refresh Error Types - Descriptions
@@ -931,4 +931,17 @@ return [
     'auth_2fa_verification_required' => 'Veuillez vérifier votre code d\'authentification à deux facteurs.',
     'auth_invalid_login_link' => 'Lien de connexion invalide.',
     'auth_login_successful' => 'Connexion réussie.',
+
+    // Navigation & Email Validation
+    'nav_email_label' => 'Adresse E-mail',
+    'nav_email_placeholder' => 'Entrez votre adresse e-mail',
+    'nav_validate_email_button' => 'Valider l\'E-mail',
+    'nav_validate_email_sending' => 'Envoi en cours...',
+    'nav_validation_success' => 'Vous recevrez un e-mail avec un lien pour valider votre adresse e-mail. En cliquant sur le lien que nous vous envoyons, vous pourrez télécharger des fichiers vers :company_name.',
+    'nav_validation_error' => 'Une erreur s\'est produite lors du traitement de votre demande. Veuillez réessayer.',
+    'nav_logo_alt' => 'Logo de :company_name',
+    'email_validation_title' => 'Télécharger des fichiers vers :company_name',
+    'email_validation_subtitle' => 'Commencez par valider votre adresse e-mail.',
+    'already_have_account' => 'Vous avez déjà un compte ?',
+    'sign_in' => 'Se Connecter',
 ];
