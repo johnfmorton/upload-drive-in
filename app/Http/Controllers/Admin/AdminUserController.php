@@ -38,6 +38,12 @@ class AdminUserController extends Controller
      */
     public function index(Request $request)
     {
+        // Validate search and filter parameters
+        $validated = $request->validate([
+            'search' => 'nullable|string|max:255',
+            'filter' => 'nullable|in:primary_contact'
+        ]);
+
         $query = User::where('role', 'client');
         
         // Handle primary contact filtering
@@ -49,7 +55,19 @@ class AdminUserController extends Controller
             });
         }
         
+        // Handle search functionality
+        if ($request->has('search') && !empty($request->get('search'))) {
+            $searchTerm = trim($request->get('search'));
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('email', 'LIKE', "%{$searchTerm}%");
+            });
+        }
+        
         $clients = $query->paginate(config('file-manager.pagination.items_per_page'));
+        
+        // Append query parameters to pagination links
+        $clients->appends($request->query());
 
         // Add the login URL and 2FA status to each client user
         $clients->getCollection()->transform(function ($client) {
@@ -64,7 +82,9 @@ class AdminUserController extends Controller
             return $client;
         });
 
-        return view('admin.users.index', compact('clients'));
+        return view('admin.users.index', compact('clients'))
+            ->with('searchTerm', $request->get('search', ''))
+            ->with('currentFilter', $request->get('filter', ''));
     }
 
     /**

@@ -131,6 +131,7 @@
     'filter_users_label' => 'Filter users',
     'filter_users_placeholder' => 'Filter by name or email...',
     'no_users_match_filter' => 'No client users match your filter criteria.',
+    'no_users_match_search' => 'No client users match your search for ":term".',
     'no_users_found' => 'No client users found.',
     // Mobile Card View Specific
     'mobile_label_created_at' => 'Created:',
