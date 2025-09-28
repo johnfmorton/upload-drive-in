@@ -394,4 +394,154 @@ class AdminUserControllerTest extends TestCase
         
         $this->assertEquals(302, $response->getStatusCode());
     }
+
+    // Search functionality tests
+
+    public function test_index_validates_search_parameter()
+    {
+        $request = Request::create('/admin/users', 'GET', [
+            'search' => str_repeat('a', 256), // Exceeds max length of 255
+        ]);
+        
+        $this->expectException(ValidationException::class);
+        
+        $this->controller->index($request);
+    }
+
+    public function test_index_validates_filter_parameter()
+    {
+        $request = Request::create('/admin/users', 'GET', [
+            'filter' => 'invalid_filter',
+        ]);
+        
+        $this->expectException(ValidationException::class);
+        
+        $this->controller->index($request);
+    }
+
+    public function test_index_accepts_valid_search_parameter()
+    {
+        // Create test users
+        User::factory()->create([
+            'role' => UserRole::CLIENT,
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+        ]);
+        
+        $request = Request::create('/admin/users', 'GET', [
+            'search' => 'John',
+        ]);
+        
+        $response = $this->controller->index($request);
+        
+        $this->assertInstanceOf(\Illuminate\View\View::class, $response);
+        $this->assertEquals('admin.users.index', $response->getName());
+    }
+
+    public function test_index_accepts_valid_filter_parameter()
+    {
+        $request = Request::create('/admin/users', 'GET', [
+            'filter' => 'primary_contact',
+        ]);
+        
+        $response = $this->controller->index($request);
+        
+        $this->assertInstanceOf(\Illuminate\View\View::class, $response);
+        $this->assertEquals('admin.users.index', $response->getName());
+    }
+
+    public function test_index_handles_empty_search_parameter()
+    {
+        $request = Request::create('/admin/users', 'GET', [
+            'search' => '',
+        ]);
+        
+        $response = $this->controller->index($request);
+        
+        $this->assertInstanceOf(\Illuminate\View\View::class, $response);
+        $this->assertEquals('admin.users.index', $response->getName());
+    }
+
+    public function test_index_handles_whitespace_only_search()
+    {
+        $request = Request::create('/admin/users', 'GET', [
+            'search' => '   ',
+        ]);
+        
+        $response = $this->controller->index($request);
+        
+        $this->assertInstanceOf(\Illuminate\View\View::class, $response);
+        $this->assertEquals('admin.users.index', $response->getName());
+    }
+
+    public function test_index_trims_search_parameter_for_database_query()
+    {
+        // Create test user
+        User::factory()->create([
+            'role' => UserRole::CLIENT,
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+        ]);
+        
+        $request = Request::create('/admin/users', 'GET', [
+            'search' => '  John  ',
+        ]);
+        
+        $response = $this->controller->index($request);
+        
+        $this->assertInstanceOf(\Illuminate\View\View::class, $response);
+        $viewData = $response->getData();
+        
+        // The view should preserve the original search term for the form
+        $this->assertEquals('  John  ', $viewData['searchTerm']);
+        
+        // But the database query should have found the user (proving trim worked)
+        $clients = $viewData['clients'];
+        $this->assertGreaterThan(0, $clients->count());
+        $this->assertEquals('John Doe', $clients->first()->name);
+    }
+
+    public function test_index_returns_search_term_in_view_data()
+    {
+        $request = Request::create('/admin/users', 'GET', [
+            'search' => 'test search',
+        ]);
+        
+        $response = $this->controller->index($request);
+        
+        $viewData = $response->getData();
+        $this->assertEquals('test search', $viewData['searchTerm']);
+    }
+
+    public function test_index_returns_current_filter_in_view_data()
+    {
+        $request = Request::create('/admin/users', 'GET', [
+            'filter' => 'primary_contact',
+        ]);
+        
+        $response = $this->controller->index($request);
+        
+        $viewData = $response->getData();
+        $this->assertEquals('primary_contact', $viewData['currentFilter']);
+    }
+
+    public function test_index_returns_empty_search_term_when_not_provided()
+    {
+        $request = Request::create('/admin/users', 'GET', []);
+        
+        $response = $this->controller->index($request);
+        
+        $viewData = $response->getData();
+        $this->assertEquals('', $viewData['searchTerm']);
+    }
+
+    public function test_index_returns_empty_filter_when_not_provided()
+    {
+        $request = Request::create('/admin/users', 'GET', []);
+        
+        $response = $this->controller->index($request);
+        
+        $viewData = $response->getData();
+        $this->assertEquals('', $viewData['currentFilter']);
+    }
 }

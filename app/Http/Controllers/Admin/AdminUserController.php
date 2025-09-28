@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str; // Added for random password
 use Illuminate\Support\Facades\Hash; // Added for hashing password
 use App\Services\ClientUserService;
+use App\Services\AdminUserSearchOptimizationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
@@ -27,10 +28,14 @@ use Exception;
 class AdminUserController extends Controller
 {
     protected ClientUserService $clientUserService;
+    protected AdminUserSearchOptimizationService $searchOptimizationService;
 
-    public function __construct(ClientUserService $clientUserService)
-    {
+    public function __construct(
+        ClientUserService $clientUserService,
+        AdminUserSearchOptimizationService $searchOptimizationService
+    ) {
         $this->clientUserService = $clientUserService;
+        $this->searchOptimizationService = $searchOptimizationService;
     }
 
     /**
@@ -44,25 +49,8 @@ class AdminUserController extends Controller
             'filter' => 'nullable|in:primary_contact'
         ]);
 
-        $query = User::where('role', 'client');
-        
-        // Handle primary contact filtering
-        if ($request->has('filter') && $request->get('filter') === 'primary_contact') {
-            $currentUser = Auth::user();
-            $query->whereHas('companyUsers', function ($q) use ($currentUser) {
-                $q->where('company_user_id', $currentUser->id)
-                  ->where('is_primary', true);
-            });
-        }
-        
-        // Handle search functionality
-        if ($request->has('search') && !empty($request->get('search'))) {
-            $searchTerm = trim($request->get('search'));
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('name', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('email', 'LIKE', "%{$searchTerm}%");
-            });
-        }
+        // Use optimized search query builder
+        $query = $this->searchOptimizationService->buildOptimizedSearchQuery($request);
         
         $clients = $query->paginate(config('file-manager.pagination.items_per_page'));
         
