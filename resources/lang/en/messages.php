@@ -1424,4 +1424,16 @@
     'auth_2fa_verification_required' => 'Please verify your two-factor authentication code.',
     'auth_invalid_login_link' => 'Invalid login link.',
     'auth_login_successful' => 'Logged in successfully.',
+
+    // Google Drive Chunked Upload Service Messages
+    'chunked_upload_local_file_not_found' => 'Local file not found: :path',
+    'chunked_upload_could_not_open_file' => 'Could not open file for reading: :path',
+    'chunked_upload_failed_to_read_chunk' => 'Failed to read chunk from file',
+    'chunked_upload_no_file_object_returned' => 'Upload completed but no file object returned',
+    'chunked_upload_starting' => 'Starting chunked upload to Google Drive',
+    'chunked_upload_chunk_uploaded' => 'Uploaded chunk to Google Drive',
+    'chunked_upload_completed_successfully' => 'Chunked upload to Google Drive completed successfully',
+    'chunked_upload_failed' => 'Chunked upload to Google Drive failed',
+    'chunked_upload_optimal_chunk_size_determined' => 'Determined optimal chunk size',
+    'chunked_upload_decision_made' => 'Chunked upload decision made',
 ];

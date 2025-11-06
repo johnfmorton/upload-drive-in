@@ -52,6 +52,15 @@ return [
                 'metadata_support' => true,
                 'version_control' => true,
             ],
+            'chunked_upload' => [
+                'enabled' => env('GOOGLE_DRIVE_CHUNKED_UPLOAD_ENABLED', true),
+                'threshold_bytes' => env('GOOGLE_DRIVE_CHUNKED_UPLOAD_THRESHOLD', 52428800), // 50MB
+                'memory_threshold_percent' => env('GOOGLE_DRIVE_MEMORY_THRESHOLD_PERCENT', 25), // 25% of available memory
+                'default_chunk_size' => env('GOOGLE_DRIVE_DEFAULT_CHUNK_SIZE', 8388608), // 8MB
+                'min_chunk_size' => 262144, // 256KB
+                'max_chunk_size' => 104857600, // 100MB
+                'chunk_delay_ms' => env('GOOGLE_DRIVE_CHUNK_DELAY_MS', 100), // Delay between chunks
+            ],
             'limits' => [
                 'requests_per_second' => 10,
                 'requests_per_day' => 1000000000,

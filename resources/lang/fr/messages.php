@@ -948,4 +948,16 @@ return [
     'email_validation_subtitle' => 'Commencez par valider votre adresse e-mail.',
     'already_have_account' => 'Vous avez déjà un compte ?',
     'sign_in' => 'Se Connecter',
+];    // 
+Google Drive Chunked Upload Service Messages
+    'chunked_upload_local_file_not_found' => 'Fichier local non trouvé : :path',
+    'chunked_upload_could_not_open_file' => 'Impossible d\'ouvrir le fichier en lecture : :path',
+    'chunked_upload_failed_to_read_chunk' => 'Échec de la lecture du fragment de fichier',
+    'chunked_upload_no_file_object_returned' => 'Téléchargement terminé mais aucun objet fichier retourné',
+    'chunked_upload_starting' => 'Démarrage du téléchargement fragmenté vers Google Drive',
+    'chunked_upload_chunk_uploaded' => 'Fragment téléchargé vers Google Drive',
+    'chunked_upload_completed_successfully' => 'Téléchargement fragmenté vers Google Drive terminé avec succès',
+    'chunked_upload_failed' => 'Téléchargement fragmenté vers Google Drive échoué',
+    'chunked_upload_optimal_chunk_size_determined' => 'Taille optimale de fragment déterminée',
+    'chunked_upload_decision_made' => 'Décision de téléchargement fragmenté prise',
 ];

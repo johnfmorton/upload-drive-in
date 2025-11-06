@@ -7,6 +7,7 @@ use App\Models\GoogleDriveToken;
 use App\Services\CloudStorageHealthService;
 use App\Services\CloudStorageLogService;
 use App\Services\TokenRefreshCoordinator;
+use App\Services\GoogleDriveChunkedUploadService;
 use App\Enums\CloudStorageErrorType;
 use App\Enums\TokenRefreshErrorType;
 use App\Exceptions\CloudStorageException;
@@ -1703,6 +1704,35 @@ class GoogleDriveService
         if ($description) {
             $fileMetadata->setDescription($description);
         }
+
+        // Check if we should use chunked upload for large files
+        $fullPath = Storage::disk('public')->path($localRelativePath);
+        $fileSize = file_exists($fullPath) ? filesize($fullPath) : 0;
+        
+        // Use chunked upload for files larger than 50MB or when memory is constrained
+        $chunkedUploadService = app(GoogleDriveChunkedUploadService::class);
+        if ($chunkedUploadService->shouldUseChunkedUpload($fileSize)) {
+            Log::info('Using chunked upload for large file', [
+                'file_size' => $fileSize,
+                'file_path' => $localRelativePath,
+                'target_folder' => $userFolderId
+            ]);
+            
+            return $chunkedUploadService->uploadFileChunked(
+                $targetUser->isEmployee() && $targetUser->hasGoogleDriveConnected() ? $targetUser : $adminUser,
+                $localRelativePath,
+                $userFolderId,
+                $originalFilename,
+                $mimeType,
+                $description
+            );
+        }
+
+        // Use traditional upload for smaller files
+        Log::info('Using traditional upload for small file', [
+            'file_size' => $fileSize,
+            'file_path' => $localRelativePath
+        ]);
 
         // Get file content
         $content = Storage::disk('public')->get($localRelativePath);
