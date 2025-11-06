@@ -948,8 +948,8 @@ return [
     'email_validation_subtitle' => 'Commencez par valider votre adresse e-mail.',
     'already_have_account' => 'Vous avez déjà un compte ?',
     'sign_in' => 'Se Connecter',
-];    // 
-Google Drive Chunked Upload Service Messages
+
+    // Google Drive Chunked Upload Service Messages
     'chunked_upload_local_file_not_found' => 'Fichier local non trouvé : :path',
     'chunked_upload_could_not_open_file' => 'Impossible d\'ouvrir le fichier en lecture : :path',
     'chunked_upload_failed_to_read_chunk' => 'Échec de la lecture du fragment de fichier',

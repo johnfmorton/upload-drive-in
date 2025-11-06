@@ -33,7 +33,8 @@ class EmployeeController extends Controller
         $employees->getCollection()->transform(function ($emp) {
             // Trigger the accessors and store as attributes
             $emp->login_url = $emp->login_url;
-            $emp->reset_url = $emp->reset_url;
+            // Only generate reset URL when explicitly needed to avoid database constraint issues
+            $emp->reset_url = $emp->generateResetUrl();
             return $emp;
         });
 

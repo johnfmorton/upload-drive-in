@@ -38,7 +38,8 @@ class ClientManagementController extends Controller
         // Add login URLs and primary contact status to each client user
         $clientUsers->getCollection()->transform(function ($client) use ($employee) {
             $client->login_url = $client->login_url;
-            $client->reset_url = $client->reset_url;
+            // Only generate reset URL when explicitly needed to avoid database constraint issues
+            $client->reset_url = $client->generateResetUrl();
             
             // Add primary contact status for current employee
             $client->is_primary_contact_for_current_user = $employee->isPrimaryContactFor($client);

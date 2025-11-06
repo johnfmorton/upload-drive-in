@@ -803,8 +803,8 @@ return [
     'email_validation_subtitle' => 'Beginnen Sie mit der Validierung Ihrer E-Mail-Adresse.',
     'already_have_account' => 'Haben Sie bereits ein Konto?',
     'sign_in' => 'Anmelden',
-];    //
- Google Drive Chunked Upload Service Messages
+
+    // Google Drive Chunked Upload Service Messages
     'chunked_upload_local_file_not_found' => 'Lokale Datei nicht gefunden: :path',
     'chunked_upload_could_not_open_file' => 'Datei konnte nicht zum Lesen geöffnet werden: :path',
     'chunked_upload_failed_to_read_chunk' => 'Fehler beim Lesen des Datei-Chunks',

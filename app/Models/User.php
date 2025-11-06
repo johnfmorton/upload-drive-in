@@ -77,7 +77,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $appends = ['login_url', 'reset_url', 'upload_url'];
+    protected $appends = ['login_url', 'upload_url'];
 
     public function isAdmin(): bool
     {
@@ -146,14 +146,26 @@ class User extends Authenticatable
     }
 
     /**
+     * Generate a password reset URL for the user.
+     * Note: This creates a new token each time it's called.
+     *
+     * @return string
+     */
+    public function generateResetUrl(): string
+    {
+        $token = Password::broker()->createToken($this);
+        return route('password.reset', ['token' => $token, 'email' => $this->email]);
+    }
+
+    /**
      * Get the reset_url attribute for the user.
+     * This method is kept for backward compatibility but should be used sparingly.
      *
      * @return string
      */
     public function getResetUrlAttribute(): string
     {
-        $token = Password::broker()->createToken($this);
-        return route('password.reset', ['token' => $token, 'email' => $this->email]);
+        return $this->generateResetUrl();
     }
 
     /**

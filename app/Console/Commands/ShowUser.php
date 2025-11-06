@@ -66,7 +66,7 @@ class ShowUser extends Command
                 ['Type', 'URL'],
                 [
                     ['Login URL', $user->login_url],
-                    ['Password Reset URL', $user->reset_url],
+                    ['Password Reset URL', $user->generateResetUrl()],
                 ]
             );
         }
