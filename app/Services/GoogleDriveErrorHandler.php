@@ -7,6 +7,7 @@ use App\Enums\TokenRefreshErrorType;
 use Exception;
 use Google\Service\Exception as GoogleServiceException;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Google Drive specific error handler
@@ -30,10 +31,10 @@ class GoogleDriveErrorHandler extends BaseCloudStorageErrorHandler
     /**
      * Classify provider-specific exceptions
      *
-     * @param Exception $exception The exception to classify
+     * @param Throwable $exception The exception to classify
      * @return CloudStorageErrorType|null The classified error type, or null if not handled
      */
-    protected function classifyProviderException(Exception $exception): ?CloudStorageErrorType
+    protected function classifyProviderException(Throwable $exception): ?CloudStorageErrorType
     {
         // Handle Google Service API exceptions
         if ($exception instanceof GoogleServiceException) {

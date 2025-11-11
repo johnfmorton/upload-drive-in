@@ -180,7 +180,7 @@ class TokenRenewalNotificationService
     /**
      * Handle notification failure and escalate to admin if needed
      */
-    private function handleNotificationFailure(User $user, string $provider, string $notificationType, \Exception $exception): void
+    private function handleNotificationFailure(User $user, string $provider, string $notificationType, \Throwable $exception): void
     {
         $failureKey = $this->getFailureCacheKey($user, $provider, $notificationType);
         $failureCount = Cache::get($failureKey, 0) + 1;
@@ -203,7 +203,7 @@ class TokenRenewalNotificationService
     /**
      * Escalate notification failure to admin users
      */
-    private function escalateToAdmin(User $user, string $provider, string $notificationType, int $failureCount, \Exception $exception): void
+    private function escalateToAdmin(User $user, string $provider, string $notificationType, int $failureCount, \Throwable $exception): void
     {
         $adminUsers = User::where('role', 'admin')->get();
         
@@ -293,7 +293,7 @@ class TokenRenewalNotificationService
         User $user,
         string $provider,
         TokenRefreshErrorType $errorType,
-        ?Exception $exception,
+        ?\Throwable $exception,
         int $attemptCount
     ): void {
         Log::info('Handling token refresh failure notification', [

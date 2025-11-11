@@ -7,6 +7,7 @@ use Aws\Exception\AwsException;
 use Aws\S3\Exception\S3Exception;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Amazon S3 specific error handler
@@ -30,10 +31,10 @@ class S3ErrorHandler extends BaseCloudStorageErrorHandler
     /**
      * Classify provider-specific exceptions
      *
-     * @param Exception $exception The exception to classify
+     * @param Throwable $exception The exception to classify
      * @return CloudStorageErrorType|null The classified error type, or null if not handled
      */
-    protected function classifyProviderException(Exception $exception): ?CloudStorageErrorType
+    protected function classifyProviderException(Throwable $exception): ?CloudStorageErrorType
     {
         // Handle S3-specific exceptions
         if ($exception instanceof S3Exception) {
