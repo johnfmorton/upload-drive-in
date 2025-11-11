@@ -645,6 +645,11 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                         // Hide progress overlay
                         hideProgressOverlay();
                         setUploadInProgress(false);
+
+                        // Redirect to My Uploads page after a short delay
+                        setTimeout(() => {
+                            window.location.href = "/client/my-uploads";
+                        }, 2000); // 2 second delay to show success message
                     })
                     .catch((error) => {
                         console.error(

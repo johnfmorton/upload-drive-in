@@ -144,10 +144,11 @@
             </div>
             <div class="mt-3 text-center sm:mt-5">
                 <h3 class="text-base font-semibold leading-6 text-gray-900">Upload Complete</h3>
-                <p class="mt-2 text-sm text-gray-500">Files uploaded successfully!</p>
+                <p class="mt-2 text-sm text-gray-500">Your files have been uploaded successfully! Large files are being processed in the background.</p>
+                <p class="mt-1 text-xs text-gray-400">Redirecting to My Uploads...</p>
             </div>
             <div class="mt-5 sm:mt-6">
-                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Close</button>
+                <a href="{{ route('client.my-uploads') }}" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">View My Uploads</a>
             </div>
         </div>
     </x-modal>
