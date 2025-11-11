@@ -356,6 +356,10 @@
     'file_upload_message_required_title' => 'Message Required',
     'file_upload_message_required_text' => 'Please enter a message before submitting.',
     'file_upload_close_button' => 'Close',
+    'file_upload_complete_title' => 'Upload Complete',
+    'file_upload_complete_message' => 'Your files have been uploaded successfully! Large files are being processed in the background.',
+    'file_upload_redirecting' => 'Redirecting to My Uploads...',
+    'file_upload_view_uploads_button' => 'View My Uploads',
 
     // Upload Progress Overlay
     'upload_progress_title' => 'Uploading Files',

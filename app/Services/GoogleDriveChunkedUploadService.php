@@ -104,10 +104,15 @@ class GoogleDriveChunkedUploadService
             }
 
             try {
-                // Create media upload object
+                // Enable deferred mode to get the HTTP request object
+                $client->setDefer(true);
+                $httpRequest = $driveService->files->create($fileMetadata);
+                $client->setDefer(false);
+                
+                // Create media upload object for resumable upload
                 $media = new MediaFileUpload(
                     $client,
-                    $driveService->files->create($fileMetadata),
+                    $httpRequest,
                     $mimeType,
                     null,
                     true,
