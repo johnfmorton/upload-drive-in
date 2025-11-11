@@ -3,7 +3,7 @@
 namespace App\Contracts;
 
 use App\Enums\CloudStorageErrorType;
-use Exception;
+use Throwable;
 
 /**
  * Interface for cloud storage error handling
@@ -16,10 +16,10 @@ interface CloudStorageErrorHandlerInterface
     /**
      * Classify an exception into a universal error type
      *
-     * @param Exception $exception The exception to classify
+     * @param Throwable $exception The exception to classify
      * @return CloudStorageErrorType The classified error type
      */
-    public function classifyError(Exception $exception): CloudStorageErrorType;
+    public function classifyError(Throwable $exception): CloudStorageErrorType;
 
     /**
      * Generate a user-friendly error message for the given error type

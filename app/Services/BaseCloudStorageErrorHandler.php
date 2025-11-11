@@ -8,6 +8,7 @@ use Exception;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Base cloud storage error handler
@@ -31,10 +32,10 @@ abstract class BaseCloudStorageErrorHandler implements CloudStorageErrorHandlerI
      * This method should be implemented by each provider
      * to handle their specific exception types and error codes.
      *
-     * @param Exception $exception The exception to classify
+     * @param Throwable $exception The exception to classify
      * @return CloudStorageErrorType|null The classified error type, or null if not handled
      */
-    abstract protected function classifyProviderException(Exception $exception): ?CloudStorageErrorType;
+    abstract protected function classifyProviderException(Throwable $exception): ?CloudStorageErrorType;
 
     /**
      * Get provider-specific user-friendly messages
@@ -63,10 +64,10 @@ abstract class BaseCloudStorageErrorHandler implements CloudStorageErrorHandlerI
     /**
      * Classify a universal error into an exception
      * 
-     * @param Exception $exception The exception to classify
+     * @param Throwable $exception The exception to classify
      * @return CloudStorageErrorType The classified error type
      */
-    public function classifyError(Exception $exception): CloudStorageErrorType
+    public function classifyError(Throwable $exception): CloudStorageErrorType
     {
         // First try provider-specific classification
         $providerResult = $this->classifyProviderException($exception);
@@ -81,10 +82,10 @@ abstract class BaseCloudStorageErrorHandler implements CloudStorageErrorHandlerI
     /**
      * Classify common errors that apply to all providers
      * 
-     * @param Exception $exception The exception to classify
+     * @param Throwable $exception The exception to classify
      * @return CloudStorageErrorType The classified error type
      */
-    protected function classifyCommonError(Exception $exception): CloudStorageErrorType
+    protected function classifyCommonError(Throwable $exception): CloudStorageErrorType
     {
         // Handle network-related exceptions
         if ($this->isNetworkError($exception)) {
@@ -115,10 +116,10 @@ abstract class BaseCloudStorageErrorHandler implements CloudStorageErrorHandlerI
     /**
      * Check if exception is a network error
      *
-     * @param Exception $exception
+     * @param Throwable $exception
      * @return bool
      */
-    protected function isNetworkError(Exception $exception): bool
+    protected function isNetworkError(Throwable $exception): bool
     {
         if ($exception instanceof ConnectException) {
             return true;
@@ -142,10 +143,10 @@ abstract class BaseCloudStorageErrorHandler implements CloudStorageErrorHandlerI
     /**
      * Check if exception is a timeout error
      *
-     * @param Exception $exception
+     * @param Throwable $exception
      * @return bool
      */
-    protected function isTimeoutError(Exception $exception): bool
+    protected function isTimeoutError(Throwable $exception): bool
     {
         $message = strtolower($exception->getMessage());
         return str_contains($message, 'timeout') ||
