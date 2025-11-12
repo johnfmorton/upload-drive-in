@@ -164,6 +164,11 @@
                             </div>
                         </form>
                     </div>
+                    <!-- Amazon S3 Configuration -->
+                    <div x-show="selectedProvider === 'amazon-s3'" x-cloak class="py-6 first:pt-0 last:pb-0">
+                        @include('admin.cloud-storage.amazon-s3.configuration')
+                    </div>
+
                     <!-- Microsoft Teams Configuration -->
                     <div x-show="selectedProvider === 'microsoft-teams'" x-cloak class="py-6 first:pt-0 last:pb-0">
                         <div class="flex items-center justify-between">

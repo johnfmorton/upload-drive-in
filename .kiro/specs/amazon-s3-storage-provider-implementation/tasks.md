@@ -168,7 +168,7 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
   - Include Alpine.js for dynamic form behavior
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 14.1_
 
-- [ ] 18. Update main cloud storage index view
+- [x] 18. Update main cloud storage index view
   - Update `resources/views/admin/cloud-storage/index.blade.php`
   - Add x-show condition for amazon-s3 provider
   - Include the S3 configuration component
@@ -176,7 +176,7 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
   - Update Alpine.js data to handle S3 provider selection
   - _Requirements: 1.1, 1.2, 9.1, 9.2_
 
-- [ ] 19. Add S3 configuration form validation
+- [x] 19. Add S3 configuration form validation
   - Add client-side validation for AWS Access Key ID format (20 chars, uppercase alphanumeric)
   - Add client-side validation for AWS Secret Access Key (40 chars)
   - Add client-side validation for bucket name format
