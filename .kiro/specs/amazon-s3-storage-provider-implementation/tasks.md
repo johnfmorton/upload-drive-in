@@ -188,14 +188,14 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
 
 ## Phase 7: Controller Implementation
 
-- [ ] 20. Add S3 configuration routes
+- [x] 20. Add S3 configuration routes
   - Add PUT route for `admin.cloud-storage.amazon-s3.update`
   - Add POST route for `admin.cloud-storage.amazon-s3.test-connection`
   - Add DELETE route for `admin.cloud-storage.amazon-s3.disconnect`
   - Update routes/web.php with proper middleware and naming
   - _Requirements: 1.3, 1.5, 9.5_
 
-- [ ] 21. Implement CloudStorageController S3 methods
+- [x] 21. Implement CloudStorageController S3 methods
   - Create `updateAmazonS3()` method in CloudStorageController
   - Implement request validation with custom rules for AWS credentials
   - Call CloudStorageSettingsService to store configuration
@@ -203,14 +203,14 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
   - Return appropriate success/error messages
   - _Requirements: 1.3, 1.4, 1.5, 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 22. Implement S3 connection testing endpoint
+- [x] 22. Implement S3 connection testing endpoint
   - Create `testAmazonS3Connection()` method in CloudStorageController
   - Initialize S3Provider with provided credentials
   - Perform health check without saving configuration
   - Return JSON response with connection status and details
   - _Requirements: 1.5, 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 23. Implement S3 disconnect functionality
+- [x] 23. Implement S3 disconnect functionality
   - Create `disconnectAmazonS3()` method in CloudStorageController
   - Call S3Provider disconnect method
   - Remove S3 credentials from cloud_storage_settings table

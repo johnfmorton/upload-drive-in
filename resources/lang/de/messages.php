@@ -435,6 +435,7 @@ return [
 
     // Common error messages
     'error_generic' => 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.',
+    'unknown_error' => 'Unbekannter Fehler',
 
     // Token Refresh Result Messages
     'token_refresh_success' => 'Token erfolgreich erneuert',
@@ -835,11 +836,19 @@ return [
 
     // S3 Configuration Management Messages
     's3_configuration_saved' => 'S3-Konfiguration erfolgreich gespeichert',
+    's3_configuration_saved_and_verified' => 'S3-Konfiguration gespeichert und Verbindung erfolgreich verifiziert',
+    's3_configuration_saved_but_connection_failed' => 'S3-Konfiguration gespeichert, aber Verbindung fehlgeschlagen: :error',
+    's3_configuration_saved_but_health_check_failed' => 'S3-Konfiguration gespeichert, aber Gesundheitsprüfung fehlgeschlagen. Bitte überprüfen Sie Ihre Anmeldedaten und Bucket-Zugriff.',
+    's3_configuration_save_failed' => 'Fehler beim Speichern der S3-Konfiguration',
     's3_configuration_deleted' => 'S3-Konfiguration erfolgreich gelöscht',
     's3_configuration_delete_failed' => 'Fehler beim Löschen der S3-Konfiguration: :error',
     's3_configuration_validation_error' => 'Validierungsfehler: :error',
     's3_configuration_value_updated' => 'S3-Konfigurationswert \':key\' erfolgreich aktualisiert',
-    's3_configuration_update_failed' => 'Fehler beim Aktualisieren der S3-Konfiguration: :error',
+    's3_configuration_update_failed' => 'Fehler beim Aktualisieren der S3-Konfiguration',
+    
+    // Amazon S3 Disconnect Messages
+    's3_disconnected_successfully' => 'Amazon S3 erfolgreich getrennt.',
+    's3_disconnect_failed' => 'Fehler beim Trennen von Amazon S3. Bitte versuchen Sie es erneut.',
 
     // Amazon S3 Configuration UI
     'save_configuration' => 'Konfiguration speichern',
@@ -862,16 +871,21 @@ return [
     's3_access_key_required' => 'Access Key ID ist erforderlich',
     's3_access_key_length' => 'Access Key ID muss genau 20 Zeichen lang sein',
     's3_access_key_format_invalid' => 'Access Key ID darf nur Großbuchstaben und Zahlen enthalten',
+    's3_access_key_id_format_invalid' => 'Access Key ID muss genau 20 alphanumerische Großbuchstaben sein',
     's3_secret_key_required' => 'Secret Access Key ist erforderlich',
     's3_secret_key_length' => 'Secret Access Key muss genau 40 Zeichen lang sein',
+    's3_secret_access_key_length_invalid' => 'Secret Access Key muss genau 40 Zeichen lang sein',
     's3_region_required' => 'Region ist erforderlich',
     's3_region_format_invalid' => 'Ungültiges Regionsformat',
     's3_bucket_required' => 'Bucket-Name ist erforderlich',
     's3_bucket_length' => 'Bucket-Name muss zwischen 3 und 63 Zeichen lang sein',
     's3_bucket_format_invalid' => 'Bucket-Name muss mit einem Buchstaben oder einer Zahl beginnen und enden und darf nur Kleinbuchstaben, Zahlen, Bindestriche und Punkte enthalten',
+    's3_bucket_name_format_invalid' => 'Bucket-Name muss den S3-Namenskonventionen folgen (3-63 Zeichen, Kleinbuchstaben, Zahlen, Bindestriche und Punkte)',
+    's3_endpoint_url_invalid' => 'Benutzerdefinierter Endpunkt muss eine gültige URL sein',
     's3_bucket_consecutive_periods' => 'Bucket-Name darf keine aufeinanderfolgenden Punkte enthalten',
     's3_bucket_ip_format' => 'Bucket-Name darf nicht als IP-Adresse formatiert sein',
     's3_endpoint_format_invalid' => 'Endpunkt muss eine gültige URL sein, die mit http:// oder https:// beginnt',
+    's3_connection_test_successful' => 'S3-Verbindungstest erfolgreich! Ihre Anmeldedaten sind gültig und der Bucket ist zugänglich.',
     's3_connection_test_failed' => 'Verbindungstest fehlgeschlagen. Bitte versuchen Sie es erneut.',
     's3_us_east_virginia' => 'USA Ost (N. Virginia)',
     's3_us_east_ohio' => 'USA Ost (Ohio)',

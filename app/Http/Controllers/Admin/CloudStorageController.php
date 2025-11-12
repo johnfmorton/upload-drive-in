@@ -1351,4 +1351,300 @@ class CloudStorageController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Update Amazon S3 configuration settings.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function updateAmazonS3(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Validate S3 configuration with custom rules for AWS credentials
+        $validated = $request->validate([
+            'aws_access_key_id' => ['required', 'string', 'regex:/^[A-Z0-9]{20}$/'],
+            'aws_secret_access_key' => ['required', 'string', 'size:40'],
+            'aws_region' => ['required', 'string', 'regex:/^[a-z0-9-]+$/'],
+            'aws_bucket' => ['required', 'string', 'regex:/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/'],
+            'aws_endpoint' => ['nullable', 'url'],
+            'aws_storage_class' => ['nullable', 'string', 'in:STANDARD,INTELLIGENT_TIERING,STANDARD_IA,ONEZONE_IA,GLACIER,DEEP_ARCHIVE'],
+        ], [
+            'aws_access_key_id.regex' => __('messages.s3_access_key_id_format_invalid'),
+            'aws_secret_access_key.size' => __('messages.s3_secret_access_key_length_invalid'),
+            'aws_region.regex' => __('messages.s3_region_format_invalid'),
+            'aws_bucket.regex' => __('messages.s3_bucket_name_format_invalid'),
+            'aws_endpoint.url' => __('messages.s3_endpoint_url_invalid'),
+        ]);
+
+        try {
+            // Prepare configuration array for CloudStorageSettingsService
+            $config = [
+                'access_key_id' => $validated['aws_access_key_id'],
+                'secret_access_key' => $validated['aws_secret_access_key'],
+                'region' => $validated['aws_region'],
+                'bucket' => $validated['aws_bucket'],
+            ];
+
+            // Add optional endpoint for S3-compatible services
+            if (!empty($validated['aws_endpoint'])) {
+                $config['endpoint'] = $validated['aws_endpoint'];
+            }
+
+            // Add optional storage class
+            if (!empty($validated['aws_storage_class'])) {
+                $config['storage_class'] = $validated['aws_storage_class'];
+            }
+
+            // Store configuration using CloudStorageSettingsService
+            $settingsService = app(\App\Services\CloudStorageSettingsService::class);
+            $storeResult = $settingsService->storeS3Configuration($config, null); // null = system-level
+
+            if (!$storeResult['success']) {
+                Log::warning('Failed to store S3 configuration', [
+                    'user_id' => $user->id,
+                    'result' => $storeResult,
+                ]);
+                
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', $storeResult['message'] ?? __('messages.s3_configuration_save_failed'));
+            }
+
+            // Perform health check after configuration save
+            Log::info('S3 configuration saved, performing health check', [
+                'user_id' => $user->id,
+            ]);
+
+            try {
+                $factory = app(\App\Services\CloudStorageFactory::class);
+                $provider = $factory->create('amazon-s3');
+                $healthStatus = $provider->getConnectionHealth($user);
+
+                if ($healthStatus->isHealthy()) {
+                    Log::info('S3 configuration saved and connection verified successfully', [
+                        'user_id' => $user->id,
+                        'bucket' => $validated['aws_bucket'],
+                        'region' => $validated['aws_region'],
+                        'has_custom_endpoint' => !empty($validated['aws_endpoint']),
+                    ]);
+
+                    return redirect()->back()->with('success', __('messages.s3_configuration_saved_and_verified'));
+                } else {
+                    Log::warning('S3 configuration saved but connection failed', [
+                        'user_id' => $user->id,
+                        'error_message' => $healthStatus->last_error_message ?? 'Unknown error',
+                        'error_type' => $healthStatus->error_type ?? 'unknown',
+                    ]);
+
+                    return redirect()->back()->with('warning', __('messages.s3_configuration_saved_but_connection_failed', [
+                        'error' => $healthStatus->last_error_message ?? __('messages.unknown_error')
+                    ]));
+                }
+            } catch (\Exception $healthCheckException) {
+                Log::error('S3 health check failed after configuration save', [
+                    'user_id' => $user->id,
+                    'error' => $healthCheckException->getMessage(),
+                ]);
+
+                return redirect()->back()->with('warning', __('messages.s3_configuration_saved_but_health_check_failed'));
+            }
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions to show field-specific errors
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Failed to update S3 configuration', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', __('messages.s3_configuration_update_failed'));
+        }
+    }
+
+    /**
+     * Test Amazon S3 connection without saving configuration.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function testAmazonS3Connection(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Validate S3 configuration with custom rules for AWS credentials
+        $validated = $request->validate([
+            'aws_access_key_id' => ['required', 'string', 'regex:/^[A-Z0-9]{20}$/'],
+            'aws_secret_access_key' => ['required', 'string', 'size:40'],
+            'aws_region' => ['required', 'string', 'regex:/^[a-z0-9-]+$/'],
+            'aws_bucket' => ['required', 'string', 'regex:/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/'],
+            'aws_endpoint' => ['nullable', 'url'],
+        ], [
+            'aws_access_key_id.regex' => __('messages.s3_access_key_id_format_invalid'),
+            'aws_secret_access_key.size' => __('messages.s3_secret_access_key_length_invalid'),
+            'aws_region.regex' => __('messages.s3_region_format_invalid'),
+            'aws_bucket.regex' => __('messages.s3_bucket_name_format_invalid'),
+            'aws_endpoint.url' => __('messages.s3_endpoint_url_invalid'),
+        ]);
+
+        try {
+            // Prepare configuration array for testing
+            $testConfig = [
+                'access_key_id' => $validated['aws_access_key_id'],
+                'secret_access_key' => $validated['aws_secret_access_key'],
+                'region' => $validated['aws_region'],
+                'bucket' => $validated['aws_bucket'],
+            ];
+
+            // Add optional endpoint for S3-compatible services
+            if (!empty($validated['aws_endpoint'])) {
+                $testConfig['endpoint'] = $validated['aws_endpoint'];
+            }
+
+            Log::info('Testing S3 connection without saving configuration', [
+                'user_id' => $user->id,
+                'bucket' => $validated['aws_bucket'],
+                'region' => $validated['aws_region'],
+                'has_custom_endpoint' => !empty($validated['aws_endpoint']),
+            ]);
+
+            // Initialize S3Provider with provided credentials (without saving)
+            $factory = app(\App\Services\CloudStorageFactory::class);
+            $provider = $factory->create('amazon-s3', $testConfig);
+
+            // Perform health check
+            $healthStatus = $provider->getConnectionHealth($user);
+
+            if ($healthStatus->isHealthy()) {
+                Log::info('S3 connection test successful', [
+                    'user_id' => $user->id,
+                    'bucket' => $validated['aws_bucket'],
+                    'region' => $validated['aws_region'],
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => __('messages.s3_connection_test_successful'),
+                    'status' => 'healthy',
+                    'details' => [
+                        'bucket' => $validated['aws_bucket'],
+                        'region' => $validated['aws_region'],
+                        'has_custom_endpoint' => !empty($validated['aws_endpoint']),
+                        'tested_at' => now()->toISOString(),
+                    ],
+                ]);
+            } else {
+                Log::warning('S3 connection test failed', [
+                    'user_id' => $user->id,
+                    'bucket' => $validated['aws_bucket'],
+                    'region' => $validated['aws_region'],
+                    'error_message' => $healthStatus->last_error_message ?? 'Unknown error',
+                    'error_type' => $healthStatus->error_type ?? 'unknown',
+                ]);
+
+                $errorMessageService = app(\App\Services\CloudStorageErrorMessageService::class);
+                $errorType = $healthStatus->error_type ?? \App\Enums\CloudStorageErrorType::UNKNOWN_ERROR;
+                
+                $errorResponse = $errorMessageService->generateErrorResponse($errorType, [
+                    'provider' => 'amazon-s3',
+                    'operation' => 'connection_test',
+                    'user' => $user,
+                    'original_message' => $healthStatus->last_error_message ?? 'Connection test failed',
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorResponse['message'],
+                    'status' => 'unhealthy',
+                    'error_type' => $errorType->value ?? 'unknown',
+                    'error_message' => $healthStatus->last_error_message ?? 'Connection test failed',
+                    'instructions' => $errorResponse['instructions'] ?? null,
+                    'is_retryable' => $errorResponse['is_retryable'] ?? true,
+                    'details' => [
+                        'bucket' => $validated['aws_bucket'],
+                        'region' => $validated['aws_region'],
+                        'has_custom_endpoint' => !empty($validated['aws_endpoint']),
+                        'tested_at' => now()->toISOString(),
+                    ],
+                ], 400);
+            }
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions to show field-specific errors
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('S3 connection test failed with exception', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            $errorMessageService = app(\App\Services\CloudStorageErrorMessageService::class);
+            $errorMessage = __('messages.s3_connection_test_failed');
+            
+            return response()->json([
+                'success' => false,
+                'message' => $errorMessage,
+                'error' => $e->getMessage(),
+                'technical_details' => $errorMessageService->shouldShowTechnicalDetails($user) ? $e->getMessage() : null,
+                'is_retryable' => true,
+            ], 500);
+        }
+    }
+
+    /**
+     * Disconnect Amazon S3 for the system.
+     *
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function disconnectAmazonS3()
+    {
+        try {
+            $user = Auth::user();
+            
+            Log::info('Starting S3 disconnection', [
+                'user_id' => $user->id,
+                'initiated_by' => 'admin_dashboard'
+            ]);
+
+            // Get S3 provider and call disconnect method
+            $factory = app(\App\Services\CloudStorageFactory::class);
+            $provider = $factory->create('amazon-s3');
+            $provider->disconnect($user);
+
+            // Also use CloudStorageSettingsService to ensure complete cleanup
+            $settingsService = app(\App\Services\CloudStorageSettingsService::class);
+            $deleteResult = $settingsService->deleteS3Configuration(null); // null = system-level
+
+            if (!$deleteResult['success']) {
+                Log::warning('S3 settings deletion reported failure but continuing', [
+                    'user_id' => $user->id,
+                    'result' => $deleteResult,
+                ]);
+            }
+
+            Log::info('S3 disconnection completed successfully', [
+                'user_id' => $user->id,
+                'provider' => 'amazon-s3'
+            ]);
+
+            return redirect()->route('admin.cloud-storage.index')
+                ->with('success', __('messages.s3_disconnected_successfully'));
+
+        } catch (\Exception $e) {
+            Log::error('Failed to disconnect Amazon S3', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->back()
+                ->with('error', __('messages.s3_disconnect_failed'));
+        }
+    }
 }

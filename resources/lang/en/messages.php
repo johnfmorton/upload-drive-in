@@ -381,6 +381,7 @@
     'error_session_expired' => 'Session expired. Please log in again.',
     'error_generic' => 'An error occurred. Please try again.',
     'error_validation' => 'The given data was invalid.',
+    'unknown_error' => 'Unknown error',
 
     // Success Messages
     'success_generic' => 'Operation completed successfully.',
@@ -552,6 +553,49 @@
     'google_drive_disconnected' => 'Google Drive disconnected successfully.',
     'google_drive_disconnect_failed' => 'Failed to disconnect Google Drive. Please try again.',
     'google_drive_connection_failed' => 'Failed to connect Google Drive. Please try again.',
+    
+    // Amazon S3 Configuration Messages
+    's3_configuration_title' => 'Amazon S3',
+    's3_configuration_description' => 'Configure AWS credentials for system-wide S3 storage',
+    's3_disconnect_confirmation' => 'Are you sure you want to disconnect Amazon S3? This will remove all stored credentials.',
+    's3_disconnected_successfully' => 'Amazon S3 disconnected successfully.',
+    's3_disconnect_failed' => 'Failed to disconnect Amazon S3. Please try again.',
+    
+    // S3 Form Labels
+    's3_access_key_id_label' => 'AWS Access Key ID',
+    's3_access_key_id_hint' => 'Must be exactly 20 uppercase alphanumeric characters',
+    's3_secret_access_key_label' => 'AWS Secret Access Key',
+    's3_secret_access_key_hint' => 'Must be exactly 40 characters. Leave blank to keep existing secret key.',
+    's3_region_label' => 'AWS Region',
+    's3_region_hint' => 'Select the AWS region where your S3 bucket is located',
+    's3_region_select_prompt' => 'Select a region',
+    's3_bucket_name_label' => 'S3 Bucket Name',
+    's3_bucket_name_hint' => 'Bucket name must be 3-63 characters, lowercase letters, numbers, hyphens, and periods only',
+    's3_endpoint_label' => 'Custom Endpoint (Optional)',
+    's3_endpoint_hint' => 'For S3-compatible services like Cloudflare R2, Backblaze B2, or MinIO. Leave blank for standard AWS S3.',
+    
+    // S3 Connection Testing
+    's3_test_connection' => 'Test Connection',
+    's3_testing_connection' => 'Testing...',
+    's3_connection_test_successful' => 'Connection successful!',
+    's3_connection_test_failed' => 'Connection test failed. Please check your credentials and try again.',
+    
+    // S3 Configuration Actions
+    's3_save_configuration' => 'Save Configuration',
+    's3_saving_configuration' => 'Saving...',
+    's3_configuration_saved_and_verified' => 'S3 configuration saved and connection verified successfully.',
+    's3_configuration_saved_but_connection_failed' => 'S3 configuration saved but connection failed: :error',
+    's3_configuration_saved_but_health_check_failed' => 'S3 configuration saved but health check failed. Please verify your settings.',
+    's3_configuration_save_failed' => 'Failed to save S3 configuration. Please try again.',
+    's3_configuration_update_failed' => 'Failed to update S3 configuration. Please try again.',
+    
+    // S3 Validation Messages
+    's3_access_key_id_format_invalid' => 'AWS Access Key ID must be exactly 20 uppercase alphanumeric characters.',
+    's3_secret_access_key_length_invalid' => 'AWS Secret Access Key must be exactly 40 characters.',
+    's3_region_format_invalid' => 'Invalid AWS region format.',
+    's3_bucket_name_format_invalid' => 'Bucket name must start and end with a letter or number, and contain only lowercase letters, numbers, hyphens, and periods.',
+    's3_endpoint_url_invalid' => 'Endpoint must be a valid URL starting with http:// or https://.',
+    
     'your_upload_page' => 'Your Upload Page',
     'copy_url' => 'Copy URL',
     'copied' => 'Copied!',
@@ -1460,11 +1504,15 @@
 
     // S3 Configuration Management Messages
     's3_configuration_saved' => 'S3 configuration saved successfully',
+    's3_configuration_saved_and_verified' => 'S3 configuration saved and connection verified successfully',
+    's3_configuration_saved_but_connection_failed' => 'S3 configuration saved but connection failed: :error',
+    's3_configuration_saved_but_health_check_failed' => 'S3 configuration saved but health check failed. Please verify your credentials and bucket access.',
+    's3_configuration_save_failed' => 'Failed to save S3 configuration',
     's3_configuration_deleted' => 'S3 configuration deleted successfully',
     's3_configuration_delete_failed' => 'Failed to delete S3 configuration: :error',
     's3_configuration_validation_error' => 'Validation error: :error',
     's3_configuration_value_updated' => 'S3 configuration value \':key\' updated successfully',
-    's3_configuration_update_failed' => 'Failed to update S3 configuration: :error',
+    's3_configuration_update_failed' => 'Failed to update S3 configuration',
 
     // Amazon S3 Configuration UI
     'save_configuration' => 'Save Configuration',
@@ -1487,16 +1535,21 @@
     's3_access_key_required' => 'Access Key ID is required',
     's3_access_key_length' => 'Access Key ID must be exactly 20 characters',
     's3_access_key_format_invalid' => 'Access Key ID must contain only uppercase letters and numbers',
+    's3_access_key_id_format_invalid' => 'Access Key ID must be exactly 20 uppercase alphanumeric characters',
     's3_secret_key_required' => 'Secret Access Key is required',
     's3_secret_key_length' => 'Secret Access Key must be exactly 40 characters',
+    's3_secret_access_key_length_invalid' => 'Secret Access Key must be exactly 40 characters',
     's3_region_required' => 'Region is required',
     's3_region_format_invalid' => 'Invalid region format',
     's3_bucket_required' => 'Bucket name is required',
     's3_bucket_length' => 'Bucket name must be between 3 and 63 characters',
     's3_bucket_format_invalid' => 'Bucket name must start and end with a letter or number, and contain only lowercase letters, numbers, hyphens, and periods',
+    's3_bucket_name_format_invalid' => 'Bucket name must follow S3 naming conventions (3-63 characters, lowercase letters, numbers, hyphens, and periods)',
+    's3_endpoint_url_invalid' => 'Custom endpoint must be a valid URL',
     's3_bucket_consecutive_periods' => 'Bucket name cannot contain consecutive periods',
     's3_bucket_ip_format' => 'Bucket name cannot be formatted as an IP address',
     's3_endpoint_format_invalid' => 'Endpoint must be a valid URL starting with http:// or https://',
+    's3_connection_test_successful' => 'S3 connection test successful! Your credentials are valid and the bucket is accessible.',
     's3_connection_test_failed' => 'Failed to test connection. Please try again.',
     's3_us_east_virginia' => 'US East (N. Virginia)',
     's3_us_east_ohio' => 'US East (Ohio)',

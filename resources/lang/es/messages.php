@@ -329,6 +329,7 @@ return [
 
     // Common error messages
     'error_generic' => 'Ocurrió un error. Por favor, inténtalo de nuevo.',
+    'unknown_error' => 'Error desconocido',
 
     // Token Refresh Result Messages
     'token_refresh_success' => 'Token renovado exitosamente',
@@ -868,11 +869,19 @@ return [
 
     // S3 Configuration Management Messages
     's3_configuration_saved' => 'Configuración de S3 guardada exitosamente',
+    's3_configuration_saved_and_verified' => 'Configuración de S3 guardada y conexión verificada exitosamente',
+    's3_configuration_saved_but_connection_failed' => 'Configuración de S3 guardada pero la conexión falló: :error',
+    's3_configuration_saved_but_health_check_failed' => 'Configuración de S3 guardada pero la verificación de salud falló. Por favor verifique sus credenciales y acceso al bucket.',
+    's3_configuration_save_failed' => 'Error al guardar la configuración de S3',
     's3_configuration_deleted' => 'Configuración de S3 eliminada exitosamente',
     's3_configuration_delete_failed' => 'Error al eliminar la configuración de S3: :error',
     's3_configuration_validation_error' => 'Error de validación: :error',
     's3_configuration_value_updated' => 'Valor de configuración de S3 \':key\' actualizado exitosamente',
-    's3_configuration_update_failed' => 'Error al actualizar la configuración de S3: :error',
+    's3_configuration_update_failed' => 'Error al actualizar la configuración de S3',
+    
+    // Amazon S3 Disconnect Messages
+    's3_disconnected_successfully' => 'Amazon S3 desconectado exitosamente.',
+    's3_disconnect_failed' => 'Error al desconectar Amazon S3. Por favor intente nuevamente.',
 
     // Amazon S3 Configuration UI
     'save_configuration' => 'Guardar Configuración',
@@ -895,16 +904,21 @@ return [
     's3_access_key_required' => 'Se requiere el ID de Clave de Acceso',
     's3_access_key_length' => 'El ID de Clave de Acceso debe tener exactamente 20 caracteres',
     's3_access_key_format_invalid' => 'El ID de Clave de Acceso debe contener solo letras mayúsculas y números',
+    's3_access_key_id_format_invalid' => 'El ID de Clave de Acceso debe ser exactamente 20 caracteres alfanuméricos en mayúsculas',
     's3_secret_key_required' => 'Se requiere la Clave de Acceso Secreta',
     's3_secret_key_length' => 'La Clave de Acceso Secreta debe tener exactamente 40 caracteres',
+    's3_secret_access_key_length_invalid' => 'La Clave de Acceso Secreta debe tener exactamente 40 caracteres',
     's3_region_required' => 'Se requiere la región',
     's3_region_format_invalid' => 'Formato de región inválido',
     's3_bucket_required' => 'Se requiere el nombre del bucket',
     's3_bucket_length' => 'El nombre del bucket debe tener entre 3 y 63 caracteres',
     's3_bucket_format_invalid' => 'El nombre del bucket debe comenzar y terminar con una letra o número, y contener solo letras minúsculas, números, guiones y puntos',
+    's3_bucket_name_format_invalid' => 'El nombre del bucket debe seguir las convenciones de nomenclatura de S3 (3-63 caracteres, letras minúsculas, números, guiones y puntos)',
+    's3_endpoint_url_invalid' => 'El endpoint personalizado debe ser una URL válida',
     's3_bucket_consecutive_periods' => 'El nombre del bucket no puede contener puntos consecutivos',
     's3_bucket_ip_format' => 'El nombre del bucket no puede tener formato de dirección IP',
     's3_endpoint_format_invalid' => 'El endpoint debe ser una URL válida que comience con http:// o https://',
+    's3_connection_test_successful' => '¡Prueba de conexión S3 exitosa! Tus credenciales son válidas y el bucket es accesible.',
     's3_connection_test_failed' => 'Error al probar la conexión. Por favor, inténtalo de nuevo.',
     's3_us_east_virginia' => 'EE.UU. Este (N. Virginia)',
     's3_us_east_ohio' => 'EE.UU. Este (Ohio)',
