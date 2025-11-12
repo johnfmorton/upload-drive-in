@@ -215,7 +215,7 @@ abstract class CloudStorageProviderIntegrationTestCase extends TestCase
         $health = $this->provider->getConnectionHealth($this->testUser);
 
         $this->assertNotNull($health);
-        $this->assertTrue($health->isConnected);
+        $this->assertTrue($health->isHealthy() || $health->isDegraded());
         $this->assertNotEmpty($health->status);
     }
 

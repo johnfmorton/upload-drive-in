@@ -279,7 +279,7 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
   - Test unknown errors → UNKNOWN_ERROR
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 30. Create S3 integration tests
+- [x] 30. Create S3 integration tests
   - Create `tests/Integration/S3ProviderIntegrationTest.php`
   - Write test for full upload workflow with real S3 (or LocalStack)
   - Write test for file deletion
@@ -289,7 +289,7 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
   - Use environment variables for test credentials
   - _Requirements: All requirements_
 
-- [ ] 31. Create S3 configuration feature tests
+- [x] 31. Create S3 configuration feature tests
   - Create `tests/Feature/Admin/CloudStorageS3ConfigurationTest.php`
   - Write test for admin accessing S3 configuration page
   - Write test for saving valid S3 configuration
@@ -299,11 +299,27 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
   - Write test for switching default provider to S3
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 6.1, 6.2, 6.3, 6.4, 6.5_
 
+- [x] 32. Fix CloudStorageSettingsService S3 configuration storage bug
+  - Fix the `storeS3Configuration()` method in CloudStorageSettingsService
+  - Ensure `setting_key` is properly used as the key name, not stored as a literal string
+  - Fix the database insertion to correctly store access_key_id, secret_access_key, region, bucket, endpoint, and storage_class
+  - Verify encryption is working correctly for sensitive fields (access_key_id and secret_access_key)
+  - Update `getS3Configuration()` method to correctly retrieve settings by key
+  - Update `deleteS3Configuration()` method to correctly delete settings by key
+  - Run failing tests to verify fixes:
+    - test_admin_can_save_valid_s3_configuration
+    - test_credential_encryption_in_database
+    - test_s3_configuration_with_custom_endpoint
+    - test_s3_disconnect_functionality
+    - test_s3_configuration_handles_connection_failures
+    - test_s3_configuration_with_storage_class
+  - _Requirements: 1.3, 1.4, 6.1, 6.2, 6.3, 6.4_
+
 ---
 
 ## Phase 11: Documentation and Deployment
 
-- [ ] 32. Create S3 setup documentation
+- [ ] 33. Create S3 setup documentation
   - Create `docs/cloud-storage/amazon-s3-setup-guide.md`
   - Document AWS account setup requirements
   - Provide IAM policy template for S3 bucket access
@@ -312,7 +328,7 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
   - Add examples for S3-compatible services (Cloudflare R2, Backblaze B2)
   - _Requirements: All requirements_
 
-- [ ] 33. Update main cloud storage documentation
+- [ ] 34. Update main cloud storage documentation
   - Update `docs/cloud-storage-provider-system.md`
   - Add S3 provider to provider comparison table
   - Document S3 vs Google Drive differences
@@ -320,7 +336,7 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
   - Update architecture diagrams to include S3
   - _Requirements: All requirements_
 
-- [ ] 34. Create deployment checklist
+- [ ] 35. Create deployment checklist
   - Create deployment checklist for S3 feature
   - Include database migration steps (if any)
   - Include configuration verification steps
@@ -332,7 +348,7 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
 
 ## Phase 12: Final Integration and Validation
 
-- [ ] 35. Perform end-to-end testing
+- [ ] 36. Perform end-to-end testing
   - Test complete file upload flow with S3 as default provider
   - Test file deletion through admin interface
   - Test provider switching (Google Drive ↔ S3)
@@ -341,14 +357,14 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
   - Verify logging and audit trails
   - _Requirements: All requirements_
 
-- [ ] 36. Update provider availability status
+- [ ] 37. Update provider availability status
   - Change S3 provider status from 'coming_soon' to 'fully_available' in config
   - Update UI to show S3 as fully available option
   - Remove any "coming soon" badges or warnings
   - Update provider selection dropdown
   - _Requirements: 1.1_
 
-- [ ] 37. Code review and cleanup
+- [ ] 38. Code review and cleanup
   - Review all S3-related code for consistency
   - Ensure proper error handling throughout
   - Verify logging is comprehensive
