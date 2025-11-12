@@ -159,7 +159,7 @@ return [
     */
     'provider_availability' => [
         'google-drive' => 'fully_available',
-        'amazon-s3' => 'coming_soon',
+        'amazon-s3' => 'fully_available',
         'microsoft-teams' => 'coming_soon',
     ],
 

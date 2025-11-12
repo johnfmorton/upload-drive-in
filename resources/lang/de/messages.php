@@ -832,4 +832,12 @@ return [
     's3_multipart_abort_failed' => 'Fehler beim Abbrechen des Multipart-Uploads',
     's3_upload_optimization_applied' => 'S3 Upload-Optimierungen angewendet',
     's3_failed_to_open_file' => 'Fehler beim Öffnen der Datei: :path',
+
+    // S3 Configuration Management Messages
+    's3_configuration_saved' => 'S3-Konfiguration erfolgreich gespeichert',
+    's3_configuration_deleted' => 'S3-Konfiguration erfolgreich gelöscht',
+    's3_configuration_delete_failed' => 'Fehler beim Löschen der S3-Konfiguration: :error',
+    's3_configuration_validation_error' => 'Validierungsfehler: :error',
+    's3_configuration_value_updated' => 'S3-Konfigurationswert \':key\' erfolgreich aktualisiert',
+    's3_configuration_update_failed' => 'Fehler beim Aktualisieren der S3-Konfiguration: :error',
 ];

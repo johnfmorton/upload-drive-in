@@ -6,6 +6,7 @@ use App\Services\CloudStorageFactory;
 use App\Services\CloudStorageManager;
 use App\Services\CloudConfigurationService;
 use App\Services\GoogleDriveProvider;
+use App\Services\S3Provider;
 use App\Contracts\CloudStorageProviderInterface;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Log;
@@ -183,12 +184,16 @@ class CloudStorageServiceProvider extends ServiceProvider
             // Register Google Drive provider
             $factory->register('google-drive', GoogleDriveProvider::class);
 
+            // Register Amazon S3 provider
+            $factory->register('amazon-s3', S3Provider::class);
+
             // Register other providers when they become available
-            // $factory->register('amazon-s3', S3Provider::class);
             // $factory->register('azure-blob', AzureBlobProvider::class);
             // $factory->register('dropbox', DropboxProvider::class);
 
-            Log::debug('CloudStorageServiceProvider: Built-in providers registered successfully');
+            Log::debug('CloudStorageServiceProvider: Built-in providers registered successfully', [
+                'providers' => ['google-drive', 'amazon-s3']
+            ]);
 
         } catch (\Exception $e) {
             Log::error('CloudStorageServiceProvider: Failed to register built-in providers', [

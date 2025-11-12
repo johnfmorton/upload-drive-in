@@ -865,4 +865,12 @@ return [
     's3_multipart_abort_failed' => 'Error al abortar la subida multiparte',
     's3_upload_optimization_applied' => 'Optimizaciones de subida S3 aplicadas',
     's3_failed_to_open_file' => 'Error al abrir el archivo: :path',
+
+    // S3 Configuration Management Messages
+    's3_configuration_saved' => 'Configuración de S3 guardada exitosamente',
+    's3_configuration_deleted' => 'Configuración de S3 eliminada exitosamente',
+    's3_configuration_delete_failed' => 'Error al eliminar la configuración de S3: :error',
+    's3_configuration_validation_error' => 'Error de validación: :error',
+    's3_configuration_value_updated' => 'Valor de configuración de S3 \':key\' actualizado exitosamente',
+    's3_configuration_update_failed' => 'Error al actualizar la configuración de S3: :error',
 ];

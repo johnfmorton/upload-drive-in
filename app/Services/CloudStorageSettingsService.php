@@ -98,7 +98,7 @@ class CloudStorageSettingsService
 
             return [
                 'success' => true,
-                'message' => 'S3 configuration saved successfully',
+                'message' => __('messages.s3_configuration_saved'),
             ];
 
         } catch (\Exception $e) {
@@ -188,7 +188,7 @@ class CloudStorageSettingsService
 
             return [
                 'success' => true,
-                'message' => 'S3 configuration deleted successfully',
+                'message' => __('messages.s3_configuration_deleted'),
                 'settings_deleted' => $deleted,
             ];
 
@@ -200,7 +200,7 @@ class CloudStorageSettingsService
 
             return [
                 'success' => false,
-                'message' => 'Failed to delete S3 configuration: ' . $e->getMessage(),
+                'message' => __('messages.s3_configuration_delete_failed', ['error' => $e->getMessage()]),
             ];
         }
     }
@@ -240,7 +240,7 @@ class CloudStorageSettingsService
                 'error' => $e->getMessage(),
             ]);
 
-            return ['Validation error: ' . $e->getMessage()];
+            return [__('messages.s3_configuration_validation_error', ['error' => $e->getMessage()])];
         }
     }
 
@@ -304,7 +304,7 @@ class CloudStorageSettingsService
 
             return [
                 'success' => true,
-                'message' => "S3 configuration value '{$key}' updated successfully",
+                'message' => __('messages.s3_configuration_value_updated', ['key' => $key]),
             ];
 
         } catch (\Exception $e) {
@@ -316,7 +316,7 @@ class CloudStorageSettingsService
 
             return [
                 'success' => false,
-                'message' => 'Failed to update S3 configuration: ' . $e->getMessage(),
+                'message' => __('messages.s3_configuration_update_failed', ['error' => $e->getMessage()]),
             ];
         }
     }

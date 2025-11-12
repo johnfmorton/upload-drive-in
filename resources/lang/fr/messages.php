@@ -977,4 +977,12 @@ return [
     's3_multipart_abort_failed' => 'Échec de l\'interruption du téléchargement multipartie',
     's3_upload_optimization_applied' => 'Optimisations de téléchargement S3 appliquées',
     's3_failed_to_open_file' => 'Échec de l\'ouverture du fichier : :path',
+
+    // S3 Configuration Management Messages
+    's3_configuration_saved' => 'Configuration S3 enregistrée avec succès',
+    's3_configuration_deleted' => 'Configuration S3 supprimée avec succès',
+    's3_configuration_delete_failed' => 'Échec de la suppression de la configuration S3 : :error',
+    's3_configuration_validation_error' => 'Erreur de validation : :error',
+    's3_configuration_value_updated' => 'Valeur de configuration S3 \':key\' mise à jour avec succès',
+    's3_configuration_update_failed' => 'Échec de la mise à jour de la configuration S3 : :error',
 ];

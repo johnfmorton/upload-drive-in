@@ -1457,4 +1457,12 @@
     's3_multipart_abort_failed' => 'Failed to abort multipart upload',
     's3_upload_optimization_applied' => 'S3 upload optimizations applied',
     's3_failed_to_open_file' => 'Failed to open file: :path',
+
+    // S3 Configuration Management Messages
+    's3_configuration_saved' => 'S3 configuration saved successfully',
+    's3_configuration_deleted' => 'S3 configuration deleted successfully',
+    's3_configuration_delete_failed' => 'Failed to delete S3 configuration: :error',
+    's3_configuration_validation_error' => 'Validation error: :error',
+    's3_configuration_value_updated' => 'S3 configuration value \':key\' updated successfully',
+    's3_configuration_update_failed' => 'Failed to update S3 configuration: :error',
 ];
