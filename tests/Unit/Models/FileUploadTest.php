@@ -277,4 +277,168 @@ class FileUploadTest extends TestCase
         $this->assertNotNull($array['thumbnail_url']);
         $this->assertEquals('1.00 KB', $array['file_size_human']);
     }
+
+    /** @test */
+    public function storage_provider_field_can_store_amazon_s3()
+    {
+        $file = FileUpload::factory()->create([
+            'storage_provider' => 'amazon-s3',
+        ]);
+
+        $this->assertEquals('amazon-s3', $file->storage_provider);
+        $this->assertDatabaseHas('file_uploads', [
+            'id' => $file->id,
+            'storage_provider' => 'amazon-s3',
+        ]);
+    }
+
+    /** @test */
+    public function provider_file_id_accessor_returns_value_from_either_field()
+    {
+        // Test with provider_file_id set
+        $file1 = FileUpload::factory()->create([
+            'provider_file_id' => 's3-key-123',
+            'google_drive_file_id' => null,
+        ]);
+        $this->assertEquals('s3-key-123', $file1->provider_file_id);
+
+        // Test with google_drive_file_id set (legacy)
+        $file2 = FileUpload::factory()->create([
+            'provider_file_id' => null,
+            'google_drive_file_id' => 'drive-id-456',
+        ]);
+        $this->assertEquals('drive-id-456', $file2->provider_file_id);
+    }
+
+    /** @test */
+    public function google_drive_file_id_accessor_maintains_backward_compatibility()
+    {
+        // Test with google_drive_file_id set (legacy)
+        $file1 = FileUpload::factory()->create([
+            'google_drive_file_id' => 'drive-id-123',
+            'provider_file_id' => null,
+        ]);
+        $this->assertEquals('drive-id-123', $file1->google_drive_file_id);
+
+        // Test with provider_file_id set (new)
+        $file2 = FileUpload::factory()->create([
+            'provider_file_id' => 's3-key-456',
+            'google_drive_file_id' => null,
+        ]);
+        $this->assertEquals('s3-key-456', $file2->google_drive_file_id);
+    }
+
+    /** @test */
+    public function setting_google_drive_file_id_syncs_to_provider_file_id()
+    {
+        $file = FileUpload::factory()->create([
+            'google_drive_file_id' => null,
+            'provider_file_id' => null,
+        ]);
+
+        $file->google_drive_file_id = 'new-file-id-123';
+        $file->save();
+
+        $this->assertEquals('new-file-id-123', $file->google_drive_file_id);
+        $this->assertEquals('new-file-id-123', $file->provider_file_id);
+        
+        $file->refresh();
+        $this->assertDatabaseHas('file_uploads', [
+            'id' => $file->id,
+            'google_drive_file_id' => 'new-file-id-123',
+            'provider_file_id' => 'new-file-id-123',
+        ]);
+    }
+
+    /** @test */
+    public function setting_provider_file_id_syncs_to_google_drive_file_id()
+    {
+        $file = FileUpload::factory()->create([
+            'google_drive_file_id' => null,
+            'provider_file_id' => null,
+        ]);
+
+        $file->provider_file_id = 's3-key-789';
+        $file->save();
+
+        $this->assertEquals('s3-key-789', $file->provider_file_id);
+        $this->assertEquals('s3-key-789', $file->google_drive_file_id);
+        
+        $file->refresh();
+        $this->assertDatabaseHas('file_uploads', [
+            'id' => $file->id,
+            'google_drive_file_id' => 's3-key-789',
+            'provider_file_id' => 's3-key-789',
+        ]);
+    }
+
+    /** @test */
+    public function for_provider_scope_filters_by_storage_provider()
+    {
+        FileUpload::factory()->create(['storage_provider' => 'google-drive']);
+        FileUpload::factory()->create(['storage_provider' => 'google-drive']);
+        FileUpload::factory()->create(['storage_provider' => 'amazon-s3']);
+
+        $googleDriveFiles = FileUpload::forProvider('google-drive')->get();
+        $s3Files = FileUpload::forProvider('amazon-s3')->get();
+
+        $this->assertCount(2, $googleDriveFiles);
+        $this->assertCount(1, $s3Files);
+    }
+
+    /** @test */
+    public function for_google_drive_scope_filters_correctly()
+    {
+        FileUpload::factory()->create(['storage_provider' => 'google-drive']);
+        FileUpload::factory()->create(['storage_provider' => 'amazon-s3']);
+
+        $files = FileUpload::forGoogleDrive()->get();
+
+        $this->assertCount(1, $files);
+        $this->assertEquals('google-drive', $files->first()->storage_provider);
+    }
+
+    /** @test */
+    public function for_amazon_s3_scope_filters_correctly()
+    {
+        FileUpload::factory()->create(['storage_provider' => 'google-drive']);
+        FileUpload::factory()->create(['storage_provider' => 'amazon-s3']);
+
+        $files = FileUpload::forAmazonS3()->get();
+
+        $this->assertCount(1, $files);
+        $this->assertEquals('amazon-s3', $files->first()->storage_provider);
+    }
+
+    /** @test */
+    public function is_pending_checks_provider_file_id()
+    {
+        $pendingFile = FileUpload::factory()->create([
+            'provider_file_id' => null,
+            'google_drive_file_id' => null,
+        ]);
+        
+        $completedFile = FileUpload::factory()->create([
+            'provider_file_id' => 's3-key-123',
+        ]);
+
+        $this->assertTrue($pendingFile->isPending());
+        $this->assertFalse($completedFile->isPending());
+    }
+
+    /** @test */
+    public function mark_as_recovered_sets_provider_file_id()
+    {
+        $file = FileUpload::factory()->create([
+            'provider_file_id' => null,
+            'last_error' => 'Some error',
+        ]);
+
+        $result = $file->markAsRecovered('recovered-file-id-123');
+
+        $this->assertTrue($result);
+        $this->assertEquals('recovered-file-id-123', $file->provider_file_id);
+        $this->assertNull($file->last_error);
+        $this->assertNotNull($file->last_processed_at);
+    }
 }

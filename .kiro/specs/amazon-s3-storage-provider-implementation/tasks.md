@@ -241,7 +241,7 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
 
 ## Phase 9: File Upload Integration
 
-- [ ] 26. Update UploadToGoogleDrive job for S3 support
+- [x] 26. Update UploadToGoogleDrive job for S3 support
   - Modify job to detect provider type from configuration
   - Use CloudStorageFactory to get appropriate provider instance
   - Pass system-level credentials for S3 operations
@@ -249,7 +249,7 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
   - Handle S3-specific errors appropriately
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 27. Update FileUpload model for S3 compatibility
+- [x] 27. Update FileUpload model for S3 compatibility
   - Ensure `storage_provider` field can store 'amazon-s3'
   - Ensure `google_drive_file_id` field can store S3 keys (or rename to generic `cloud_file_id`)
   - Add accessor/mutator if field renaming is needed

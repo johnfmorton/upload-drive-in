@@ -301,6 +301,8 @@ class UploadToGoogleDrive implements ShouldQueue
 
     /**
      * Check if a user has a valid connection to any available provider.
+     * For OAuth providers (Google Drive), checks for valid tokens.
+     * For API key providers (S3), checks for system-level configuration.
      *
      * @param \App\Models\User $user
      * @param CloudStorageManager $storageManager
@@ -310,7 +312,16 @@ class UploadToGoogleDrive implements ShouldQueue
     {
         try {
             $provider = $storageManager->getUserProvider($user);
-            return $provider->hasValidConnection($user);
+            $hasConnection = $provider->hasValidConnection($user);
+            
+            Log::debug('Checked user connection', [
+                'user_id' => $user->id,
+                'provider' => $provider->getProviderName(),
+                'authentication_type' => $provider->getAuthenticationType(),
+                'has_connection' => $hasConnection,
+            ]);
+            
+            return $hasConnection;
         } catch (Exception $e) {
             Log::warning('Failed to check user connection', [
                 'user_id' => $user->id,
@@ -512,12 +523,15 @@ class UploadToGoogleDrive implements ShouldQueue
         }
 
         // Check if this is a token-related failure that requires notification
+        // Only send token notifications for OAuth providers (not API key providers like S3)
         $isTokenError = $this->isTokenRelatedError($errorType, $exception);
+        $isOAuthProvider = $provider && $provider->getAuthenticationType() === 'oauth';
         
-        if ($isTokenError && $targetUser) {
-            Log::info('Final failure is token-related, triggering token renewal notifications', [
+        if ($isTokenError && $isOAuthProvider && $targetUser) {
+            Log::info('Final failure is token-related for OAuth provider, triggering token renewal notifications', [
                 'file_upload_id' => $fileUpload->id,
                 'operation_id' => $operationId,
+                'provider' => $provider->getProviderName(),
                 'target_user_id' => $targetUser->id,
                 'error_type' => $errorType->value
             ]);
@@ -528,7 +542,7 @@ class UploadToGoogleDrive implements ShouldQueue
                 
                 $notificationService->handleTokenRefreshFailure(
                     $targetUser,
-                    $provider?->getProviderName() ?? 'google-drive',
+                    $provider->getProviderName(),
                     $tokenErrorType,
                     $exception,
                     $this->attempts()
@@ -537,10 +551,19 @@ class UploadToGoogleDrive implements ShouldQueue
                 Log::error('Failed to send token failure notification', [
                     'file_upload_id' => $fileUpload->id,
                     'operation_id' => $operationId,
+                    'provider' => $provider->getProviderName(),
                     'target_user_id' => $targetUser->id,
                     'notification_error' => $notificationError->getMessage()
                 ]);
             }
+        } else if ($isTokenError && !$isOAuthProvider) {
+            Log::info('Token-related error for API key provider, skipping token notifications', [
+                'file_upload_id' => $fileUpload->id,
+                'operation_id' => $operationId,
+                'provider' => $provider?->getProviderName() ?? 'unknown',
+                'authentication_type' => $provider?->getAuthenticationType() ?? 'unknown',
+                'error_type' => $errorType->value,
+            ]);
         }
 
         // Get log service for final failure processing
@@ -677,38 +700,63 @@ class UploadToGoogleDrive implements ShouldQueue
                 throw $error;
             }
 
-            // 3. Ensure the target user has a valid token before proceeding
-            Log::info('Ensuring valid token before upload', [
-                'file_upload_id' => $fileUpload->id,
-                'operation_id' => $operationId,
-                'target_user_id' => $targetUser->id,
-                'attempt' => $this->attempts()
-            ]);
-
-            $tokenValid = $this->ensureValidToken($targetUser, $tokenCoordinator, $notificationService, $operationId);
-            
-            if (!$tokenValid) {
-                $error = new Exception('Token validation failed for target user');
-                $errorType = CloudStorageErrorType::INVALID_CREDENTIALS;
-                $this->recordError($fileUpload, $error, $errorType, $healthService, $logService, [
-                    'operation_id' => $operationId,
-                    'target_user_id' => $targetUser->id,
-                    'error_category' => 'authentication',
-                    'token_validation_failed' => true,
-                ]);
-                throw $error;
-            }
-
-            Log::info('Token validation successful, proceeding with upload', [
-                'file_upload_id' => $fileUpload->id,
-                'operation_id' => $operationId,
-                'target_user_id' => $targetUser->id,
-                'attempt' => $this->attempts()
-            ]);
-
             // Get the appropriate provider for the target user
             $provider = $storageManager->getUserProvider($targetUser);
             $errorHandler = $storageManager->getErrorHandler($provider->getProviderName());
+
+            // 3. Ensure the target user has a valid token before proceeding (OAuth providers only)
+            // S3 and other API key providers use system-level credentials and don't need token validation
+            $authType = $provider->getAuthenticationType();
+            
+            if ($authType === 'oauth') {
+                Log::info('OAuth provider detected, ensuring valid token before upload', [
+                    'file_upload_id' => $fileUpload->id,
+                    'operation_id' => $operationId,
+                    'provider' => $provider->getProviderName(),
+                    'target_user_id' => $targetUser->id,
+                    'attempt' => $this->attempts()
+                ]);
+
+                $tokenValid = $this->ensureValidToken($targetUser, $tokenCoordinator, $notificationService, $operationId);
+                
+                if (!$tokenValid) {
+                    $error = new Exception('Token validation failed for target user');
+                    $errorType = CloudStorageErrorType::INVALID_CREDENTIALS;
+                    $this->recordError($fileUpload, $error, $errorType, $healthService, $logService, [
+                        'operation_id' => $operationId,
+                        'target_user_id' => $targetUser->id,
+                        'provider' => $provider->getProviderName(),
+                        'error_category' => 'authentication',
+                        'token_validation_failed' => true,
+                    ]);
+                    throw $error;
+                }
+
+                Log::info('Token validation successful, proceeding with upload', [
+                    'file_upload_id' => $fileUpload->id,
+                    'operation_id' => $operationId,
+                    'provider' => $provider->getProviderName(),
+                    'target_user_id' => $targetUser->id,
+                    'attempt' => $this->attempts()
+                ]);
+            } else {
+                Log::info('API key provider detected, skipping token validation', [
+                    'file_upload_id' => $fileUpload->id,
+                    'operation_id' => $operationId,
+                    'provider' => $provider->getProviderName(),
+                    'authentication_type' => $authType,
+                    'target_user_id' => $targetUser->id,
+                ]);
+            }
+
+            Log::info('Provider selected for upload', [
+                'file_upload_id' => $fileUpload->id,
+                'operation_id' => $operationId,
+                'provider' => $provider->getProviderName(),
+                'authentication_type' => $provider->getAuthenticationType(),
+                'storage_model' => $provider->getStorageModel(),
+                'target_user_id' => $targetUser->id,
+            ]);
 
             // 4. Upload the file using the provider interface
             $description = "Uploaded by: " . $email . "\nMessage: " . ($message ?? 'No message');
@@ -881,24 +929,28 @@ class UploadToGoogleDrive implements ShouldQueue
         }
 
         // Check if this is a token-related error that might be resolved by refresh
+        // Only attempt token refresh for OAuth providers (not API key providers like S3)
         $isTokenError = $this->isTokenRelatedError($errorType, $e);
+        $isOAuthProvider = $provider && $provider->getAuthenticationType() === 'oauth';
         
-        if ($isTokenError && $targetUser && $this->attempts() <= 2) {
-            Log::info('Detected token-related error, attempting coordinated refresh for retry', [
+        if ($isTokenError && $isOAuthProvider && $targetUser && $this->attempts() <= 2) {
+            Log::info('Detected token-related error for OAuth provider, attempting coordinated refresh for retry', [
                 'file_upload_id' => $fileUpload->id,
                 'operation_id' => $operationId,
+                'provider' => $provider->getProviderName(),
                 'error_type' => $errorType->value,
                 'attempt' => $this->attempts(),
                 'target_user_id' => $targetUser->id
             ]);
 
-            // Attempt token refresh for potential retry
-            $refreshResult = $tokenCoordinator->coordinateRefresh($targetUser, 'google-drive');
+            // Attempt token refresh for potential retry (OAuth providers only)
+            $refreshResult = $tokenCoordinator->coordinateRefresh($targetUser, $provider->getProviderName());
             
             if ($refreshResult->isSuccessful()) {
                 Log::info('Token refresh successful after upload failure, job will retry', [
                     'file_upload_id' => $fileUpload->id,
                     'operation_id' => $operationId,
+                    'provider' => $provider->getProviderName(),
                     'target_user_id' => $targetUser->id,
                     'refresh_result' => $refreshResult->wasTokenRefreshed() ? 'refreshed' : 'already_valid'
                 ]);
@@ -915,7 +967,8 @@ class UploadToGoogleDrive implements ShouldQueue
                     'target_user_id' => $targetUser->id,
                     'original_filename' => $originalFilename,
                     'mime_type' => $mimeType,
-                    'provider' => $provider?->getProviderName() ?? 'unknown',
+                    'provider' => $provider->getProviderName(),
+                    'authentication_type' => $provider->getAuthenticationType(),
                     'token_refresh_retry' => true,
                     'refresh_successful' => true,
                 ];
@@ -928,11 +981,20 @@ class UploadToGoogleDrive implements ShouldQueue
                 Log::warning('Token refresh failed after upload failure, normal error handling will proceed', [
                     'file_upload_id' => $fileUpload->id,
                     'operation_id' => $operationId,
+                    'provider' => $provider->getProviderName(),
                     'target_user_id' => $targetUser->id,
                     'refresh_error' => $refreshResult->message,
                     'refresh_error_type' => $refreshResult->errorType?->value
                 ]);
             }
+        } else if ($isTokenError && !$isOAuthProvider) {
+            Log::info('Token-related error detected for API key provider, skipping token refresh', [
+                'file_upload_id' => $fileUpload->id,
+                'operation_id' => $operationId,
+                'provider' => $provider?->getProviderName() ?? 'unknown',
+                'authentication_type' => $provider?->getAuthenticationType() ?? 'unknown',
+                'error_type' => $errorType->value,
+            ]);
         }
 
         // Record detailed error information with enhanced context

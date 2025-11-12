@@ -35,7 +35,7 @@ class FileUpload extends Model
         'file_size',
         'chunk_size',
         'total_chunks',
-        'google_drive_file_id',
+        'google_drive_file_id', // Deprecated: Use provider_file_id instead
         'uploaded_by_user_id',
         'email', // For backward compatibility with existing uploads
         'retry_count',
@@ -300,6 +300,76 @@ class FileUpload extends Model
     }
 
     /**
+     * Accessor for google_drive_file_id attribute (backward compatibility).
+     * Returns provider_file_id value for backward compatibility.
+     *
+     * @return string|null
+     */
+    public function getGoogleDriveFileIdAttribute($value): ?string
+    {
+        // If google_drive_file_id column has a value, use it (legacy data)
+        if (!empty($value)) {
+            return $value;
+        }
+        
+        // Otherwise, return provider_file_id for backward compatibility
+        return $this->attributes['provider_file_id'] ?? null;
+    }
+
+    /**
+     * Mutator for google_drive_file_id attribute (backward compatibility).
+     * Sets both google_drive_file_id and provider_file_id for compatibility when value is not null.
+     *
+     * @param string|null $value
+     * @return void
+     */
+    public function setGoogleDriveFileIdAttribute(?string $value): void
+    {
+        $this->attributes['google_drive_file_id'] = $value;
+        
+        // Only sync to provider_file_id if we're setting a non-null value
+        // or if provider_file_id is not already set
+        if ($value !== null || empty($this->attributes['provider_file_id'])) {
+            $this->attributes['provider_file_id'] = $value;
+        }
+    }
+
+    /**
+     * Accessor for provider_file_id attribute.
+     * Returns the cloud storage file ID regardless of provider.
+     *
+     * @return string|null
+     */
+    public function getProviderFileIdAttribute($value): ?string
+    {
+        // Prefer provider_file_id if it has a value
+        if (!empty($value)) {
+            return $value;
+        }
+        
+        // Fall back to google_drive_file_id for legacy data
+        return $this->attributes['google_drive_file_id'] ?? null;
+    }
+
+    /**
+     * Mutator for provider_file_id attribute.
+     * Sets both provider_file_id and google_drive_file_id for compatibility when value is not null.
+     *
+     * @param string|null $value
+     * @return void
+     */
+    public function setProviderFileIdAttribute(?string $value): void
+    {
+        $this->attributes['provider_file_id'] = $value;
+        
+        // Only sync to google_drive_file_id if we're setting a non-null value
+        // or if google_drive_file_id is not already set
+        if ($value !== null || empty($this->attributes['google_drive_file_id'])) {
+            $this->attributes['google_drive_file_id'] = $value;
+        }
+    }
+
+    /**
      * Accessor for cloud_storage_error_message attribute.
      *
      * @return string|null
@@ -337,8 +407,8 @@ class FileUpload extends Model
      */
     public function getUploadStatus(): string
     {
-        // Check if file has been successfully uploaded
-        if (!empty($this->google_drive_file_id)) {
+        // Check if file has been successfully uploaded (check provider_file_id)
+        if (!empty($this->provider_file_id)) {
             return self::STATUS_UPLOADED;
         }
 
@@ -376,7 +446,7 @@ class FileUpload extends Model
         $thresholdMinutes = config('upload-recovery.stuck_threshold_minutes', 30);
         
         // If file has been uploaded successfully, it's not stuck
-        if (!empty($this->google_drive_file_id)) {
+        if (!empty($this->provider_file_id)) {
             return false;
         }
 
@@ -426,12 +496,12 @@ class FileUpload extends Model
     /**
      * Mark the upload as successfully recovered.
      *
-     * @param string $googleDriveFileId
+     * @param string $providerFileId The cloud storage file ID (Google Drive ID, S3 key, etc.)
      * @return bool
      */
-    public function markAsRecovered(string $googleDriveFileId): bool
+    public function markAsRecovered(string $providerFileId): bool
     {
-        $this->google_drive_file_id = $googleDriveFileId;
+        $this->provider_file_id = $providerFileId;
         $this->last_error = null;
         $this->error_details = null;
         $this->last_processed_at = now();
@@ -628,13 +698,49 @@ class FileUpload extends Model
     }
 
     /**
-     * Delete the file from Google Drive using the new service approach.
+     * Delete the file from cloud storage (Google Drive, S3, etc.).
      *
      * @return bool True if deletion was successful, false otherwise
      */
-    public function deleteFromGoogleDrive(): bool
+    public function deleteFromCloudStorage(): bool
     {
-        if (!$this->google_drive_file_id) {
+        if (!$this->provider_file_id) {
+            return true; // Nothing to delete
+        }
+
+        try {
+            $provider = $this->storage_provider ?? 'google-drive';
+            
+            if ($provider === 'google-drive') {
+                return $this->deleteFromGoogleDrive();
+            } elseif ($provider === 'amazon-s3') {
+                return $this->deleteFromS3();
+            }
+            
+            Log::warning('Unknown storage provider for file deletion', [
+                'file_upload_id' => $this->id,
+                'storage_provider' => $provider
+            ]);
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Failed to delete file from cloud storage', [
+                'file_upload_id' => $this->id,
+                'storage_provider' => $this->storage_provider,
+                'provider_file_id' => $this->provider_file_id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Delete the file from Google Drive.
+     *
+     * @return bool True if deletion was successful, false otherwise
+     */
+    protected function deleteFromGoogleDrive(): bool
+    {
+        if (!$this->provider_file_id) {
             return true; // Nothing to delete
         }
 
@@ -649,27 +755,70 @@ class FileUpload extends Model
             }
 
             if (!$user) {
-                \Log::warning('No user with Google Drive connection found for file deletion', [
+                Log::warning('No user with Google Drive connection found for file deletion', [
                     'file_upload_id' => $this->id,
-                    'google_drive_file_id' => $this->google_drive_file_id
+                    'provider_file_id' => $this->provider_file_id
                 ]);
                 return false;
             }
 
             $driveService = app(\App\Services\GoogleDriveService::class);
             $service = $driveService->getDriveService($user);
-            $service->files->delete($this->google_drive_file_id);
+            $service->files->delete($this->provider_file_id);
             
-            \Log::info('Successfully deleted file from Google Drive', [
+            Log::info('Successfully deleted file from Google Drive', [
                 'file_upload_id' => $this->id,
-                'google_drive_file_id' => $this->google_drive_file_id
+                'provider_file_id' => $this->provider_file_id
             ]);
             
             return true;
         } catch (\Exception $e) {
-            \Log::error('Failed to delete file from Google Drive', [
+            Log::error('Failed to delete file from Google Drive', [
                 'file_upload_id' => $this->id,
-                'google_drive_file_id' => $this->google_drive_file_id,
+                'provider_file_id' => $this->provider_file_id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Delete the file from Amazon S3.
+     *
+     * @return bool True if deletion was successful, false otherwise
+     */
+    protected function deleteFromS3(): bool
+    {
+        if (!$this->provider_file_id) {
+            return true; // Nothing to delete
+        }
+
+        try {
+            // Get any admin user for S3 operations (S3 uses system-level credentials)
+            $user = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)->first();
+            
+            if (!$user) {
+                Log::warning('No admin user found for S3 file deletion', [
+                    'file_upload_id' => $this->id,
+                    'provider_file_id' => $this->provider_file_id
+                ]);
+                return false;
+            }
+
+            $factory = app(\App\Services\CloudStorageFactory::class);
+            $provider = $factory->create('amazon-s3');
+            $provider->deleteFile($user, $this->provider_file_id);
+            
+            Log::info('Successfully deleted file from Amazon S3', [
+                'file_upload_id' => $this->id,
+                'provider_file_id' => $this->provider_file_id
+            ]);
+            
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to delete file from Amazon S3', [
+                'file_upload_id' => $this->id,
+                'provider_file_id' => $this->provider_file_id,
                 'error' => $e->getMessage()
             ]);
             return false;
@@ -736,7 +885,7 @@ class FileUpload extends Model
      */
     public function isPending(): bool
     {
-        return empty($this->google_drive_file_id);
+        return empty($this->provider_file_id);
     }
 
     /**
@@ -745,8 +894,13 @@ class FileUpload extends Model
     public function scopePending($query)
     {
         return $query->where(function ($q) {
-            $q->whereNull('google_drive_file_id')
-              ->orWhere('google_drive_file_id', '');
+            $q->where(function ($subQ) {
+                $subQ->whereNull('provider_file_id')
+                     ->orWhere('provider_file_id', '');
+            })->where(function ($subQ) {
+                $subQ->whereNull('google_drive_file_id')
+                     ->orWhere('google_drive_file_id', '');
+            });
         });
     }
 
@@ -755,8 +909,15 @@ class FileUpload extends Model
      */
     public function scopeCompleted($query)
     {
-        return $query->whereNotNull('google_drive_file_id')
-                    ->where('google_drive_file_id', '!=', '');
+        return $query->where(function ($q) {
+            $q->where(function ($subQ) {
+                $subQ->whereNotNull('provider_file_id')
+                     ->where('provider_file_id', '!=', '');
+            })->orWhere(function ($subQ) {
+                $subQ->whereNotNull('google_drive_file_id')
+                     ->where('google_drive_file_id', '!=', '');
+            });
+        });
     }
 
     /**
@@ -768,8 +929,13 @@ class FileUpload extends Model
         $thresholdTime = now()->subMinutes($thresholdMinutes);
 
         return $query->where(function ($q) {
-            $q->whereNull('google_drive_file_id')
-              ->orWhere('google_drive_file_id', '');
+            $q->where(function ($subQ) {
+                $subQ->whereNull('provider_file_id')
+                     ->orWhere('provider_file_id', '');
+            })->where(function ($subQ) {
+                $subQ->whereNull('google_drive_file_id')
+                     ->orWhere('google_drive_file_id', '');
+            });
         })->where(function ($q) use ($thresholdTime) {
             $q->where('last_processed_at', '<', $thresholdTime)
               ->orWhere(function ($subQ) use ($thresholdTime) {
@@ -789,8 +955,13 @@ class FileUpload extends Model
         return $query->where('retry_count', '>=', $maxRetries)
                     ->whereNotNull('last_error')
                     ->where(function ($q) {
-                        $q->whereNull('google_drive_file_id')
-                          ->orWhere('google_drive_file_id', '');
+                        $q->where(function ($subQ) {
+                            $subQ->whereNull('provider_file_id')
+                                 ->orWhere('provider_file_id', '');
+                        })->where(function ($subQ) {
+                            $subQ->whereNull('google_drive_file_id')
+                                 ->orWhere('google_drive_file_id', '');
+                        });
                     });
     }
 
@@ -801,8 +972,13 @@ class FileUpload extends Model
     {
         // This scope will need to be used with a custom filter since we can't check file existence in SQL
         return $query->where(function ($q) {
-            $q->whereNull('google_drive_file_id')
-              ->orWhere('google_drive_file_id', '');
+            $q->where(function ($subQ) {
+                $subQ->whereNull('provider_file_id')
+                     ->orWhere('provider_file_id', '');
+            })->where(function ($subQ) {
+                $subQ->whereNull('google_drive_file_id')
+                     ->orWhere('google_drive_file_id', '');
+            });
         });
     }
 
@@ -813,8 +989,13 @@ class FileUpload extends Model
     {
         return $query->where('retry_count', '>', 0)
                     ->where(function ($q) {
-                        $q->whereNull('google_drive_file_id')
-                          ->orWhere('google_drive_file_id', '');
+                        $q->where(function ($subQ) {
+                            $subQ->whereNull('provider_file_id')
+                                 ->orWhere('provider_file_id', '');
+                        })->where(function ($subQ) {
+                            $subQ->whereNull('google_drive_file_id')
+                                 ->orWhere('google_drive_file_id', '');
+                        });
                     });
     }
 
@@ -838,8 +1019,13 @@ class FileUpload extends Model
                 // Files processed in the last 5 minutes
                 return $query->where('last_processed_at', '>=', now()->subMinutes(5))
                             ->where(function ($q) {
-                                $q->whereNull('google_drive_file_id')
-                                  ->orWhere('google_drive_file_id', '');
+                                $q->where(function ($subQ) {
+                                    $subQ->whereNull('provider_file_id')
+                                         ->orWhere('provider_file_id', '');
+                                })->where(function ($subQ) {
+                                    $subQ->whereNull('google_drive_file_id')
+                                         ->orWhere('google_drive_file_id', '');
+                                });
                             });
             default:
                 return $query;
@@ -854,8 +1040,13 @@ class FileUpload extends Model
         $maxRecoveryAttempts = config('upload-recovery.max_recovery_attempts', 5);
         
         return $query->where(function ($q) {
-            $q->whereNull('google_drive_file_id')
-              ->orWhere('google_drive_file_id', '');
+            $q->where(function ($subQ) {
+                $subQ->whereNull('provider_file_id')
+                     ->orWhere('provider_file_id', '');
+            })->where(function ($subQ) {
+                $subQ->whereNull('google_drive_file_id')
+                     ->orWhere('google_drive_file_id', '');
+            });
         })->where('recovery_attempts', '<', $maxRecoveryAttempts);
     }
 
@@ -869,8 +1060,13 @@ class FileUpload extends Model
         $maxRetries = config('upload-recovery.max_retry_attempts', 3);
 
         return $query->where(function ($q) {
-            $q->whereNull('google_drive_file_id')
-              ->orWhere('google_drive_file_id', '');
+            $q->where(function ($subQ) {
+                $subQ->whereNull('provider_file_id')
+                     ->orWhere('provider_file_id', '');
+            })->where(function ($subQ) {
+                $subQ->whereNull('google_drive_file_id')
+                     ->orWhere('google_drive_file_id', '');
+            });
         })->where(function ($q) use ($thresholdTime, $maxRetries) {
             // Stuck uploads
             $q->where(function ($stuckQ) use ($thresholdTime) {
@@ -942,5 +1138,29 @@ class FileUpload extends Model
             ->toArray();
 
         return $query->whereIn('cloud_storage_error_type', $severityTypes);
+    }
+
+    /**
+     * Scope to get uploads by storage provider.
+     */
+    public function scopeForProvider($query, string $provider)
+    {
+        return $query->where('storage_provider', $provider);
+    }
+
+    /**
+     * Scope to get uploads for Google Drive.
+     */
+    public function scopeForGoogleDrive($query)
+    {
+        return $query->where('storage_provider', 'google-drive');
+    }
+
+    /**
+     * Scope to get uploads for Amazon S3.
+     */
+    public function scopeForAmazonS3($query)
+    {
+        return $query->where('storage_provider', 'amazon-s3');
     }
 }
