@@ -755,7 +755,7 @@ return [
     'profile_email_verify_sent' => 'Ein neuer Verifizierungslink wurde an Ihre E-Mail-Adresse gesendet.',
 
     // Sicherheits- und Registrierungsvalidierungsnachrichten
-    'public_registration_disabled' => 'Die Registrierung neuer Benutzer ist derzeit deaktiviert. Wenn Sie bereits ein Konto haben, versuchen Sie es erneut oder kontaktieren Sie den Support.',
+    'public_registration_disabled' => 'Nur eingeladene Benutzer können sich bei diesem System anmelden. Wenn Sie glauben, dass Sie Zugriff haben sollten, wenden Sie sich bitte an den Administrator.',
     'email_domain_not_allowed' => 'Diese E-Mail-Domain ist für neue Registrierungen nicht zugelassen. Wenn Sie bereits ein Konto haben, versuchen Sie es erneut oder kontaktieren Sie den Support.',
     'security_settings_saved' => 'Die Sicherheitseinstellungen wurden erfolgreich aktualisiert.',
     

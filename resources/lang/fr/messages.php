@@ -831,7 +831,7 @@ return [
     'profile_email_verify_sent' => 'Un nouveau lien de vérification a été envoyé à votre adresse email.',
 
     // Messages de Validation de Sécurité et d'Inscription
-    'public_registration_disabled' => 'L\'inscription de nouveaux utilisateurs est actuellement désactivée. Si vous avez déjà un compte, veuillez réessayer ou contacter le support.',
+    'public_registration_disabled' => 'Seuls les utilisateurs invités peuvent se connecter à ce système. Si vous pensez que vous devriez avoir accès, veuillez contacter l\'administrateur.',
     'email_domain_not_allowed' => 'Ce domaine email n\'est pas autorisé pour les nouvelles inscriptions. Si vous avez déjà un compte, veuillez réessayer ou contacter le support.',
     'security_settings_saved' => 'Les paramètres de sécurité ont été mis à jour avec succès.',
     

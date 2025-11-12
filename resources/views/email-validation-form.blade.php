@@ -33,7 +33,7 @@
                     </div>
 
                     <div id="errorMessage" class="mt-4 text-center hidden">
-                        <p class="text-red-600">{{ __('messages.nav_validation_error') }}</p>
+                        <p id="errorMessageText" class="text-red-600">{{ __('messages.nav_validation_error') }}</p>
                     </div>
 
                     <div class="mt-8 pt-6 border-t border-gray-200 text-center">
@@ -66,14 +66,9 @@
                     'Accept': 'application/json'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
+            .then(response => response.json().then(data => ({status: response.status, data})))
+            .then(({status, data}) => {
+                if (status === 200 && data.success) {
                     validationMessage.classList.remove('hidden');
                     errorMessage.classList.add('hidden');
                     this.reset();
@@ -83,11 +78,17 @@
                         validationMessage.classList.add('hidden');
                     }, 10000);
                 } else {
-                    throw new Error(data.message || 'Unknown error occurred');
+                    // Display the specific error message from the server
+                    const errorMessageText = document.getElementById('errorMessageText');
+                    errorMessageText.textContent = data.message || '{{ __('messages.nav_validation_error') }}';
+                    validationMessage.classList.add('hidden');
+                    errorMessage.classList.remove('hidden');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
+                const errorMessageText = document.getElementById('errorMessageText');
+                errorMessageText.textContent = '{{ __('messages.nav_validation_error') }}';
                 validationMessage.classList.add('hidden');
                 errorMessage.classList.remove('hidden');
             })
