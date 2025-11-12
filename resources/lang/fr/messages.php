@@ -178,6 +178,12 @@ return [
     'cloud_storage_unknown_error' => 'Une erreur inattendue s\'est produite avec :provider. Veuillez réessayer ou contacter le support si le problème persiste.',
     'cloud_storage_default_error' => 'Une erreur s\'est produite pendant l\'opération :operation de :provider. Veuillez réessayer.',
 
+    // Messages d'erreur spécifiques à S3
+    'cloud_storage_bucket_not_found' => 'Le bucket :provider n\'existe pas. Veuillez vérifier le nom du bucket dans votre configuration.',
+    'cloud_storage_bucket_access_denied' => 'L\'accès au bucket :provider a été refusé. Veuillez vérifier que vos identifiants AWS disposent des autorisations nécessaires.',
+    'cloud_storage_invalid_bucket_name' => 'Le nom du bucket :provider est invalide. Les noms de bucket doivent contenir 3 à 63 caractères et suivre les règles de nommage S3.',
+    'cloud_storage_invalid_region' => 'La région :provider est invalide. Veuillez vérifier que la région correspond à l\'emplacement de votre bucket.',
+
     // Connection Issue Context Messages
     'cloud_storage_persistent_failures' => 'Échecs de connexion persistants détectés. Veuillez vérifier les paramètres de votre compte :provider et votre connexion réseau.',
     'cloud_storage_multiple_token_refresh_attempts' => 'Plusieurs tentatives de renouvellement de token détectées. Veuillez attendre quelques minutes avant de réessayer.',
@@ -960,4 +966,15 @@ return [
     'chunked_upload_failed' => 'Téléchargement fragmenté vers Google Drive échoué',
     'chunked_upload_optimal_chunk_size_determined' => 'Taille optimale de fragment déterminée',
     'chunked_upload_decision_made' => 'Décision de téléchargement fragmenté prise',
+
+    // S3 Multipart Upload Messages
+    's3_multipart_upload_configured' => 'Téléchargement multipartie S3 configuré',
+    's3_multipart_upload_starting' => 'Démarrage du téléchargement multipartie S3',
+    's3_multipart_upload_part_uploaded' => 'Partie téléchargée avec succès',
+    's3_multipart_upload_completed' => 'Téléchargement multipartie S3 terminé avec succès',
+    's3_multipart_upload_failed' => 'Téléchargement multipartie S3 échoué',
+    's3_multipart_upload_aborted' => 'Téléchargement multipartie interrompu en raison d\'une erreur',
+    's3_multipart_abort_failed' => 'Échec de l\'interruption du téléchargement multipartie',
+    's3_upload_optimization_applied' => 'Optimisations de téléchargement S3 appliquées',
+    's3_failed_to_open_file' => 'Échec de l\'ouverture du fichier : :path',
 ];

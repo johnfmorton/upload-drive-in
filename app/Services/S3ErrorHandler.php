@@ -88,6 +88,7 @@ class S3ErrorHandler extends BaseCloudStorageErrorHandler
             'ServiceUnavailable', 'InternalError' => CloudStorageErrorType::SERVICE_UNAVAILABLE,
             'InvalidRegion' => CloudStorageErrorType::INVALID_REGION,
             'NotImplemented' => CloudStorageErrorType::FEATURE_NOT_SUPPORTED,
+            'RequestTimeout' => CloudStorageErrorType::NETWORK_ERROR,
             default => $this->classifyByStatusCode($statusCode) ?? CloudStorageErrorType::UNKNOWN_ERROR
         };
     }

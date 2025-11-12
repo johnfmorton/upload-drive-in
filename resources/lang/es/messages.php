@@ -178,6 +178,12 @@ return [
     'cloud_storage_unknown_error' => 'Ocurrió un error inesperado con :provider. Por favor, inténtalo de nuevo o contacta al soporte si el problema persiste.',
     'cloud_storage_default_error' => 'Ocurrió un error durante la :operation de :provider. Por favor, inténtalo de nuevo.',
 
+    // Mensajes de error específicos de S3
+    'cloud_storage_bucket_not_found' => 'El bucket de :provider no existe. Por favor, verifica el nombre del bucket en tu configuración.',
+    'cloud_storage_bucket_access_denied' => 'Se denegó el acceso al bucket de :provider. Por favor, verifica que tus credenciales de AWS tengan los permisos necesarios.',
+    'cloud_storage_invalid_bucket_name' => 'El nombre del bucket de :provider es inválido. Los nombres de bucket deben tener entre 3 y 63 caracteres y seguir las reglas de nomenclatura de S3.',
+    'cloud_storage_invalid_region' => 'La región de :provider es inválida. Por favor, verifica que la región coincida con la ubicación de tu bucket.',
+
     // Connection Issue Context Messages
     'cloud_storage_persistent_failures' => 'Fallos de conexión persistentes detectados. Por favor, verifica la configuración de tu cuenta :provider y tu conexión de red.',
     'cloud_storage_multiple_token_refresh_attempts' => 'Múltiples intentos de renovación de token detectados. Por favor, espera unos minutos antes de intentar de nuevo.',
@@ -836,8 +842,8 @@ return [
     'email_validation_subtitle' => 'Comienza validando tu dirección de correo electrónico.',
     'already_have_account' => '¿Ya tienes una cuenta?',
     'sign_in' => 'Iniciar Sesión',
-];   
- // Google Drive Chunked Upload Service Messages
+
+    // Google Drive Chunked Upload Service Messages
     'chunked_upload_local_file_not_found' => 'Archivo local no encontrado: :path',
     'chunked_upload_could_not_open_file' => 'No se pudo abrir el archivo para lectura: :path',
     'chunked_upload_failed_to_read_chunk' => 'Error al leer el fragmento del archivo',
@@ -848,4 +854,15 @@ return [
     'chunked_upload_failed' => 'Subida fragmentada a Google Drive falló',
     'chunked_upload_optimal_chunk_size_determined' => 'Tamaño óptimo de fragmento determinado',
     'chunked_upload_decision_made' => 'Decisión de subida fragmentada tomada',
+
+    // S3 Multipart Upload Messages
+    's3_multipart_upload_configured' => 'Subida multiparte S3 configurada',
+    's3_multipart_upload_starting' => 'Iniciando subida multiparte S3',
+    's3_multipart_upload_part_uploaded' => 'Parte subida exitosamente',
+    's3_multipart_upload_completed' => 'Subida multiparte S3 completada exitosamente',
+    's3_multipart_upload_failed' => 'Subida multiparte S3 falló',
+    's3_multipart_upload_aborted' => 'Subida multiparte abortada debido a un error',
+    's3_multipart_abort_failed' => 'Error al abortar la subida multiparte',
+    's3_upload_optimization_applied' => 'Optimizaciones de subida S3 aplicadas',
+    's3_failed_to_open_file' => 'Error al abrir el archivo: :path',
 ];

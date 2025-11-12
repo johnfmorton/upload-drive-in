@@ -199,11 +199,13 @@ class S3Provider implements CloudStorageProviderInterface
      */
     public function getConnectionHealth(User $user): CloudStorageHealthStatus
     {
-        try {
-            Log::debug('Checking S3 connection health', [
-                'user_id' => $user->id
-            ]);
+        $startTime = microtime(true);
+        $operationId = $this->logService->logOperationStart('health_check', self::PROVIDER_NAME, $user, [
+            'bucket' => $this->config['bucket'] ?? 'not_configured',
+            'region' => $this->config['region'] ?? 'not_configured',
+        ]);
 
+        try {
             $this->ensureInitialized($user);
 
             // Perform a lightweight health check by listing bucket contents (limit 1)
@@ -212,10 +214,12 @@ class S3Provider implements CloudStorageProviderInterface
                 'MaxKeys' => 1,
             ]);
 
-            Log::debug('S3 connection health check successful', [
-                'user_id' => $user->id,
+            $durationMs = (microtime(true) - $startTime) * 1000;
+            $this->logService->logOperationSuccess($operationId, 'health_check', self::PROVIDER_NAME, $user, [
                 'bucket' => $this->getBucket($user),
-            ]);
+                'region' => $this->getRegion($user),
+                'objects_found' => count($result['Contents'] ?? []),
+            ], $durationMs);
 
             return new CloudStorageHealthStatus(
                 provider: self::PROVIDER_NAME,
@@ -230,12 +234,22 @@ class S3Provider implements CloudStorageProviderInterface
 
         } catch (Exception $e) {
             $errorType = $this->errorHandler->classifyError($e);
+            $durationMs = (microtime(true) - $startTime) * 1000;
             
-            Log::warning('S3 health check failed', [
-                'user_id' => $user->id,
-                'error_type' => $errorType->value,
-                'error_message' => $e->getMessage()
-            ]);
+            $this->logService->logOperationFailure(
+                $operationId,
+                'health_check',
+                self::PROVIDER_NAME,
+                $user,
+                $errorType,
+                $e->getMessage(),
+                [
+                    'bucket' => $this->config['bucket'] ?? 'not_configured',
+                    'region' => $this->config['region'] ?? 'not_configured',
+                ],
+                $durationMs,
+                $e
+            );
 
             $requiresReconnection = in_array($errorType, [
                 \App\Enums\CloudStorageErrorType::INVALID_CREDENTIALS,
@@ -254,8 +268,8 @@ class S3Provider implements CloudStorageProviderInterface
                 providerSpecificData: [
                     'health_check_failed_at' => now()->toISOString(),
                     'error_details' => $e->getMessage(),
-                    'bucket' => $this->getBucket($user),
-                    'region' => $this->getRegion($user),
+                    'bucket' => $this->config['bucket'] ?? 'not_configured',
+                    'region' => $this->config['region'] ?? 'not_configured',
                 ]
             );
         }
@@ -309,9 +323,9 @@ class S3Provider implements CloudStorageProviderInterface
 
     /**
      * Disconnect the user's S3 account
-     * Note: For S3, this means clearing stored credentials
+     * Note: For S3, this means clearing system-level stored credentials
      *
-     * @param User $user The user to disconnect
+     * @param User $user The user requesting disconnect (must be admin)
      * @return void
      */
     public function disconnect(User $user): void
@@ -319,10 +333,14 @@ class S3Provider implements CloudStorageProviderInterface
         try {
             $this->logService->logOAuthEvent(self::PROVIDER_NAME, $user, 'disconnect_start', true);
             
-            // Clear S3 credentials from database
-            CloudStorageSetting::where('user_id', $user->id)
-                ->where('provider', self::PROVIDER_NAME)
+            // Clear system-level S3 credentials from database
+            // Note: cloud_storage_settings table is system-level only (no user_id column)
+            CloudStorageSetting::where('provider', self::PROVIDER_NAME)
                 ->delete();
+
+            // Clear the initialized client
+            $this->s3Client = null;
+            $this->config = [];
 
             $this->logService->logOAuthEvent(self::PROVIDER_NAME, $user, 'disconnect_complete', true);
 
@@ -468,9 +486,26 @@ class S3Provider implements CloudStorageProviderInterface
      */
     public function initialize(array $config): void
     {
+        $startTime = microtime(true);
+        
+        // Log configuration change start
+        Log::info('S3Provider: Configuration initialization started', [
+            'provider' => self::PROVIDER_NAME,
+            'region' => $config['region'] ?? 'not_set',
+            'bucket' => $config['bucket'] ?? 'not_set',
+            'has_custom_endpoint' => !empty($config['endpoint']),
+            'endpoint' => $config['endpoint'] ?? null,
+        ]);
+
         // Validate configuration
         $errors = $this->validateConfiguration($config);
         if (!empty($errors)) {
+            Log::error('S3Provider: Configuration validation failed', [
+                'provider' => self::PROVIDER_NAME,
+                'errors' => $errors,
+                'config_keys' => array_keys($config),
+            ]);
+            
             throw new CloudStorageSetupException(
                 'S3 provider configuration is invalid: ' . implode(', ', $errors)
             );
@@ -497,13 +532,26 @@ class S3Provider implements CloudStorageProviderInterface
         try {
             $this->s3Client = new S3Client($clientConfig);
             
-            Log::debug('S3Provider: Initialized successfully', [
+            $durationMs = (microtime(true) - $startTime) * 1000;
+            
+            Log::info('S3Provider: Configuration initialized successfully', [
                 'provider' => self::PROVIDER_NAME,
                 'region' => $config['region'],
                 'bucket' => $config['bucket'],
                 'has_custom_endpoint' => !empty($config['endpoint']),
+                'duration_ms' => $durationMs,
             ]);
         } catch (Exception $e) {
+            $durationMs = (microtime(true) - $startTime) * 1000;
+            
+            Log::error('S3Provider: Failed to initialize S3 client', [
+                'provider' => self::PROVIDER_NAME,
+                'error' => $e->getMessage(),
+                'region' => $config['region'] ?? 'not_set',
+                'bucket' => $config['bucket'] ?? 'not_set',
+                'duration_ms' => $durationMs,
+            ]);
+            
             throw new CloudStorageSetupException(
                 'Failed to initialize S3 client: ' . $e->getMessage(),
                 previous: $e
@@ -838,31 +886,62 @@ class S3Provider implements CloudStorageProviderInterface
 
     /**
      * Apply S3-specific optimizations for file upload
+     * Implements multipart upload for large files with progress tracking
      *
      * @param User $user The user whose S3 to use
      * @param string $localPath Path to the local file to upload
      * @param array $options Optimization options
-     * @return array Optimized upload parameters
+     * @return array Optimized upload parameters and execution result
+     * @throws CloudStorageException
      */
     public function optimizeUpload(User $user, string $localPath, array $options = []): array
     {
+        $startTime = microtime(true);
         $fileSize = file_exists($localPath) ? filesize($localPath) : 0;
         $mimeType = $options['mime_type'] ?? 'application/octet-stream';
+        
+        // Configurable multipart threshold (default 50MB as per requirements)
+        $multipartThreshold = $options['multipart_threshold'] ?? 52428800; // 50MB
+        
+        // Configurable chunk size (default 10MB, minimum 5MB per S3 requirements)
+        $defaultChunkSize = $options['chunk_size'] ?? 10485760; // 10MB
+        $chunkSize = max(5242880, $defaultChunkSize); // Ensure minimum 5MB
         
         $optimizations = [
             'use_multipart' => false,
             'part_size' => null,
+            'total_parts' => 0,
             'storage_class' => 'STANDARD',
             'server_side_encryption' => null,
             'cache_control' => null,
             'content_encoding' => null,
             'metadata' => [],
+            'progress_tracking' => [
+                'enabled' => $options['track_progress'] ?? true,
+                'callback' => $options['progress_callback'] ?? null,
+                'uploaded_bytes' => 0,
+                'total_bytes' => $fileSize,
+                'percentage' => 0,
+            ],
         ];
 
-        // Use multipart upload for files larger than 100MB
-        if ($fileSize > 104857600) { // 100MB
+        // Use multipart upload for files larger than threshold
+        if ($fileSize > $multipartThreshold) {
             $optimizations['use_multipart'] = true;
-            $optimizations['part_size'] = max(5242880, ceil($fileSize / 10000)); // 5MB minimum, max 10000 parts
+            
+            // Calculate optimal part size
+            // S3 allows max 10,000 parts, so ensure we don't exceed that
+            $calculatedPartSize = ceil($fileSize / 10000);
+            $optimizations['part_size'] = max($chunkSize, $calculatedPartSize);
+            $optimizations['total_parts'] = ceil($fileSize / $optimizations['part_size']);
+            
+            Log::info('S3 multipart upload configured', [
+                'user_id' => $user->id,
+                'file_size' => $fileSize,
+                'part_size' => $optimizations['part_size'],
+                'total_parts' => $optimizations['total_parts'],
+                'threshold' => $multipartThreshold,
+            ]);
         }
 
         // Optimize storage class based on file type and size
@@ -896,14 +975,237 @@ class S3Provider implements CloudStorageProviderInterface
         $optimizations['metadata']['optimization_applied'] = 'true';
         $optimizations['metadata']['optimization_timestamp'] = now()->toISOString();
         $optimizations['metadata']['file_size_category'] = $this->getFileSizeCategory($fileSize);
+        $optimizations['metadata']['multipart_enabled'] = $optimizations['use_multipart'] ? 'true' : 'false';
 
+        // If multipart upload is needed, perform it now
+        if ($optimizations['use_multipart'] && isset($options['target_path'])) {
+            try {
+                $this->ensureInitialized($user);
+                
+                $uploadResult = $this->performMultipartUpload(
+                    $user,
+                    $localPath,
+                    $options['target_path'],
+                    $options['original_filename'] ?? basename($localPath),
+                    $optimizations
+                );
+                
+                $optimizations['upload_result'] = $uploadResult;
+                $optimizations['upload_completed'] = true;
+                
+            } catch (Exception $e) {
+                $errorType = $this->errorHandler->classifyError($e);
+                
+                Log::error('S3 multipart upload failed', [
+                    'user_id' => $user->id,
+                    'file_size' => $fileSize,
+                    'error' => $e->getMessage(),
+                ]);
+                
+                throw CloudStorageException::create(
+                    $errorType,
+                    self::PROVIDER_NAME,
+                    [
+                        'operation' => 'multipart_upload',
+                        'file_path' => $localPath,
+                        'file_size' => $fileSize,
+                        'user_id' => $user->id,
+                        'original_message' => $e->getMessage()
+                    ],
+                    $e
+                );
+            }
+        }
+
+        $durationMs = (microtime(true) - $startTime) * 1000;
+        
         Log::debug('S3 upload optimizations applied', [
             'user_id' => $user->id,
             'file_size' => $fileSize,
-            'optimizations' => $optimizations,
+            'use_multipart' => $optimizations['use_multipart'],
+            'part_size' => $optimizations['part_size'],
+            'total_parts' => $optimizations['total_parts'],
+            'duration_ms' => $durationMs,
         ]);
 
         return $optimizations;
+    }
+
+    /**
+     * Perform multipart upload for large files with progress tracking
+     *
+     * @param User $user The user whose S3 to use
+     * @param string $localPath Path to the local file
+     * @param string $targetPath Target path (client email)
+     * @param string $originalFilename Original filename
+     * @param array $optimizations Optimization parameters
+     * @return array Upload result with key and metadata
+     * @throws Exception
+     */
+    private function performMultipartUpload(
+        User $user,
+        string $localPath,
+        string $targetPath,
+        string $originalFilename,
+        array $optimizations
+    ): array {
+        $startTime = microtime(true);
+        $bucket = $this->getBucket($user);
+        $key = $this->generateS3Key($targetPath, $originalFilename);
+        $partSize = $optimizations['part_size'];
+        $fileSize = filesize($localPath);
+        
+        Log::info('Starting S3 multipart upload', [
+            'user_id' => $user->id,
+            'key' => $key,
+            'file_size' => $fileSize,
+            'part_size' => $partSize,
+            'total_parts' => $optimizations['total_parts'],
+        ]);
+
+        // Initialize multipart upload
+        $uploadParams = [
+            'Bucket' => $bucket,
+            'Key' => $key,
+            'ContentType' => $optimizations['metadata']['mime_type'] ?? 'application/octet-stream',
+            'Metadata' => [
+                'original_filename' => $originalFilename,
+                'client_email' => $targetPath,
+                'uploaded_by' => (string) $user->id,
+                'upload_timestamp' => now()->toISOString(),
+                'multipart_upload' => 'true',
+            ],
+        ];
+
+        // Add storage class if specified
+        if (!empty($optimizations['storage_class'])) {
+            $uploadParams['StorageClass'] = $optimizations['storage_class'];
+        }
+
+        // Add server-side encryption if specified
+        if (!empty($optimizations['server_side_encryption'])) {
+            $uploadParams['ServerSideEncryption'] = $optimizations['server_side_encryption'];
+        }
+
+        $multipartUpload = $this->s3Client->createMultipartUpload($uploadParams);
+        $uploadId = $multipartUpload['UploadId'];
+
+        try {
+            $file = fopen($localPath, 'rb');
+            if (!$file) {
+                throw new Exception("Failed to open file: {$localPath}");
+            }
+
+            $parts = [];
+            $partNumber = 1;
+            $uploadedBytes = 0;
+            $progressCallback = $optimizations['progress_tracking']['callback'] ?? null;
+
+            // Upload parts
+            while (!feof($file)) {
+                $partData = fread($file, $partSize);
+                $partLength = strlen($partData);
+
+                if ($partLength === 0) {
+                    break;
+                }
+
+                Log::debug('Uploading part', [
+                    'part_number' => $partNumber,
+                    'part_size' => $partLength,
+                    'uploaded_bytes' => $uploadedBytes,
+                    'total_bytes' => $fileSize,
+                ]);
+
+                $uploadPartResult = $this->s3Client->uploadPart([
+                    'Bucket' => $bucket,
+                    'Key' => $key,
+                    'UploadId' => $uploadId,
+                    'PartNumber' => $partNumber,
+                    'Body' => $partData,
+                ]);
+
+                $parts[] = [
+                    'PartNumber' => $partNumber,
+                    'ETag' => $uploadPartResult['ETag'],
+                ];
+
+                $uploadedBytes += $partLength;
+                $percentage = ($uploadedBytes / $fileSize) * 100;
+
+                // Call progress callback if provided
+                if (is_callable($progressCallback)) {
+                    $progressCallback([
+                        'uploaded_bytes' => $uploadedBytes,
+                        'total_bytes' => $fileSize,
+                        'percentage' => $percentage,
+                        'part_number' => $partNumber,
+                        'total_parts' => $optimizations['total_parts'],
+                    ]);
+                }
+
+                Log::debug('Part uploaded successfully', [
+                    'part_number' => $partNumber,
+                    'percentage' => round($percentage, 2),
+                ]);
+
+                $partNumber++;
+            }
+
+            fclose($file);
+
+            // Complete multipart upload
+            $result = $this->s3Client->completeMultipartUpload([
+                'Bucket' => $bucket,
+                'Key' => $key,
+                'UploadId' => $uploadId,
+                'MultipartUpload' => [
+                    'Parts' => $parts,
+                ],
+            ]);
+
+            $durationMs = (microtime(true) - $startTime) * 1000;
+
+            Log::info('S3 multipart upload completed successfully', [
+                'user_id' => $user->id,
+                'key' => $key,
+                'file_size' => $fileSize,
+                'parts_uploaded' => count($parts),
+                'duration_ms' => $durationMs,
+                'etag' => $result['ETag'] ?? null,
+            ]);
+
+            return [
+                'key' => $key,
+                'etag' => $result['ETag'] ?? null,
+                'location' => $result['Location'] ?? null,
+                'parts_uploaded' => count($parts),
+                'total_bytes' => $fileSize,
+                'duration_ms' => $durationMs,
+            ];
+
+        } catch (Exception $e) {
+            // Abort multipart upload on failure
+            try {
+                $this->s3Client->abortMultipartUpload([
+                    'Bucket' => $bucket,
+                    'Key' => $key,
+                    'UploadId' => $uploadId,
+                ]);
+                
+                Log::warning('Multipart upload aborted due to error', [
+                    'upload_id' => $uploadId,
+                    'key' => $key,
+                ]);
+            } catch (Exception $abortException) {
+                Log::error('Failed to abort multipart upload', [
+                    'upload_id' => $uploadId,
+                    'error' => $abortException->getMessage(),
+                ]);
+            }
+
+            throw $e;
+        }
     }
 
     /**
@@ -1367,26 +1669,45 @@ class S3Provider implements CloudStorageProviderInterface
     }
 
     /**
+     * Get system-level S3 configuration
+     * Note: S3 uses system-level credentials, not per-user credentials
+     *
+     * @return array
+     */
+    private function getSystemConfig(): array
+    {
+        // Get system-level configuration from database
+        // Note: cloud_storage_settings table is system-level only (no user_id column)
+        $settings = CloudStorageSetting::where('provider', self::PROVIDER_NAME)
+            ->get();
+
+        if ($settings->isEmpty()) {
+            // Fallback to configuration file
+            $globalConfig = config('cloud-storage.providers.amazon-s3.config', []);
+            return $globalConfig;
+        }
+
+        // Build configuration array with decrypted values
+        $config = [];
+        foreach ($settings as $setting) {
+            $key = $setting->key;
+            $config[$key] = $setting->decrypted_value;
+        }
+
+        return $config;
+    }
+
+    /**
      * Get user-specific S3 configuration
+     * Note: For S3, this delegates to system-level config
      *
      * @param User $user
      * @return array
      */
     private function getUserConfig(User $user): array
     {
-        // Get configuration from database settings
-        $settings = CloudStorageSetting::where('user_id', $user->id)
-            ->where('provider', self::PROVIDER_NAME)
-            ->pluck('value', 'key')
-            ->toArray();
-
-        if (empty($settings)) {
-            // Fallback to global configuration
-            $globalConfig = config('cloud-storage.providers.amazon-s3.config', []);
-            return $globalConfig;
-        }
-
-        return $settings;
+        // S3 uses system-level credentials for all users
+        return $this->getSystemConfig();
     }
 
     /**

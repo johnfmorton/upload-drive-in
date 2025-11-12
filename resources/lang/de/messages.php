@@ -178,6 +178,12 @@ return [
     'cloud_storage_unknown_error' => 'Ein unerwarteter Fehler ist mit :provider aufgetreten. Bitte versuchen Sie es erneut oder kontaktieren Sie den Support, falls das Problem weiterhin besteht.',
     'cloud_storage_default_error' => 'Ein Fehler ist während der :provider :operation aufgetreten. Bitte versuchen Sie es erneut.',
 
+    // S3-spezifische Fehlermeldungen
+    'cloud_storage_bucket_not_found' => 'Der :provider-Bucket existiert nicht. Bitte überprüfen Sie den Bucket-Namen in Ihrer Konfiguration.',
+    'cloud_storage_bucket_access_denied' => 'Der Zugriff auf den :provider-Bucket wurde verweigert. Bitte überprüfen Sie, ob Ihre AWS-Anmeldedaten die erforderlichen Berechtigungen haben.',
+    'cloud_storage_invalid_bucket_name' => 'Der :provider-Bucket-Name ist ungültig. Bucket-Namen müssen 3-63 Zeichen lang sein und den S3-Namensregeln folgen.',
+    'cloud_storage_invalid_region' => 'Die :provider-Region ist ungültig. Bitte überprüfen Sie, ob die Region mit dem Standort Ihres Buckets übereinstimmt.',
+
     // Connection Issue Context Messages
     'cloud_storage_persistent_failures' => 'Anhaltende Verbindungsfehler erkannt. Bitte überprüfen Sie Ihre :provider-Kontoeinstellungen und Netzwerkverbindung.',
     'cloud_storage_multiple_token_refresh_attempts' => 'Mehrere Token-Erneuerungsversuche erkannt. Bitte warten Sie ein paar Minuten, bevor Sie es erneut versuchen.',
@@ -815,4 +821,15 @@ return [
     'chunked_upload_failed' => 'Chunked Upload zu Google Drive fehlgeschlagen',
     'chunked_upload_optimal_chunk_size_determined' => 'Optimale Chunk-Größe bestimmt',
     'chunked_upload_decision_made' => 'Chunked Upload-Entscheidung getroffen',
+
+    // S3 Multipart Upload Messages
+    's3_multipart_upload_configured' => 'S3 Multipart-Upload konfiguriert',
+    's3_multipart_upload_starting' => 'Starte S3 Multipart-Upload',
+    's3_multipart_upload_part_uploaded' => 'Teil erfolgreich hochgeladen',
+    's3_multipart_upload_completed' => 'S3 Multipart-Upload erfolgreich abgeschlossen',
+    's3_multipart_upload_failed' => 'S3 Multipart-Upload fehlgeschlagen',
+    's3_multipart_upload_aborted' => 'Multipart-Upload aufgrund eines Fehlers abgebrochen',
+    's3_multipart_abort_failed' => 'Fehler beim Abbrechen des Multipart-Uploads',
+    's3_upload_optimization_applied' => 'S3 Upload-Optimierungen angewendet',
+    's3_failed_to_open_file' => 'Fehler beim Öffnen der Datei: :path',
 ];

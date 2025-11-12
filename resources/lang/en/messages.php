@@ -831,6 +831,12 @@
     'cloud_storage_unknown_error' => 'An unexpected error occurred with :provider. Please try again or contact support if the problem persists.',
     'cloud_storage_default_error' => 'An error occurred during the :provider :operation. Please try again.',
 
+    // S3-specific error messages
+    'cloud_storage_bucket_not_found' => 'The :provider bucket does not exist. Please verify the bucket name in your configuration.',
+    'cloud_storage_bucket_access_denied' => 'Access to the :provider bucket was denied. Please verify your AWS credentials have the necessary permissions.',
+    'cloud_storage_invalid_bucket_name' => 'The :provider bucket name is invalid. Bucket names must be 3-63 characters and follow S3 naming rules.',
+    'cloud_storage_invalid_region' => 'The :provider region is invalid. Please verify the region matches where your bucket is located.',
+
     // Connection Issue Context Messages
     'cloud_storage_persistent_failures' => 'Persistent connection failures detected. Please check your :provider account settings and network connection.',
     'cloud_storage_multiple_token_refresh_attempts' => 'Multiple token refresh attempts detected. Please wait a few minutes before trying again.',
@@ -1440,4 +1446,15 @@
     'chunked_upload_failed' => 'Chunked upload to Google Drive failed',
     'chunked_upload_optimal_chunk_size_determined' => 'Determined optimal chunk size',
     'chunked_upload_decision_made' => 'Chunked upload decision made',
+
+    // S3 Multipart Upload Messages
+    's3_multipart_upload_configured' => 'S3 multipart upload configured',
+    's3_multipart_upload_starting' => 'Starting S3 multipart upload',
+    's3_multipart_upload_part_uploaded' => 'Part uploaded successfully',
+    's3_multipart_upload_completed' => 'S3 multipart upload completed successfully',
+    's3_multipart_upload_failed' => 'S3 multipart upload failed',
+    's3_multipart_upload_aborted' => 'Multipart upload aborted due to error',
+    's3_multipart_abort_failed' => 'Failed to abort multipart upload',
+    's3_upload_optimization_applied' => 'S3 upload optimizations applied',
+    's3_failed_to_open_file' => 'Failed to open file: :path',
 ];

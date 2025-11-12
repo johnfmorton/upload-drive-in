@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Crypt;
 class CloudStorageSetting extends Model
 {
     protected $fillable = [
+        'user_id',
         'provider',
         'key',
         'value',
@@ -44,12 +45,60 @@ class CloudStorageSetting extends Model
     }
 
     /**
-     * Get a setting value for a provider and key.
+     * Scope a query to only include system-level settings (user_id IS NULL).
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public static function getValue(string $provider, string $key): ?string
+    public function scopeSystemLevel($query)
+    {
+        return $query->whereNull('user_id');
+    }
+
+    /**
+     * Scope a query to filter by provider.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $provider
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeForProvider($query, string $provider)
+    {
+        return $query->where('provider', $provider);
+    }
+
+    /**
+     * Get all settings for a provider as a key-value array.
+     * Returns decrypted values for encrypted settings.
+     *
+     * @param string $provider
+     * @param int|null $userId
+     * @return array
+     */
+    public static function getProviderSettings(string $provider, ?int $userId = null): array
+    {
+        $settings = static::where('provider', $provider)
+            ->where('user_id', $userId)
+            ->get();
+
+        return $settings->mapWithKeys(function ($setting) {
+            return [$setting->key => $setting->decrypted_value];
+        })->toArray();
+    }
+
+    /**
+     * Get a setting value for a provider and key.
+     *
+     * @param string $provider
+     * @param string $key
+     * @param int|null $userId
+     * @return string|null
+     */
+    public static function getValue(string $provider, string $key, ?int $userId = null): ?string
     {
         $setting = static::where('provider', $provider)
             ->where('key', $key)
+            ->where('user_id', $userId)
             ->first();
 
         return $setting?->decrypted_value;
@@ -57,11 +106,22 @@ class CloudStorageSetting extends Model
 
     /**
      * Set a setting value for a provider and key.
+     *
+     * @param string $provider
+     * @param string $key
+     * @param string|null $value
+     * @param bool $encrypt
+     * @param int|null $userId
+     * @return void
      */
-    public static function setValue(string $provider, string $key, ?string $value, bool $encrypt = false): void
+    public static function setValue(string $provider, string $key, ?string $value, bool $encrypt = false, ?int $userId = null): void
     {
         $setting = static::updateOrCreate(
-            ['provider' => $provider, 'key' => $key],
+            [
+                'provider' => $provider,
+                'key' => $key,
+                'user_id' => $userId,
+            ],
             []
         );
 

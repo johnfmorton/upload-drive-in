@@ -72,6 +72,19 @@ class CloudStorageErrorMessageService
             CloudStorageErrorType::PROVIDER_NOT_CONFIGURED => 
                 __('messages.cloud_storage_provider_not_configured', ['provider' => $providerName]),
             
+            // S3-specific error types
+            CloudStorageErrorType::BUCKET_NOT_FOUND => 
+                __('messages.cloud_storage_bucket_not_found', ['provider' => $providerName]),
+            
+            CloudStorageErrorType::BUCKET_ACCESS_DENIED => 
+                __('messages.cloud_storage_bucket_access_denied', ['provider' => $providerName]),
+            
+            CloudStorageErrorType::INVALID_BUCKET_NAME => 
+                __('messages.cloud_storage_invalid_bucket_name', ['provider' => $providerName]),
+            
+            CloudStorageErrorType::INVALID_REGION => 
+                __('messages.cloud_storage_invalid_region', ['provider' => $providerName]),
+            
             CloudStorageErrorType::UNKNOWN_ERROR => 
                 __('messages.cloud_storage_unknown_error', [
                     'provider' => $providerName,
@@ -178,6 +191,35 @@ class CloudStorageErrorMessageService
                 'Check your configuration settings',
                 'Ensure all required fields are filled correctly',
                 'Contact support if you need assistance'
+            ],
+            
+            // S3-specific error recovery instructions
+            CloudStorageErrorType::BUCKET_NOT_FOUND => [
+                'Verify the bucket name in your S3 configuration',
+                'Check that the bucket exists in your AWS account',
+                'Ensure the bucket is in the correct region',
+                'Create the bucket if it does not exist'
+            ],
+            
+            CloudStorageErrorType::BUCKET_ACCESS_DENIED => [
+                'Verify your AWS credentials have permission to access the bucket',
+                'Check the bucket policy and IAM permissions',
+                'Ensure the access key has s3:PutObject, s3:GetObject, and s3:ListBucket permissions',
+                'Update your IAM policy if necessary'
+            ],
+            
+            CloudStorageErrorType::INVALID_BUCKET_NAME => [
+                'Check that the bucket name follows S3 naming rules',
+                'Bucket names must be 3-63 characters long',
+                'Use only lowercase letters, numbers, hyphens, and periods',
+                'Bucket names cannot start or end with hyphens'
+            ],
+            
+            CloudStorageErrorType::INVALID_REGION => [
+                'Verify the AWS region in your configuration',
+                'Ensure the region matches where your bucket is located',
+                'Use standard AWS region identifiers (e.g., us-east-1, eu-west-1)',
+                'Check the AWS documentation for valid region codes'
             ],
             
             CloudStorageErrorType::UNKNOWN_ERROR => [
@@ -304,6 +346,23 @@ class CloudStorageErrorMessageService
         
         if ($errorType === 'timeout' || $errorType === CloudStorageErrorType::TIMEOUT) {
             return __('messages.cloud_storage_timeout', ['provider' => $this->getProviderDisplayName($provider), 'operation' => 'operation']);
+        }
+        
+        // Handle S3-specific errors
+        if ($errorType === 'bucket_not_found' || $errorType === CloudStorageErrorType::BUCKET_NOT_FOUND) {
+            return __('messages.cloud_storage_bucket_not_found', ['provider' => $this->getProviderDisplayName($provider)]);
+        }
+        
+        if ($errorType === 'bucket_access_denied' || $errorType === CloudStorageErrorType::BUCKET_ACCESS_DENIED) {
+            return __('messages.cloud_storage_bucket_access_denied', ['provider' => $this->getProviderDisplayName($provider)]);
+        }
+        
+        if ($errorType === 'invalid_bucket_name' || $errorType === CloudStorageErrorType::INVALID_BUCKET_NAME) {
+            return __('messages.cloud_storage_invalid_bucket_name', ['provider' => $this->getProviderDisplayName($provider)]);
+        }
+        
+        if ($errorType === 'invalid_region' || $errorType === CloudStorageErrorType::INVALID_REGION) {
+            return __('messages.cloud_storage_invalid_region', ['provider' => $this->getProviderDisplayName($provider)]);
         }
         
         // Handle consecutive failures with context-aware messaging
