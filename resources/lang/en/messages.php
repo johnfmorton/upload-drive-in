@@ -1465,4 +1465,7 @@
     's3_configuration_validation_error' => 'Validation error: :error',
     's3_configuration_value_updated' => 'S3 configuration value \':key\' updated successfully',
     's3_configuration_update_failed' => 'Failed to update S3 configuration: :error',
+
+    // Amazon S3 Configuration UI
+    'save_configuration' => 'Save Configuration',
 ];
