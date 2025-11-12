@@ -330,4 +330,392 @@ class S3ProviderTest extends TestCase
             }
         }
     }
+
+    /**
+     * Test S3 key generation with various inputs
+     */
+    public function test_generates_s3_key_correctly(): void
+    {
+        // Create settings for the user
+        CloudStorageSetting::create([
+            'user_id' => null, // System-level
+            'provider' => 'amazon-s3',
+            'key' => 'access_key_id',
+            'value' => encrypt('AKIAIOSFODNN7EXAMPLE'),
+            'is_encrypted' => true,
+        ]);
+
+        CloudStorageSetting::create([
+            'user_id' => null,
+            'provider' => 'amazon-s3',
+            'key' => 'secret_access_key',
+            'value' => encrypt('wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'),
+            'is_encrypted' => true,
+        ]);
+
+        CloudStorageSetting::create([
+            'user_id' => null,
+            'provider' => 'amazon-s3',
+            'key' => 'region',
+            'value' => 'us-east-1',
+        ]);
+
+        CloudStorageSetting::create([
+            'user_id' => null,
+            'provider' => 'amazon-s3',
+            'key' => 'bucket',
+            'value' => 'test-bucket',
+        ]);
+
+        // Mock the S3Client and its methods
+        $mockS3Client = Mockery::mock(S3Client::class);
+        $mockS3Client->shouldReceive('putObject')
+            ->once()
+            ->andReturnUsing(function ($params) {
+                // Verify the key format
+                $key = $params['Key'];
+                $this->assertStringContainsString('/', $key);
+                $this->assertStringContainsString('test.pdf', $key);
+                
+                return ['ETag' => '"abc123"'];
+            });
+
+        // Mock log service
+        $this->logService->shouldReceive('logOperationStart')->andReturn('op-123');
+        $this->logService->shouldReceive('logOperationSuccess')->once();
+        
+        // Mock error handler (in case of errors)
+        $this->errorHandler->shouldReceive('classifyError')->andReturn(\App\Enums\CloudStorageErrorType::UNKNOWN_ERROR);
+
+        // Use reflection to inject the mock S3Client
+        $reflection = new \ReflectionClass($this->provider);
+        $property = $reflection->getProperty('s3Client');
+        $property->setAccessible(true);
+        $property->setValue($this->provider, $mockS3Client);
+
+        $configProperty = $reflection->getProperty('config');
+        $configProperty->setAccessible(true);
+        $configProperty->setValue($this->provider, [
+            'access_key_id' => 'AKIAIOSFODNN7EXAMPLE',
+            'secret_access_key' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+            'region' => 'us-east-1',
+            'bucket' => 'test-bucket',
+        ]);
+
+        // Create a temporary file
+        $tempFile = tempnam(sys_get_temp_dir(), 'test');
+        file_put_contents($tempFile, 'test content');
+
+        try {
+            $key = $this->provider->uploadFile(
+                $this->user,
+                $tempFile,
+                'client@example.com',
+                ['original_filename' => 'test.pdf', 'mime_type' => 'application/pdf']
+            );
+
+            // Verify key format: should be client_example_com/test_TIMESTAMP_RANDOM.pdf
+            $this->assertStringContainsString('/', $key);
+            $this->assertStringContainsString('.pdf', $key);
+        } finally {
+            unlink($tempFile);
+        }
+    }
+
+    /**
+     * Test S3 key generation sanitizes special characters
+     */
+    public function test_s3_key_generation_sanitizes_special_characters(): void
+    {
+        // Create settings
+        CloudStorageSetting::create([
+            'user_id' => null,
+            'provider' => 'amazon-s3',
+            'key' => 'access_key_id',
+            'value' => encrypt('AKIAIOSFODNN7EXAMPLE'),
+            'is_encrypted' => true,
+        ]);
+
+        CloudStorageSetting::create([
+            'user_id' => null,
+            'provider' => 'amazon-s3',
+            'key' => 'secret_access_key',
+            'value' => encrypt('wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'),
+            'is_encrypted' => true,
+        ]);
+
+        CloudStorageSetting::create([
+            'user_id' => null,
+            'provider' => 'amazon-s3',
+            'key' => 'region',
+            'value' => 'us-east-1',
+        ]);
+
+        CloudStorageSetting::create([
+            'user_id' => null,
+            'provider' => 'amazon-s3',
+            'key' => 'bucket',
+            'value' => 'test-bucket',
+        ]);
+
+        $mockS3Client = Mockery::mock(S3Client::class);
+        $mockS3Client->shouldReceive('putObject')
+            ->once()
+            ->andReturnUsing(function ($params) {
+                $key = $params['Key'];
+                // Verify no special characters except allowed ones
+                $this->assertDoesNotMatchRegularExpression('/[^a-zA-Z0-9\-_\.\/]/', $key);
+                return ['ETag' => '"abc123"'];
+            });
+
+        $this->logService->shouldReceive('logOperationStart')->andReturn('op-123');
+        $this->logService->shouldReceive('logOperationSuccess')->once();
+        $this->errorHandler->shouldReceive('classifyError')->andReturn(\App\Enums\CloudStorageErrorType::UNKNOWN_ERROR);
+
+        $reflection = new \ReflectionClass($this->provider);
+        $property = $reflection->getProperty('s3Client');
+        $property->setAccessible(true);
+        $property->setValue($this->provider, $mockS3Client);
+
+        $configProperty = $reflection->getProperty('config');
+        $configProperty->setAccessible(true);
+        $configProperty->setValue($this->provider, [
+            'access_key_id' => 'AKIAIOSFODNN7EXAMPLE',
+            'secret_access_key' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+            'region' => 'us-east-1',
+            'bucket' => 'test-bucket',
+        ]);
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'test');
+        file_put_contents($tempFile, 'test content');
+
+        try {
+            $key = $this->provider->uploadFile(
+                $this->user,
+                $tempFile,
+                'client+special@example.com',
+                ['original_filename' => 'test file (1).pdf', 'mime_type' => 'application/pdf']
+            );
+
+            $this->assertIsString($key);
+        } finally {
+            unlink($tempFile);
+        }
+    }
+
+    /**
+     * Test custom endpoint support for S3-compatible services
+     */
+    public function test_initialize_with_custom_endpoint(): void
+    {
+        $config = [
+            'access_key_id' => 'AKIAIOSFODNN7EXAMPLE',
+            'secret_access_key' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+            'region' => 'us-east-1',
+            'bucket' => 'my-test-bucket',
+            'endpoint' => 'https://s3.cloudflare.com',
+        ];
+
+        // Should not throw exception
+        $this->provider->initialize($config);
+        $this->assertTrue(true);
+    }
+
+    /**
+     * Test validation accepts valid custom endpoint
+     */
+    public function test_validate_configuration_with_valid_custom_endpoint(): void
+    {
+        $config = [
+            'access_key_id' => 'AKIAIOSFODNN7EXAMPLE',
+            'secret_access_key' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+            'region' => 'auto',
+            'bucket' => 'my-test-bucket',
+            'endpoint' => 'https://s3.us-west-004.backblazeb2.com',
+        ];
+
+        $errors = $this->provider->validateConfiguration($config);
+        $this->assertEmpty($errors);
+    }
+
+    /**
+     * Test has_valid_connection returns false when not configured
+     */
+    public function test_has_valid_connection_returns_false_when_not_configured(): void
+    {
+        $result = $this->provider->hasValidConnection($this->user);
+        $this->assertFalse($result);
+    }
+
+    /**
+     * Test get_available_storage_classes returns correct classes
+     */
+    public function test_get_available_storage_classes(): void
+    {
+        $classes = $this->provider->getAvailableStorageClasses();
+        
+        $this->assertIsArray($classes);
+        $this->assertArrayHasKey('STANDARD', $classes);
+        $this->assertArrayHasKey('STANDARD_IA', $classes);
+        $this->assertArrayHasKey('GLACIER', $classes);
+        $this->assertArrayHasKey('DEEP_ARCHIVE', $classes);
+        $this->assertArrayHasKey('INTELLIGENT_TIERING', $classes);
+        
+        // Verify structure
+        $this->assertArrayHasKey('name', $classes['STANDARD']);
+        $this->assertArrayHasKey('description', $classes['STANDARD']);
+        $this->assertArrayHasKey('cost_tier', $classes['STANDARD']);
+    }
+
+    /**
+     * Test configuration validation with all valid fields
+     */
+    public function test_validate_configuration_comprehensive(): void
+    {
+        $config = [
+            'access_key_id' => 'AKIAIOSFODNN7EXAMPLE',
+            'secret_access_key' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+            'region' => 'eu-west-1',
+            'bucket' => 'my-company-files-2024',
+            'endpoint' => 'https://s3.example.com',
+        ];
+
+        $errors = $this->provider->validateConfiguration($config);
+        $this->assertEmpty($errors, 'Valid configuration should have no errors');
+    }
+
+    /**
+     * Test multiple validation errors are returned
+     */
+    public function test_validate_configuration_returns_multiple_errors(): void
+    {
+        $config = [
+            'access_key_id' => 'invalid',
+            'secret_access_key' => 'short',
+            'region' => 'INVALID!',
+            'bucket' => 'INVALID_BUCKET',
+        ];
+
+        $errors = $this->provider->validateConfiguration($config);
+        $this->assertGreaterThanOrEqual(4, count($errors));
+    }
+
+    /**
+     * Test region validation accepts various formats
+     */
+    public function test_region_validation_accepts_various_formats(): void
+    {
+        $validRegions = [
+            'us-east-1',
+            'us-west-2',
+            'eu-west-1',
+            'ap-southeast-1',
+            'auto', // For S3-compatible services
+            'us-east-005', // For Backblaze B2
+        ];
+
+        foreach ($validRegions as $region) {
+            $config = [
+                'access_key_id' => 'AKIAIOSFODNN7EXAMPLE',
+                'secret_access_key' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+                'region' => $region,
+                'bucket' => 'test-bucket',
+            ];
+
+            $errors = $this->provider->validateConfiguration($config);
+            $this->assertEmpty($errors, "Region '{$region}' should be valid");
+        }
+    }
+
+    /**
+     * Test disconnect handles errors gracefully
+     */
+    public function test_disconnect_handles_errors_gracefully(): void
+    {
+        // Create settings that will be deleted
+        CloudStorageSetting::create([
+            'user_id' => null,
+            'provider' => 'amazon-s3',
+            'key' => 'access_key_id',
+            'value' => 'AKIAIOSFODNN7EXAMPLE',
+        ]);
+
+        $this->logService->shouldReceive('logOAuthEvent')
+            ->with('amazon-s3', $this->user, 'disconnect_start', true)
+            ->once();
+
+        $this->logService->shouldReceive('logOAuthEvent')
+            ->with('amazon-s3', $this->user, 'disconnect_complete', true)
+            ->once();
+
+        // Should not throw exception even if there are issues
+        $this->provider->disconnect($this->user);
+        
+        $this->assertTrue(true);
+    }
+
+    /**
+     * Test access key validation with edge cases
+     */
+    public function test_access_key_validation_edge_cases(): void
+    {
+        $testCases = [
+            ['AKIAIOSFODNN7EXAMPLE', true], // Valid: 20 uppercase alphanumeric
+            ['AKIAIOSFODNN7EXAMPL', false], // Invalid: 19 characters
+            ['AKIAIOSFODNN7EXAMPLEX', false], // Invalid: 21 characters
+            ['akiaiosfodnn7example', false], // Invalid: lowercase
+            ['AKIAIOSFODNN7EXAMPL!', false], // Invalid: special character
+            ['AKIA1234567890123456', true], // Valid: with numbers
+        ];
+
+        foreach ($testCases as [$accessKey, $shouldBeValid]) {
+            $config = [
+                'access_key_id' => $accessKey,
+                'secret_access_key' => 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+                'region' => 'us-east-1',
+                'bucket' => 'test-bucket',
+            ];
+
+            $errors = $this->provider->validateConfiguration($config);
+            $hasError = in_array('Invalid AWS access_key_id format', $errors);
+
+            if ($shouldBeValid) {
+                $this->assertFalse($hasError, "Access key '{$accessKey}' should be valid");
+            } else {
+                $this->assertTrue($hasError, "Access key '{$accessKey}' should be invalid");
+            }
+        }
+    }
+
+    /**
+     * Test secret key validation with edge cases
+     */
+    public function test_secret_key_validation_edge_cases(): void
+    {
+        $testCases = [
+            ['wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY', true], // Valid: 40 characters
+            ['wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKE', false], // Invalid: 39 characters
+            ['wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEYX', false], // Invalid: 41 characters
+            [str_repeat('a', 40), true], // Valid: exactly 40 characters
+            [str_repeat('a', 39), false], // Invalid: 39 characters
+        ];
+
+        foreach ($testCases as [$secretKey, $shouldBeValid]) {
+            $config = [
+                'access_key_id' => 'AKIAIOSFODNN7EXAMPLE',
+                'secret_access_key' => $secretKey,
+                'region' => 'us-east-1',
+                'bucket' => 'test-bucket',
+            ];
+
+            $errors = $this->provider->validateConfiguration($config);
+            $hasError = in_array('Invalid AWS secret_access_key format', $errors);
+
+            if ($shouldBeValid) {
+                $this->assertFalse($hasError, "Secret key length " . strlen($secretKey) . " should be valid");
+            } else {
+                $this->assertTrue($hasError, "Secret key length " . strlen($secretKey) . " should be invalid");
+            }
+        }
+    }
 }

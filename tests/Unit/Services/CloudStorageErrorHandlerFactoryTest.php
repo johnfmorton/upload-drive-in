@@ -234,7 +234,7 @@ class CloudStorageErrorHandlerFactoryTest extends TestCase
  */
 class TestErrorHandler implements CloudStorageErrorHandlerInterface
 {
-    public function classifyError(Exception $exception): CloudStorageErrorType
+    public function classifyError(\Throwable $exception): CloudStorageErrorType
     {
         return CloudStorageErrorType::UNKNOWN_ERROR;
     }
@@ -280,7 +280,7 @@ class FailingErrorHandler implements CloudStorageErrorHandlerInterface
         throw new Exception('Intentional failure for testing');
     }
 
-    public function classifyError(Exception $exception): CloudStorageErrorType
+    public function classifyError(\Throwable $exception): CloudStorageErrorType
     {
         return CloudStorageErrorType::UNKNOWN_ERROR;
     }

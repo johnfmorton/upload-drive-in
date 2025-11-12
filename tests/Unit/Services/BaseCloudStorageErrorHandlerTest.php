@@ -240,7 +240,7 @@ class TestableBaseCloudStorageErrorHandler extends BaseCloudStorageErrorHandler
         return 'Test Provider';
     }
 
-    protected function classifyProviderException(Exception $exception): ?CloudStorageErrorType
+    protected function classifyProviderException(\Throwable $exception): ?CloudStorageErrorType
     {
         return $this->providerResult;
     }

@@ -260,7 +260,7 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
 
 ## Phase 10: Testing Implementation
 
-- [ ] 28. Create S3Provider unit tests
+- [x] 28. Create S3Provider unit tests
   - Create `tests/Unit/Services/S3ProviderTest.php`
   - Write test for configuration validation
   - Write test for S3 key generation
@@ -270,7 +270,7 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
   - Mock AWS S3Client for isolated testing
   - _Requirements: All requirements_
 
-- [ ] 29. Create S3ErrorHandler unit tests
+- [x] 29. Create S3ErrorHandler unit tests
   - Create `tests/Unit/Services/S3ErrorHandlerTest.php`
   - Write tests for each AWS exception mapping
   - Test InvalidAccessKeyId → INVALID_CREDENTIALS
