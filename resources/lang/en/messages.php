@@ -222,7 +222,7 @@
     'breadcrumb_admin' => 'Admin',
 
     // Security and Registration Validation Messages
-    'public_registration_disabled' => 'New user registration is currently disabled. If you already have an account, please try again or contact support.',
+    'public_registration_disabled' => 'Only invited users can log into this system. If you believe you should have access, please contact the administrator.',
     'email_domain_not_allowed' => 'This email domain is not allowed for new registrations. If you already have an account, please try again or contact support.',
     'security_settings_saved' => 'Security settings have been updated successfully.',
 

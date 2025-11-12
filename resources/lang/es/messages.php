@@ -719,7 +719,7 @@ return [
     'profile_email_verify_sent' => 'Un nuevo enlace de verificación ha sido enviado a tu dirección de correo electrónico.',
 
     // Mensajes de Validación de Seguridad y Registro
-    'public_registration_disabled' => 'El registro de nuevos usuarios está actualmente deshabilitado. Si ya tienes una cuenta, por favor inténtalo de nuevo o contacta al soporte.',
+    'public_registration_disabled' => 'Solo los usuarios invitados pueden iniciar sesión en este sistema. Si crees que deberías tener acceso, por favor contacta al administrador.',
     'email_domain_not_allowed' => 'Este dominio de correo electrónico no está permitido para nuevos registros. Si ya tienes una cuenta, por favor inténtalo de nuevo o contacta al soporte.',
     'security_settings_saved' => 'La configuración de seguridad se ha actualizado exitosamente.',
     
