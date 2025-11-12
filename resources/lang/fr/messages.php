@@ -991,9 +991,47 @@ return [
     's3_configuration_value_updated' => 'Valeur de configuration S3 \':key\' mise à jour avec succès',
     's3_configuration_update_failed' => 'Échec de la mise à jour de la configuration S3',
     
-    // Amazon S3 Disconnect Messages
+    // Amazon S3 Configuration Messages
+    's3_configuration_title' => 'Amazon S3',
+    's3_configuration_description' => 'Configurer les identifiants AWS pour le stockage S3 à l\'échelle du système',
+    's3_disconnect_confirmation' => 'Êtes-vous sûr de vouloir déconnecter Amazon S3 ? Cela supprimera tous les identifiants stockés.',
     's3_disconnected_successfully' => 'Amazon S3 déconnecté avec succès.',
     's3_disconnect_failed' => 'Échec de la déconnexion d\'Amazon S3. Veuillez réessayer.',
+    
+    // S3 Form Labels
+    's3_access_key_id_label' => 'ID de Clé d\'Accès AWS',
+    's3_access_key_id_hint' => 'Doit être exactement 20 caractères alphanumériques majuscules',
+    's3_secret_access_key_label' => 'Clé d\'Accès Secrète AWS',
+    's3_secret_access_key_hint' => 'Doit être exactement 40 caractères. Laissez vide pour conserver la clé secrète existante.',
+    's3_region_label' => 'Région AWS',
+    's3_region_hint' => 'Sélectionnez la région AWS où se trouve votre bucket S3',
+    's3_region_select_prompt' => 'Sélectionnez une région',
+    's3_bucket_name_label' => 'Nom du Bucket S3',
+    's3_bucket_name_hint' => 'Le nom du bucket doit contenir 3-63 caractères, lettres minuscules, chiffres, tirets et points uniquement',
+    's3_endpoint_label' => 'Point de Terminaison Personnalisé (Optionnel)',
+    's3_endpoint_hint' => 'Pour les services compatibles S3 comme Cloudflare R2, Backblaze B2 ou MinIO. Laissez vide pour AWS S3 standard.',
+    
+    // S3 Connection Testing
+    's3_test_connection' => 'Tester la Connexion',
+    's3_testing_connection' => 'Test en cours...',
+    's3_connection_test_successful' => 'Connexion réussie !',
+    's3_connection_test_failed' => 'Échec du test de connexion. Veuillez vérifier vos identifiants et réessayer.',
+    
+    // S3 Configuration Actions
+    's3_save_configuration' => 'Enregistrer la Configuration',
+    's3_saving_configuration' => 'Enregistrement...',
+    's3_configuration_saved_and_verified' => 'Configuration S3 enregistrée et connexion vérifiée avec succès.',
+    's3_configuration_saved_but_connection_failed' => 'Configuration S3 enregistrée mais la connexion a échoué : :error',
+    's3_configuration_saved_but_health_check_failed' => 'Configuration S3 enregistrée mais la vérification de santé a échoué. Veuillez vérifier vos paramètres.',
+    's3_configuration_save_failed' => 'Échec de l\'enregistrement de la configuration S3. Veuillez réessayer.',
+    's3_configuration_update_failed' => 'Échec de la mise à jour de la configuration S3. Veuillez réessayer.',
+    
+    // S3 Validation Messages
+    's3_access_key_id_format_invalid' => 'L\'ID de clé d\'accès AWS doit être exactement 20 caractères alphanumériques majuscules.',
+    's3_secret_access_key_length_invalid' => 'La clé d\'accès secrète AWS doit être exactement 40 caractères.',
+    's3_region_format_invalid' => 'Format de région AWS invalide.',
+    's3_bucket_name_format_invalid' => 'Le nom du bucket doit commencer et se terminer par une lettre ou un chiffre, et contenir uniquement des lettres minuscules, des chiffres, des tirets et des points.',
+    's3_endpoint_url_invalid' => 'Le point de terminaison doit être une URL valide commençant par http:// ou https://.',
 
     // Amazon S3 Configuration UI
     'save_configuration' => 'Enregistrer la Configuration',

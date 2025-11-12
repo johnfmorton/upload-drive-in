@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\CloudStorageErrorType;
 use App\Models\CloudStorageHealthStatus;
+use App\Models\CloudStorageSetting;
 use App\Models\User;
 use App\Notifications\CloudStorageConnectionAlert;
 use Carbon\Carbon;
@@ -23,9 +24,15 @@ class CloudStorageHealthService
      * Ensure valid token by attempting refresh if needed with comprehensive error handling.
      * This method proactively attempts token refresh during status checks and tracks detailed error information.
      * Implements caching for successful token refresh results (5 minutes) and rate limiting.
+     * For S3, this checks system-level credentials instead of per-user tokens.
      */
     public function ensureValidToken(User $user, string $provider): bool
     {
+        // For S3, check system-level credentials instead of per-user tokens
+        if ($provider === 'amazon-s3') {
+            return $this->checkS3SystemCredentials($user);
+        }
+        
         // Check cache for recent successful token validation
         $cacheKey = "token_valid_{$user->id}_{$provider}";
         $cachedResult = Cache::get($cacheKey);
@@ -247,6 +254,7 @@ class CloudStorageHealthService
     /**
      * Determine consolidated status using RealTimeHealthValidator for accurate live validation.
      * Enhanced with real-time API calls and auto-correction of inconsistent health status.
+     * Handles both OAuth-based providers (Google Drive) and API key providers (S3).
      */
     public function determineConsolidatedStatus(User $user, string $provider): string
     {
@@ -271,6 +279,21 @@ class CloudStorageHealthService
                     
                     return $healthStatus->consolidated_status;
                 }
+            }
+            
+            // For S3, use simplified status determination (no token refresh needed)
+            if ($provider === 'amazon-s3') {
+                $consolidatedStatus = $this->determineS3Status($user, $healthStatus);
+                
+                $determinationTime = round((microtime(true) - $startTime) * 1000, 2);
+                
+                $this->logService->logStatusDetermination($user, $provider, $consolidatedStatus, 
+                    'S3 status determined using system-level credentials check', [
+                    's3_specific_logic' => true,
+                    'determination_time_ms' => $determinationTime,
+                ]);
+                
+                return $consolidatedStatus;
             }
             
             // Use PerformanceOptimizedHealthValidator if available, otherwise fall back to RealTimeHealthValidator
@@ -2483,5 +2506,210 @@ class CloudStorageHealthService
         };
 
         return new RealTimeHealthValidator($simplifiedHealthService, $this->storageManager);
+    }
+
+    /**
+     * Determine S3 status using system-level credentials check.
+     * S3 doesn't use per-user tokens, so we check system-level configuration.
+     */
+    private function determineS3Status(User $user, CloudStorageHealthStatus $healthStatus): string
+    {
+        try {
+            // Check if S3 is configured at system level
+            $hasSystemConfig = $this->hasS3SystemConfiguration();
+            
+            if (!$hasSystemConfig) {
+                // Update health status
+                $healthStatus->update([
+                    'consolidated_status' => 'not_connected',
+                    'last_error_type' => CloudStorageErrorType::PROVIDER_NOT_CONFIGURED->value,
+                    'last_error_message' => 'S3 system credentials not configured',
+                    'last_live_validation_at' => now(),
+                ]);
+                
+                Log::debug('S3 not configured at system level', [
+                    'user_id' => $user->id,
+                    'provider' => 'amazon-s3',
+                ]);
+                
+                return 'not_connected';
+            }
+            
+            // Test S3 connectivity using the provider's health check
+            try {
+                $providerInstance = $this->storageManager->getProvider('amazon-s3');
+                $providerHealthStatus = $providerInstance->getConnectionHealth($user);
+                
+                if ($providerHealthStatus->isHealthy()) {
+                    // Update health status with success
+                    $healthStatus->update([
+                        'consolidated_status' => 'healthy',
+                        'last_successful_operation_at' => now(),
+                        'consecutive_failures' => 0,
+                        'last_error_type' => null,
+                        'last_error_message' => null,
+                        'last_live_validation_at' => now(),
+                        'requires_reconnection' => false,
+                    ]);
+                    
+                    return 'healthy';
+                } else {
+                    // Determine appropriate status based on error type
+                    $errorType = $providerHealthStatus->lastErrorType;
+                    $consolidatedStatus = $this->mapS3ErrorToConsolidatedStatus($errorType);
+                    
+                    // Update health status with error details
+                    $healthStatus->update([
+                        'consolidated_status' => $consolidatedStatus,
+                        'last_error_type' => $errorType?->value,
+                        'last_error_message' => $providerHealthStatus->lastErrorMessage,
+                        'last_live_validation_at' => now(),
+                        'consecutive_failures' => $healthStatus->consecutive_failures + 1,
+                        'requires_reconnection' => $providerHealthStatus->requiresReconnection,
+                    ]);
+                    
+                    Log::debug('S3 health check failed', [
+                        'user_id' => $user->id,
+                        'provider' => 'amazon-s3',
+                        'error_type' => $errorType?->value,
+                        'consolidated_status' => $consolidatedStatus,
+                    ]);
+                    
+                    return $consolidatedStatus;
+                }
+            } catch (\Exception $e) {
+                // Connection test failed with exception
+                $healthStatus->update([
+                    'consolidated_status' => 'connection_issues',
+                    'last_error_type' => CloudStorageErrorType::UNKNOWN_ERROR->value,
+                    'last_error_message' => $e->getMessage(),
+                    'last_live_validation_at' => now(),
+                    'consecutive_failures' => $healthStatus->consecutive_failures + 1,
+                ]);
+                
+                Log::error('S3 health check exception', [
+                    'user_id' => $user->id,
+                    'provider' => 'amazon-s3',
+                    'error' => $e->getMessage(),
+                ]);
+                
+                return 'connection_issues';
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to determine S3 status', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return 'connection_issues';
+        }
+    }
+
+    /**
+     * Check if S3 system-level credentials are configured.
+     */
+    private function checkS3SystemCredentials(User $user): bool
+    {
+        try {
+            // Check cache first
+            $cacheKey = "s3_credentials_valid";
+            $cachedResult = Cache::get($cacheKey);
+            
+            if ($cachedResult !== null) {
+                return $cachedResult;
+            }
+            
+            // Check if system-level S3 configuration exists
+            $hasConfig = $this->hasS3SystemConfiguration();
+            
+            if (!$hasConfig) {
+                Cache::put($cacheKey, false, now()->addMinutes(5));
+                return false;
+            }
+            
+            // Try to get the provider and check if it's initialized
+            try {
+                $providerInstance = $this->storageManager->getProvider('amazon-s3');
+                $hasConnection = $providerInstance->hasValidConnection($user);
+                
+                // Cache the result
+                Cache::put($cacheKey, $hasConnection, now()->addMinutes(5));
+                
+                return $hasConnection;
+            } catch (\Exception $e) {
+                Log::debug('S3 credentials check failed', [
+                    'error' => $e->getMessage(),
+                ]);
+                
+                Cache::put($cacheKey, false, now()->addMinute());
+                return false;
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to check S3 system credentials', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return false;
+        }
+    }
+
+    /**
+     * Check if S3 system configuration exists in the database.
+     */
+    private function hasS3SystemConfiguration(): bool
+    {
+        try {
+            $requiredSettings = ['access_key_id', 'secret_access_key', 'region', 'bucket'];
+            
+            foreach ($requiredSettings as $setting) {
+                $exists = CloudStorageSetting::where('provider', 'amazon-s3')
+                    ->where('setting_key', $setting)
+                    ->whereNotNull('setting_value')
+                    ->exists();
+                    
+                if (!$exists) {
+                    return false;
+                }
+            }
+            
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to check S3 system configuration', [
+                'error' => $e->getMessage(),
+            ]);
+            
+            return false;
+        }
+    }
+
+    /**
+     * Map S3 error types to consolidated status.
+     */
+    private function mapS3ErrorToConsolidatedStatus(?CloudStorageErrorType $errorType): string
+    {
+        if (!$errorType) {
+            return 'connection_issues';
+        }
+        
+        return match ($errorType) {
+            CloudStorageErrorType::INVALID_CREDENTIALS,
+            CloudStorageErrorType::BUCKET_ACCESS_DENIED,
+            CloudStorageErrorType::INSUFFICIENT_PERMISSIONS,
+            CloudStorageErrorType::PROVIDER_NOT_CONFIGURED => 'authentication_required',
+            
+            CloudStorageErrorType::BUCKET_NOT_FOUND,
+            CloudStorageErrorType::INVALID_BUCKET_NAME,
+            CloudStorageErrorType::INVALID_REGION => 'authentication_required',
+            
+            CloudStorageErrorType::NETWORK_ERROR,
+            CloudStorageErrorType::API_ERROR,
+            CloudStorageErrorType::SERVICE_UNAVAILABLE,
+            CloudStorageErrorType::API_QUOTA_EXCEEDED => 'connection_issues',
+            
+            default => 'connection_issues',
+        };
     }
 }

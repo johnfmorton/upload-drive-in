@@ -897,10 +897,45 @@ return [
     's3_region_help' => 'Selecciona la región de AWS donde se encuentra tu bucket de S3',
     's3_bucket_name_format' => 'El nombre del bucket debe tener 3-63 caracteres, solo letras minúsculas, números, guiones y puntos',
     's3_custom_endpoint_help' => 'Para servicios compatibles con S3 como Cloudflare R2, Backblaze B2 o MinIO. Dejar en blanco para AWS S3 estándar.',
+    // Amazon S3 Configuration Messages
+    's3_configuration_title' => 'Amazon S3',
+    's3_configuration_description' => 'Configurar credenciales de AWS para almacenamiento S3 en todo el sistema',
+    's3_disconnect_confirmation' => '¿Estás seguro de que quieres desconectar Amazon S3? Esto eliminará todas las credenciales almacenadas.',
+    's3_disconnected_successfully' => 'Amazon S3 desconectado exitosamente.',
+    's3_disconnect_failed' => 'Error al desconectar Amazon S3. Por favor, inténtalo de nuevo.',
+    
+    // S3 Form Labels
+    's3_access_key_id_label' => 'ID de Clave de Acceso de AWS',
+    's3_access_key_id_hint' => 'Debe ser exactamente 20 caracteres alfanuméricos en mayúsculas',
+    's3_secret_access_key_label' => 'Clave de Acceso Secreta de AWS',
+    's3_secret_access_key_hint' => 'Debe ser exactamente 40 caracteres. Déjalo en blanco para mantener la clave secreta existente.',
+    's3_region_label' => 'Región de AWS',
+    's3_region_hint' => 'Selecciona la región de AWS donde se encuentra tu bucket S3',
+    's3_region_select_prompt' => 'Selecciona una región',
+    's3_bucket_name_label' => 'Nombre del Bucket S3',
+    's3_bucket_name_hint' => 'El nombre del bucket debe tener 3-63 caracteres, letras minúsculas, números, guiones y puntos solamente',
+    's3_endpoint_label' => 'Endpoint Personalizado (Opcional)',
+    's3_endpoint_hint' => 'Para servicios compatibles con S3 como Cloudflare R2, Backblaze B2 o MinIO. Déjalo en blanco para AWS S3 estándar.',
+    
+    // S3 Connection Testing
     's3_test_connection' => 'Probar Conexión',
     's3_testing' => 'Probando...',
+    's3_testing_connection' => 'Probando...',
     's3_connection_successful' => '¡Conexión exitosa!',
+    's3_connection_test_successful' => '¡Conexión exitosa!',
+    's3_connection_test_failed' => 'Falló la prueba de conexión. Por favor, verifica tus credenciales e inténtalo de nuevo.',
     's3_saving' => 'Guardando...',
+    
+    // S3 Configuration Actions
+    's3_save_configuration' => 'Guardar Configuración',
+    's3_saving_configuration' => 'Guardando...',
+    's3_configuration_saved_and_verified' => 'Configuración S3 guardada y conexión verificada exitosamente.',
+    's3_configuration_saved_but_connection_failed' => 'Configuración S3 guardada pero la conexión falló: :error',
+    's3_configuration_saved_but_health_check_failed' => 'Configuración S3 guardada pero la verificación de salud falló. Por favor, verifica tu configuración.',
+    's3_configuration_save_failed' => 'Error al guardar la configuración S3. Por favor, inténtalo de nuevo.',
+    's3_configuration_update_failed' => 'Error al actualizar la configuración S3. Por favor, inténtalo de nuevo.',
+    
+    // S3 Validation Messages
     's3_access_key_required' => 'Se requiere el ID de Clave de Acceso',
     's3_access_key_length' => 'El ID de Clave de Acceso debe tener exactamente 20 caracteres',
     's3_access_key_format_invalid' => 'El ID de Clave de Acceso debe contener solo letras mayúsculas y números',

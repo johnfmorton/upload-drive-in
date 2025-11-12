@@ -222,14 +222,14 @@ This implementation plan breaks down the Amazon S3 storage provider feature into
 
 ## Phase 8: Health Status Integration
 
-- [ ] 24. Update CloudStorageHealthService for S3
+- [x] 24. Update CloudStorageHealthService for S3
   - Ensure `determineConsolidatedStatus()` handles S3 provider correctly
   - Add S3-specific health status logic for system-level credentials
   - Handle S3 error types in status determination
   - Update health status caching for S3
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 25. Update dashboard cloud storage widget for S3
+- [x] 25. Update dashboard cloud storage widget for S3
   - Update `resources/views/components/dashboard/cloud-storage-status-widget.blade.php`
   - Display S3 connection status for admin users
   - Show bucket name and region when connected

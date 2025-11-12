@@ -77,6 +77,11 @@
                                     <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"/>
                                 </svg>
                             </template>
+                            <template x-if="provider.provider === 'amazon-s3'">
+                                <svg class="w-8 h-8 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M6.33 6.33A7.5 7.5 0 0 1 12 4.5c2.07 0 3.93.84 5.29 2.19l1.42-1.42A9.5 9.5 0 0 0 12 2.5c-2.62 0-5 1.06-6.71 2.79l1.04 1.04zm11.34 11.34A7.5 7.5 0 0 1 12 19.5c-2.07 0-3.93-.84-5.29-2.19l-1.42 1.42A9.5 9.5 0 0 0 12 21.5c2.62 0 5-1.06 6.71-2.79l-1.04-1.04zM12 7.5c-2.48 0-4.5 2.02-4.5 4.5s2.02 4.5 4.5 4.5 4.5-2.02 4.5-4.5-2.02-4.5-4.5-4.5zm0 7.5c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
+                                </svg>
+                            </template>
                             <!-- Add more provider icons as needed -->
                         </div>
                         
@@ -120,6 +125,22 @@
                             <div :class="getConnectionHealthClass(provider)" class="w-2 h-2 rounded-full mr-1"></div>
                             <span :class="getConnectionHealthTextClass(provider)" 
                                   x-text="getConnectionHealthText(provider)"></span>
+                        </div>
+                    </div>
+
+                    <!-- S3 Connection Details (Bucket and Region) -->
+                    <div x-show="provider.provider === 'amazon-s3' && provider.provider_specific_data && (provider.provider_specific_data.bucket || provider.provider_specific_data.region)" class="space-y-2">
+                        <div x-show="provider.provider_specific_data && provider.provider_specific_data.bucket" class="flex items-center text-sm text-gray-600">
+                            <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                            </svg>
+                            <span>Bucket: <span class="font-medium" x-text="provider.provider_specific_data.bucket"></span></span>
+                        </div>
+                        <div x-show="provider.provider_specific_data && provider.provider_specific_data.region" class="flex items-center text-sm text-gray-600">
+                            <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Region: <span class="font-medium" x-text="provider.provider_specific_data.region"></span></span>
                         </div>
                     </div>
 
@@ -204,8 +225,20 @@
 
                 <!-- Action Buttons -->
                 <div class="mt-4 pt-4 border-t border-gray-200 flex flex-wrap gap-2">
-                    <!-- Reconnect Button -->
-                    <template x-if="(provider.consolidated_status && (provider.consolidated_status === 'authentication_required' || provider.consolidated_status === 'not_connected')) || provider.requires_reconnection || provider.is_disconnected">
+                    <!-- Configure S3 Button (for not connected S3) -->
+                    <template x-if="provider.provider === 'amazon-s3' && (provider.consolidated_status === 'not_connected' || !provider.is_healthy)">
+                        <a :href="'{{ $isAdmin ? route('admin.cloud-storage.index') : route('employee.cloud-storage.index', ['username' => $user->username]) }}'"
+                           class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span>{{ __('Configure S3') }}</span>
+                        </a>
+                    </template>
+
+                    <!-- Reconnect Button (for OAuth providers like Google Drive) -->
+                    <template x-if="provider.provider !== 'amazon-s3' && ((provider.consolidated_status && (provider.consolidated_status === 'authentication_required' || provider.consolidated_status === 'not_connected')) || provider.requires_reconnection || provider.is_disconnected)">
                         <button @click="reconnectProvider(provider.provider)"
                                 :disabled="isReconnecting[provider.provider]"
                                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -669,6 +702,7 @@ function cloudStorageStatusWidget(initialProviders) {
         getProviderDisplayName(provider) {
             const names = {
                 'google-drive': 'Google Drive',
+                'amazon-s3': 'Amazon S3',
                 'onedrive': 'OneDrive'
             };
             return names[provider] || provider;

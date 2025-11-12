@@ -847,10 +847,42 @@ return [
     's3_configuration_update_failed' => 'Fehler beim Aktualisieren der S3-Konfiguration',
     
     // Amazon S3 Disconnect Messages
+    // Amazon S3 Configuration Messages
+    's3_configuration_title' => 'Amazon S3',
+    's3_configuration_description' => 'AWS-Anmeldedaten für systemweiten S3-Speicher konfigurieren',
+    's3_disconnect_confirmation' => 'Sind Sie sicher, dass Sie Amazon S3 trennen möchten? Dies entfernt alle gespeicherten Anmeldedaten.',
     's3_disconnected_successfully' => 'Amazon S3 erfolgreich getrennt.',
     's3_disconnect_failed' => 'Fehler beim Trennen von Amazon S3. Bitte versuchen Sie es erneut.',
+    
+    // S3 Form Labels
+    's3_access_key_id_label' => 'AWS Access Key ID',
+    's3_access_key_id_hint' => 'Muss genau 20 alphanumerische Großbuchstaben sein',
+    's3_secret_access_key_label' => 'AWS Secret Access Key',
+    's3_secret_access_key_hint' => 'Muss genau 40 Zeichen lang sein. Leer lassen, um den vorhandenen geheimen Schlüssel beizubehalten.',
+    's3_region_label' => 'AWS-Region',
+    's3_region_hint' => 'Wählen Sie die AWS-Region, in der sich Ihr S3-Bucket befindet',
+    's3_region_select_prompt' => 'Wählen Sie eine Region',
+    's3_bucket_name_label' => 'S3-Bucket-Name',
+    's3_bucket_name_hint' => 'Bucket-Name muss 3-63 Zeichen lang sein, nur Kleinbuchstaben, Zahlen, Bindestriche und Punkte',
+    's3_endpoint_label' => 'Benutzerdefinierter Endpunkt (Optional)',
+    's3_endpoint_hint' => 'Für S3-kompatible Dienste wie Cloudflare R2, Backblaze B2 oder MinIO. Leer lassen für Standard-AWS S3.',
+    
+    // S3 Connection Testing
+    's3_test_connection' => 'Verbindung testen',
+    's3_testing_connection' => 'Teste...',
+    's3_connection_test_successful' => 'Verbindung erfolgreich!',
+    's3_connection_test_failed' => 'Verbindungstest fehlgeschlagen. Bitte überprüfen Sie Ihre Anmeldedaten und versuchen Sie es erneut.',
+    
+    // S3 Configuration Actions
+    's3_save_configuration' => 'Konfiguration speichern',
+    's3_saving_configuration' => 'Speichere...',
+    's3_configuration_saved_and_verified' => 'S3-Konfiguration gespeichert und Verbindung erfolgreich verifiziert.',
+    's3_configuration_saved_but_connection_failed' => 'S3-Konfiguration gespeichert, aber Verbindung fehlgeschlagen: :error',
+    's3_configuration_saved_but_health_check_failed' => 'S3-Konfiguration gespeichert, aber Gesundheitsprüfung fehlgeschlagen. Bitte überprüfen Sie Ihre Einstellungen.',
+    's3_configuration_save_failed' => 'Fehler beim Speichern der S3-Konfiguration. Bitte versuchen Sie es erneut.',
+    's3_configuration_update_failed' => 'Fehler beim Aktualisieren der S3-Konfiguration. Bitte versuchen Sie es erneut.',
 
-    // Amazon S3 Configuration UI
+    // Amazon S3 Configuration UI (Legacy keys for compatibility)
     'save_configuration' => 'Konfiguration speichern',
     's3_configure_aws_credentials' => 'AWS-Anmeldedaten für systemweiten S3-Speicher konfigurieren',
     's3_aws_access_key_id' => 'AWS Access Key ID',
