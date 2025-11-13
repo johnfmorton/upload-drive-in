@@ -525,7 +525,7 @@
     'nav_client_management' => 'Client Management',
     'client_management_title' => 'Client Management',
     'my_clients_title' => 'My Clients',
-    // Removed duplicates: create_client_user, create_client_description
+    'create_client_user' => 'Create New Client User',
     'create_client_error_intro' => 'Please correct the following errors:',
     'client_created_success' => 'Client user created and invitation sent successfully.',
     // Removed duplicate: create_and_invite_button
@@ -539,6 +539,7 @@
 
     // Google Drive Connection for Employees
     'google_drive_connection' => 'Google Drive Connection',
+    'google_drive_connection_management' => 'Google Drive Connection Management',
     // Using earlier definition: google_drive_connected
     // Removed duplicate: google_drive_not_connected
     'google_drive_app_not_configured' => 'Google Drive App Not Configured',
@@ -600,7 +601,20 @@
     'your_upload_page' => 'Your Upload Page',
     'copy_url' => 'Copy URL',
     'copied' => 'Copied!',
+    'copy_failed' => 'Failed to copy',
+    'upload_url_label' => 'Upload URL',
+    'url_copied_to_clipboard' => 'URL copied to clipboard',
+    'copy_url_to_clipboard' => 'Copy URL to clipboard',
     'share_this_url_with_clients' => 'Share this URL with your clients to receive file uploads.',
+    'cloud_storage' => 'Cloud Storage',
+    'files_stored_in_organization_storage' => 'Files are stored in your organization\'s :provider',
+    'contact_admin_for_storage_questions' => 'Contact your administrator for storage-related questions',
+    'upload_page_not_available' => 'Upload page is not available. Please contact your administrator.',
+    'storage_configuration_error' => 'Cloud storage is not properly configured',
+    'contact_admin_to_resolve' => 'Please contact your administrator to resolve this issue',
+    'cloud_storage_info' => 'Cloud Storage Information',
+    'managed_by_administrator' => 'Managed by your administrator',
+    'contact_admin_for_storage_configuration' => 'For storage configuration or questions, please contact your administrator.',
 
     // Public Employee Upload Page
     'upload_files_for_employee' => 'Upload Files for :name',
@@ -1595,4 +1609,16 @@
     'file_manager_no_files_for_download' => 'No files found for download.',
     'file_manager_zip_creation_failed' => 'Cannot create ZIP archive: :error',
     'file_manager_no_files_added_to_zip' => 'No files could be added to the archive. All files may be stored in cloud storage or inaccessible.',
+
+    // Employee Dashboard - Storage Provider Context
+    'your_upload_page' => 'Your Upload Page',
+    'cloud_storage' => 'Cloud Storage',
+    'files_stored_in_organization_storage' => 'Files are stored in your organization\'s :provider',
+    'contact_admin_for_storage_questions' => 'Contact your administrator for storage-related questions',
+    'upload_page_not_available' => 'Upload page is not available. Please contact your administrator.',
+    'cloud_storage_info' => 'Cloud Storage Information',
+    'managed_by_administrator' => 'Managed by your administrator',
+    'contact_admin_for_storage_configuration' => 'For storage configuration or questions, please contact your administrator.',
+    'storage_configuration_error' => 'Cloud storage is not properly configured',
+    'contact_admin_to_resolve' => 'Please contact your administrator to resolve this issue',
 ];

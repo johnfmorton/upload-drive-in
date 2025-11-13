@@ -76,12 +76,18 @@
                 </div>
             @endif
             
-          
-            
-            <!-- Upload Page Display -->
-            <x-dashboard.google-drive-connection :user="Auth::user()" :is-admin="true" />
-            
+            <!-- Upload Page Section - Always shown -->
+            <x-dashboard.upload-page-section 
+                :user="Auth::user()" 
+                :storage-provider="$storageProvider" 
+            />
 
+            <!-- Google Drive Connection Management - Only for Google Drive -->
+            <x-dashboard.google-drive-connection 
+                :user="Auth::user()" 
+                :is-admin="true"
+                :storage-provider="$storageProvider"
+            />
 
             <!-- File Management Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
@@ -489,7 +495,11 @@
          
 
             <!-- Cloud Storage Status Widget -->
-            <x-dashboard.cloud-storage-status-widget :user="Auth::user()" :is-admin="true" />
+            <x-dashboard.cloud-storage-status-widget 
+                :user="Auth::user()" 
+                :is-admin="true"
+                :storage-provider="$storageProvider" 
+            />
             
             <!-- Queue Worker Testing Section -->
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">

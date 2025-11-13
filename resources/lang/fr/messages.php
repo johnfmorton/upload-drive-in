@@ -100,6 +100,12 @@ return [
     // S3 Configuration Management Messages
     's3_file_not_found' => 'Fichier introuvable : :path (essayé : :tried_path)',
 
+    // Client Management
+    'nav_client_management' => 'Gestion des Clients',
+    'client_management_title' => 'Gestion des Clients',
+    'my_clients_title' => 'Mes Clients',
+    'create_client_user' => 'Créer un Nouvel Utilisateur Client',
+
     // Admin User Creation Messages
     'admin_user_created' => 'Utilisateur client créé avec succès. Vous pouvez leur fournir le lien de connexion manuellement.',
     'admin_user_created_and_invited' => 'Utilisateur client créé et invitation envoyée avec succès.',
@@ -458,6 +464,25 @@ return [
     'proactive_refresh_no_token_found' => 'Aucun token d\'authentification trouvé',
     'proactive_refresh_token_not_expiring' => 'Le token n\'expire pas bientôt et n\'a pas besoin d\'être renouvelé',
     'proactive_refresh_requires_reauth' => 'Le token nécessite une nouvelle authentification utilisateur',
+
+    // Upload Page Section Messages
+    'your_upload_page' => 'Votre Page de Téléchargement',
+    'copy_url' => 'Copier l\'URL',
+    'copied' => 'Copié !',
+    'copy_failed' => 'Échec de la copie',
+    'upload_url_label' => 'URL de Téléchargement',
+    'url_copied_to_clipboard' => 'URL copiée dans le presse-papiers',
+    'copy_url_to_clipboard' => 'Copier l\'URL dans le presse-papiers',
+    'share_this_url_with_clients' => 'Partagez cette URL avec vos clients pour recevoir des téléchargements de fichiers.',
+    'cloud_storage' => 'Stockage Cloud',
+    'files_stored_in_organization_storage' => 'Les fichiers sont stockés dans le :provider de votre organisation',
+    'contact_admin_for_storage_questions' => 'Contactez votre administrateur pour les questions liées au stockage',
+    'upload_page_not_available' => 'La page de téléchargement n\'est pas disponible. Veuillez contacter votre administrateur.',
+    'storage_configuration_error' => 'Le stockage cloud n\'est pas correctement configuré',
+    'contact_admin_to_resolve' => 'Veuillez contacter votre administrateur pour résoudre ce problème',
+    'cloud_storage_info' => 'Informations sur le Stockage Cloud',
+    'managed_by_administrator' => 'Géré par votre administrateur',
+    'contact_admin_for_storage_configuration' => 'Pour la configuration ou les questions sur le stockage, veuillez contacter votre administrateur.',
 
     // Health Status Messages
     'health_status_healthy' => 'Sain',
@@ -940,6 +965,7 @@ return [
     'google_drive_connected_success' => 'Connecté avec succès à Google Drive !',
     'google_drive_pending_uploads_queued' => ':count téléchargements en attente ont été mis en file d\'attente pour une nouvelle tentative.',
     'google_drive_connection_failed' => 'Échec de la connexion à Google Drive',
+    'google_drive_connection_management' => 'Gestion de la Connexion Google Drive',
     'google_drive_auth_code_expired' => 'Le code d\'autorisation a expiré. Veuillez essayer de vous reconnecter.',
     'google_drive_access_denied' => 'L\'accès a été refusé. Veuillez accorder les permissions requises pour connecter Google Drive.',
     'google_drive_invalid_configuration' => 'Configuration Google Drive invalide. Veuillez contacter votre administrateur.',

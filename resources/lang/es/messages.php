@@ -100,6 +100,12 @@ return [
     // S3 Configuration Management Messages
     's3_file_not_found' => 'Archivo no encontrado: :path (intentado: :tried_path)',
 
+    // Client Management
+    'nav_client_management' => 'Gestión de Clientes',
+    'client_management_title' => 'Gestión de Clientes',
+    'my_clients_title' => 'Mis Clientes',
+    'create_client_user' => 'Crear Nuevo Usuario Cliente',
+
     // Admin User Creation Messages
     'admin_user_created' => 'Usuario cliente creado exitosamente. Puedes proporcionarles el enlace de inicio de sesión manualmente.',
     'admin_user_created_and_invited' => 'Usuario cliente creado e invitación enviada exitosamente.',
@@ -352,6 +358,25 @@ return [
     'proactive_refresh_no_token_found' => 'No se encontró token de autenticación',
     'proactive_refresh_token_not_expiring' => 'El token no expira pronto y no necesita renovación',
     'proactive_refresh_requires_reauth' => 'El token requiere nueva autenticación del usuario',
+
+    // Upload Page Section Messages
+    'your_upload_page' => 'Tu Página de Subida',
+    'copy_url' => 'Copiar URL',
+    'copied' => '¡Copiado!',
+    'copy_failed' => 'Error al copiar',
+    'upload_url_label' => 'URL de Subida',
+    'url_copied_to_clipboard' => 'URL copiada al portapapeles',
+    'copy_url_to_clipboard' => 'Copiar URL al portapapeles',
+    'share_this_url_with_clients' => 'Comparte esta URL con tus clientes para recibir subidas de archivos.',
+    'cloud_storage' => 'Almacenamiento en la Nube',
+    'files_stored_in_organization_storage' => 'Los archivos se almacenan en el :provider de tu organización',
+    'contact_admin_for_storage_questions' => 'Contacta a tu administrador para preguntas relacionadas con el almacenamiento',
+    'upload_page_not_available' => 'La página de subida no está disponible. Por favor contacta a tu administrador.',
+    'storage_configuration_error' => 'El almacenamiento en la nube no está configurado correctamente',
+    'contact_admin_to_resolve' => 'Por favor contacta a tu administrador para resolver este problema',
+    'cloud_storage_info' => 'Información de Almacenamiento en la Nube',
+    'managed_by_administrator' => 'Gestionado por tu administrador',
+    'contact_admin_for_storage_configuration' => 'Para configuración o preguntas sobre almacenamiento, por favor contacta a tu administrador.',
 
     // Health Status Messages
     'health_status_healthy' => 'Saludable',
@@ -828,6 +853,7 @@ return [
     'google_drive_connected_success' => '¡Conectado exitosamente a Google Drive!',
     'google_drive_pending_uploads_queued' => ':count subidas pendientes han sido puestas en cola para reintentar.',
     'google_drive_connection_failed' => 'Error al conectar con Google Drive',
+    'google_drive_connection_management' => 'Gestión de Conexión de Google Drive',
     'google_drive_auth_code_expired' => 'El código de autorización ha expirado. Por favor, intente conectarse nuevamente.',
     'google_drive_access_denied' => 'Se denegó el acceso. Por favor, otorgue los permisos requeridos para conectar Google Drive.',
     'google_drive_invalid_configuration' => 'Configuración de Google Drive inválida. Por favor, contacte a su administrador.',

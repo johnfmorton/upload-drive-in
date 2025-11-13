@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\FileUpload;
+use App\Models\CloudStorageSetting;
 use App\Services\QueueTestService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,10 @@ class DashboardController extends AdminController
         // Check if this is a first-time login after setup completion
         $isFirstTimeLogin = $this->checkFirstTimeLogin();
 
-        return view('admin.dashboard', compact('files', 'isFirstTimeLogin'));
+        // Get storage provider information
+        $storageProvider = $this->getStorageProviderInfo($user);
+
+        return view('admin.dashboard', compact('files', 'isFirstTimeLogin', 'storageProvider'));
     }
 
     /**
@@ -73,6 +77,50 @@ class DashboardController extends AdminController
         session()->put($sessionKey, true);
         
         return true;
+    }
+
+    /**
+     * Get storage provider information for the dashboard
+     *
+     * @param \App\Models\User $user
+     * @return array
+     */
+    private function getStorageProviderInfo(\App\Models\User $user): array
+    {
+        $defaultProvider = config('cloud-storage.default');
+        $providerConfig = config("cloud-storage.providers.{$defaultProvider}");
+        
+        return [
+            'provider' => $defaultProvider,
+            'display_name' => $providerConfig['display_name'] ?? ucwords(str_replace('-', ' ', $defaultProvider)),
+            'requires_user_auth' => $providerConfig['requires_user_auth'] ?? false,
+            'is_configured' => $this->isProviderConfigured($defaultProvider),
+            'error' => null
+        ];
+    }
+
+    /**
+     * Check if a storage provider is properly configured
+     *
+     * @param string $provider
+     * @return bool
+     */
+    private function isProviderConfigured(string $provider): bool
+    {
+        switch ($provider) {
+            case 'google-drive':
+                $clientId = \App\Models\CloudStorageSetting::getEffectiveValue('google-drive', 'client_id');
+                $clientSecret = \App\Models\CloudStorageSetting::getEffectiveValue('google-drive', 'client_secret');
+                return !empty($clientId) && !empty($clientSecret);
+                
+            case 'amazon-s3':
+                return !empty(config('filesystems.disks.s3.key')) 
+                    && !empty(config('filesystems.disks.s3.secret'))
+                    && !empty(config('filesystems.disks.s3.bucket'));
+                
+            default:
+                return false;
+        }
     }
 
     public function destroy(FileUpload $file)

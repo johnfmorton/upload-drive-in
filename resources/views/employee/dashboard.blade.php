@@ -8,10 +8,18 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-          
-            
-            <!-- Upload Page Display -->
-            <x-dashboard.google-drive-connection :user="$user" :is-admin="false" />
+            @if($storageProvider['requires_user_auth'])
+                <!-- Google Drive Connection (OAuth providers) -->
+                <x-dashboard.google-drive-connection 
+                    :user="$user" 
+                    :is-admin="false" 
+                    :storage-provider="$storageProvider" />
+            @else
+                <!-- Upload Page Section (System-level providers) -->
+                <x-dashboard.upload-page-section 
+                    :user="$user" 
+                    :storage-provider="$storageProvider" />
+            @endif
 
             
 
@@ -188,16 +196,42 @@
 
             <!-- Dashboard Statistics Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Primary Contact Statistics -->
-                {{-- <x-dashboard.primary-contact-stats :user="$user" :is-admin="false" /> --}}
-                
                 <!-- Client Relationships -->
                 <div class="lg:col-span-1">
                     <x-dashboard.client-relationships :user="$user" :is-admin="false" />
                 </div>
             
-              <!-- Cloud Storage Status Widget -->
-              <x-dashboard.cloud-storage-status-widget :user="$user" :is-admin="false" /></div>
+                @if($storageProvider['requires_user_auth'])
+                    <!-- Cloud Storage Status Widget (only for OAuth providers) -->
+                    <x-dashboard.cloud-storage-status-widget 
+                        :user="$user" 
+                        :is-admin="false" 
+                        :storage-provider="$storageProvider" />
+                @else
+                    <!-- Simplified Storage Info for System-Level Providers -->
+                    <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+                        <h2 class="text-lg font-medium text-gray-900 mb-4">
+                            {{ __('messages.cloud_storage_info') }}
+                        </h2>
+                        <div class="flex items-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <svg class="w-8 h-8 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-medium text-blue-900">
+                                    {{ $storageProvider['display_name'] }}
+                                </p>
+                                <p class="text-sm text-blue-700">
+                                    {{ __('messages.managed_by_administrator') }}
+                                </p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-3">
+                            {{ __('messages.contact_admin_for_storage_configuration') }}
+                        </p>
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 </x-app-layout>

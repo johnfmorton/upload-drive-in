@@ -1,9 +1,15 @@
-@props(['user', 'isAdmin' => false])
+@props(['user', 'isAdmin' => false, 'storageProvider' => null])
 
 @php
     use App\Services\CloudStorageHealthService;
     use App\Services\CloudStorageErrorMessageService;
     use App\Models\FileUpload;
+    
+    // Hide widget for system-level storage providers (like Amazon S3)
+    // System-level providers don't require user authentication, so there's no connection status to manage
+    if ($storageProvider && !$storageProvider['requires_user_auth']) {
+        return;
+    }
     
     $healthService = app(CloudStorageHealthService::class);
     $errorMessageService = app(CloudStorageErrorMessageService::class);

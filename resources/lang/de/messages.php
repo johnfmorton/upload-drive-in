@@ -100,6 +100,12 @@ return [
     // S3 Configuration Management Messages
     's3_file_not_found' => 'Datei nicht gefunden: :path (versucht: :tried_path)',
 
+    // Client Management
+    'nav_client_management' => 'Kundenverwaltung',
+    'client_management_title' => 'Kundenverwaltung',
+    'my_clients_title' => 'Meine Kunden',
+    'create_client_user' => 'Neuen Kundenbenutzer erstellen',
+
     // Admin User Creation Messages
     'admin_user_created' => 'Kundenbenutzer erfolgreich erstellt. Sie können ihnen den Login-Link manuell bereitstellen.',
     'admin_user_created_and_invited' => 'Kundenbenutzer erstellt und Einladung erfolgreich gesendet.',
@@ -459,6 +465,25 @@ return [
     'proactive_refresh_token_not_expiring' => 'Token läuft nicht bald ab und muss nicht erneuert werden',
     'proactive_refresh_requires_reauth' => 'Token erfordert eine erneute Benutzerauthentifizierung',
 
+    // Upload Page Section Messages
+    'your_upload_page' => 'Ihre Upload-Seite',
+    'copy_url' => 'URL kopieren',
+    'copied' => 'Kopiert!',
+    'copy_failed' => 'Kopieren fehlgeschlagen',
+    'upload_url_label' => 'Upload-URL',
+    'url_copied_to_clipboard' => 'URL in die Zwischenablage kopiert',
+    'copy_url_to_clipboard' => 'URL in die Zwischenablage kopieren',
+    'share_this_url_with_clients' => 'Teilen Sie diese URL mit Ihren Kunden, um Datei-Uploads zu erhalten.',
+    'cloud_storage' => 'Cloud-Speicher',
+    'files_stored_in_organization_storage' => 'Dateien werden im :provider Ihrer Organisation gespeichert',
+    'contact_admin_for_storage_questions' => 'Kontaktieren Sie Ihren Administrator für speicherbezogene Fragen',
+    'upload_page_not_available' => 'Die Upload-Seite ist nicht verfügbar. Bitte kontaktieren Sie Ihren Administrator.',
+    'storage_configuration_error' => 'Cloud-Speicher ist nicht richtig konfiguriert',
+    'contact_admin_to_resolve' => 'Bitte kontaktieren Sie Ihren Administrator, um dieses Problem zu lösen',
+    'cloud_storage_info' => 'Cloud-Speicher-Informationen',
+    'managed_by_administrator' => 'Verwaltet von Ihrem Administrator',
+    'contact_admin_for_storage_configuration' => 'Für Speicherkonfiguration oder Fragen kontaktieren Sie bitte Ihren Administrator.',
+
     // Health Status Messages
     'health_status_healthy' => 'Gesund',
     'health_status_authentication_required' => 'Authentifizierung erforderlich',
@@ -795,6 +820,7 @@ return [
     'google_drive_connected_success' => 'Erfolgreich mit Google Drive verbunden!',
     'google_drive_pending_uploads_queued' => ':count ausstehende Uploads wurden zur Wiederholung eingereiht.',
     'google_drive_connection_failed' => 'Verbindung zu Google Drive fehlgeschlagen',
+    'google_drive_connection_management' => 'Google Drive Verbindungsverwaltung',
     'google_drive_auth_code_expired' => 'Der Autorisierungscode ist abgelaufen. Bitte versuchen Sie erneut, eine Verbindung herzustellen.',
     'google_drive_access_denied' => 'Zugriff wurde verweigert. Bitte gewähren Sie die erforderlichen Berechtigungen, um Google Drive zu verbinden.',
     'google_drive_invalid_configuration' => 'Ungültige Google Drive-Konfiguration. Bitte wenden Sie sich an Ihren Administrator.',
