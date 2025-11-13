@@ -76,7 +76,7 @@ class EnhancedConfigurationDropdownTest extends TestCase
         // Try to set a coming soon provider as default
         $response = $this->actingAs($this->adminUser)
             ->put(route('admin.cloud-storage.default'), [
-                'default_provider' => 'amazon-s3' // This should be coming soon
+                'default_provider' => 'microsoft-teams' // This is coming soon
             ]);
 
         $response->assertSessionHasErrors('default_provider');

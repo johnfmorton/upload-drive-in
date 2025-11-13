@@ -374,7 +374,6 @@ function s3ConfigurationHandler() {
                 };
 
             } catch (error) {
-                console.error('Connection test error:', error);
                 this.testResult = {
                     success: false,
                     message: 'Failed to test connection. Please try again.'

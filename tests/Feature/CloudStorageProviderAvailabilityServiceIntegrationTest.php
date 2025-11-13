@@ -19,15 +19,14 @@ class CloudStorageProviderAvailabilityServiceIntegrationTest extends TestCase
     {
         $service = $this->app->make(CloudStorageProviderAvailabilityService::class);
         
-        // Google Drive should be available based on config
+        // Google Drive and Amazon S3 should be available based on config
         $this->assertTrue($service->isProviderFullyFunctional('google-drive'));
+        $this->assertTrue($service->isProviderFullyFunctional('amazon-s3'));
         $this->assertEquals('google-drive', $service->getDefaultProvider());
         
         // Other providers should be coming soon based on config
         $comingSoonProviders = $service->getComingSoonProviders();
-        $this->assertContains('amazon-s3', $comingSoonProviders);
         $this->assertContains('microsoft-teams', $comingSoonProviders);
-        $this->assertContains('dropbox', $comingSoonProviders);
     }
 
     public function test_service_provides_frontend_configuration()
@@ -50,13 +49,12 @@ class CloudStorageProviderAvailabilityServiceIntegrationTest extends TestCase
     {
         $service = $this->app->make(CloudStorageProviderAvailabilityService::class);
         
-        // Valid selection
+        // Valid selections
         $this->assertTrue($service->isValidProviderSelection('google-drive'));
+        $this->assertTrue($service->isValidProviderSelection('amazon-s3'));
         
         // Invalid selections (coming soon providers)
-        $this->assertFalse($service->isValidProviderSelection('amazon-s3'));
         $this->assertFalse($service->isValidProviderSelection('microsoft-teams'));
-        $this->assertFalse($service->isValidProviderSelection('dropbox'));
         
         // Unknown provider
         $this->assertFalse($service->isValidProviderSelection('unknown-provider'));
@@ -65,16 +63,16 @@ class CloudStorageProviderAvailabilityServiceIntegrationTest extends TestCase
     public function test_service_handles_configuration_changes()
     {
         // Temporarily change configuration
-        config(['cloud-storage.provider_availability.amazon-s3' => 'fully_available']);
+        config(['cloud-storage.provider_availability.microsoft-teams' => 'fully_available']);
         
         // Create new service instance to pick up config changes
         $service = new CloudStorageProviderAvailabilityService();
         
-        // Amazon S3 should now be available
-        $this->assertTrue($service->isProviderFullyFunctional('amazon-s3'));
-        $this->assertTrue($service->isValidProviderSelection('amazon-s3'));
+        // Microsoft Teams should now be available
+        $this->assertTrue($service->isProviderFullyFunctional('microsoft-teams'));
+        $this->assertTrue($service->isValidProviderSelection('microsoft-teams'));
         
         $availableProviders = $service->getAvailableProviders();
-        $this->assertContains('amazon-s3', $availableProviders);
+        $this->assertContains('microsoft-teams', $availableProviders);
     }
 }

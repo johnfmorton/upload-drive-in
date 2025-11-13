@@ -22,9 +22,7 @@ class CloudStorageProviderAvailabilityServiceTest extends TestCase
         
         $this->assertIsArray($availableProviders);
         $this->assertContains('google-drive', $availableProviders);
-        $this->assertNotContains('s3', $availableProviders);
-        $this->assertNotContains('onedrive', $availableProviders);
-        $this->assertNotContains('dropbox', $availableProviders);
+        $this->assertContains('amazon-s3', $availableProviders);
     }
 
     public function test_get_coming_soon_providers_returns_correct_providers()
@@ -32,36 +30,32 @@ class CloudStorageProviderAvailabilityServiceTest extends TestCase
         $comingSoonProviders = $this->service->getComingSoonProviders();
         
         $this->assertIsArray($comingSoonProviders);
-        $this->assertContains('s3', $comingSoonProviders);
-        $this->assertContains('onedrive', $comingSoonProviders);
-        $this->assertContains('dropbox', $comingSoonProviders);
+        $this->assertContains('microsoft-teams', $comingSoonProviders);
         $this->assertNotContains('google-drive', $comingSoonProviders);
+        $this->assertNotContains('amazon-s3', $comingSoonProviders);
     }
 
     public function test_is_provider_fully_functional_returns_correct_status()
     {
         $this->assertTrue($this->service->isProviderFullyFunctional('google-drive'));
-        $this->assertFalse($this->service->isProviderFullyFunctional('s3'));
-        $this->assertFalse($this->service->isProviderFullyFunctional('onedrive'));
-        $this->assertFalse($this->service->isProviderFullyFunctional('dropbox'));
+        $this->assertTrue($this->service->isProviderFullyFunctional('amazon-s3'));
+        $this->assertFalse($this->service->isProviderFullyFunctional('microsoft-teams'));
         $this->assertFalse($this->service->isProviderFullyFunctional('unknown-provider'));
     }
 
     public function test_get_provider_availability_status_returns_correct_string()
     {
         $this->assertEquals('fully_available', $this->service->getProviderAvailabilityStatus('google-drive'));
-        $this->assertEquals('coming_soon', $this->service->getProviderAvailabilityStatus('s3'));
-        $this->assertEquals('coming_soon', $this->service->getProviderAvailabilityStatus('onedrive'));
-        $this->assertEquals('coming_soon', $this->service->getProviderAvailabilityStatus('dropbox'));
+        $this->assertEquals('fully_available', $this->service->getProviderAvailabilityStatus('amazon-s3'));
+        $this->assertEquals('coming_soon', $this->service->getProviderAvailabilityStatus('microsoft-teams'));
         $this->assertEquals('deprecated', $this->service->getProviderAvailabilityStatus('unknown-provider'));
     }
 
     public function test_get_provider_availability_status_enum_returns_correct_enum()
     {
         $this->assertEquals(ProviderAvailabilityStatus::FULLY_AVAILABLE, $this->service->getProviderAvailabilityStatusEnum('google-drive'));
-        $this->assertEquals(ProviderAvailabilityStatus::COMING_SOON, $this->service->getProviderAvailabilityStatusEnum('s3'));
-        $this->assertEquals(ProviderAvailabilityStatus::COMING_SOON, $this->service->getProviderAvailabilityStatusEnum('onedrive'));
-        $this->assertEquals(ProviderAvailabilityStatus::COMING_SOON, $this->service->getProviderAvailabilityStatusEnum('dropbox'));
+        $this->assertEquals(ProviderAvailabilityStatus::FULLY_AVAILABLE, $this->service->getProviderAvailabilityStatusEnum('amazon-s3'));
+        $this->assertEquals(ProviderAvailabilityStatus::COMING_SOON, $this->service->getProviderAvailabilityStatusEnum('microsoft-teams'));
         $this->assertEquals(ProviderAvailabilityStatus::DEPRECATED, $this->service->getProviderAvailabilityStatusEnum('unknown-provider'));
     }
 
@@ -70,7 +64,7 @@ class CloudStorageProviderAvailabilityServiceTest extends TestCase
         $providersWithStatus = $this->service->getAllProvidersWithStatus();
         
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $providersWithStatus);
-        $this->assertGreaterThanOrEqual(4, $providersWithStatus->count()); // At least 4 providers
+        $this->assertGreaterThanOrEqual(3, $providersWithStatus->count()); // At least 3 providers
         
         // Test Google Drive data
         $googleDriveData = $providersWithStatus->get('google-drive');
@@ -80,6 +74,15 @@ class CloudStorageProviderAvailabilityServiceTest extends TestCase
         $this->assertTrue($googleDriveData['selectable']);
         $this->assertTrue($googleDriveData['visible']);
         $this->assertEquals('Available', $googleDriveData['status_label']);
+        
+        // Test Amazon S3 data
+        $s3Data = $providersWithStatus->get('amazon-s3');
+        $this->assertNotNull($s3Data);
+        $this->assertEquals(ProviderAvailabilityStatus::FULLY_AVAILABLE, $s3Data['status']);
+        $this->assertEquals('Amazon S3', $s3Data['label']);
+        $this->assertTrue($s3Data['selectable']);
+        $this->assertTrue($s3Data['visible']);
+        $this->assertEquals('Available', $s3Data['status_label']);
         
         // Test that we have coming soon providers
         $comingSoonProviders = $providersWithStatus->filter(fn($data) => $data['status'] === ProviderAvailabilityStatus::COMING_SOON);
@@ -91,10 +94,11 @@ class CloudStorageProviderAvailabilityServiceTest extends TestCase
         $visibleProviders = $this->service->getVisibleProviders();
         
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $visibleProviders);
-        $this->assertGreaterThanOrEqual(4, $visibleProviders->count()); // At least 4 providers are visible
+        $this->assertGreaterThanOrEqual(3, $visibleProviders->count()); // At least 3 providers are visible
         
-        // Google Drive should be visible
+        // Google Drive and Amazon S3 should be visible
         $this->assertTrue($visibleProviders->has('google-drive'));
+        $this->assertTrue($visibleProviders->has('amazon-s3'));
         
         // All visible providers should have visible = true
         foreach ($visibleProviders as $providerData) {
@@ -107,12 +111,11 @@ class CloudStorageProviderAvailabilityServiceTest extends TestCase
         $selectableProviders = $this->service->getSelectableProviders();
         
         $this->assertInstanceOf(\Illuminate\Support\Collection::class, $selectableProviders);
-        $this->assertCount(1, $selectableProviders); // Only Google Drive is selectable
+        $this->assertCount(2, $selectableProviders); // Google Drive and Amazon S3 are selectable
         
         $this->assertTrue($selectableProviders->has('google-drive'));
-        $this->assertFalse($selectableProviders->has('s3'));
-        $this->assertFalse($selectableProviders->has('onedrive'));
-        $this->assertFalse($selectableProviders->has('dropbox'));
+        $this->assertTrue($selectableProviders->has('amazon-s3'));
+        $this->assertFalse($selectableProviders->has('microsoft-teams'));
     }
 
     public function test_get_default_provider_returns_first_available()
@@ -125,9 +128,8 @@ class CloudStorageProviderAvailabilityServiceTest extends TestCase
     public function test_is_valid_provider_selection_validates_correctly()
     {
         $this->assertTrue($this->service->isValidProviderSelection('google-drive'));
-        $this->assertFalse($this->service->isValidProviderSelection('s3'));
-        $this->assertFalse($this->service->isValidProviderSelection('onedrive'));
-        $this->assertFalse($this->service->isValidProviderSelection('dropbox'));
+        $this->assertTrue($this->service->isValidProviderSelection('amazon-s3'));
+        $this->assertFalse($this->service->isValidProviderSelection('microsoft-teams'));
         $this->assertFalse($this->service->isValidProviderSelection('unknown-provider'));
     }
 
@@ -136,7 +138,7 @@ class CloudStorageProviderAvailabilityServiceTest extends TestCase
         $frontendConfig = $this->service->getProviderConfigurationForFrontend();
         
         $this->assertIsArray($frontendConfig);
-        $this->assertGreaterThanOrEqual(4, count($frontendConfig)); // At least 4 providers
+        $this->assertGreaterThanOrEqual(3, count($frontendConfig)); // At least 3 providers
         
         // Test Google Drive configuration
         $this->assertArrayHasKey('google-drive', $frontendConfig);
@@ -146,6 +148,15 @@ class CloudStorageProviderAvailabilityServiceTest extends TestCase
         $this->assertEquals('Available', $googleDriveConfig['status_label']);
         $this->assertTrue($googleDriveConfig['selectable']);
         $this->assertTrue($googleDriveConfig['default']);
+        
+        // Test Amazon S3 configuration
+        $this->assertArrayHasKey('amazon-s3', $frontendConfig);
+        $s3Config = $frontendConfig['amazon-s3'];
+        $this->assertEquals('Amazon S3', $s3Config['label']);
+        $this->assertEquals('fully_available', $s3Config['status']);
+        $this->assertEquals('Available', $s3Config['status_label']);
+        $this->assertTrue($s3Config['selectable']);
+        $this->assertFalse($s3Config['default']); // Google Drive is default
         
         // Test that we have coming soon providers
         $comingSoonProviders = array_filter($frontendConfig, fn($config) => $config['status'] === 'coming_soon');
@@ -163,20 +174,20 @@ class CloudStorageProviderAvailabilityServiceTest extends TestCase
 
     public function test_update_provider_status_changes_status()
     {
-        // Initially S3 is coming soon
-        $this->assertEquals(ProviderAvailabilityStatus::COMING_SOON, $this->service->getProviderAvailabilityStatusEnum('s3'));
+        // Initially Microsoft Teams is coming soon
+        $this->assertEquals(ProviderAvailabilityStatus::COMING_SOON, $this->service->getProviderAvailabilityStatusEnum('microsoft-teams'));
         
-        // Update S3 to fully available
-        $this->service->updateProviderStatus('s3', ProviderAvailabilityStatus::FULLY_AVAILABLE);
+        // Update Microsoft Teams to fully available
+        $this->service->updateProviderStatus('microsoft-teams', ProviderAvailabilityStatus::FULLY_AVAILABLE);
         
         // Verify the change
-        $this->assertEquals(ProviderAvailabilityStatus::FULLY_AVAILABLE, $this->service->getProviderAvailabilityStatusEnum('s3'));
-        $this->assertTrue($this->service->isProviderFullyFunctional('s3'));
-        $this->assertTrue($this->service->isValidProviderSelection('s3'));
+        $this->assertEquals(ProviderAvailabilityStatus::FULLY_AVAILABLE, $this->service->getProviderAvailabilityStatusEnum('microsoft-teams'));
+        $this->assertTrue($this->service->isProviderFullyFunctional('microsoft-teams'));
+        $this->assertTrue($this->service->isValidProviderSelection('microsoft-teams'));
         
         // Verify it's now in available providers
         $availableProviders = $this->service->getAvailableProviders();
-        $this->assertContains('s3', $availableProviders);
+        $this->assertContains('microsoft-teams', $availableProviders);
     }
 
     public function test_provider_availability_status_enum_methods()

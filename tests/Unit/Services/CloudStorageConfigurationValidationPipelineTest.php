@@ -104,10 +104,10 @@ class CloudStorageConfigurationValidationPipelineTest extends TestCase
     public function test_validate_provider_selection_provider_not_available()
     {
         // Arrange
-        $provider = 'amazon-s3';
+        $provider = 'microsoft-teams';
         
         $this->configService->shouldReceive('getSupportedProviders')
-            ->andReturn(['google-drive', 'amazon-s3']);
+            ->andReturn(['google-drive', 'amazon-s3', 'microsoft-teams']);
         
         $this->availabilityService->shouldReceive('isProviderFullyFunctional')
             ->with($provider)
@@ -122,7 +122,7 @@ class CloudStorageConfigurationValidationPipelineTest extends TestCase
 
         // Assert
         $this->assertFalse($result->isValid);
-        $this->assertContains("Provider 'amazon-s3' is not currently available (status: coming_soon)", $result->errors);
+        $this->assertContains("Provider 'microsoft-teams' is not currently available (status: coming_soon)", $result->errors);
         $this->assertStringContainsString('Please select an available provider', $result->recommendedAction);
     }
 
