@@ -10,7 +10,6 @@ use App\Http\Controllers\Admin\SecuritySettingsController;
 use App\Http\Controllers\CloudStorage\MicrosoftTeamsAuthController;
 use App\Http\Controllers\Admin\GoogleDriveFolderController;
 use App\Http\Controllers\Admin\EmployeeController;
-use App\Http\Controllers\Admin\TwoFactorAuthController;
 use Illuminate\Support\Facades\Route;
 
 // Two Factor Authentication Routes are now handled by the LaravelAdmin2FA package
@@ -61,14 +60,6 @@ Route::prefix('file-manager')
                 Route::get('/{file}/thumbnail', [\App\Http\Controllers\Admin\FileManagerController::class, 'thumbnail'])->name('thumbnail');
             });
     });
-
-// Legacy File management (for backward compatibility)
-Route::delete('/files/{file}', [DashboardController::class, 'destroy'])
-    ->name('files.destroy');
-Route::post('/files/process-pending', [DashboardController::class, 'processPendingUploads'])
-    ->name('files.process-pending');
-Route::post('/files/retry-failed', [DashboardController::class, 'retryFailedUploads'])
-    ->name('files.retry-failed');
 
 // User Management
 Route::resource('/users', AdminUserController::class)
