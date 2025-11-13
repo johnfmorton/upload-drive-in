@@ -349,22 +349,24 @@ class FileManagerService
             $errors = [];
             $warnings = [];
 
-            // Delete from Google Drive if exists
+            // Delete from cloud storage if exists
             if ($file->google_drive_file_id) {
                 try {
-                    $deleted = $file->deleteFromGoogleDrive();
+                    $deleted = $this->deleteFromCloudStorage($file);
                     if (!$deleted) {
-                        $warnings[] = 'File may still exist in Google Drive';
-                        Log::warning('Failed to delete file from Google Drive', [
+                        $warnings[] = 'File may still exist in cloud storage';
+                        Log::warning('Failed to delete file from cloud storage', [
                             'file_id' => $file->id,
-                            'google_drive_file_id' => $file->google_drive_file_id
+                            'cloud_file_id' => $file->google_drive_file_id,
+                            'provider' => $file->cloud_storage_provider
                         ]);
                     }
                 } catch (\Exception $e) {
-                    $warnings[] = 'Google Drive deletion failed: ' . $e->getMessage();
-                    Log::error('Google Drive deletion error', [
+                    $warnings[] = 'Cloud storage deletion failed: ' . $e->getMessage();
+                    Log::error('Cloud storage deletion error', [
                         'file_id' => $file->id,
-                        'google_drive_file_id' => $file->google_drive_file_id,
+                        'cloud_file_id' => $file->google_drive_file_id,
+                        'provider' => $file->cloud_storage_provider,
                         'error' => $e->getMessage()
                     ]);
                 }
@@ -499,7 +501,8 @@ class FileManagerService
             'file_id' => $file->id,
             'filename' => $file->original_filename,
             'has_local' => $this->hasLocalFile($file),
-            'has_google_drive' => !empty($file->google_drive_file_id)
+            'has_cloud_storage' => !empty($file->google_drive_file_id),
+            'cloud_storage_provider' => $file->cloud_storage_provider
         ]);
 
         // Try local file first
@@ -507,12 +510,12 @@ class FileManagerService
             return $this->downloadLocalFile($file);
         }
 
-        // Try Google Drive if file has Google Drive ID
+        // Try cloud storage if file has cloud storage ID
         if ($file->google_drive_file_id) {
-            return $this->downloadGoogleDriveFile($file, $user);
+            return $this->downloadCloudStorageFile($file, $user);
         }
 
-        throw new \Exception('File not found in local storage or Google Drive.');
+        throw new \Exception(__('messages.file_download_not_found_local_or_cloud'));
     }
 
     /**
@@ -537,6 +540,74 @@ class FileManagerService
     }
 
     /**
+     * Download file from cloud storage (Google Drive or S3) with streaming support.
+     */
+    private function downloadCloudStorageFile(FileUpload $file, ?User $user = null): StreamedResponse
+    {
+        // Determine which provider to use
+        $provider = $file->cloud_storage_provider;
+        
+        // If provider is not set, try to detect based on file ID format
+        if (!$provider) {
+            // S3 keys typically contain "/" and don't start with "1" (Google Drive IDs start with alphanumeric)
+            if (str_contains($file->google_drive_file_id, '/')) {
+                $provider = 'amazon-s3';
+            } else {
+                $provider = 'google-drive';
+            }
+            
+            Log::info('Detected cloud storage provider from file ID format for download', [
+                'file_id' => $file->id,
+                'cloud_file_id' => $file->google_drive_file_id,
+                'detected_provider' => $provider,
+            ]);
+        }
+        
+        if ($provider === 'amazon-s3' || $provider === 's3') {
+            return $this->downloadS3File($file, $user);
+        } else {
+            return $this->downloadGoogleDriveFile($file, $user);
+        }
+    }
+
+    /**
+     * Download file from Amazon S3 with streaming support.
+     */
+    private function downloadS3File(FileUpload $file, ?User $user = null): StreamedResponse
+    {
+        Log::info('Downloading file from S3', [
+            'file_id' => $file->id,
+            's3_key' => $file->google_drive_file_id,
+        ]);
+
+        try {
+            $storageManager = app(\App\Services\CloudStorageManager::class);
+            $provider = $storageManager->getUserProvider($user ?? auth()->user());
+            
+            // Download file content from S3
+            $fileContent = $provider->downloadFile($user ?? auth()->user(), $file->google_drive_file_id);
+            
+            // Return as streamed response
+            return response()->streamDownload(function () use ($fileContent) {
+                echo $fileContent;
+            }, $file->original_filename, [
+                'Content-Type' => $file->mime_type,
+                'Content-Length' => strlen($fileContent),
+                'Cache-Control' => 'no-cache, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to download file from S3', [
+                'file_id' => $file->id,
+                's3_key' => $file->google_drive_file_id,
+                'error' => $e->getMessage()
+            ]);
+            throw new \Exception(__('messages.file_download_s3_failed', ['error' => $e->getMessage()]));
+        }
+    }
+
+    /**
      * Download file from Google Drive with streaming support.
      */
     private function downloadGoogleDriveFile(FileUpload $file, ?User $user = null): StreamedResponse
@@ -545,7 +616,7 @@ class FileManagerService
         $driveUser = $this->findGoogleDriveUser($user);
         
         if (!$driveUser) {
-            throw new \Exception('No Google Drive connection available for download. Please ensure an admin has connected their Google Drive account.');
+            throw new \Exception(__('messages.file_download_no_google_drive_connection'));
         }
 
         Log::info('Downloading file from Google Drive', [
@@ -567,7 +638,7 @@ class FileManagerService
                 'google_drive_file_id' => $file->google_drive_file_id,
                 'error' => $e->getMessage()
             ]);
-            throw new \Exception('Failed to download file from Google Drive: ' . $e->getMessage());
+            throw new \Exception(__('messages.file_download_google_drive_failed', ['error' => $e->getMessage()]));
         }
     }
 
@@ -615,6 +686,84 @@ class FileManagerService
     }
 
     /**
+     * Delete file from cloud storage (Google Drive or S3).
+     */
+    private function deleteFromCloudStorage(FileUpload $file): bool
+    {
+        // Determine which provider to use
+        $provider = $file->cloud_storage_provider;
+        
+        // If provider is not set, try to detect based on file ID format
+        if (!$provider) {
+            // S3 keys typically contain "/" and don't start with "1" (Google Drive IDs start with alphanumeric)
+            if (str_contains($file->google_drive_file_id, '/')) {
+                $provider = 'amazon-s3';
+            } else {
+                $provider = 'google-drive';
+            }
+            
+            Log::info('Detected cloud storage provider from file ID format for deletion', [
+                'file_id' => $file->id,
+                'cloud_file_id' => $file->google_drive_file_id,
+                'detected_provider' => $provider,
+            ]);
+        }
+        
+        if ($provider === 'amazon-s3' || $provider === 's3') {
+            return $this->deleteFromS3($file);
+        } else {
+            return $file->deleteFromGoogleDrive();
+        }
+    }
+
+    /**
+     * Delete file from Amazon S3.
+     */
+    private function deleteFromS3(FileUpload $file): bool
+    {
+        try {
+            Log::info('Deleting file from S3', [
+                'file_id' => $file->id,
+                's3_key' => $file->google_drive_file_id,
+            ]);
+
+            $storageManager = app(\App\Services\CloudStorageManager::class);
+            
+            // Find a user with access to delete the file
+            $user = auth()->user();
+            if (!$user) {
+                // If no authenticated user, try to find an admin
+                $user = User::where('role', \App\Enums\UserRole::ADMIN)->first();
+            }
+            
+            if (!$user) {
+                throw new \Exception(__('messages.file_manager_no_user_for_s3_delete'));
+            }
+            
+            $provider = $storageManager->getUserProvider($user);
+            
+            // Delete file from S3
+            $deleted = $provider->deleteFile($user, $file->google_drive_file_id);
+            
+            if ($deleted) {
+                Log::info('File deleted from S3 successfully', [
+                    'file_id' => $file->id,
+                    's3_key' => $file->google_drive_file_id,
+                ]);
+            }
+            
+            return $deleted;
+        } catch (\Exception $e) {
+            Log::error('Failed to delete file from S3', [
+                'file_id' => $file->id,
+                's3_key' => $file->google_drive_file_id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * Find a user with Google Drive access for downloading files.
      */
     private function findGoogleDriveUser(?User $requestingUser = null): ?User
@@ -638,7 +787,7 @@ class FileManagerService
         $files = FileUpload::whereIn('id', $fileIds)->get();
         
         if ($files->isEmpty()) {
-            throw new \Exception('No files found for download.');
+            throw new \Exception(__('messages.file_manager_no_files_for_download'));
         }
 
         $zipFileName = 'bulk_download_' . now()->format('Y-m-d_H-i-s') . '.zip';
@@ -654,7 +803,7 @@ class FileManagerService
             $result = $zip->open($tempZipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
             
             if ($result !== TRUE) {
-                throw new \Exception('Cannot create ZIP archive: ' . $this->getZipError($result));
+                throw new \Exception(__('messages.file_manager_zip_creation_failed', ['error' => $this->getZipError($result)]));
             }
 
             $addedFiles = 0;
@@ -696,7 +845,7 @@ class FileManagerService
 
             if ($addedFiles === 0) {
                 unlink($tempZipPath);
-                throw new \Exception('No files could be added to the archive. All files may be stored in Google Drive or inaccessible.');
+                throw new \Exception(__('messages.file_manager_no_files_added_to_zip'));
             }
 
             Log::info('Bulk download ZIP created', [

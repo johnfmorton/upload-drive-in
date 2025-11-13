@@ -149,6 +149,10 @@ return [
     'team_assignments_updated_success' => 'Asignaciones de equipo actualizadas exitosamente.',
     'team_assignments_update_failed' => 'Error al actualizar las asignaciones de equipo. Por favor intenta de nuevo.',
 
+    // Cloud Storage Settings
+    'settings_updated_successfully' => 'Configuración actualizada exitosamente.',
+    'settings_update_failed' => 'Error al actualizar la configuración. Por favor intenta de nuevo.',
+
     // Cloud Storage Status Messages (from CloudStorageStatusMessages class)
     'cloud_storage_rate_limited' => 'Demasiados intentos de renovación de token. Por favor, inténtalo de nuevo más tarde.',
     'cloud_storage_auth_required' => 'Autenticación requerida. Por favor, reconecta tu cuenta.',

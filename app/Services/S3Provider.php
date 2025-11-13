@@ -151,6 +151,72 @@ class S3Provider implements CloudStorageProviderInterface
     }
 
     /**
+     * Download a file from Amazon S3
+     *
+     * @param User $user The user whose S3 to use
+     * @param string $fileId The S3 object key
+     * @return string The file content
+     * @throws CloudStorageException
+     */
+    public function downloadFile(User $user, string $fileId): string
+    {
+        $startTime = microtime(true);
+        $operationId = $this->logService->logOperationStart('download', self::PROVIDER_NAME, $user, [
+            'file_id' => $fileId,
+        ]);
+
+        try {
+            $this->ensureInitialized($user);
+
+            // Download file from S3
+            $result = $this->s3Client->getObject([
+                'Bucket' => $this->getBucket($user),
+                'Key' => $fileId,
+            ]);
+
+            $fileContent = (string) $result['Body'];
+
+            $durationMs = (microtime(true) - $startTime) * 1000;
+            $this->logService->logOperationSuccess($operationId, 'download', self::PROVIDER_NAME, $user, [
+                'key' => $fileId,
+                'file_size' => strlen($fileContent),
+            ], $durationMs);
+
+            return $fileContent;
+
+        } catch (Exception $e) {
+            $errorType = $this->errorHandler->classifyError($e);
+            $durationMs = (microtime(true) - $startTime) * 1000;
+            
+            $this->logService->logOperationFailure(
+                $operationId,
+                'download',
+                self::PROVIDER_NAME,
+                $user,
+                $errorType,
+                $e->getMessage(),
+                [
+                    'file_id' => $fileId,
+                ],
+                $durationMs,
+                $e
+            );
+
+            throw CloudStorageException::create(
+                $errorType,
+                self::PROVIDER_NAME,
+                [
+                    'operation' => 'download',
+                    'file_id' => $fileId,
+                    'user_id' => $user->id,
+                    'original_message' => $e->getMessage()
+                ],
+                $e
+            );
+        }
+    }
+
+    /**
      * Delete a file from Amazon S3
      *
      * @param User $user The user whose S3 to use

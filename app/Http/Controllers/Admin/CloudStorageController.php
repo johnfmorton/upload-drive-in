@@ -177,12 +177,17 @@ class CloudStorageController extends Controller
             // Save default provider into .env
             $this->updateEnvironmentValue('CLOUD_STORAGE_DEFAULT', $validated['default_provider']);
 
+            // Clear all users' preferred_cloud_provider so the system default applies to everyone
+            // This ensures that when admin changes the default, it affects all users (clients and employees)
+            \App\Models\User::query()->update(['preferred_cloud_provider' => null]);
+
             // Clear config cache so new default is applied
             Artisan::call('config:clear');
 
             Log::info('Default storage provider environment variable updated successfully', [
                 'provider' => $validated['default_provider'],
                 'available_providers' => $availableProviders,
+                'users_updated' => 'All users preferred_cloud_provider cleared to use system default',
             ]);
 
             return redirect()->back()->with('success', __('messages.settings_updated_successfully'));
@@ -1424,12 +1429,9 @@ class CloudStorageController extends Controller
                     ->with('error', $storeResult['message'] ?? __('messages.s3_configuration_save_failed'));
             }
 
-            // Update user's preferred cloud provider to Amazon S3
-            $user->update(['preferred_cloud_provider' => 'amazon-s3']);
-            
-            Log::info('Updated user preferred cloud provider to Amazon S3', [
-                'user_id' => $user->id,
-            ]);
+            // Note: We don't set user's preferred_cloud_provider here
+            // The system default (CLOUD_STORAGE_DEFAULT) controls which provider is used
+            // Admin must explicitly set the default provider via the "Default Provider" setting
 
             // Perform health check after configuration save
             Log::info('S3 configuration saved, performing health check', [

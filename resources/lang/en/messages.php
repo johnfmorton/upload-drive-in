@@ -1570,4 +1570,29 @@
     's3_asia_singapore' => 'Asia Pacific (Singapore)',
     's3_asia_sydney' => 'Asia Pacific (Sydney)',
     's3_south_america_sao_paulo' => 'South America (São Paulo)',
+
+    // File Preview Service Messages
+    'file_preview_access_denied' => 'Access denied to this file.',
+    'file_preview_type_not_supported' => 'File type not supported for preview.',
+    'file_preview_content_not_retrieved' => 'File content could not be retrieved.',
+    'file_preview_no_google_drive_access' => 'No Google Drive access available.',
+    'file_preview_unsupported_title' => 'Preview Not Available',
+    'file_preview_unsupported_file_type' => 'File type:',
+    'file_preview_unsupported_size' => 'Size:',
+    'file_preview_unsupported_message' => 'This file type cannot be previewed. Please download the file to view its contents.',
+    'file_preview_download_button' => 'Download File',
+    'file_preview_error_title' => 'Preview Error',
+    'file_preview_error_message' => 'Please try downloading the file instead.',
+
+    // File Download Service Messages
+    'file_download_not_found_local_or_cloud' => 'File not found in local storage or cloud storage.',
+    'file_download_s3_failed' => 'Failed to download file from S3: :error',
+    'file_download_google_drive_failed' => 'Failed to download file from Google Drive: :error',
+    'file_download_no_google_drive_connection' => 'No Google Drive connection available for download. Please ensure an admin has connected their Google Drive account.',
+
+    // File Manager Service Messages
+    'file_manager_no_user_for_s3_delete' => 'No user available to delete file from S3',
+    'file_manager_no_files_for_download' => 'No files found for download.',
+    'file_manager_zip_creation_failed' => 'Cannot create ZIP archive: :error',
+    'file_manager_no_files_added_to_zip' => 'No files could be added to the archive. All files may be stored in cloud storage or inaccessible.',
 ];

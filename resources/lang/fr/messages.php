@@ -149,6 +149,10 @@ return [
     'team_assignments_updated_success' => 'Assignations d\'équipe mises à jour avec succès.',
     'team_assignments_update_failed' => 'Échec de la mise à jour des assignations d\'équipe. Veuillez réessayer.',
 
+    // Cloud Storage Settings
+    'settings_updated_successfully' => 'Paramètres mis à jour avec succès.',
+    'settings_update_failed' => 'Échec de la mise à jour des paramètres. Veuillez réessayer.',
+
     // Cloud Storage Status Messages (from CloudStorageStatusMessages class)
     'cloud_storage_rate_limited' => 'Trop de tentatives de renouvellement de token. Veuillez réessayer plus tard.',
     'cloud_storage_auth_required' => 'Authentification requise. Veuillez reconnecter votre compte.',
@@ -1090,4 +1094,29 @@ return [
     's3_asia_singapore' => 'Asie-Pacifique (Singapour)',
     's3_asia_sydney' => 'Asie-Pacifique (Sydney)',
     's3_south_america_sao_paulo' => 'Amérique du Sud (São Paulo)',
+
+    // File Preview Service Messages
+    'file_preview_access_denied' => 'Accès refusé à ce fichier.',
+    'file_preview_type_not_supported' => 'Type de fichier non pris en charge pour l\'aperçu.',
+    'file_preview_content_not_retrieved' => 'Le contenu du fichier n\'a pas pu être récupéré.',
+    'file_preview_no_google_drive_access' => 'Aucun accès Google Drive disponible.',
+    'file_preview_unsupported_title' => 'Aperçu Non Disponible',
+    'file_preview_unsupported_file_type' => 'Type de fichier :',
+    'file_preview_unsupported_size' => 'Taille :',
+    'file_preview_unsupported_message' => 'Ce type de fichier ne peut pas être prévisualisé. Veuillez télécharger le fichier pour voir son contenu.',
+    'file_preview_download_button' => 'Télécharger le Fichier',
+    'file_preview_error_title' => 'Erreur d\'Aperçu',
+    'file_preview_error_message' => 'Veuillez essayer de télécharger le fichier à la place.',
+
+    // File Download Service Messages
+    'file_download_not_found_local_or_cloud' => 'Fichier introuvable dans le stockage local ou cloud.',
+    'file_download_s3_failed' => 'Échec du téléchargement du fichier depuis S3 : :error',
+    'file_download_google_drive_failed' => 'Échec du téléchargement du fichier depuis Google Drive : :error',
+    'file_download_no_google_drive_connection' => 'Aucune connexion Google Drive disponible pour le téléchargement. Veuillez vous assurer qu\'un administrateur a connecté son compte Google Drive.',
+
+    // File Manager Service Messages
+    'file_manager_no_user_for_s3_delete' => 'Aucun utilisateur disponible pour supprimer le fichier de S3',
+    'file_manager_no_files_for_download' => 'Aucun fichier trouvé pour le téléchargement.',
+    'file_manager_zip_creation_failed' => 'Impossible de créer l\'archive ZIP : :error',
+    'file_manager_no_files_added_to_zip' => 'Aucun fichier n\'a pu être ajouté à l\'archive. Tous les fichiers peuvent être stockés dans le cloud ou inaccessibles.',
 ];

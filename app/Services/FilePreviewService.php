@@ -118,19 +118,19 @@ class FilePreviewService
     {
         // Check if user can access this file
         if (!$file->canBeAccessedBy($user)) {
-            throw new Exception('Access denied to this file.');
+            throw new Exception(__('messages.file_preview_access_denied'));
         }
 
         // Check if file can be previewed
         if (!$this->canPreview($file->mime_type)) {
-            throw new Exception('File type not supported for preview.');
+            throw new Exception(__('messages.file_preview_type_not_supported'));
         }
 
         try {
             $fileContent = $this->getFileContent($file, $user);
 
             if ($fileContent === null) {
-                throw new Exception('File content could not be retrieved.');
+                throw new Exception(__('messages.file_preview_content_not_retrieved'));
             }
 
             return $this->createPreviewResponse($file, $fileContent);
@@ -156,7 +156,7 @@ class FilePreviewService
     {
         // Check if user can access this file
         if (!$file->canBeAccessedBy($user)) {
-            throw new Exception('Access denied to this file.');
+            throw new Exception(__('messages.file_preview_access_denied'));
         }
 
         // Check if file can be previewed
@@ -168,7 +168,7 @@ class FilePreviewService
             $fileContent = $this->getFileContent($file, $user);
 
             if ($fileContent === null) {
-                return $this->getErrorPreviewHtml('File content could not be retrieved.');
+                return $this->getErrorPreviewHtml(__('messages.file_preview_content_not_retrieved'));
             }
 
             return $this->generateHtmlPreview($file, $fileContent);
@@ -236,12 +236,89 @@ class FilePreviewService
             return Storage::disk('public')->get('uploads/' . $file->filename);
         }
 
-        // Try Google Drive if file has Google Drive ID
+        // Try cloud storage if file has cloud storage ID
         if ($file->google_drive_file_id) {
-            return $this->getGoogleDriveFileContent($file, $user);
+            return $this->getCloudStorageFileContent($file, $user);
         }
 
         return null;
+    }
+
+    /**
+     * Get file content from cloud storage (Google Drive or S3).
+     *
+     * @param FileUpload $file The file to retrieve
+     * @param User $user The user requesting the file
+     * @return string|null The file content or null if not available
+     * @throws Exception If cloud storage retrieval fails
+     */
+    private function getCloudStorageFileContent(FileUpload $file, User $user): ?string
+    {
+        try {
+            // Determine which provider to use
+            $provider = $file->cloud_storage_provider;
+            
+            // If provider is not set, try to detect based on file ID format
+            if (!$provider) {
+                // S3 keys typically contain "/" and don't start with "1" (Google Drive IDs start with alphanumeric)
+                // Google Drive IDs are typically short alphanumeric strings
+                if (str_contains($file->google_drive_file_id, '/')) {
+                    $provider = 'amazon-s3';
+                } else {
+                    $provider = 'google-drive';
+                }
+                
+                Log::info('Detected cloud storage provider from file ID format', [
+                    'file_id' => $file->id,
+                    'cloud_file_id' => $file->google_drive_file_id,
+                    'detected_provider' => $provider,
+                ]);
+            }
+            
+            if ($provider === 'amazon-s3' || $provider === 's3') {
+                // Use S3Provider to download file
+                return $this->getS3FileContent($file, $user);
+            } else {
+                // Use Google Drive (legacy)
+                return $this->getGoogleDriveFileContent($file, $user);
+            }
+        } catch (Exception $e) {
+            Log::error('Failed to retrieve file from cloud storage', [
+                'file_id' => $file->id,
+                'cloud_storage_provider' => $file->cloud_storage_provider,
+                'cloud_file_id' => $file->google_drive_file_id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Get file content from Amazon S3.
+     *
+     * @param FileUpload $file The file to retrieve
+     * @param User $user The user requesting the file
+     * @return string|null The file content or null if not available
+     * @throws Exception If S3 retrieval fails
+     */
+    private function getS3FileContent(FileUpload $file, User $user): ?string
+    {
+        try {
+            $storageManager = app(CloudStorageManager::class);
+            $provider = $storageManager->getUserProvider($user);
+            
+            // Download file from S3 using the provider's downloadFile method
+            $fileContent = $provider->downloadFile($user, $file->google_drive_file_id);
+            
+            return $fileContent;
+        } catch (Exception $e) {
+            Log::error('Failed to retrieve file from S3', [
+                'file_id' => $file->id,
+                's3_key' => $file->google_drive_file_id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -259,13 +336,14 @@ class FilePreviewService
             $driveUser = $this->findUserWithGoogleDriveAccess($user);
 
             if (!$driveUser) {
-                throw new Exception('No Google Drive access available.');
+                throw new Exception(__('messages.file_preview_no_google_drive_access'));
             }
 
             $service = $this->googleDriveService->getDriveService($driveUser);
             $response = $service->files->get($file->google_drive_file_id, ['alt' => 'media']);
 
-            return $response->getBody();
+            // Google Drive API returns a Psr\Http\Message\StreamInterface
+            return $response->getBody()->getContents();
         } catch (Exception $e) {
             Log::error('Failed to retrieve file from Google Drive', [
                 'file_id' => $file->id,
@@ -508,14 +586,20 @@ class FilePreviewService
      */
     private function getUnsupportedPreviewHtml(FileUpload $file): string
     {
+        $title = __('messages.file_preview_unsupported_title');
+        $fileTypeLabel = __('messages.file_preview_unsupported_file_type');
+        $sizeLabel = __('messages.file_preview_unsupported_size');
+        $message = __('messages.file_preview_unsupported_message');
+        $downloadButton = __('messages.file_preview_download_button');
+        
         return "
             <div class=\"preview-unsupported\">
                 <div class=\"file-icon\">📄</div>
                 <h3>{$file->original_filename}</h3>
-                <p>File type: {$file->mime_type}</p>
-                <p>Size: {$file->getHumanFileSize()}</p>
-                <p>This file type cannot be previewed. Please download the file to view its contents.</p>
-                <a href=\"{$file->getDownloadUrl()}\" class=\"btn btn-primary\">Download File</a>
+                <p>{$fileTypeLabel} {$file->mime_type}</p>
+                <p>{$sizeLabel} {$file->getHumanFileSize()}</p>
+                <p>{$message}</p>
+                <a href=\"{$file->getDownloadUrl()}\" class=\"btn btn-primary\">{$downloadButton}</a>
             </div>
         ";
     }
@@ -528,12 +612,15 @@ class FilePreviewService
      */
     private function getErrorPreviewHtml(string $error): string
     {
+        $title = __('messages.file_preview_error_title');
+        $message = __('messages.file_preview_error_message');
+        
         return "
             <div class=\"preview-error\">
                 <div class=\"error-icon\">⚠️</div>
-                <h3>Preview Error</h3>
+                <h3>{$title}</h3>
                 <p>{$error}</p>
-                <p>Please try downloading the file instead.</p>
+                <p>{$message}</p>
             </div>
         ";
     }

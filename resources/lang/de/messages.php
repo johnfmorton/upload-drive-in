@@ -149,6 +149,10 @@ return [
     'team_assignments_updated_success' => 'Teamzuweisungen erfolgreich aktualisiert.',
     'team_assignments_update_failed' => 'Fehler beim Aktualisieren der Teamzuweisungen. Bitte versuchen Sie es erneut.',
 
+    // Cloud Storage Settings
+    'settings_updated_successfully' => 'Einstellungen erfolgreich aktualisiert.',
+    'settings_update_failed' => 'Fehler beim Aktualisieren der Einstellungen. Bitte versuchen Sie es erneut.',
+
     // Cloud Storage Status Messages (from CloudStorageStatusMessages class)
     'cloud_storage_rate_limited' => 'Zu viele Token-Erneuerungsversuche. Bitte versuchen Sie es später erneut.',
     'cloud_storage_auth_required' => 'Authentifizierung erforderlich. Bitte verbinden Sie Ihr Konto erneut.',
