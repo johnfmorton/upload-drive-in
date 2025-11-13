@@ -129,8 +129,29 @@ class CloudStorageSettingsService
         ]);
 
         try {
-            // Get all settings for the provider
+            // Get all settings for the provider from database
             $settings = CloudStorageSetting::getProviderSettings($provider, $userId);
+
+            // Fallback to environment variables if database settings are empty
+            if (empty($settings['access_key_id']) && !empty(env('AWS_ACCESS_KEY_ID'))) {
+                $settings['access_key_id'] = env('AWS_ACCESS_KEY_ID');
+                Log::debug('CloudStorageSettingsService: Using AWS_ACCESS_KEY_ID from environment');
+            }
+            
+            if (empty($settings['secret_access_key']) && !empty(env('AWS_SECRET_ACCESS_KEY'))) {
+                $settings['secret_access_key'] = env('AWS_SECRET_ACCESS_KEY');
+                Log::debug('CloudStorageSettingsService: Using AWS_SECRET_ACCESS_KEY from environment');
+            }
+            
+            if (empty($settings['region']) && !empty(env('AWS_DEFAULT_REGION'))) {
+                $settings['region'] = env('AWS_DEFAULT_REGION');
+                Log::debug('CloudStorageSettingsService: Using AWS_DEFAULT_REGION from environment');
+            }
+            
+            if (empty($settings['bucket']) && !empty(env('AWS_BUCKET'))) {
+                $settings['bucket'] = env('AWS_BUCKET');
+                Log::debug('CloudStorageSettingsService: Using AWS_BUCKET from environment');
+            }
 
             // Convert use_path_style_endpoint to boolean if present
             if (isset($settings['use_path_style_endpoint'])) {

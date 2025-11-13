@@ -12,6 +12,7 @@ use Aws\Exception\AwsException;
 use Aws\S3\Exception\S3Exception;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -60,26 +61,43 @@ class S3Provider implements CloudStorageProviderInterface
             $mimeType = $metadata['mime_type'] ?? 'application/octet-stream';
             $description = $metadata['description'] ?? null;
 
+            // Convert Storage disk path to absolute path
+            // If $localPath is relative (e.g., "uploads/file.txt"), convert it to absolute path
+            $absolutePath = $localPath;
+            if (!file_exists($localPath)) {
+                // Try with public disk
+                $absolutePath = Storage::disk('public')->path($localPath);
+                
+                // If still doesn't exist, log error
+                if (!file_exists($absolutePath)) {
+                    throw new \RuntimeException(__('messages.s3_file_not_found', [
+                        'path' => $localPath,
+                        'tried_path' => $absolutePath
+                    ]));
+                }
+            }
+
             // Generate S3 key (flat storage model with key-based organization)
             $key = $this->generateS3Key($targetPath, $originalFilename);
 
             // Prepare upload parameters
+            // Note: S3 metadata values must be US-ASCII and cannot contain newlines
             $uploadParams = [
                 'Bucket' => $this->getBucket($user),
                 'Key' => $key,
-                'SourceFile' => $localPath,
+                'SourceFile' => $absolutePath,
                 'ContentType' => $mimeType,
                 'Metadata' => [
-                    'original_filename' => $originalFilename,
-                    'client_email' => $targetPath,
+                    'original_filename' => $this->sanitizeMetadataValue($originalFilename),
+                    'client_email' => $this->sanitizeMetadataValue($targetPath),
                     'uploaded_by' => (string) $user->id,
                     'upload_timestamp' => now()->toISOString(),
                 ],
             ];
 
-            // Add description if provided
+            // Add description if provided (sanitize for S3 metadata - no newlines allowed)
             if ($description) {
-                $uploadParams['Metadata']['description'] = $description;
+                $uploadParams['Metadata']['description'] = $this->sanitizeMetadataValue($description);
             }
 
             // Upload file to S3
@@ -1802,5 +1820,26 @@ class S3Provider implements CloudStorageProviderInterface
         }
 
         return true;
+    }
+
+    /**
+     * Sanitize a metadata value for S3 compatibility.
+     * S3 metadata values must be US-ASCII and cannot contain newlines or control characters.
+     *
+     * @param string $value The value to sanitize
+     * @return string The sanitized value
+     */
+    private function sanitizeMetadataValue(string $value): string
+    {
+        // Replace newlines with spaces
+        $sanitized = preg_replace('/[\r\n]+/', ' ', $value);
+        
+        // Remove any non-printable ASCII characters (keep only 0x20-0x7E)
+        $sanitized = preg_replace('/[^\x20-\x7E]/', '', $sanitized);
+        
+        // Trim whitespace
+        $sanitized = trim($sanitized);
+        
+        return $sanitized;
     }
 }

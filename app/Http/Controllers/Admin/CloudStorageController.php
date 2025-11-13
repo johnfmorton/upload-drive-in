@@ -1362,10 +1362,15 @@ class CloudStorageController extends Controller
     {
         $user = Auth::user();
         
+        // Check if there's existing configuration
+        $settingsService = app(\App\Services\CloudStorageSettingsService::class);
+        $existingConfig = $settingsService->getS3Configuration(null);
+        $hasExistingSecret = !empty($existingConfig['secret_access_key']);
+        
         // Validate S3 configuration with custom rules for AWS credentials
         $validated = $request->validate([
             'aws_access_key_id' => ['required', 'string', 'regex:/^[A-Z0-9]{20}$/'],
-            'aws_secret_access_key' => ['required', 'string', 'size:40'],
+            'aws_secret_access_key' => [$hasExistingSecret ? 'nullable' : 'required', 'string', 'size:40'],
             'aws_region' => ['required', 'string', 'regex:/^[a-z0-9-]+$/'],
             'aws_bucket' => ['required', 'string', 'regex:/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/'],
             'aws_endpoint' => ['nullable', 'url'],
@@ -1382,10 +1387,17 @@ class CloudStorageController extends Controller
             // Prepare configuration array for CloudStorageSettingsService
             $config = [
                 'access_key_id' => $validated['aws_access_key_id'],
-                'secret_access_key' => $validated['aws_secret_access_key'],
                 'region' => $validated['aws_region'],
                 'bucket' => $validated['aws_bucket'],
             ];
+            
+            // Only update secret key if provided (allows keeping existing secret)
+            if (!empty($validated['aws_secret_access_key'])) {
+                $config['secret_access_key'] = $validated['aws_secret_access_key'];
+            } elseif ($hasExistingSecret) {
+                // Keep the existing secret key
+                $config['secret_access_key'] = $existingConfig['secret_access_key'];
+            }
 
             // Add optional endpoint for S3-compatible services
             if (!empty($validated['aws_endpoint'])) {
@@ -1411,6 +1423,13 @@ class CloudStorageController extends Controller
                     ->withInput()
                     ->with('error', $storeResult['message'] ?? __('messages.s3_configuration_save_failed'));
             }
+
+            // Update user's preferred cloud provider to Amazon S3
+            $user->update(['preferred_cloud_provider' => 'amazon-s3']);
+            
+            Log::info('Updated user preferred cloud provider to Amazon S3', [
+                'user_id' => $user->id,
+            ]);
 
             // Perform health check after configuration save
             Log::info('S3 configuration saved, performing health check', [
@@ -1477,12 +1496,33 @@ class CloudStorageController extends Controller
     {
         $user = Auth::user();
         
+        // Get existing configuration (from database or environment)
+        $settingsService = app(\App\Services\CloudStorageSettingsService::class);
+        $existingConfig = $settingsService->getS3Configuration(null);
+        
         // Validate S3 configuration with custom rules for AWS credentials
+        // Allow fields to be optional if they exist in configuration
         $validated = $request->validate([
-            'aws_access_key_id' => ['required', 'string', 'regex:/^[A-Z0-9]{20}$/'],
-            'aws_secret_access_key' => ['required', 'string', 'size:40'],
-            'aws_region' => ['required', 'string', 'regex:/^[a-z0-9-]+$/'],
-            'aws_bucket' => ['required', 'string', 'regex:/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/'],
+            'aws_access_key_id' => [
+                !empty($existingConfig['access_key_id']) ? 'nullable' : 'required', 
+                'string', 
+                'regex:/^[A-Z0-9]{20}$/'
+            ],
+            'aws_secret_access_key' => [
+                !empty($existingConfig['secret_access_key']) ? 'nullable' : 'required', 
+                'string', 
+                'size:40'
+            ],
+            'aws_region' => [
+                !empty($existingConfig['region']) ? 'nullable' : 'required', 
+                'string', 
+                'regex:/^[a-z0-9-]+$/'
+            ],
+            'aws_bucket' => [
+                !empty($existingConfig['bucket']) ? 'nullable' : 'required', 
+                'string', 
+                'regex:/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/'
+            ],
             'aws_endpoint' => ['nullable', 'url'],
         ], [
             'aws_access_key_id.regex' => __('messages.s3_access_key_id_format_invalid'),
@@ -1494,12 +1534,23 @@ class CloudStorageController extends Controller
 
         try {
             // Prepare configuration array for testing
+            // Use provided values or fall back to existing configuration
             $testConfig = [
-                'access_key_id' => $validated['aws_access_key_id'],
-                'secret_access_key' => $validated['aws_secret_access_key'],
-                'region' => $validated['aws_region'],
-                'bucket' => $validated['aws_bucket'],
+                'access_key_id' => $validated['aws_access_key_id'] ?? $existingConfig['access_key_id'] ?? null,
+                'secret_access_key' => $validated['aws_secret_access_key'] ?? $existingConfig['secret_access_key'] ?? null,
+                'region' => $validated['aws_region'] ?? $existingConfig['region'] ?? null,
+                'bucket' => $validated['aws_bucket'] ?? $existingConfig['bucket'] ?? null,
             ];
+            
+            // Verify we have all required fields
+            if (empty($testConfig['access_key_id']) || empty($testConfig['secret_access_key']) || 
+                empty($testConfig['region']) || empty($testConfig['bucket'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('messages.s3_missing_required_credentials'),
+                    'status' => 'error',
+                ], 422);
+            }
 
             // Add optional endpoint for S3-compatible services
             if (!empty($validated['aws_endpoint'])) {

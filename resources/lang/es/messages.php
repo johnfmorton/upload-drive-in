@@ -97,6 +97,9 @@ return [
     'button_create_user_loading' => 'Creando Usuario...',
     'button_create_and_invite_loading' => 'Creando y Enviando...',
 
+    // S3 Configuration Management Messages
+    's3_file_not_found' => 'Archivo no encontrado: :path (intentado: :tried_path)',
+
     // Admin User Creation Messages
     'admin_user_created' => 'Usuario cliente creado exitosamente. Puedes proporcionarles el enlace de inicio de sesión manualmente.',
     'admin_user_created_and_invited' => 'Usuario cliente creado e invitación enviada exitosamente.',

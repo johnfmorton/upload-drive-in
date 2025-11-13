@@ -155,7 +155,6 @@ Route::prefix('cloud-storage')
         Route::put('/amazon-s3', [CloudStorageController::class, 'updateAmazonS3'])
             ->name('amazon-s3.update');
         Route::post('/amazon-s3/test-connection', [CloudStorageController::class, 'testAmazonS3Connection'])
-            ->middleware('token.refresh.rate.limit')
             ->name('amazon-s3.test-connection');
         Route::delete('/amazon-s3/disconnect', [CloudStorageController::class, 'disconnectAmazonS3'])
             ->name('amazon-s3.disconnect');
