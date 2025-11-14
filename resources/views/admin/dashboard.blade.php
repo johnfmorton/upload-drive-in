@@ -248,7 +248,7 @@
                                     this.isProcessingPending = true;
                                     
                                     try {
-                                        const response = await fetch('{{ route('admin.files.process-pending') }}', {
+                                        const response = await fetch('{{ route('admin.file-manager.process-pending') }}', {
                                             method: 'POST',
                                             headers: {
                                                 'Content-Type': 'application/json',
