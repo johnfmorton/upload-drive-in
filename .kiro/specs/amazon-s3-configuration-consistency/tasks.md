@@ -37,7 +37,7 @@
   - Render enabled select dropdown with validation when no environment variable
   - _Requirements: 2.3, 2.6, 2.7, 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 6. Implement conditional field rendering for Bucket Name
+- [x] 6. Implement conditional field rendering for Bucket Name
   - Add conditional logic to check `$s3EnvSettings['bucket']`
   - Render read-only field with gray background when environment variable exists
   - Display actual environment value in read-only field
@@ -45,7 +45,7 @@
   - Render editable field with validation when no environment variable
   - _Requirements: 2.4, 2.6, 2.7, 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 7. Implement conditional field rendering for Custom Endpoint
+- [x] 7. Implement conditional field rendering for Custom Endpoint
   - Add conditional logic to check `$s3EnvSettings['endpoint']`
   - Render read-only field with gray background when environment variable exists
   - Display actual environment value in read-only field
@@ -53,21 +53,21 @@
   - Render editable field with validation when no environment variable
   - _Requirements: 2.5, 2.6, 2.7, 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 8. Implement conditional save button display
+- [x] 8. Implement conditional save button display
   - Add PHP logic to check if all required fields are from environment
   - Hide save button when access_key_id, secret_access_key, region, and bucket are all from environment
   - Display save button when at least one field is editable
   - Ensure button follows same pattern as Google Drive credentials form
   - _Requirements: 4.1, 4.2, 4.3_
 
-- [ ] 9. Update Alpine.js handler for environment values
+- [x] 9. Update Alpine.js handler for environment values
   - Add `envSettings` property to `s3ConfigurationHandler()` data structure
   - Initialize form data with environment values in `init()` method
   - Update `testConnection()` to use environment values when present
   - Update `handleSubmit()` to prevent submission when all fields are from environment
   - _Requirements: 6.1, 6.3, 7.5_
 
-- [ ] 10. Verify form submission for database credentials
+- [x] 10. Verify form submission for database credentials
   - Test saving credentials when no environment variables are set
   - Verify validation works correctly for database-stored credentials
   - Verify success message displays after successful save
@@ -75,7 +75,7 @@
   - Verify credentials are properly stored in cloud_storage_settings table
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
 
-- [ ] 11. Test mixed configuration scenarios
+- [x] 11. Test mixed configuration scenarios
   - Test with only access key in environment
   - Test with only secret key in environment
   - Test with access key and secret in environment, region and bucket in database
@@ -83,7 +83,7 @@
   - Verify save button displays correctly in mixed scenarios
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 4.2_
 
-- [ ] 12. Verify test connection functionality
+- [x] 12. Verify test connection functionality
   - Test connection with all credentials from environment
   - Test connection with all credentials from database
   - Test connection with mixed credentials
@@ -91,7 +91,7 @@
   - Verify test results display correctly
   - _Requirements: 6.1, 6.3_
 
-- [ ] 13. Verify disconnect functionality
+- [x] 13. Verify disconnect functionality
   - Test disconnect with environment credentials
   - Test disconnect with database credentials
   - Verify disconnect clears database credentials only

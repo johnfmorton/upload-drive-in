@@ -214,42 +214,60 @@
         {{-- S3 Bucket Name --}}
         <div>
             <x-label for="aws_bucket" :value="__('messages.s3_bucket_name_label')" />
-            <x-input id="aws_bucket" 
-                     name="aws_bucket" 
-                     type="text" 
-                     class="mt-1 block w-full"
-                     :value="old('aws_bucket', $s3Config['bucket'] ?? '')"
-                     placeholder="my-file-intake-bucket"
-                     pattern="[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]"
-                     x-model="formData.bucket"
-                     @input="validateBucketName"
-                     required />
-            <p class="mt-1 text-xs text-gray-500">
-                {{ __('messages.s3_bucket_name_hint') }}
-            </p>
-            <template x-if="errors.bucket">
-                <p class="mt-1 text-sm text-red-600" x-text="errors.bucket"></p>
-            </template>
+            @if($s3EnvSettings['bucket'])
+                <x-input id="aws_bucket" 
+                         type="text" 
+                         class="mt-1 block w-full bg-gray-100" 
+                         :value="env('AWS_BUCKET')" 
+                         readonly />
+                <p class="mt-1 text-sm text-gray-500">{{ __('messages.s3_env_configured_via_environment') }}</p>
+            @else
+                <x-input id="aws_bucket" 
+                         name="aws_bucket" 
+                         type="text" 
+                         class="mt-1 block w-full"
+                         :value="old('aws_bucket', $s3Config['bucket'] ?? '')"
+                         placeholder="my-file-intake-bucket"
+                         pattern="[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]"
+                         x-model="formData.bucket"
+                         @input="validateBucketName"
+                         required />
+                <p class="mt-1 text-xs text-gray-500">
+                    {{ __('messages.s3_bucket_name_hint') }}
+                </p>
+                <template x-if="errors.bucket">
+                    <p class="mt-1 text-sm text-red-600" x-text="errors.bucket"></p>
+                </template>
+            @endif
             <x-input-error for="aws_bucket" class="mt-2" />
         </div>
 
         {{-- Custom Endpoint (Optional) --}}
         <div>
             <x-label for="aws_endpoint" :value="__('messages.s3_endpoint_label')" />
-            <x-input id="aws_endpoint" 
-                     name="aws_endpoint" 
-                     type="url" 
-                     class="mt-1 block w-full"
-                     :value="old('aws_endpoint', $s3Config['endpoint'] ?? '')"
-                     placeholder="https://s3.example.com"
-                     x-model="formData.endpoint"
-                     @input="validateEndpoint" />
-            <p class="mt-1 text-xs text-gray-500">
-                {{ __('messages.s3_endpoint_hint') }}
-            </p>
-            <template x-if="errors.endpoint">
-                <p class="mt-1 text-sm text-red-600" x-text="errors.endpoint"></p>
-            </template>
+            @if($s3EnvSettings['endpoint'])
+                <x-input id="aws_endpoint" 
+                         type="text" 
+                         class="mt-1 block w-full bg-gray-100" 
+                         :value="env('AWS_ENDPOINT')" 
+                         readonly />
+                <p class="mt-1 text-sm text-gray-500">{{ __('messages.s3_env_configured_via_environment') }}</p>
+            @else
+                <x-input id="aws_endpoint" 
+                         name="aws_endpoint" 
+                         type="url" 
+                         class="mt-1 block w-full"
+                         :value="old('aws_endpoint', $s3Config['endpoint'] ?? '')"
+                         placeholder="https://s3.example.com"
+                         x-model="formData.endpoint"
+                         @input="validateEndpoint" />
+                <p class="mt-1 text-xs text-gray-500">
+                    {{ __('messages.s3_endpoint_hint') }}
+                </p>
+                <template x-if="errors.endpoint">
+                    <p class="mt-1 text-sm text-red-600" x-text="errors.endpoint"></p>
+                </template>
+            @endif
             <x-input-error for="aws_endpoint" class="mt-2" />
         </div>
 
@@ -293,21 +311,31 @@
         </div>
 
         {{-- Save Button --}}
-        <div class="flex justify-end pt-4">
-            <button type="submit" 
-                    x-bind:disabled="isSaving || !isFormValid"
-                    x-bind:class="{ 'opacity-50 cursor-not-allowed': isSaving || !isFormValid }"
-                    class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 transition ease-in-out duration-150">
-                <span x-show="!isSaving">{{ __('messages.save_configuration') }}</span>
-                <span x-show="isSaving" class="flex items-center">
-                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    {{ __('messages.s3_saving_configuration') }}
-                </span>
-            </button>
-        </div>
+        @php
+            // Check if all required fields are configured via environment variables
+            $allFieldsFromEnv = $s3EnvSettings['access_key_id'] && 
+                                $s3EnvSettings['secret_access_key'] && 
+                                $s3EnvSettings['region'] && 
+                                $s3EnvSettings['bucket'];
+        @endphp
+
+        @unless($allFieldsFromEnv)
+            <div class="flex justify-end pt-4">
+                <button type="submit" 
+                        x-bind:disabled="isSaving || !isFormValid"
+                        x-bind:class="{ 'opacity-50 cursor-not-allowed': isSaving || !isFormValid }"
+                        class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 focus:bg-gray-700 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 transition ease-in-out duration-150">
+                    <span x-show="!isSaving">{{ __('messages.save_configuration') }}</span>
+                    <span x-show="isSaving" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        {{ __('messages.s3_saving_configuration') }}
+                    </span>
+                </button>
+            </div>
+        @endunless
     </form>
 </div>
 
@@ -321,6 +349,7 @@ function s3ConfigurationHandler() {
             bucket: @json(old('aws_bucket', $s3Config['bucket'] ?? '')),
             endpoint: @json(old('aws_endpoint', $s3Config['endpoint'] ?? ''))
         },
+        envSettings: @json($s3EnvSettings),
         errors: {},
         isTesting: false,
         isSaving: false,
@@ -328,6 +357,20 @@ function s3ConfigurationHandler() {
         isFormValid: false,
 
         init() {
+            // Initialize form data with environment values if present
+            if (this.envSettings.access_key_id) {
+                this.formData.access_key_id = @json(env('AWS_ACCESS_KEY_ID'));
+            }
+            if (this.envSettings.region) {
+                this.formData.region = @json(env('AWS_DEFAULT_REGION'));
+            }
+            if (this.envSettings.bucket) {
+                this.formData.bucket = @json(env('AWS_BUCKET'));
+            }
+            if (this.envSettings.endpoint) {
+                this.formData.endpoint = @json(env('AWS_ENDPOINT'));
+            }
+            
             this.validateForm();
         },
 
@@ -424,6 +467,20 @@ function s3ConfigurationHandler() {
             this.testResult = null;
 
             try {
+                // Use environment values if present, otherwise use form values
+                const testConfig = {
+                    aws_access_key_id: this.envSettings.access_key_id ? 
+                        @json(env('AWS_ACCESS_KEY_ID')) : this.formData.access_key_id,
+                    aws_secret_access_key: this.envSettings.secret_access_key ? 
+                        @json(env('AWS_SECRET_ACCESS_KEY')) : this.formData.secret_access_key,
+                    aws_region: this.envSettings.region ? 
+                        @json(env('AWS_DEFAULT_REGION')) : this.formData.region,
+                    aws_bucket: this.envSettings.bucket ? 
+                        @json(env('AWS_BUCKET')) : this.formData.bucket,
+                    aws_endpoint: this.envSettings.endpoint ? 
+                        @json(env('AWS_ENDPOINT')) : this.formData.endpoint
+                };
+
                 const response = await fetch('{{ route("admin.cloud-storage.amazon-s3.test-connection") }}', {
                     method: 'POST',
                     headers: {
@@ -431,13 +488,7 @@ function s3ConfigurationHandler() {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({
-                        aws_access_key_id: this.formData.access_key_id,
-                        aws_secret_access_key: this.formData.secret_access_key,
-                        aws_region: this.formData.region,
-                        aws_bucket: this.formData.bucket,
-                        aws_endpoint: this.formData.endpoint
-                    })
+                    body: JSON.stringify(testConfig)
                 });
 
                 const data = await response.json();
@@ -458,6 +509,15 @@ function s3ConfigurationHandler() {
         },
 
         handleSubmit(event) {
+            // Prevent submission if all required fields are from environment
+            if (this.envSettings.access_key_id && 
+                this.envSettings.secret_access_key && 
+                this.envSettings.region && 
+                this.envSettings.bucket) {
+                event.preventDefault();
+                return false;
+            }
+            
             this.isSaving = true;
             // Form will submit normally
         }
