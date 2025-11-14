@@ -407,6 +407,12 @@ class EnvironmentFileService
         $categories = [
             'Application' => ['APP_NAME', 'APP_ENV', 'APP_KEY', 'APP_DEBUG', 'APP_URL'],
             'Database' => ['DB_CONNECTION', 'DB_HOST', 'DB_PORT', 'DB_DATABASE', 'DB_USERNAME', 'DB_PASSWORD'],
+            'Session Cookie Security' => [
+                'SESSION_SECURE_COOKIE',
+                'SESSION_SAME_SITE',
+                'SESSION_HTTP_ONLY',
+                'SESSION_PARTITIONED_COOKIE'
+            ],
             'Google Drive' => ['GOOGLE_DRIVE_CLIENT_ID', 'GOOGLE_DRIVE_CLIENT_SECRET'],
             'Mail' => ['MAIL_MAILER', 'MAIL_HOST', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_PASSWORD'],
             'Cache' => ['CACHE_DRIVER', 'SESSION_DRIVER', 'QUEUE_CONNECTION'],
@@ -415,6 +421,18 @@ class EnvironmentFileService
         foreach ($categories as $categoryName => $categoryVars) {
             $hasVarsInCategory = false;
             $categoryContent = [];
+
+            // Add special documentation for Session Cookie Security category
+            if ($categoryName === 'Session Cookie Security') {
+                $categoryContent[] = '# Session Cookie Security Configuration';
+                $categoryContent[] = '# These settings control how session cookies behave, particularly important for HTTPS environments.';
+                $categoryContent[] = '# Proper configuration prevents "419 Page Expired" errors and ensures secure session handling.';
+                $categoryContent[] = '';
+                $categoryContent[] = '# SESSION_SECURE_COOKIE: Controls whether cookies are only sent over HTTPS connections';
+                $categoryContent[] = '# - Auto-detected from APP_URL (https:// = true, http:// = false)';
+                $categoryContent[] = '# - Set to "true" when using HTTPS (recommended for production)';
+                $categoryContent[] = '# - Set to "false" for local HTTP development';
+            }
 
             foreach ($categoryVars as $var) {
                 if (isset($variables[$var])) {
@@ -425,6 +443,24 @@ class EnvironmentFileService
                         $value = '"' . addslashes($value) . '"';
                     }
                     
+                    // Add inline comments for specific session cookie variables
+                    if ($categoryName === 'Session Cookie Security') {
+                        switch ($var) {
+                            case 'SESSION_SAME_SITE':
+                                $categoryContent[] = '';
+                                $categoryContent[] = '# SESSION_SAME_SITE: Controls CSRF protection (Options: lax, strict, none)';
+                                break;
+                            case 'SESSION_HTTP_ONLY':
+                                $categoryContent[] = '';
+                                $categoryContent[] = '# SESSION_HTTP_ONLY: Prevents JavaScript access to cookies (XSS protection)';
+                                break;
+                            case 'SESSION_PARTITIONED_COOKIE':
+                                $categoryContent[] = '';
+                                $categoryContent[] = '# SESSION_PARTITIONED_COOKIE: For cross-site contexts (advanced)';
+                                break;
+                        }
+                    }
+                    
                     $categoryContent[] = "{$var}={$value}";
                     $hasVarsInCategory = true;
                     unset($variables[$var]);
@@ -432,7 +468,9 @@ class EnvironmentFileService
             }
 
             if ($hasVarsInCategory) {
-                $content[] = "# {$categoryName}";
+                if ($categoryName !== 'Session Cookie Security') {
+                    $content[] = "# {$categoryName}";
+                }
                 $content = array_merge($content, $categoryContent);
                 $content[] = '';
             }
@@ -477,5 +515,53 @@ class EnvironmentFileService
                 'error' => $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Generate session cookie configuration based on APP_URL.
+     * 
+     * @param string $appUrl The application URL
+     * @return array Session cookie configuration
+     */
+    public function generateSessionCookieConfiguration(string $appUrl): array
+    {
+        // Detect HTTPS from APP_URL
+        $isHttps = str_starts_with(strtolower($appUrl), 'https://');
+        
+        $config = [
+            'SESSION_SECURE_COOKIE' => $isHttps ? 'true' : 'false',
+            'SESSION_SAME_SITE' => 'lax',
+            'SESSION_HTTP_ONLY' => 'true',
+            'SESSION_PARTITIONED_COOKIE' => 'false',
+        ];
+
+        Log::info('Generated session cookie configuration', [
+            'app_url' => $appUrl,
+            'is_https' => $isHttps,
+            'secure_cookie' => $config['SESSION_SECURE_COOKIE']
+        ]);
+
+        return $config;
+    }
+
+    /**
+     * Add session cookie configuration comments to environment file content.
+     * 
+     * @param array $variables Environment variables
+     * @return array Variables with session cookie comments
+     */
+    public function addSessionCookieComments(array $variables): array
+    {
+        // Add comments for session cookie settings if they exist
+        $comments = [
+            'SESSION_SECURE_COOKIE' => '# Set to true when using HTTPS to ensure cookies are only sent over secure connections',
+            'SESSION_SAME_SITE' => '# Controls how cookies behave with cross-site requests (CSRF protection). Options: lax, strict, none',
+            'SESSION_HTTP_ONLY' => '# Prevents JavaScript access to session cookies (security best practice)',
+            'SESSION_PARTITIONED_COOKIE' => '# Ties cookies to top-level site in cross-site contexts (advanced)',
+        ];
+
+        // This method is for future enhancement to add inline comments
+        // Currently, comments are added through category grouping
+        return $variables;
     }
 }

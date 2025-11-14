@@ -167,9 +167,20 @@ return [
     | to the server if the browser has a HTTPS connection. This will keep
     | the cookie from being sent to you when it can't be done securely.
     |
+    | If SESSION_SECURE_COOKIE is not explicitly set, this will auto-detect
+    | HTTPS from APP_URL. Set SESSION_SECURE_COOKIE=true or false to override.
+    |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    'secure' => env('SESSION_SECURE_COOKIE') !== null 
+        ? filter_var(env('SESSION_SECURE_COOKIE'), FILTER_VALIDATE_BOOLEAN)
+        : (function() {
+            $appUrl = env('APP_URL', '');
+            if (empty($appUrl)) {
+                return false;
+            }
+            return str_starts_with(strtolower(trim($appUrl)), 'https://');
+        })(),
 
     /*
     |--------------------------------------------------------------------------

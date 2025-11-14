@@ -1358,6 +1358,118 @@ class SetupService
     }
 
     /**
+     * Update session cookie environment variables based on APP_URL
+     */
+    public function updateSessionCookieEnvironment(): array
+    {
+        Log::info('Starting session cookie environment update');
+        
+        // Get current APP_URL
+        $appUrl = env('APP_URL', '');
+        
+        if (empty($appUrl)) {
+            Log::warning('APP_URL is not set, cannot generate session cookie configuration');
+            return [
+                'success' => false,
+                'message' => 'APP_URL is not configured',
+                'violations' => ['APP_URL must be set before configuring session cookies']
+            ];
+        }
+
+        // Generate session cookie configuration
+        $sessionConfig = $this->environmentFileService->generateSessionCookieConfiguration($appUrl);
+        
+        Log::info('Generated session cookie configuration', [
+            'app_url' => $appUrl,
+            'config' => $sessionConfig
+        ]);
+
+        // Update environment file with session cookie settings
+        $result = $this->environmentFileService->updateEnvironmentFile($sessionConfig);
+        
+        Log::info('Session cookie environment update result', [
+            'success' => $result['success'],
+            'message' => $result['message']
+        ]);
+
+        // Clear configuration cache to ensure new values are loaded
+        if ($result['success']) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('config:clear');
+                Log::info('Configuration cache cleared after session cookie update');
+            } catch (\Exception $e) {
+                Log::warning('Failed to clear configuration cache', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Generate complete environment configuration including session cookies
+     * 
+     * @param array $config Configuration array with keys: app_url, database, storage
+     * @return array Environment variables to be written
+     */
+    public function generateCompleteEnvironmentConfiguration(array $config): array
+    {
+        $envVars = [];
+
+        // Application configuration
+        if (isset($config['app_url'])) {
+            $envVars['APP_URL'] = $config['app_url'];
+            
+            // Generate session cookie configuration based on APP_URL
+            $sessionConfig = $this->environmentFileService->generateSessionCookieConfiguration($config['app_url']);
+            $envVars = array_merge($envVars, $sessionConfig);
+        }
+
+        // Database configuration
+        if (isset($config['database'])) {
+            $dbConfig = $config['database'];
+            if (isset($dbConfig['connection'])) {
+                $envVars['DB_CONNECTION'] = $dbConfig['connection'];
+            }
+            if (isset($dbConfig['host'])) {
+                $envVars['DB_HOST'] = $dbConfig['host'];
+            }
+            if (isset($dbConfig['port'])) {
+                $envVars['DB_PORT'] = (string) $dbConfig['port'];
+            }
+            if (isset($dbConfig['database'])) {
+                $envVars['DB_DATABASE'] = $dbConfig['database'];
+            }
+            if (isset($dbConfig['username'])) {
+                $envVars['DB_USERNAME'] = $dbConfig['username'];
+            }
+            if (isset($dbConfig['password'])) {
+                $envVars['DB_PASSWORD'] = $dbConfig['password'];
+            }
+        }
+
+        // Storage configuration
+        if (isset($config['storage'])) {
+            $storageConfig = $config['storage'];
+            if (isset($storageConfig['client_id'])) {
+                $envVars['GOOGLE_DRIVE_CLIENT_ID'] = $storageConfig['client_id'];
+            }
+            if (isset($storageConfig['client_secret'])) {
+                $envVars['GOOGLE_DRIVE_CLIENT_SECRET'] = $storageConfig['client_secret'];
+            }
+        }
+
+        Log::info('Generated complete environment configuration', [
+            'variable_count' => count($envVars),
+            'has_session_config' => isset($envVars['SESSION_SECURE_COOKIE']),
+            'app_url' => $config['app_url'] ?? 'not set'
+        ]);
+
+        return $envVars;
+    }
+
+    /**
      * Validate setup input with security checks
      */
     public function validateSetupInput(string $inputType, array $input): array

@@ -53,6 +53,9 @@ class AppServiceProvider extends ServiceProvider
         // Log pagination configuration on startup
         $this->logPaginationConfiguration();
         
+        // Validate and log session configuration
+        $this->validateAndLogSessionConfiguration();
+        
         // Merge base translations and overrides, then flatten under the 'messages' group
         $baseFile     = resource_path('lang/en/messages.php');
         $overrideFile = resource_path('lang/en/messages.override.php');
@@ -132,6 +135,35 @@ class AppServiceProvider extends ServiceProvider
             // Silently handle pagination configuration logging failures
             // This prevents breaking the application during bootstrap
             \Log::error('Pagination configuration logging failed: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Validate and log session configuration on application startup
+     */
+    private function validateAndLogSessionConfiguration(): void
+    {
+        try {
+            // Log session configuration in debug mode
+            \App\Helpers\SessionConfigHelper::logSessionConfiguration();
+            
+            // Validate session configuration and log warnings
+            $warnings = \App\Helpers\SessionConfigHelper::validateSessionConfiguration();
+            
+            if (!empty($warnings)) {
+                foreach ($warnings as $warning) {
+                    \Log::warning('Session configuration issue: ' . $warning, [
+                        'app_url' => config('app.url'),
+                        'session_secure' => config('session.secure'),
+                        'session_same_site' => config('session.same_site'),
+                        'session_http_only' => config('session.http_only'),
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            // Silently handle session configuration validation failures
+            // This prevents breaking the application during bootstrap
+            \Log::error('Session configuration validation failed: ' . $e->getMessage());
         }
     }
 }
