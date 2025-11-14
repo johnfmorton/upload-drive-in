@@ -16,6 +16,18 @@ return [
     'nav_your_files' => 'Ihre Dateien',
     'nav_upload_files' => 'Dateien hochladen',
 
+    // Admin Settings Page
+    'app_settings' => 'Branding-Einstellungen',
+    'branding_settings_title' => 'Branding-Einstellungen',
+    'branding_settings_description' => 'Aktualisieren Sie die Branding-Details Ihrer Anwendung wie Name, Farbe und Symbol.',
+    'company_name_label' => 'Firmenname',
+    'branding_color_label' => 'Branding-Farbe',
+    'app_icon_label' => 'Anwendungssymbol (Logo)',
+    'app_icon_hint' => 'Laden Sie ein PNG, JPG oder SVG hoch. Empfohlene Größe: 600x125px.',
+    'save_button' => 'Speichern',
+    'saved_confirmation' => 'Gespeichert.',
+    'remove_logo_button' => 'Logo entfernen',
+
     // Token Refresh Error Types - Descriptions
     'token_refresh_error_network_timeout' => 'Netzwerk-Timeout während der Token-Erneuerung',
     'token_refresh_error_invalid_refresh_token' => 'Ungültiger Erneuerungs-Token bereitgestellt',

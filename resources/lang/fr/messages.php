@@ -16,6 +16,19 @@ return [
     'nav_your_files' => 'Vos Fichiers',
     'nav_upload_files' => 'Télécharger des Fichiers',
 
+    // Admin Settings Page
+    'app_settings' => 'Paramètres de Branding',
+    'branding_settings_title' => 'Paramètres de Branding',
+    'branding_settings_description' => 'Mettez à jour les détails de branding de votre application comme le nom, la couleur et l\'icône.',
+    'company_name_label' => 'Nom de l\'Entreprise',
+    'branding_color_label' => 'Couleur de Branding',
+    'app_icon_label' => 'Icône de l\'Application (Logo)',
+    'app_icon_hint' => 'Téléchargez un PNG, JPG ou SVG. Taille recommandée : 600x125px, mais il n\'y a pas de taille requise.',
+    'current_app_icon_alt' => 'Icône d\'Application Actuelle',
+    'save_button' => 'Enregistrer',
+    'saved_confirmation' => 'Enregistré.',
+    'remove_logo_button' => 'Supprimer le Logo',
+
     // Token Refresh Error Types - Descriptions
     'token_refresh_error_network_timeout' => 'Délai d\'attente réseau dépassé lors du renouvellement du token',
     'token_refresh_error_invalid_refresh_token' => 'Token de renouvellement invalide fourni',
