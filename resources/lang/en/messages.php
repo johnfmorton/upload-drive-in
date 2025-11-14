@@ -98,6 +98,25 @@
     'message_section_empty' => 'No additional message was provided with this upload',
     'no_files_found' => 'No files match your filter criteria.',
     'delete_modal_title' => 'Delete File',
+
+    // Welcome Message Dismissal
+    'welcome_message_unauthorized' => 'Unauthorized action.',
+    'welcome_message_dismissed_success' => 'Welcome message dismissed successfully.',
+    'welcome_message_dismiss_failed' => 'Failed to dismiss message. Please try again.',
+    'welcome_message_dismiss_button_label' => 'Dismiss welcome message',
+    'welcome_message_dismiss_button_title' => 'Dismiss this message',
+    
+    // Welcome Message Content
+    'welcome_message_title' => '🎉 Welcome to Upload Drive-in!',
+    'welcome_message_intro' => 'Congratulations! Your Upload Drive-in application has been successfully configured and is ready to use.',
+    'welcome_message_next_steps_title' => 'Next steps to get started:',
+    'welcome_message_step_cloud_storage' => 'Configure a cloud storage provider.',
+    'welcome_message_step_branding' => 'Customize your company name, logo, etc., using the branding settings page.',
+    'welcome_message_step_share_link' => 'Share your upload link with clients to start receiving files',
+    'welcome_message_step_create_employees' => 'Create employee accounts for team members',
+    'welcome_message_button_cloud_storage' => 'Cloud Storage Settings',
+    'welcome_message_button_employees' => 'Manage Employees',
+    'welcome_message_button_settings' => 'Application Settings',
     'delete_modal_text' => 'Are you sure you want to delete this file? This action cannot be undone.',
     'delete_modal_confirm_button' => 'Confirm Delete',
     'delete_modal_cancel_button' => 'Cancel',

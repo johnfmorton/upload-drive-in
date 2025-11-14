@@ -8,9 +8,26 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            @if ($isFirstTimeLogin)
+            @if ($showWelcomeMessage)
                 <!-- Welcome Message for First-Time Login -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 shadow-sm">
+                <div x-data="welcomeMessageHandler()" 
+                     x-show="!dismissed"
+                     x-transition:leave="transition ease-in duration-300"
+                     x-transition:leave-start="opacity-100 transform scale-100"
+                     x-transition:leave-end="opacity-0 transform scale-95"
+                     class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 shadow-sm relative">
+                    
+                    <!-- Dismiss Button -->
+                    <button x-on:click="dismissMessage()"
+                            :disabled="isProcessing"
+                            class="absolute top-4 right-4 text-blue-400 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md p-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="{{ __('messages.welcome_message_dismiss_button_label') }}"
+                            title="{{ __('messages.welcome_message_dismiss_button_title') }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                    
                     <div class="flex items-start">
                         <div class="flex-shrink-0">
                             <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,12 +47,11 @@
                                 <div class="space-y-2">
                                     <h4 class="font-medium">Next steps to get started:</h4>
                                     <ul class="list-disc list-inside space-y-1 text-sm">
-                                        <li>Connect your Google account to the Google Drive application. See the
-                                            Google Drive Connection.</li>
+                                        <li>Configure a cloud storage provider.</li>
+                                        <li>Optionally, create employee accounts for team members</li>
                                         <li>Customize your company name, logo, etc., using the branding settings page.
                                         </li>
                                         <li>Share your upload link with clients to start receiving files</li>
-                                        <li>Create employee accounts for team members</li>
 
                                     </ul>
                                 </div>
@@ -68,7 +84,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     </svg>
-                                    Application Settings
+                                    Branding Settings
                                 </a>
                             </div>
                         </div>
@@ -568,4 +584,51 @@
         </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        function welcomeMessageHandler() {
+            return {
+                dismissed: false,
+                isProcessing: false,
+                
+                async dismissMessage() {
+                    if (this.isProcessing) {
+                        console.log('🔍 Welcome message: Already processing, returning early');
+                        return;
+                    }
+                    
+                    console.log('🔍 Welcome message: Dismissing welcome message');
+                    this.isProcessing = true;
+                    
+                    try {
+                        const response = await fetch('/admin/dismiss-welcome', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json'
+                            }
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok && result.success) {
+                            console.log('🔍 Welcome message: Dismissed successfully');
+                            // Trigger fade-out animation
+                            this.dismissed = true;
+                        } else {
+                            throw new Error(result.message || 'Failed to dismiss message');
+                        }
+                    } catch (error) {
+                        console.error('🔍 Welcome message: Failed to dismiss:', error);
+                        alert('{{ __('messages.welcome_message_dismiss_failed') }}');
+                    } finally {
+                        this.isProcessing = false;
+                    }
+                }
+            };
+        }
+    </script>
+    @endpush
 </x-app-layout>

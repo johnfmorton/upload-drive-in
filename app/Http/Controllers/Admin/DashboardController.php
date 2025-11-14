@@ -28,55 +28,83 @@ class DashboardController extends AdminController
             ->orderBy('created_at', 'desc')
             ->paginate(config('file-manager.pagination.items_per_page'));
 
-        // Check if this is a first-time login after setup completion
-        $isFirstTimeLogin = $this->checkFirstTimeLogin();
+        // Check if we should show the welcome message
+        $showWelcomeMessage = $this->shouldShowWelcomeMessage();
 
         // Get storage provider information
         $storageProvider = $this->getStorageProviderInfo($user);
 
-        return view('admin.dashboard', compact('files', 'isFirstTimeLogin', 'storageProvider'));
+        return view('admin.dashboard', compact('files', 'showWelcomeMessage', 'storageProvider'));
     }
 
     /**
-     * Check if this is the admin's first login after setup completion
+     * Check if we should show the welcome message to the admin user
      */
-    private function checkFirstTimeLogin(): bool
+    private function shouldShowWelcomeMessage(): bool
     {
         $user = auth()->user();
         
-        // Only check for admin users
+        // Only show to admin users
         if (!$user || !$user->isAdmin()) {
             return false;
         }
 
-        // Check if setup was recently completed (within last 5 minutes)
-        $setupService = app(\App\Services\SetupService::class);
-        $setupState = $setupService->getSetupState();
-        
-        if (!isset($setupState['completed_at'])) {
-            return false;
+        // Check if the user has dismissed the welcome message
+        // Return true if welcome_message_dismissed is false or null
+        return !$user->welcome_message_dismissed;
+    }
+
+    /**
+     * Dismiss the welcome message permanently for the authenticated admin user.
+     *
+     * @return JsonResponse
+     */
+    public function dismissWelcomeMessage(): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            
+            // Verify user is admin
+            if (!$user || !$user->isAdmin()) {
+                Log::warning('Unauthorized welcome message dismissal attempt', [
+                    'user_id' => $user?->id,
+                    'is_admin' => $user?->isAdmin() ?? false
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized action.'
+                ], 403);
+            }
+            
+            // Update user preference
+            $user->update([
+                'welcome_message_dismissed' => true
+            ]);
+            
+            Log::info('Admin dismissed welcome message', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Welcome message dismissed successfully.'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to dismiss welcome message', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to dismiss message. Please try again.'
+            ], 500);
         }
-
-        $completedAt = \Carbon\Carbon::parse($setupState['completed_at']);
-        $isRecentlyCompleted = $completedAt->diffInMinutes(now()) <= 5;
-
-        // If setup wasn't recently completed, don't show first-time message
-        if (!$isRecentlyCompleted) {
-            return false;
-        }
-
-        // Check if we've already shown the first-time login message
-        // We'll use a session flag to track this per setup completion
-        $sessionKey = 'first_time_login_shown_' . $completedAt->timestamp;
-        
-        if (session()->has($sessionKey)) {
-            return false;
-        }
-
-        // Mark that we're showing the first-time login message
-        session()->put($sessionKey, true);
-        
-        return true;
     }
 
     /**

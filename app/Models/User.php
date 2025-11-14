@@ -41,6 +41,7 @@ class User extends Authenticatable
         'two_factor_confirmed_at',
         'last_login_at',
         'preferred_cloud_provider',
+        'welcome_message_dismissed',
     ];
 
     /**
@@ -70,6 +71,7 @@ class User extends Authenticatable
         'two_factor_enabled' => 'boolean',
         'two_factor_recovery_codes' => 'array',
         'two_factor_confirmed_at' => 'datetime',
+        'welcome_message_dismissed' => 'boolean',
     ];
 
     /**

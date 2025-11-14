@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::post('/dismiss-welcome', [DashboardController::class, 'dismissWelcomeMessage'])->name('dismiss-welcome');
 
 // Queue Testing Routes for admin users
 // TODO: Re-add rate limiting middleware once container resolution is fixed

@@ -1016,4 +1016,9 @@ return [
     's3_asia_singapore' => 'Asia Pacífico (Singapur)',
     's3_asia_sydney' => 'Asia Pacífico (Sídney)',
     's3_south_america_sao_paulo' => 'Sudamérica (São Paulo)',
+
+    // Welcome Message Dismissal
+    'welcome_message_unauthorized' => 'Acción no autorizada.',
+    'welcome_message_dismissed_success' => 'Mensaje de bienvenida descartado exitosamente.',
+    'welcome_message_dismiss_failed' => 'Error al descartar el mensaje. Por favor, inténtalo de nuevo.',
 ];

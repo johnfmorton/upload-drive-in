@@ -1156,4 +1156,23 @@ return [
     'file_manager_no_files_for_download' => 'Aucun fichier trouvé pour le téléchargement.',
     'file_manager_zip_creation_failed' => 'Impossible de créer l\'archive ZIP : :error',
     'file_manager_no_files_added_to_zip' => 'Aucun fichier n\'a pu être ajouté à l\'archive. Tous les fichiers peuvent être stockés dans le cloud ou inaccessibles.',
+
+    // Welcome Message Dismissal
+    'welcome_message_unauthorized' => 'Action non autorisée.',
+    'welcome_message_dismissed_success' => 'Message de bienvenue masqué avec succès.',
+    'welcome_message_dismiss_failed' => 'Échec du masquage du message. Veuillez réessayer.',
+    'welcome_message_dismiss_button_label' => 'Masquer le message de bienvenue',
+    'welcome_message_dismiss_button_title' => 'Masquer ce message',
+    
+    // Welcome Message Content
+    'welcome_message_title' => '🎉 Bienvenue sur Upload Drive-in !',
+    'welcome_message_intro' => 'Félicitations ! Votre application Upload Drive-in a été configurée avec succès et est prête à être utilisée.',
+    'welcome_message_next_steps_title' => 'Prochaines étapes pour commencer :',
+    'welcome_message_step_cloud_storage' => 'Configurez un fournisseur de stockage cloud.',
+    'welcome_message_step_branding' => 'Personnalisez le nom de votre entreprise, votre logo, etc., en utilisant la page des paramètres de marque.',
+    'welcome_message_step_share_link' => 'Partagez votre lien de téléchargement avec les clients pour commencer à recevoir des fichiers',
+    'welcome_message_step_create_employees' => 'Créez des comptes employés pour les membres de l\'équipe',
+    'welcome_message_button_cloud_storage' => 'Paramètres de Stockage Cloud',
+    'welcome_message_button_employees' => 'Gérer les Employés',
+    'welcome_message_button_settings' => 'Paramètres de l\'Application',
 ];
