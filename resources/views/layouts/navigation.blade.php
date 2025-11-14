@@ -111,10 +111,17 @@
                             <x-dropdown-link :href="route('employee.clients.index', ['username' => auth()->user()->username])">
                                 {{ __('messages.nav_client_management') }}
                             </x-dropdown-link>
-                            <div class="border-t border-gray-100"></div>
-                            <x-dropdown-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])">
-                                {{ __('Cloud Storage') }}
-                            </x-dropdown-link>
+                            @php
+                                $defaultProvider = config('cloud-storage.default');
+                                $providerConfig = config("cloud-storage.providers.{$defaultProvider}");
+                                $requiresUserAuth = ($providerConfig['auth_type'] ?? 'oauth') === 'oauth';
+                            @endphp
+                            @if($requiresUserAuth)
+                                <div class="border-t border-gray-100"></div>
+                                <x-dropdown-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])">
+                                    {{ __('messages.nav_cloud_storage') }}
+                                </x-dropdown-link>
+                            @endif
                         @endif
                         <!-- Authentication -->
                         <div class="border-t border-gray-100"></div>
@@ -204,9 +211,16 @@
                         <x-responsive-nav-link :href="route('employee.clients.index', ['username' => auth()->user()->username])">
                             {{ __('messages.nav_client_management') }}
                         </x-responsive-nav-link>
-                        <x-responsive-nav-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])">
-                            {{ __('Cloud Storage') }}
-                        </x-responsive-nav-link>
+                        @php
+                            $defaultProvider = config('cloud-storage.default');
+                            $providerConfig = config("cloud-storage.providers.{$defaultProvider}");
+                            $requiresUserAuth = ($providerConfig['auth_type'] ?? 'oauth') === 'oauth';
+                        @endphp
+                        @if($requiresUserAuth)
+                            <x-responsive-nav-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])">
+                                {{ __('Cloud Storage') }}
+                            </x-responsive-nav-link>
+                        @endif
                         <div class="border-t border-gray-200 my-2"></div>
                         <x-responsive-nav-link :href="route('employee.profile.edit', ['username' => auth()->user()->username])">
                             {{ __('Profile') }}

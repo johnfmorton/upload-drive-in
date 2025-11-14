@@ -5,6 +5,17 @@ return [
     'login-message' => 'Los usuarios de <b>' . config('app.company_name') . '</b> pueden iniciar sesión con su correo electrónico y contraseña.',
     'email-validation-message' => 'Recibirás un correo electrónico con un enlace para validar tu dirección de correo. Al hacer clic en el enlace que te enviamos, podrás subir archivos a ' . config('app.company_name') . '.',
 
+    // Navigation & General UI
+    'nav_dashboard' => 'Panel de Control',
+    'nav_client_users' => 'Gestión de Clientes',
+    'nav_cloud_storage' => 'Almacenamiento en la Nube',
+    'nav_employee_users' => 'Usuarios Empleados',
+    'nav_security_settings' => 'Configuración de Seguridad',
+    'nav_access_control' => 'Control de Acceso',
+    'nav_security_policies' => 'Políticas de Seguridad',
+    'nav_your_files' => 'Tus Archivos',
+    'nav_upload_files' => 'Subir Archivos',
+
     // Token Refresh Error Types - Descriptions
     'token_refresh_error_network_timeout' => 'Tiempo de espera de red agotado durante la renovación del token',
     'token_refresh_error_invalid_refresh_token' => 'Token de renovación inválido proporcionado',

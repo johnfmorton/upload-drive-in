@@ -22,6 +22,18 @@ class CloudStorageController extends Controller
      */
     public function index()
     {
+        // Check if the current provider requires user authentication
+        $defaultProvider = config('cloud-storage.default');
+        $providerConfig = config("cloud-storage.providers.{$defaultProvider}");
+        $requiresUserAuth = ($providerConfig['auth_type'] ?? 'oauth') === 'oauth';
+        
+        // If provider doesn't require user auth (like S3), redirect to dashboard
+        if (!$requiresUserAuth) {
+            return redirect()
+                ->route('employee.dashboard', ['username' => Auth::user()->username])
+                ->with('info', 'Cloud storage is managed by the administrator for the current provider.');
+        }
+        
         $user = Auth::user();
         
         // Get current folder name if set
@@ -92,6 +104,20 @@ class CloudStorageController extends Controller
      */
     public function getStatus()
     {
+        // Check if the current provider requires user authentication
+        $defaultProvider = config('cloud-storage.default');
+        $providerConfig = config("cloud-storage.providers.{$defaultProvider}");
+        $requiresUserAuth = ($providerConfig['auth_type'] ?? 'oauth') === 'oauth';
+        
+        // If provider doesn't require user auth (like S3), return appropriate response
+        if (!$requiresUserAuth) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Cloud storage status is not available for the current provider.',
+                'message' => 'Provider does not require user authentication'
+            ], 403);
+        }
+        
         try {
             $user = Auth::user();
             $healthService = app(\App\Services\CloudStorageHealthService::class);
@@ -150,6 +176,18 @@ class CloudStorageController extends Controller
      */
     public function reconnectProvider(Request $request)
     {
+        // Check if the current provider requires user authentication
+        $defaultProvider = config('cloud-storage.default');
+        $providerConfig = config("cloud-storage.providers.{$defaultProvider}");
+        $requiresUserAuth = ($providerConfig['auth_type'] ?? 'oauth') === 'oauth';
+        
+        // If provider doesn't require user auth (like S3), return error
+        if (!$requiresUserAuth) {
+            return response()->json([
+                'error' => 'Reconnection is not available for the current provider.'
+            ], 403);
+        }
+        
         $validated = $request->validate([
             'provider' => 'required|string|in:google-drive,amazon-s3,microsoft-teams'
         ]);
@@ -180,6 +218,20 @@ class CloudStorageController extends Controller
      */
     public function testConnection(Request $request)
     {
+        // Check if the current provider requires user authentication
+        $defaultProvider = config('cloud-storage.default');
+        $providerConfig = config("cloud-storage.providers.{$defaultProvider}");
+        $requiresUserAuth = ($providerConfig['auth_type'] ?? 'oauth') === 'oauth';
+        
+        // If provider doesn't require user auth (like S3), return error
+        if (!$requiresUserAuth) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Connection testing is not available for the current provider.',
+                'message' => 'Provider does not require user authentication'
+            ], 403);
+        }
+        
         $validated = $request->validate([
             'provider' => 'required|string|in:google-drive,microsoft-teams'
         ]);

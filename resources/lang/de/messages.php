@@ -5,6 +5,17 @@ return [
     'login-message' => 'Benutzer bei <b>' . config('app.company_name') . '</b> können sich mit ihrer E-Mail-Adresse und ihrem Passwort anmelden. Wenn Sie Ihr Passwort nicht kennen, <a href="/">melden Sie sich an</a> mit Ihrer E-Mail-Adresse und wir senden Ihnen einen Link.',
     'email-validation-message' => 'Sie erhalten eine E-Mail mit einem Link zur Bestätigung Ihrer E-Mail-Adresse. Durch Klicken auf den Link, den wir Ihnen senden, können Sie Dateien an ' . config('app.company_name') . ' hochladen.',
 
+    // Navigation & General UI
+    'nav_dashboard' => 'Dashboard',
+    'nav_client_users' => 'Kundenverwaltung',
+    'nav_cloud_storage' => 'Cloud-Speicher',
+    'nav_employee_users' => 'Mitarbeiterbenutzer',
+    'nav_security_settings' => 'Sicherheitseinstellungen',
+    'nav_access_control' => 'Zugriffskontrolle',
+    'nav_security_policies' => 'Sicherheitsrichtlinien',
+    'nav_your_files' => 'Ihre Dateien',
+    'nav_upload_files' => 'Dateien hochladen',
+
     // Token Refresh Error Types - Descriptions
     'token_refresh_error_network_timeout' => 'Netzwerk-Timeout während der Token-Erneuerung',
     'token_refresh_error_invalid_refresh_token' => 'Ungültiger Erneuerungs-Token bereitgestellt',

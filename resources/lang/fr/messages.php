@@ -5,6 +5,17 @@ return [
     'login-message' => 'Les utilisateurs de <b>' . config('app.company_name') . '</b> peuvent se connecter avec leur adresse e-mail et leur mot de passe. Si vous ne connaissez pas votre mot de passe, <a href="/">connectez-vous</a> avec votre adresse e-mail et nous vous enverrons un lien.',
     'email-validation-message' => 'Vous recevrez un e-mail avec un lien pour valider votre adresse e-mail. En cliquant sur le lien que nous vous envoyons, vous pourrez télécharger des fichiers vers ' . config('app.company_name') . '.',
 
+    // Navigation & General UI
+    'nav_dashboard' => 'Tableau de Bord',
+    'nav_client_users' => 'Gestion des Clients',
+    'nav_cloud_storage' => 'Stockage Cloud',
+    'nav_employee_users' => 'Utilisateurs Employés',
+    'nav_security_settings' => 'Paramètres de Sécurité',
+    'nav_access_control' => 'Contrôle d\'Accès',
+    'nav_security_policies' => 'Politiques de Sécurité',
+    'nav_your_files' => 'Vos Fichiers',
+    'nav_upload_files' => 'Télécharger des Fichiers',
+
     // Token Refresh Error Types - Descriptions
     'token_refresh_error_network_timeout' => 'Délai d\'attente réseau dépassé lors du renouvellement du token',
     'token_refresh_error_invalid_refresh_token' => 'Token de renouvellement invalide fourni',
