@@ -46,6 +46,9 @@ class CloudStorageController extends Controller
             'root_folder_id' => false, // Always false - root folder is user-specific only
         ];
 
+        // Check which S3 settings are defined in environment
+        $s3EnvSettings = $this->getS3EnvironmentSettings();
+
         try {
             // Use CloudStorageManager to check if user has any valid connection
             $provider = $this->storageManager->getUserProvider($user);
@@ -67,8 +70,25 @@ class CloudStorageController extends Controller
         return view('admin.cloud-storage.index', compact(
             'currentFolderId', 
             'currentFolderName',
-            'googleDriveEnvSettings'
+            'googleDriveEnvSettings',
+            's3EnvSettings'
         ));
+    }
+
+    /**
+     * Check which S3 settings are defined in environment variables.
+     *
+     * @return array
+     */
+    private function getS3EnvironmentSettings(): array
+    {
+        return [
+            'access_key_id' => !empty(env('AWS_ACCESS_KEY_ID')),
+            'secret_access_key' => !empty(env('AWS_SECRET_ACCESS_KEY')),
+            'region' => !empty(env('AWS_DEFAULT_REGION')),
+            'bucket' => !empty(env('AWS_BUCKET')),
+            'endpoint' => !empty(env('AWS_ENDPOINT')),
+        ];
     }
 
     /**

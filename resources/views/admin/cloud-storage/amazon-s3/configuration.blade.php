@@ -5,6 +5,15 @@
     $s3Status = $settingsService->getS3ConfigurationStatus();
     $s3Connected = $s3Status['is_configured'];
     
+    // Check which settings are configured via environment variables
+    $s3EnvSettings = [
+        'access_key_id' => !empty(env('AWS_ACCESS_KEY_ID')),
+        'secret_access_key' => !empty(env('AWS_SECRET_ACCESS_KEY')),
+        'region' => !empty(env('AWS_DEFAULT_REGION')),
+        'bucket' => !empty(env('AWS_BUCKET')),
+        'endpoint' => !empty(env('AWS_ENDPOINT')),
+    ];
+    
     // Common AWS regions
     $awsRegions = [
         'us-east-1' => 'US East (N. Virginia)',
@@ -31,9 +40,9 @@
     {{-- Header Section --}}
     <div class="flex items-center justify-between">
         <div>
-            <h3 class="text-lg font-medium text-gray-900">Amazon S3</h3>
+            <h3 class="text-lg font-medium text-gray-900">{{ __('messages.s3_configuration_title') }}</h3>
             <p class="mt-1 text-sm text-gray-500">
-                Configure AWS credentials for system-wide S3 storage
+                {{ __('messages.s3_configuration_description') }}
             </p>
         </div>
         <div class="flex items-center space-x-4">
@@ -46,7 +55,7 @@
                     @method('DELETE')
                     <button type="submit" 
                             class="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                            onclick="return confirm('Are you sure you want to disconnect Amazon S3? This will remove all stored credentials.')">
+                            onclick="return confirm('{{ __('messages.s3_disconnect_confirmation') }}')">
                         {{ __('messages.disconnect') }}
                     </button>
                 </form>
@@ -58,6 +67,43 @@
         </div>
     </div>
 
+    {{-- Environment Configuration Banner --}}
+    @if($s3EnvSettings['access_key_id'] || $s3EnvSettings['secret_access_key'] || 
+        $s3EnvSettings['region'] || $s3EnvSettings['bucket'] || $s3EnvSettings['endpoint'])
+        <div class="mt-6 mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">{{ __('messages.s3_env_configuration_title') }}</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <p>{{ __('messages.s3_env_configuration_message') }}</p>
+                        <ul class="list-disc list-inside mt-1">
+                            @if($s3EnvSettings['access_key_id'])
+                                <li>{{ __('messages.s3_env_access_key_id') }}</li>
+                            @endif
+                            @if($s3EnvSettings['secret_access_key'])
+                                <li>{{ __('messages.s3_env_secret_access_key') }}</li>
+                            @endif
+                            @if($s3EnvSettings['region'])
+                                <li>{{ __('messages.s3_env_region') }}</li>
+                            @endif
+                            @if($s3EnvSettings['bucket'])
+                                <li>{{ __('messages.s3_env_bucket') }}</li>
+                            @endif
+                            @if($s3EnvSettings['endpoint'])
+                                <li>{{ __('messages.s3_env_endpoint') }}</li>
+                            @endif
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Configuration Form --}}
     <form action="{{ route('admin.cloud-storage.amazon-s3.update') }}" 
           method="POST" 
@@ -68,78 +114,106 @@
 
         {{-- AWS Access Key ID --}}
         <div>
-            <x-label for="aws_access_key_id" value="AWS Access Key ID" />
-            <x-input id="aws_access_key_id" 
-                     name="aws_access_key_id" 
-                     type="text" 
-                     class="mt-1 block w-full"
-                     :value="old('aws_access_key_id', $s3Config['access_key_id'] ?? '')"
-                     placeholder="AKIAIOSFODNN7EXAMPLE"
-                     maxlength="20"
-                     pattern="[A-Z0-9]{20}"
-                     x-model="formData.access_key_id"
-                     @input="validateAccessKeyId"
-                     required />
-            <p class="mt-1 text-xs text-gray-500">
-                Must be exactly 20 uppercase alphanumeric characters
-            </p>
-            <template x-if="errors.access_key_id">
-                <p class="mt-1 text-sm text-red-600" x-text="errors.access_key_id"></p>
-            </template>
+            <x-label for="aws_access_key_id" :value="__('messages.s3_access_key_id_label')" />
+            @if($s3EnvSettings['access_key_id'])
+                <x-input id="aws_access_key_id" 
+                         type="text" 
+                         class="mt-1 block w-full bg-gray-100" 
+                         :value="env('AWS_ACCESS_KEY_ID')" 
+                         readonly />
+                <p class="mt-1 text-sm text-gray-500">{{ __('messages.s3_env_configured_via_environment') }}</p>
+            @else
+                <x-input id="aws_access_key_id" 
+                         name="aws_access_key_id" 
+                         type="text" 
+                         class="mt-1 block w-full"
+                         :value="old('aws_access_key_id', $s3Config['access_key_id'] ?? '')"
+                         placeholder="AKIAIOSFODNN7EXAMPLE"
+                         maxlength="20"
+                         pattern="[A-Z0-9]{20}"
+                         x-model="formData.access_key_id"
+                         @input="validateAccessKeyId"
+                         required />
+                <p class="mt-1 text-xs text-gray-500">
+                    {{ __('messages.s3_access_key_id_hint') }}
+                </p>
+                <template x-if="errors.access_key_id">
+                    <p class="mt-1 text-sm text-red-600" x-text="errors.access_key_id"></p>
+                </template>
+            @endif
             <x-input-error for="aws_access_key_id" class="mt-2" />
         </div>
 
         {{-- AWS Secret Access Key --}}
         <div>
-            <x-label for="aws_secret_access_key" value="AWS Secret Access Key" />
-            <x-input id="aws_secret_access_key" 
-                     name="aws_secret_access_key" 
-                     type="password" 
-                     class="mt-1 block w-full"
-                     placeholder="{{ !empty($s3Config['secret_access_key']) ? '••••••••••••••••••••••••••••••••••••••••' : 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY' }}"
-                     minlength="40"
-                     maxlength="40"
-                     x-model="formData.secret_access_key"
-                     @input="validateSecretAccessKey"
-                     {{ empty($s3Config['secret_access_key']) ? 'required' : '' }} />
-            <p class="mt-1 text-xs text-gray-500">
-                Must be exactly 40 characters. Leave blank to keep existing secret key.
-            </p>
-            <template x-if="errors.secret_access_key">
-                <p class="mt-1 text-sm text-red-600" x-text="errors.secret_access_key"></p>
-            </template>
+            <x-label for="aws_secret_access_key" :value="__('messages.s3_secret_access_key_label')" />
+            @if($s3EnvSettings['secret_access_key'])
+                <x-input id="aws_secret_access_key" 
+                         type="password" 
+                         class="mt-1 block w-full bg-gray-100" 
+                         value="••••••••••••••••••••••••••••••••••••••••" 
+                         readonly />
+                <p class="mt-1 text-sm text-gray-500">{{ __('messages.s3_env_configured_via_environment') }}</p>
+            @else
+                <x-input
+                    id="aws_secret_access_key"
+                    name="aws_secret_access_key"
+                    type="password"
+                    class="mt-1 block w-full"
+                    placeholder="{{ !empty($s3Config['secret_access_key']) ? '••••••••••••••••••••••••••••••••••••••••' : 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY' }}"
+                    x-model="formData.secret_access_key"
+                    @input="validateSecretAccessKey"
+                />
+                <p class="mt-1 text-xs text-gray-500">
+                    {{ __('messages.s3_secret_access_key_hint') }}
+                </p>
+                <template x-if="errors.secret_access_key">
+                    <p class="mt-1 text-sm text-red-600" x-text="errors.secret_access_key"></p>
+                </template>
+            @endif
             <x-input-error for="aws_secret_access_key" class="mt-2" />
         </div>
 
         {{-- AWS Region --}}
         <div>
-            <x-label for="aws_region" value="AWS Region" />
-            <select id="aws_region" 
-                    name="aws_region" 
-                    class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
-                    x-model="formData.region"
-                    @change="validateRegion"
-                    required>
-                <option value="">Select a region</option>
-                @foreach($awsRegions as $regionCode => $regionName)
-                    <option value="{{ $regionCode }}" 
-                            {{ old('aws_region', $s3Config['region'] ?? '') === $regionCode ? 'selected' : '' }}>
-                        {{ $regionName }}
+            <x-label for="aws_region" :value="__('messages.s3_region_label')" />
+            @if($s3EnvSettings['region'])
+                <select id="aws_region" 
+                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100"
+                        disabled>
+                    <option value="{{ env('AWS_DEFAULT_REGION') }}" selected>
+                        {{ $awsRegions[env('AWS_DEFAULT_REGION')] ?? env('AWS_DEFAULT_REGION') }}
                     </option>
-                @endforeach
-            </select>
-            <p class="mt-1 text-xs text-gray-500">
-                Select the AWS region where your S3 bucket is located
-            </p>
-            <template x-if="errors.region">
-                <p class="mt-1 text-sm text-red-600" x-text="errors.region"></p>
-            </template>
+                </select>
+                <p class="mt-1 text-sm text-gray-500">{{ __('messages.s3_env_configured_via_environment') }}</p>
+            @else
+                <select id="aws_region" 
+                        name="aws_region" 
+                        class="mt-1 block w-full border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-md shadow-sm"
+                        x-model="formData.region"
+                        @change="validateRegion"
+                        required>
+                    <option value="">{{ __('messages.s3_region_select_prompt') }}</option>
+                    @foreach($awsRegions as $regionCode => $regionName)
+                        <option value="{{ $regionCode }}" 
+                                {{ old('aws_region', $s3Config['region'] ?? '') === $regionCode ? 'selected' : '' }}>
+                            {{ $regionName }}
+                        </option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-gray-500">
+                    {{ __('messages.s3_region_hint') }}
+                </p>
+                <template x-if="errors.region">
+                    <p class="mt-1 text-sm text-red-600" x-text="errors.region"></p>
+                </template>
+            @endif
             <x-input-error for="aws_region" class="mt-2" />
         </div>
 
         {{-- S3 Bucket Name --}}
         <div>
-            <x-label for="aws_bucket" value="S3 Bucket Name" />
+            <x-label for="aws_bucket" :value="__('messages.s3_bucket_name_label')" />
             <x-input id="aws_bucket" 
                      name="aws_bucket" 
                      type="text" 
@@ -151,7 +225,7 @@
                      @input="validateBucketName"
                      required />
             <p class="mt-1 text-xs text-gray-500">
-                Bucket name must be 3-63 characters, lowercase letters, numbers, hyphens, and periods only
+                {{ __('messages.s3_bucket_name_hint') }}
             </p>
             <template x-if="errors.bucket">
                 <p class="mt-1 text-sm text-red-600" x-text="errors.bucket"></p>
@@ -161,7 +235,7 @@
 
         {{-- Custom Endpoint (Optional) --}}
         <div>
-            <x-label for="aws_endpoint" value="Custom Endpoint (Optional)" />
+            <x-label for="aws_endpoint" :value="__('messages.s3_endpoint_label')" />
             <x-input id="aws_endpoint" 
                      name="aws_endpoint" 
                      type="url" 
@@ -171,7 +245,7 @@
                      x-model="formData.endpoint"
                      @input="validateEndpoint" />
             <p class="mt-1 text-xs text-gray-500">
-                For S3-compatible services like Cloudflare R2, Backblaze B2, or MinIO. Leave blank for standard AWS S3.
+                {{ __('messages.s3_endpoint_hint') }}
             </p>
             <template x-if="errors.endpoint">
                 <p class="mt-1 text-sm text-red-600" x-text="errors.endpoint"></p>
@@ -185,13 +259,13 @@
                     @click="testConnection"
                     :disabled="isTesting || !isFormValid"
                     class="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                <span x-show="!isTesting">Test Connection</span>
+                <span x-show="!isTesting">{{ __('messages.s3_test_connection') }}</span>
                 <span x-show="isTesting" class="flex items-center">
                     <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Testing...
+                    {{ __('messages.s3_testing_connection') }}
                 </span>
             </button>
 
@@ -203,7 +277,7 @@
                             <svg class="h-5 w-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                             </svg>
-                            <span class="text-sm font-medium">Connection successful!</span>
+                            <span class="text-sm font-medium">{{ __('messages.s3_connection_test_successful') }}</span>
                         </div>
                     </template>
                     <template x-if="!testResult.success">
