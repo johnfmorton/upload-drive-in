@@ -33,15 +33,20 @@ class GoogleDriveFolderController extends Controller
             return response()->json(['error' => 'Google Drive not connected'], 403);
         }
 
+        // Cache folder listings for 5 minutes to reduce API calls
+        $cacheKey = "google_drive_folders_{$user->id}_{$parentId}";
+        
         try {
-            $service = $this->driveService->getDriveService($user);
-            $query = sprintf("mimeType='application/vnd.google-apps.folder' and trashed=false and '%s' in parents", $parentId);
-            $response = $service->files->listFiles([
-                'q' => $query,
-                'fields' => 'files(id,name)',
-            ]);
+            $folders = cache()->remember($cacheKey, 300, function () use ($user, $parentId) {
+                $service = $this->driveService->getDriveService($user);
+                $query = sprintf("mimeType='application/vnd.google-apps.folder' and trashed=false and '%s' in parents", $parentId);
+                $response = $service->files->listFiles([
+                    'q' => $query,
+                    'fields' => 'files(id,name)',
+                ]);
 
-            $folders = array_map(fn($f) => ['id' => $f->id, 'name' => $f->name], $response->getFiles());
+                return array_map(fn($f) => ['id' => $f->id, 'name' => $f->name], $response->getFiles());
+            });
 
             return response()->json(['folders' => $folders]);
         } catch (\Exception $e) {
@@ -76,6 +81,10 @@ class GoogleDriveFolderController extends Controller
 
             $folder = $service->files->create($fileMetadata, ['fields' => 'id,name']);
 
+            // Invalidate the cache for the parent folder's listing
+            $cacheKey = "google_drive_folders_{$user->id}_{$validated['parent_id']}";
+            cache()->forget($cacheKey);
+
             return response()->json(['folder' => ['id' => $folder->id, 'name' => $folder->name]]);
         } catch (\Exception $e) {
             Log::error('Failed to create Google Drive folder', ['error' => $e->getMessage()]);
@@ -94,10 +103,17 @@ class GoogleDriveFolderController extends Controller
             return response()->json(['error' => 'Google Drive not connected'], 403);
         }
 
+        // Cache folder metadata for 5 minutes to reduce API calls
+        $cacheKey = "google_drive_folder_meta_{$user->id}_{$folderId}";
+        
         try {
-            $service = $this->driveService->getDriveService($user);
-            $folder = $service->files->get($folderId, ['fields' => 'id,name']);
-            return response()->json(['folder' => ['id' => $folder->id, 'name' => $folder->name]]);
+            $folder = cache()->remember($cacheKey, 300, function () use ($user, $folderId) {
+                $service = $this->driveService->getDriveService($user);
+                $file = $service->files->get($folderId, ['fields' => 'id,name']);
+                return ['id' => $file->id, 'name' => $file->name];
+            });
+            
+            return response()->json(['folder' => $folder]);
         } catch (\Exception $e) {
             Log::error('Failed to fetch Google Drive folder', ['error' => $e->getMessage(), 'folderId' => $folderId]);
             return response()->json(['error' => 'Failed to fetch folder'], 500);

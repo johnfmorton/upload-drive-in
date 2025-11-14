@@ -52,6 +52,12 @@
                             this.showProviderNotAvailableMessage();
                         } else {
                             this.previousValidSelection = this.selectedProvider;
+                            // Dispatch event when Google Drive becomes visible
+                            if (this.selectedProvider === 'google-drive') {
+                                this.$nextTick(() => {
+                                    window.dispatchEvent(new CustomEvent('google-drive-visible'));
+                                });
+                            }
                         }
                     },
                     
@@ -287,8 +293,9 @@
                 // Remember initial folder to detect changes
                 this.initialFolderId = this.currentFolderId;
                 this.folderChanged = false;
-                
-                // If user has a specific folder configured, fetch its name
+            },
+            fetchCurrentFolderName() {
+                // Only fetch folder name when needed
                 if (this.currentFolderId && this.currentFolderId !== 'root') {
                     fetch(`${this.baseFolderShowUrl}/${this.currentFolderId}`)
                         .then(res => res.json())
@@ -304,6 +311,10 @@
                 }
             },
             openModal() {
+                // Fetch folder name on first modal open if not already fetched
+                if (!this.currentFolderName && this.currentFolderId && this.currentFolderId !== 'root') {
+                    this.fetchCurrentFolderName();
+                }
                 this.showModal = true;
                 this.folderStack = [{ id: this.rootFolderId, name: this.rootFolderName }];
                 this.loadFolders(this.rootFolderId);
