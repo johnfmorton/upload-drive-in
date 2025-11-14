@@ -990,13 +990,15 @@ return [
     
     // Welcome Message Content
     'welcome_message_title' => '🎉 Willkommen bei Upload Drive-in!',
-    'welcome_message_intro' => 'Herzlichen Glückwunsch! Ihre Upload Drive-in-Anwendung wurde erfolgreich konfiguriert und ist einsatzbereit.',
+    'welcome_message_intro' => 'Herzlichen Glückwunsch! Ihre Upload Drive-in-Anwendung wurde erfolgreich installiert.',
     'welcome_message_next_steps_title' => 'Nächste Schritte für den Einstieg:',
     'welcome_message_step_cloud_storage' => 'Konfigurieren Sie einen Cloud-Speicher-Anbieter.',
+    'welcome_message_step_security_settings' => 'Überprüfen Sie Sicherheitseinstellungen und Zugriffskontrolle.',
     'welcome_message_step_branding' => 'Passen Sie Ihren Firmennamen, Ihr Logo usw. über die Branding-Einstellungsseite an.',
     'welcome_message_step_share_link' => 'Teilen Sie Ihren Upload-Link mit Kunden, um Dateien zu empfangen',
-    'welcome_message_step_create_employees' => 'Erstellen Sie Mitarbeiterkonten für Teammitglieder',
+    'welcome_message_step_create_employees' => 'Optional: Erstellen Sie Mitarbeiterkonten für Teammitglieder',
     'welcome_message_button_cloud_storage' => 'Cloud-Speicher-Einstellungen',
+    'welcome_message_button_security' => 'Sicherheits- und Zugriffseinstellungen',
     'welcome_message_button_employees' => 'Mitarbeiter Verwalten',
-    'welcome_message_button_settings' => 'Anwendungseinstellungen',
+    'welcome_message_button_settings' => 'Branding-Einstellungen',
 ];

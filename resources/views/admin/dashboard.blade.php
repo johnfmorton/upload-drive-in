@@ -37,21 +37,20 @@
                         </div>
                         <div class="ml-4 flex-1">
                             <h3 class="text-lg font-semibold text-blue-900">
-                                🎉 Welcome to Upload Drive-in!
+                                {{ __('messages.welcome_message_title') }}
                             </h3>
                             <div class="mt-2 text-blue-800">
                                 <p class="mb-3">
-                                    Congratulations! Your Upload Drive-in application has been successfully
-                                    configured and is ready to use.
+                                    {{ __('messages.welcome_message_intro') }}
                                 </p>
                                 <div class="space-y-2">
-                                    <h4 class="font-medium">Next steps to get started:</h4>
+                                    <h4 class="font-medium">{{ __('messages.welcome_message_next_steps_title') }}</h4>
                                     <ul class="list-disc list-inside space-y-1 text-sm">
-                                        <li>Configure a cloud storage provider.</li>
-                                        <li>Optionally, create employee accounts for team members</li>
-                                        <li>Customize your company name, logo, etc., using the branding settings page.
-                                        </li>
-                                        <li>Share your upload link with clients to start receiving files</li>
+                                        <li>{{ __('messages.welcome_message_step_cloud_storage') }}</li>
+                                        <li>{{ __('messages.welcome_message_step_security_settings') }}</li>
+                                        <li>{{ __('messages.welcome_message_step_create_employees') }}</li>
+                                        <li>{{ __('messages.welcome_message_step_branding') }}</li>
+                                        <li>{{ __('messages.welcome_message_step_share_link') }}</li>
 
                                     </ul>
                                 </div>
@@ -64,7 +63,16 @@
                                             d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10">
                                         </path>
                                     </svg>
-                                    Cloud Storage Settings
+                                    {{ __('messages.welcome_message_button_cloud_storage') }}
+                                </a>
+                                <a href="{{ route('admin.security.settings') }}"
+                                    class="inline-flex items-center px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                                        </path>
+                                    </svg>
+                                    {{ __('messages.welcome_message_button_security') }}
                                 </a>
                                 <a href="{{ route('admin.employees.index') }}"
                                     class="inline-flex items-center px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -73,7 +81,7 @@
                                             d="M15.02,16.98H1.16v-1.16c0-3.83,3.1-6.93,6.93-6.93s6.93,3.1,6.93,6.93v1.16ZM16.17,16.98h6.93v-1.16c0-3.83-3.1-6.93-6.93-6.93-1.22,0-2.41.32-3.47.93M12.13,4.73c0,1.97-1.6,3.57-3.57,3.57s-3.57-1.6-3.57-3.57h0c0-1.97,1.6-3.57,3.57-3.57s3.57,1.6,3.57,3.57ZM19.85,4.73c0,1.97-1.6,3.57-3.57,3.57s-3.57-1.6-3.57-3.57h0c0-1.97,1.6-3.57,3.57-3.57s3.57,1.6,3.57,3.57Z">
                                         </path>
                                     </svg>
-                                    Manage Employees
+                                    {{ __('messages.welcome_message_button_employees') }}
                                 </a>
                                 <a href="{{ route('admin.settings.edit') }}"
                                     class="inline-flex items-center px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -84,7 +92,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                     </svg>
-                                    Branding Settings
+                                    {{ __('messages.welcome_message_button_settings') }}
                                 </a>
                             </div>
                         </div>
