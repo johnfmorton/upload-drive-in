@@ -154,19 +154,47 @@ class DashboardController extends AdminController
     public function destroy(FileUpload $file)
     {
         try {
-            // Delete from Google Drive if file exists there
-            if ($file->google_drive_file_id) {
+            // Delete from cloud storage if file exists there
+            if ($file->google_drive_file_id || $file->provider_file_id) {
                 try {
-                    // Use the new method from FileUpload model
-                    $deleted = $file->deleteFromGoogleDrive();
+                    $storageManager = app(\App\Services\CloudStorageManager::class);
+                    $user = auth()->user();
+                    
+                    // Determine provider
+                    $provider = $file->cloud_storage_provider;
+                    if (!$provider) {
+                        // Detect based on file ID format
+                        $provider = str_contains($file->google_drive_file_id ?? $file->provider_file_id, '/') 
+                            ? 'amazon-s3' 
+                            : 'google-drive';
+                    }
+                    
+                    // Get the appropriate provider
+                    $cloudProvider = $storageManager->getProvider($provider, $user);
+                    
+                    // Delete from cloud storage
+                    $fileId = $file->provider_file_id ?? $file->google_drive_file_id;
+                    $deleted = $cloudProvider->deleteFile($user, $fileId);
+                    
                     if ($deleted) {
-                        Log::info('Successfully deleted file from Google Drive: ' . $file->google_drive_file_id);
+                        Log::info('Successfully deleted file from cloud storage', [
+                            'file_id' => $file->id,
+                            'cloud_file_id' => $fileId,
+                            'provider' => $provider
+                        ]);
                     } else {
-                        Log::warning('Failed to delete file from Google Drive: ' . $file->google_drive_file_id);
+                        Log::warning('Failed to delete file from cloud storage', [
+                            'file_id' => $file->id,
+                            'cloud_file_id' => $fileId,
+                            'provider' => $provider
+                        ]);
                     }
                 } catch (\Exception $e) {
-                    Log::error('Google Drive API call failed during deletion for file ID: ' . $file->google_drive_file_id . ' Error: ' . $e->getMessage());
-                    throw new \Exception('Failed to delete file from Google Drive. Aborting deletion. Error: ' . $e->getMessage(), 0, $e);
+                    Log::error('Cloud storage deletion failed', [
+                        'file_id' => $file->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    throw new \Exception('Failed to delete file from cloud storage. Aborting deletion. Error: ' . $e->getMessage(), 0, $e);
                 }
             }
 

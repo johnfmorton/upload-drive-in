@@ -712,7 +712,7 @@ class FileManagerService
         if ($provider === 'amazon-s3' || $provider === 's3') {
             return $this->deleteFromS3($file);
         } else {
-            return $file->deleteFromGoogleDrive();
+            return $this->deleteFromGoogleDrive($file);
         }
     }
 
@@ -757,6 +757,55 @@ class FileManagerService
             Log::error('Failed to delete file from S3', [
                 'file_id' => $file->id,
                 's3_key' => $file->google_drive_file_id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Delete file from Google Drive.
+     */
+    private function deleteFromGoogleDrive(FileUpload $file): bool
+    {
+        try {
+            Log::info('Deleting file from Google Drive', [
+                'file_id' => $file->id,
+                'google_drive_file_id' => $file->google_drive_file_id,
+            ]);
+
+            $storageManager = app(\App\Services\CloudStorageManager::class);
+            
+            // Find a user with access to delete the file
+            $user = auth()->user();
+            if (!$user || !$user->hasGoogleDriveConnected()) {
+                // If no authenticated user or user doesn't have Google Drive, try to find an admin
+                $user = User::where('role', \App\Enums\UserRole::ADMIN)
+                    ->whereHas('googleDriveToken')
+                    ->first();
+            }
+            
+            if (!$user) {
+                throw new \Exception(__('messages.file_manager_no_google_drive_connection_for_delete'));
+            }
+            
+            $provider = $storageManager->getUserProvider($user);
+            
+            // Delete file from Google Drive
+            $deleted = $provider->deleteFile($user, $file->google_drive_file_id);
+            
+            if ($deleted) {
+                Log::info('File deleted from Google Drive successfully', [
+                    'file_id' => $file->id,
+                    'google_drive_file_id' => $file->google_drive_file_id,
+                ]);
+            }
+            
+            return $deleted;
+        } catch (\Exception $e) {
+            Log::error('Failed to delete file from Google Drive', [
+                'file_id' => $file->id,
+                'google_drive_file_id' => $file->google_drive_file_id,
                 'error' => $e->getMessage()
             ]);
             throw $e;

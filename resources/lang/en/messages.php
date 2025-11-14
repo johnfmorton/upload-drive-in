@@ -1628,6 +1628,7 @@
 
     // File Manager Service Messages
     'file_manager_no_user_for_s3_delete' => 'No user available to delete file from S3',
+    'file_manager_no_google_drive_connection_for_delete' => 'No Google Drive connection available for file deletion. Please ensure an admin has connected their Google Drive account.',
     'file_manager_no_files_for_download' => 'No files found for download.',
     'file_manager_zip_creation_failed' => 'Cannot create ZIP archive: :error',
     'file_manager_no_files_added_to_zip' => 'No files could be added to the archive. All files may be stored in cloud storage or inaccessible.',

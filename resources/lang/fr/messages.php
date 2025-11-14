@@ -1190,4 +1190,11 @@ return [
     'welcome_message_button_security' => 'Paramètres de Sécurité et d\'Accès',
     'welcome_message_button_employees' => 'Gérer les Employés',
     'welcome_message_button_settings' => 'Paramètres de Marque',
+
+    // File Manager Service Messages
+    'file_manager_no_user_for_s3_delete' => 'Aucun utilisateur disponible pour supprimer le fichier de S3',
+    'file_manager_no_google_drive_connection_for_delete' => 'Aucune connexion Google Drive disponible pour la suppression de fichiers. Veuillez vous assurer qu\'un administrateur a connecté son compte Google Drive.',
+    'file_manager_no_files_for_download' => 'Aucun fichier trouvé pour le téléchargement.',
+    'file_manager_zip_creation_failed' => 'Impossible de créer l\'archive ZIP : :error',
+    'file_manager_no_files_added_to_zip' => 'Aucun fichier n\'a pu être ajouté à l\'archive. Tous les fichiers peuvent être stockés dans le stockage cloud ou être inaccessibles.',
 ];

@@ -1021,4 +1021,11 @@ return [
     'welcome_message_unauthorized' => 'Acción no autorizada.',
     'welcome_message_dismissed_success' => 'Mensaje de bienvenida descartado exitosamente.',
     'welcome_message_dismiss_failed' => 'Error al descartar el mensaje. Por favor, inténtalo de nuevo.',
+
+    // File Manager Service Messages
+    'file_manager_no_user_for_s3_delete' => 'No hay usuario disponible para eliminar el archivo de S3',
+    'file_manager_no_google_drive_connection_for_delete' => 'No hay conexión de Google Drive disponible para eliminar archivos. Asegúrese de que un administrador haya conectado su cuenta de Google Drive.',
+    'file_manager_no_files_for_download' => 'No se encontraron archivos para descargar.',
+    'file_manager_zip_creation_failed' => 'No se puede crear el archivo ZIP: :error',
+    'file_manager_no_files_added_to_zip' => 'No se pudieron agregar archivos al archivo. Todos los archivos pueden estar almacenados en el almacenamiento en la nube o ser inaccesibles.',
 ];
