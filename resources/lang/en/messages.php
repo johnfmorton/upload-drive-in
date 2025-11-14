@@ -1549,6 +1549,10 @@
     's3_configuration_delete_failed' => 'Failed to delete S3 configuration: :error',
     's3_configuration_validation_error' => 'Validation error: :error',
     
+    // S3 Folder Path Error Messages
+    's3_folder_path_access_denied' => 'Access denied when writing to folder path \':folder_path\'. Please verify your AWS credentials have write permissions to this location in the bucket.',
+    's3_bucket_not_found' => 'Bucket not found. Please verify the bucket name is correct and accessible.',
+    
     // S3 Environment Configuration Banner
     's3_env_configuration_title' => 'Environment Configuration',
     's3_env_configuration_message' => 'Some Amazon S3 settings are configured via environment variables and cannot be edited here:',
@@ -1557,7 +1561,13 @@
     's3_env_region' => 'AWS Region',
     's3_env_bucket' => 'S3 Bucket Name',
     's3_env_endpoint' => 'Custom Endpoint',
+    's3_env_folder_path' => 'Folder Path',
     's3_env_configured_via_environment' => 'This value is configured via environment variables.',
+    
+    // S3 Folder Path Configuration
+    's3_folder_path_label' => 'Folder Path (Optional)',
+    's3_folder_path_hint' => 'Optional base folder path within your bucket. Files will be uploaded to:',
+    's3_folder_path_hint_blank' => 'Leave blank to upload to bucket root. Do not include leading or trailing slashes.',
     
     // S3 JavaScript Validation Messages
     's3_js_access_key_required' => 'Access Key ID is required',

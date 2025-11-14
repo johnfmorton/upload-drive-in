@@ -77,6 +77,11 @@ class CloudStorageSettingsService
                 $settings['storage_class'] = $config['storage_class'];
             }
 
+            // Add optional folder path
+            if (isset($config['folder_path'])) {
+                $settings['folder_path'] = $config['folder_path'];
+            }
+
             // Store each setting
             foreach ($settings as $key => $value) {
                 $shouldEncrypt = in_array($key, $encryptedKeys);
@@ -151,6 +156,11 @@ class CloudStorageSettingsService
             if (empty($settings['bucket']) && !empty(env('AWS_BUCKET'))) {
                 $settings['bucket'] = env('AWS_BUCKET');
                 Log::debug('CloudStorageSettingsService: Using AWS_BUCKET from environment');
+            }
+            
+            if (empty($settings['folder_path']) && !empty(env('AWS_FOLDER_PATH'))) {
+                $settings['folder_path'] = env('AWS_FOLDER_PATH');
+                Log::debug('CloudStorageSettingsService: Using AWS_FOLDER_PATH from environment');
             }
 
             // Convert use_path_style_endpoint to boolean if present

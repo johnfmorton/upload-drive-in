@@ -429,4 +429,46 @@ class CloudStorageConfigHelper
             ]);
         }
     }
+
+    /**
+     * Get the S3 folder path from environment or database.
+     * Environment variable takes precedence over database value.
+     *
+     * @return string The folder path (empty string if not configured)
+     */
+    public static function getS3FolderPath(): string
+    {
+        // Check environment variable first
+        $envFolderPath = env('AWS_FOLDER_PATH');
+        if (!empty($envFolderPath)) {
+            return trim($envFolderPath, "/ \t\n\r\0\x0B");
+        }
+
+        // Fall back to database
+        $setting = \App\Models\CloudStorageSetting::where('provider', 'amazon-s3')
+            ->where('key', 'folder_path')
+            ->whereNull('user_id') // System-level setting
+            ->first();
+
+        return $setting ? trim($setting->value, "/ \t\n\r\0\x0B") : '';
+    }
+
+    /**
+     * Generate an example S3 key for display purposes.
+     *
+     * @param string $folderPath The folder path to use
+     * @return string Example S3 key
+     */
+    public static function generateExampleS3Key(string $folderPath): string
+    {
+        $folderPath = trim($folderPath, "/ \t\n\r\0\x0B");
+        $exampleEmail = 'client@example.com';
+        $exampleFilename = 'document_2024-01-15_abc123.pdf';
+        
+        if (!empty($folderPath)) {
+            return $folderPath . '/' . $exampleEmail . '/' . $exampleFilename;
+        }
+        
+        return $exampleEmail . '/' . $exampleFilename;
+    }
 }

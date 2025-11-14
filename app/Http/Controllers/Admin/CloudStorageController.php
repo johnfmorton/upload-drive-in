@@ -88,6 +88,7 @@ class CloudStorageController extends Controller
             'region' => !empty(env('AWS_DEFAULT_REGION')),
             'bucket' => !empty(env('AWS_BUCKET')),
             'endpoint' => !empty(env('AWS_ENDPOINT')),
+            'folder_path' => !empty(env('AWS_FOLDER_PATH')),
         ];
     }
 
@@ -1392,46 +1393,94 @@ class CloudStorageController extends Controller
         $existingConfig = $settingsService->getS3Configuration(null);
         $hasExistingSecret = !empty($existingConfig['secret_access_key']);
         
+        // Check which fields are configured via environment variables
+        $fromEnv = [
+            'access_key_id' => !empty(env('AWS_ACCESS_KEY_ID')),
+            'secret_access_key' => !empty(env('AWS_SECRET_ACCESS_KEY')),
+            'region' => !empty(env('AWS_DEFAULT_REGION')),
+            'bucket' => !empty(env('AWS_BUCKET')),
+        ];
+        
         // Validate S3 configuration with custom rules for AWS credentials
+        // Fields from environment are optional in the form submission
         $validated = $request->validate([
-            'aws_access_key_id' => ['required', 'string', 'regex:/^[A-Z0-9]{20}$/'],
-            'aws_secret_access_key' => [$hasExistingSecret ? 'nullable' : 'required', 'string', 'size:40'],
-            'aws_region' => ['required', 'string', 'regex:/^[a-z0-9-]+$/'],
-            'aws_bucket' => ['required', 'string', 'regex:/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/'],
+            'aws_access_key_id' => [
+                $fromEnv['access_key_id'] ? 'nullable' : 'required', 
+                'string', 
+                'regex:/^[A-Z0-9]{20}$/'
+            ],
+            'aws_secret_access_key' => [
+                ($fromEnv['secret_access_key'] || $hasExistingSecret) ? 'nullable' : 'required', 
+                'string', 
+                'size:40'
+            ],
+            'aws_region' => [
+                $fromEnv['region'] ? 'nullable' : 'required', 
+                'string', 
+                'regex:/^[a-z0-9-]+$/'
+            ],
+            'aws_bucket' => [
+                $fromEnv['bucket'] ? 'nullable' : 'required', 
+                'string', 
+                'regex:/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/'
+            ],
             'aws_endpoint' => ['nullable', 'url'],
             'aws_storage_class' => ['nullable', 'string', 'in:STANDARD,INTELLIGENT_TIERING,STANDARD_IA,ONEZONE_IA,GLACIER,DEEP_ARCHIVE'],
+            'aws_folder_path' => ['nullable', 'string', 'regex:/^[a-zA-Z0-9\-_\/\.]+$/'],
         ], [
             'aws_access_key_id.regex' => __('messages.s3_access_key_id_format_invalid'),
             'aws_secret_access_key.size' => __('messages.s3_secret_access_key_length_invalid'),
             'aws_region.regex' => __('messages.s3_region_format_invalid'),
             'aws_bucket.regex' => __('messages.s3_bucket_name_format_invalid'),
             'aws_endpoint.url' => __('messages.s3_endpoint_url_invalid'),
+            'aws_folder_path.regex' => 'The folder path may only contain alphanumeric characters, hyphens, underscores, forward slashes, and periods.',
         ]);
 
         try {
             // Prepare configuration array for CloudStorageSettingsService
-            $config = [
-                'access_key_id' => $validated['aws_access_key_id'],
-                'region' => $validated['aws_region'],
-                'bucket' => $validated['aws_bucket'],
-            ];
+            // Use form values if provided, otherwise use existing config values
+            // Note: We only store values that are NOT from environment variables
+            $config = [];
             
-            // Only update secret key if provided (allows keeping existing secret)
-            if (!empty($validated['aws_secret_access_key'])) {
-                $config['secret_access_key'] = $validated['aws_secret_access_key'];
-            } elseif ($hasExistingSecret) {
-                // Keep the existing secret key
-                $config['secret_access_key'] = $existingConfig['secret_access_key'];
+            // Access Key ID - only store if not from env
+            if (!$fromEnv['access_key_id']) {
+                $config['access_key_id'] = $validated['aws_access_key_id'] ?? $existingConfig['access_key_id'];
+            }
+            
+            // Secret Access Key - only store if not from env
+            if (!$fromEnv['secret_access_key']) {
+                if (!empty($validated['aws_secret_access_key'])) {
+                    $config['secret_access_key'] = $validated['aws_secret_access_key'];
+                } elseif ($hasExistingSecret) {
+                    // Keep the existing secret key
+                    $config['secret_access_key'] = $existingConfig['secret_access_key'];
+                }
+            }
+            
+            // Region - only store if not from env
+            if (!$fromEnv['region']) {
+                $config['region'] = $validated['aws_region'] ?? $existingConfig['region'];
+            }
+            
+            // Bucket - only store if not from env
+            if (!$fromEnv['bucket']) {
+                $config['bucket'] = $validated['aws_bucket'] ?? $existingConfig['bucket'];
             }
 
-            // Add optional endpoint for S3-compatible services
-            if (!empty($validated['aws_endpoint'])) {
+            // Add optional endpoint for S3-compatible services (only if not from env)
+            if (!env('AWS_ENDPOINT') && !empty($validated['aws_endpoint'])) {
                 $config['endpoint'] = $validated['aws_endpoint'];
             }
 
-            // Add optional storage class
-            if (!empty($validated['aws_storage_class'])) {
+            // Add optional storage class (only if not from env)
+            if (!env('AWS_STORAGE_CLASS') && !empty($validated['aws_storage_class'])) {
                 $config['storage_class'] = $validated['aws_storage_class'];
+            }
+
+            // Add optional folder path (only if not from environment)
+            if (!env('AWS_FOLDER_PATH') && isset($validated['aws_folder_path'])) {
+                // Trim slashes before storing
+                $config['folder_path'] = trim($validated['aws_folder_path'], "/ \t\n\r\0\x0B");
             }
 
             // Store configuration using CloudStorageSettingsService
@@ -1546,12 +1595,14 @@ class CloudStorageController extends Controller
                 'regex:/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/'
             ],
             'aws_endpoint' => ['nullable', 'url'],
+            'aws_folder_path' => ['nullable', 'string', 'regex:/^[a-zA-Z0-9\-_\/\.]+$/'],
         ], [
             'aws_access_key_id.regex' => __('messages.s3_access_key_id_format_invalid'),
             'aws_secret_access_key.size' => __('messages.s3_secret_access_key_length_invalid'),
             'aws_region.regex' => __('messages.s3_region_format_invalid'),
             'aws_bucket.regex' => __('messages.s3_bucket_name_format_invalid'),
             'aws_endpoint.url' => __('messages.s3_endpoint_url_invalid'),
+            'aws_folder_path.regex' => 'The folder path may only contain alphanumeric characters, hyphens, underscores, forward slashes, and periods.',
         ]);
 
         try {
@@ -1579,6 +1630,13 @@ class CloudStorageController extends Controller
                 $testConfig['endpoint'] = $validated['aws_endpoint'];
             }
 
+            // Add optional folder path for testing
+            if (isset($validated['aws_folder_path'])) {
+                $testConfig['folder_path'] = trim($validated['aws_folder_path'], "/ \t\n\r\0\x0B");
+            } elseif (!empty($existingConfig['folder_path'])) {
+                $testConfig['folder_path'] = $existingConfig['folder_path'];
+            }
+
             Log::info('Testing S3 connection without saving configuration', [
                 'user_id' => $user->id,
                 'bucket' => $validated['aws_bucket'],
@@ -1594,28 +1652,45 @@ class CloudStorageController extends Controller
             $healthStatus = $provider->getConnectionHealth($user);
 
             if ($healthStatus->isHealthy()) {
+                $folderPath = $testConfig['folder_path'] ?? '';
+                $testFileKey = $healthStatus->providerSpecificData['test_file_key'] ?? null;
+                
                 Log::info('S3 connection test successful', [
                     'user_id' => $user->id,
                     'bucket' => $validated['aws_bucket'],
                     'region' => $validated['aws_region'],
+                    'folder_path' => $folderPath ?: 'bucket_root',
+                    'test_file_key' => $testFileKey,
                 ]);
+
+                // Build success message with folder path information
+                $successMessage = __('messages.s3_connection_test_successful');
+                if ($testFileKey) {
+                    $successMessage .= ' Test file uploaded to: ' . $testFileKey;
+                }
 
                 return response()->json([
                     'success' => true,
-                    'message' => __('messages.s3_connection_test_successful'),
+                    'message' => $successMessage,
                     'status' => 'healthy',
                     'details' => [
                         'bucket' => $validated['aws_bucket'],
                         'region' => $validated['aws_region'],
+                        'folder_path' => $folderPath ?: 'bucket_root',
+                        'test_file_key' => $testFileKey,
                         'has_custom_endpoint' => !empty($validated['aws_endpoint']),
                         'tested_at' => now()->toISOString(),
+                        'write_permissions_verified' => true,
                     ],
                 ]);
             } else {
+                $folderPath = $testConfig['folder_path'] ?? '';
+                
                 Log::warning('S3 connection test failed', [
                     'user_id' => $user->id,
                     'bucket' => $validated['aws_bucket'],
                     'region' => $validated['aws_region'],
+                    'folder_path' => $folderPath ?: 'bucket_root',
                     'error_message' => $healthStatus->last_error_message ?? 'Unknown error',
                     'error_type' => $healthStatus->error_type ?? 'unknown',
                 ]);
@@ -1641,6 +1716,7 @@ class CloudStorageController extends Controller
                     'details' => [
                         'bucket' => $validated['aws_bucket'],
                         'region' => $validated['aws_region'],
+                        'folder_path' => $folderPath ?: 'bucket_root',
                         'has_custom_endpoint' => !empty($validated['aws_endpoint']),
                         'tested_at' => now()->toISOString(),
                     ],

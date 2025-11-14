@@ -22,7 +22,7 @@ class CloudConfigurationService
         ],
         'amazon-s3' => [
             'required' => ['access_key_id', 'secret_access_key', 'region', 'bucket'],
-            'optional' => ['endpoint', 'storage_class'],
+            'optional' => ['endpoint', 'storage_class', 'folder_path'],
             'encrypted' => ['secret_access_key'],
             'auth_type' => 'api_key',
             'storage_model' => 'flat',

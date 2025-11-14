@@ -12,6 +12,7 @@
         'region' => !empty(env('AWS_DEFAULT_REGION')),
         'bucket' => !empty(env('AWS_BUCKET')),
         'endpoint' => !empty(env('AWS_ENDPOINT')),
+        'folder_path' => !empty(env('AWS_FOLDER_PATH')),
     ];
     
     // Common AWS regions
@@ -96,6 +97,9 @@
                             @endif
                             @if($s3EnvSettings['endpoint'])
                                 <li>{{ __('messages.s3_env_endpoint') }}</li>
+                            @endif
+                            @if($s3EnvSettings['folder_path'])
+                                <li>{{ __('messages.s3_env_folder_path') }}</li>
                             @endif
                         </ul>
                     </div>
@@ -242,6 +246,40 @@
             <x-input-error for="aws_bucket" class="mt-2" />
         </div>
 
+        {{-- Folder Path (Optional) --}}
+        <div>
+            <x-label for="aws_folder_path" :value="__('messages.s3_folder_path_label')" />
+            @if($s3EnvSettings['folder_path'])
+                <x-input id="aws_folder_path" 
+                         type="text" 
+                         class="mt-1 block w-full bg-gray-100" 
+                         :value="env('AWS_FOLDER_PATH')" 
+                         readonly />
+                <p class="mt-1 text-sm text-gray-500">{{ __('messages.s3_env_configured_via_environment') }}</p>
+            @else
+                <x-input id="aws_folder_path" 
+                         name="aws_folder_path" 
+                         type="text" 
+                         class="mt-1 block w-full"
+                         :value="old('aws_folder_path', $s3Config['folder_path'] ?? '')"
+                         placeholder="uploads/client-files"
+                         pattern="[a-zA-Z0-9\-_\/\.]+"
+                         x-model="formData.folder_path"
+                         @input="validateFolderPath" />
+                <p class="mt-1 text-xs text-gray-500">
+                    {{ __('messages.s3_folder_path_hint') }} 
+                    <code class="text-xs bg-gray-100 px-1 py-0.5 rounded font-mono" x-text="exampleKey"></code>
+                </p>
+                <p class="mt-1 text-xs text-gray-500">
+                    {{ __('messages.s3_folder_path_hint_blank') }}
+                </p>
+                <template x-if="errors.folder_path">
+                    <p class="mt-1 text-sm text-red-600" x-text="errors.folder_path"></p>
+                </template>
+            @endif
+            <x-input-error for="aws_folder_path" class="mt-2" />
+        </div>
+
         {{-- Custom Endpoint (Optional) --}}
         <div>
             <x-label for="aws_endpoint" :value="__('messages.s3_endpoint_label')" />
@@ -312,11 +350,14 @@
 
         {{-- Save Button --}}
         @php
-            // Check if all required fields are configured via environment variables
+            // Check if all fields (required and optional) are configured via environment variables
+            // Show save button if ANY field can be edited (not from environment)
             $allFieldsFromEnv = $s3EnvSettings['access_key_id'] && 
                                 $s3EnvSettings['secret_access_key'] && 
                                 $s3EnvSettings['region'] && 
-                                $s3EnvSettings['bucket'];
+                                $s3EnvSettings['bucket'] &&
+                                $s3EnvSettings['endpoint'] &&
+                                $s3EnvSettings['folder_path'];
         @endphp
 
         @unless($allFieldsFromEnv)
@@ -347,7 +388,8 @@ function s3ConfigurationHandler() {
             secret_access_key: '',
             region: @json(old('aws_region', $s3Config['region'] ?? '')),
             bucket: @json(old('aws_bucket', $s3Config['bucket'] ?? '')),
-            endpoint: @json(old('aws_endpoint', $s3Config['endpoint'] ?? ''))
+            endpoint: @json(old('aws_endpoint', $s3Config['endpoint'] ?? '')),
+            folder_path: @json(old('aws_folder_path', $s3Config['folder_path'] ?? ''))
         },
         envSettings: @json($s3EnvSettings),
         errors: {},
@@ -355,6 +397,7 @@ function s3ConfigurationHandler() {
         isSaving: false,
         testResult: null,
         isFormValid: false,
+        exampleKey: '',
 
         init() {
             // Initialize form data with environment values if present
@@ -370,7 +413,11 @@ function s3ConfigurationHandler() {
             if (this.envSettings.endpoint) {
                 this.formData.endpoint = @json(env('AWS_ENDPOINT'));
             }
+            if (this.envSettings.folder_path) {
+                this.formData.folder_path = @json(env('AWS_FOLDER_PATH'));
+            }
             
+            this.updateExampleKey();
             this.validateForm();
         },
 
@@ -451,6 +498,55 @@ function s3ConfigurationHandler() {
             this.validateForm();
         },
 
+        validateFolderPath() {
+            const folderPath = this.formData.folder_path;
+            
+            // Empty is valid
+            if (!folderPath) {
+                delete this.errors.folder_path;
+                this.updateExampleKey();
+                this.validateForm();
+                return;
+            }
+            
+            // Check for invalid characters
+            if (!/^[a-zA-Z0-9\-_\/\.]+$/.test(folderPath)) {
+                this.errors.folder_path = 'Only alphanumeric, hyphens, underscores, slashes, and periods allowed';
+                this.validateForm();
+                return;
+            }
+            
+            // Check for consecutive slashes
+            if (folderPath.includes('//')) {
+                this.errors.folder_path = 'Cannot contain consecutive slashes';
+                this.validateForm();
+                return;
+            }
+            
+            // Check for leading/trailing slashes
+            if (folderPath.startsWith('/') || folderPath.endsWith('/')) {
+                this.errors.folder_path = 'Cannot start or end with slashes';
+                this.validateForm();
+                return;
+            }
+            
+            delete this.errors.folder_path;
+            this.updateExampleKey();
+            this.validateForm();
+        },
+
+        updateExampleKey() {
+            const folderPath = this.formData.folder_path?.trim() || '';
+            const exampleEmail = 'client@example.com';
+            const exampleFilename = 'document_2024-01-15_abc123.pdf';
+            
+            if (folderPath) {
+                this.exampleKey = `${folderPath}/${exampleEmail}/${exampleFilename}`;
+            } else {
+                this.exampleKey = `${exampleEmail}/${exampleFilename}`;
+            }
+        },
+
         validateForm() {
             const hasExisting = {{ !empty($s3Config['secret_access_key']) ? 'true' : 'false' }};
             
@@ -478,7 +574,9 @@ function s3ConfigurationHandler() {
                     aws_bucket: this.envSettings.bucket ? 
                         @json(env('AWS_BUCKET')) : this.formData.bucket,
                     aws_endpoint: this.envSettings.endpoint ? 
-                        @json(env('AWS_ENDPOINT')) : this.formData.endpoint
+                        @json(env('AWS_ENDPOINT')) : this.formData.endpoint,
+                    aws_folder_path: this.envSettings.folder_path ? 
+                        @json(env('AWS_FOLDER_PATH')) : this.formData.folder_path
                 };
 
                 const response = await fetch('{{ route("admin.cloud-storage.amazon-s3.test-connection") }}', {
@@ -509,11 +607,13 @@ function s3ConfigurationHandler() {
         },
 
         handleSubmit(event) {
-            // Prevent submission if all required fields are from environment
+            // Prevent submission if ALL fields (required and optional) are from environment
             if (this.envSettings.access_key_id && 
                 this.envSettings.secret_access_key && 
                 this.envSettings.region && 
-                this.envSettings.bucket) {
+                this.envSettings.bucket &&
+                this.envSettings.endpoint &&
+                this.envSettings.folder_path) {
                 event.preventDefault();
                 return false;
             }

@@ -284,25 +284,50 @@ class S3Provider implements CloudStorageProviderInterface
     public function getConnectionHealth(User $user): CloudStorageHealthStatus
     {
         $startTime = microtime(true);
+        $folderPath = $this->getFolderPath();
+        
         $operationId = $this->logService->logOperationStart('health_check', self::PROVIDER_NAME, $user, [
             'bucket' => $this->config['bucket'] ?? 'not_configured',
             'region' => $this->config['region'] ?? 'not_configured',
+            'folder_path' => $folderPath ?: 'bucket_root',
         ]);
+
+        $testFileKey = null;
 
         try {
             $this->ensureInitialized($user);
 
-            // Perform a lightweight health check by listing bucket contents (limit 1)
-            $result = $this->s3Client->listObjectsV2([
+            // Generate a test file key to verify write permissions
+            $testFileName = 'connection-test-' . now()->format('Y-m-d-His') . '-' . \Illuminate\Support\Str::random(8) . '.txt';
+            $testFileKey = $this->generateS3Key('connection-test', $testFileName);
+            
+            // Test write permissions by uploading a small test file
+            $this->s3Client->putObject([
                 'Bucket' => $this->getBucket($user),
-                'MaxKeys' => 1,
+                'Key' => $testFileKey,
+                'Body' => 'Connection test file - safe to delete',
+                'ContentType' => 'text/plain',
+            ]);
+
+            // Verify the file was created
+            $this->s3Client->headObject([
+                'Bucket' => $this->getBucket($user),
+                'Key' => $testFileKey,
+            ]);
+
+            // Clean up test file
+            $this->s3Client->deleteObject([
+                'Bucket' => $this->getBucket($user),
+                'Key' => $testFileKey,
             ]);
 
             $durationMs = (microtime(true) - $startTime) * 1000;
             $this->logService->logOperationSuccess($operationId, 'health_check', self::PROVIDER_NAME, $user, [
                 'bucket' => $this->getBucket($user),
                 'region' => $this->getRegion($user),
-                'objects_found' => count($result['Contents'] ?? []),
+                'folder_path' => $folderPath ?: 'bucket_root',
+                'test_file_key' => $testFileKey,
+                'write_test_successful' => true,
             ], $durationMs);
 
             return new CloudStorageHealthStatus(
@@ -312,13 +337,43 @@ class S3Provider implements CloudStorageProviderInterface
                 providerSpecificData: [
                     'bucket' => $this->getBucket($user),
                     'region' => $this->getRegion($user),
+                    'folder_path' => $folderPath ?: 'bucket_root',
+                    'test_file_key' => $testFileKey,
                     'health_check_successful' => true,
+                    'write_permissions_verified' => true,
                 ]
             );
 
         } catch (Exception $e) {
+            // Attempt to clean up test file if it was created
+            if ($testFileKey) {
+                try {
+                    $this->s3Client->deleteObject([
+                        'Bucket' => $this->getBucket($user),
+                        'Key' => $testFileKey,
+                    ]);
+                } catch (Exception $cleanupException) {
+                    Log::debug('Failed to clean up test file during error handling', [
+                        'test_file_key' => $testFileKey,
+                        'error' => $cleanupException->getMessage(),
+                    ]);
+                }
+            }
+
             $errorType = $this->errorHandler->classifyError($e);
             $durationMs = (microtime(true) - $startTime) * 1000;
+            
+            // Enhance error message for folder path specific issues
+            $errorMessage = $e->getMessage();
+            if ($folderPath && (
+                str_contains($errorMessage, 'Access Denied') || 
+                str_contains($errorMessage, 'AccessDenied') ||
+                $errorType === \App\Enums\CloudStorageErrorType::BUCKET_ACCESS_DENIED
+            )) {
+                $errorMessage = __('messages.s3_folder_path_access_denied', ['folder_path' => $folderPath]);
+            } elseif ($folderPath && str_contains($errorMessage, 'NoSuchBucket')) {
+                $errorMessage = __('messages.s3_bucket_not_found');
+            }
             
             $this->logService->logOperationFailure(
                 $operationId,
@@ -326,10 +381,12 @@ class S3Provider implements CloudStorageProviderInterface
                 self::PROVIDER_NAME,
                 $user,
                 $errorType,
-                $e->getMessage(),
+                $errorMessage,
                 [
                     'bucket' => $this->config['bucket'] ?? 'not_configured',
                     'region' => $this->config['region'] ?? 'not_configured',
+                    'folder_path' => $folderPath ?: 'bucket_root',
+                    'test_file_key' => $testFileKey,
                 ],
                 $durationMs,
                 $e
@@ -347,13 +404,15 @@ class S3Provider implements CloudStorageProviderInterface
                 self::PROVIDER_NAME,
                 consecutiveFailures: 1,
                 lastErrorType: $errorType,
-                lastErrorMessage: $e->getMessage(),
+                lastErrorMessage: $errorMessage,
                 requiresReconnection: $requiresReconnection,
                 providerSpecificData: [
                     'health_check_failed_at' => now()->toISOString(),
-                    'error_details' => $e->getMessage(),
+                    'error_details' => $errorMessage,
                     'bucket' => $this->config['bucket'] ?? 'not_configured',
                     'region' => $this->config['region'] ?? 'not_configured',
+                    'folder_path' => $folderPath ?: 'bucket_root',
+                    'test_file_key' => $testFileKey,
                 ]
             );
         }
@@ -558,6 +617,12 @@ class S3Provider implements CloudStorageProviderInterface
             }
         }
 
+        // Validate folder path if provided
+        if (isset($config['folder_path']) && !empty($config['folder_path'])) {
+            $folderPathErrors = $this->validateFolderPathFormat($config['folder_path']);
+            $errors = array_merge($errors, $folderPathErrors);
+        }
+
         return $errors;
     }
 
@@ -577,6 +642,7 @@ class S3Provider implements CloudStorageProviderInterface
             'provider' => self::PROVIDER_NAME,
             'region' => $config['region'] ?? 'not_set',
             'bucket' => $config['bucket'] ?? 'not_set',
+            'folder_path' => $config['folder_path'] ?? 'not_set',
             'has_custom_endpoint' => !empty($config['endpoint']),
             'endpoint' => $config['endpoint'] ?? null,
         ]);
@@ -622,6 +688,7 @@ class S3Provider implements CloudStorageProviderInterface
                 'provider' => self::PROVIDER_NAME,
                 'region' => $config['region'],
                 'bucket' => $config['bucket'],
+                'folder_path' => $config['folder_path'] ?? 'not_set',
                 'has_custom_endpoint' => !empty($config['endpoint']),
                 'duration_ms' => $durationMs,
             ]);
@@ -633,6 +700,7 @@ class S3Provider implements CloudStorageProviderInterface
                 'error' => $e->getMessage(),
                 'region' => $config['region'] ?? 'not_set',
                 'bucket' => $config['bucket'] ?? 'not_set',
+                'folder_path' => $config['folder_path'] ?? 'not_set',
                 'duration_ms' => $durationMs,
             ]);
             
@@ -1817,7 +1885,60 @@ class S3Provider implements CloudStorageProviderInterface
     }
 
     /**
-     * Generate S3 key for flat storage model
+     * Get the configured folder path for S3 uploads
+     *
+     * @return string The folder path (empty string if not configured)
+     */
+    private function getFolderPath(): string
+    {
+        $folderPath = $this->config['folder_path'] ?? '';
+        
+        // Trim slashes and whitespace
+        $folderPath = trim($folderPath, "/ \t\n\r\0\x0B");
+        
+        return $folderPath;
+    }
+
+    /**
+     * Validate folder path format for S3 compatibility
+     *
+     * @param string $folderPath The folder path to validate
+     * @return array Array of validation errors (empty if valid)
+     */
+    private function validateFolderPathFormat(string $folderPath): array
+    {
+        $errors = [];
+        
+        // Empty is valid (means bucket root)
+        if (empty($folderPath)) {
+            return $errors;
+        }
+        
+        // Check for invalid characters (only allow alphanumeric, hyphens, underscores, slashes, periods)
+        if (!preg_match('/^[a-zA-Z0-9\-_\/\.]+$/', $folderPath)) {
+            $errors[] = 'Folder path contains invalid characters. Only alphanumeric, hyphens, underscores, slashes, and periods are allowed.';
+        }
+        
+        // Check for consecutive slashes
+        if (strpos($folderPath, '//') !== false) {
+            $errors[] = 'Folder path cannot contain consecutive slashes.';
+        }
+        
+        // Check for leading slash
+        if (str_starts_with($folderPath, '/')) {
+            $errors[] = 'Folder path cannot start with a slash.';
+        }
+        
+        // Check for trailing slash
+        if (str_ends_with($folderPath, '/')) {
+            $errors[] = 'Folder path cannot end with a slash.';
+        }
+        
+        return $errors;
+    }
+
+    /**
+     * Generate S3 key for flat storage model with optional folder path prefix
      *
      * @param string $targetPath Client email or folder path
      * @param string $filename Original filename
@@ -1837,6 +1958,12 @@ class S3Provider implements CloudStorageProviderInterface
         $uniqueFilename = $this->sanitizeS3Key($baseName) . '_' . $timestamp . '_' . $randomSuffix;
         if ($extension) {
             $uniqueFilename .= '.' . $extension;
+        }
+
+        // Prepend folder path if configured
+        $folderPath = $this->getFolderPath();
+        if (!empty($folderPath)) {
+            return $folderPath . '/' . $cleanPath . '/' . $uniqueFilename;
         }
 
         return $cleanPath . '/' . $uniqueFilename;

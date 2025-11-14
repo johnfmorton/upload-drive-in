@@ -1,19 +1,19 @@
 # Implementation Plan
 
-- [ ] 1. Add folder_path configuration to cloud-storage config
+- [x] 1. Add folder_path configuration to cloud-storage config
   - Add 'folder_path' key to amazon-s3 provider config in `config/cloud-storage.php`
   - Set default value to empty string using `env('AWS_FOLDER_PATH', '')`
   - Ensure configuration follows existing pattern for other S3 settings
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 2. Update S3Provider service with folder path support
-  - [ ] 2.1 Add getFolderPath() private method
+- [x] 2. Update S3Provider service with folder path support
+  - [x] 2.1 Add getFolderPath() private method
     - Retrieve folder_path from config array
     - Trim leading/trailing slashes and whitespace
     - Return empty string if not configured
     - _Requirements: 1.4, 4.3_
 
-  - [ ] 2.2 Add validateFolderPathFormat() private method
+  - [x] 2.2 Add validateFolderPathFormat() private method
     - Validate alphanumeric, hyphens, underscores, slashes, periods only
     - Check for consecutive slashes
     - Check for leading/trailing slashes
@@ -21,31 +21,31 @@
     - Allow empty folder path
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-  - [ ] 2.3 Modify generateS3Key() method
+  - [x] 2.3 Modify generateS3Key() method
     - Call getFolderPath() to retrieve configured path
     - Prepend folder path to S3 key when not empty
     - Ensure single slash separator between folder path and client email
     - Maintain existing key generation logic for filename
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-  - [ ] 2.4 Update validateConfiguration() method
+  - [x] 2.4 Update validateConfiguration() method
     - Add folder_path validation using validateFolderPathFormat()
     - Merge folder path errors with existing validation errors
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-  - [ ] 2.5 Update initialize() method logging
+  - [x] 2.5 Update initialize() method logging
     - Add folder_path to initialization log output
     - Include folder path in configuration logging
     - _Requirements: 8.4_
 
-- [ ] 3. Update CloudStorageController for folder path
-  - [ ] 3.1 Modify getS3EnvironmentSettings() method
+- [x] 3. Update CloudStorageController for folder path
+  - [x] 3.1 Modify getS3EnvironmentSettings() method
     - Add 'folder_path' key to returned array
     - Check for AWS_FOLDER_PATH environment variable
     - Return boolean indicating if folder path is from environment
     - _Requirements: 3.1, 3.2_
 
-  - [ ] 3.2 Update storeS3Configuration() method
+  - [x] 3.2 Update storeS3Configuration() method
     - Add 'aws_folder_path' to validation rules
     - Use regex pattern: `/^[a-zA-Z0-9\-_\/\.]+$/`
     - Make field nullable
@@ -53,29 +53,29 @@
     - Trim slashes before storing
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-  - [ ] 3.3 Update index() method
+  - [x] 3.3 Update index() method
     - Pass folder_path value to view from config or database
     - Include folder_path in $s3Config array
     - _Requirements: 2.4_
 
 
-- [ ] 4. Add helper methods to CloudStorageConfigHelper
-  - [ ] 4.1 Create getS3FolderPath() static method
+- [x] 4. Add helper methods to CloudStorageConfigHelper
+  - [x] 4.1 Create getS3FolderPath() static method
     - Check AWS_FOLDER_PATH environment variable first
     - Fall back to database CloudStorageSetting lookup
     - Trim slashes from returned value
     - Return empty string if not configured
     - _Requirements: 3.4, 6.1_
 
-  - [ ] 4.2 Create generateExampleS3Key() static method
+  - [x] 4.2 Create generateExampleS3Key() static method
     - Accept folder path parameter
     - Generate example key with sample client email and filename
     - Return format: `{folder_path}/{client_email}/{filename}` or `{client_email}/{filename}`
     - Use for UI display purposes
     - _Requirements: 6.2, 6.3_
 
-- [ ] 5. Update S3 configuration view with folder path field
-  - [ ] 5.1 Add folder path form field
+- [x] 5. Update S3 configuration view with folder path field
+  - [x] 5.1 Add folder path form field
     - Add field after bucket name field in configuration form
     - Use x-label component with "Folder Path (Optional)" label
     - Set placeholder to "uploads/client-files"
@@ -83,7 +83,7 @@
     - Bind to Alpine.js formData.folder_path
     - _Requirements: 2.1, 2.4_
 
-  - [ ] 5.2 Implement conditional read-only rendering
+  - [x] 5.2 Implement conditional read-only rendering
     - Check $s3EnvSettings['folder_path'] for environment configuration
     - Display read-only field with gray background when from environment
     - Display environment variable value in read-only field
@@ -91,7 +91,7 @@
     - Display editable field when not from environment
     - _Requirements: 3.1, 3.2, 3.3_
 
-  - [ ] 5.3 Add dynamic example key display
+  - [x] 5.3 Add dynamic example key display
     - Display helper text with example S3 key format
     - Use <code> tag with monospace styling for example
     - Bind example to Alpine.js exampleKey property
@@ -99,25 +99,25 @@
     - Show format: "Files will be uploaded to: {example_key}"
     - _Requirements: 6.2, 6.3, 6.4_
 
-  - [ ] 5.4 Add validation helper text
+  - [x] 5.4 Add validation helper text
     - Add text: "Leave blank to upload to bucket root"
     - Add text: "Do not include leading or trailing slashes"
     - Display validation errors using x-input-error component
     - _Requirements: 5.5, 6.5_
 
-- [ ] 6. Update Alpine.js configuration handler
-  - [ ] 6.1 Add folder_path to formData
+- [x] 6. Update Alpine.js configuration handler
+  - [x] 6.1 Add folder_path to formData
     - Initialize folder_path in formData object
     - Load value from old input or $s3Config
     - Default to empty string
     - _Requirements: 2.4, 2.5_
 
-  - [ ] 6.2 Add exampleKey property
+  - [x] 6.2 Add exampleKey property
     - Initialize exampleKey property for dynamic display
     - Set initial value in init() method
     - _Requirements: 6.2, 6.3, 6.4_
 
-  - [ ] 6.3 Create validateFolderPath() method
+  - [x] 6.3 Create validateFolderPath() method
     - Check for empty value (valid)
     - Validate regex pattern for allowed characters
     - Check for consecutive slashes
@@ -127,7 +127,7 @@
     - Call validateForm() to update form validity
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-  - [ ] 6.4 Create updateExampleKey() method
+  - [x] 6.4 Create updateExampleKey() method
     - Get folder_path from formData
     - Trim whitespace
     - Generate example with format: `{folder_path}/{client_email}/{filename}`
@@ -136,25 +136,25 @@
     - Update exampleKey property
     - _Requirements: 6.2, 6.3, 6.4_
 
-  - [ ] 6.5 Update init() method
+  - [x] 6.5 Update init() method
     - Load folder_path from environment if configured
     - Call updateExampleKey() during initialization
     - _Requirements: 3.3, 6.2_
 
-  - [ ] 6.6 Update testConnection() method
+  - [x] 6.6 Update testConnection() method
     - Include folder_path in test configuration payload
     - Use environment value if present, otherwise form value
     - _Requirements: 7.1, 7.2_
 
 
-- [ ] 7. Update .env.example with folder path configuration
+- [x] 7. Update .env.example with folder path configuration
   - Add AWS_FOLDER_PATH variable to .env.example
   - Add comment explaining folder path purpose
   - Provide example value
   - Place after AWS_BUCKET configuration
   - _Requirements: 1.1_
 
-- [ ] 8. Update S3 connection test to verify folder path
+- [x] 8. Update S3 connection test to verify folder path
   - Modify test connection logic to use configured folder path
   - Verify write permissions to folder path location
   - Include full S3 key in success message

@@ -1048,6 +1048,10 @@ return [
     's3_configuration_value_updated' => 'Valeur de configuration S3 \':key\' mise à jour avec succès',
     's3_configuration_update_failed' => 'Échec de la mise à jour de la configuration S3',
     
+    // S3 Folder Path Error Messages
+    's3_folder_path_access_denied' => 'Accès refusé lors de l\'écriture dans le chemin du dossier \':folder_path\'. Veuillez vérifier que vos identifiants AWS disposent des autorisations d\'écriture pour cet emplacement dans le bucket.',
+    's3_bucket_not_found' => 'Bucket introuvable. Veuillez vérifier que le nom du bucket est correct et accessible.',
+    
     // Amazon S3 Configuration Messages
     's3_configuration_title' => 'Amazon S3',
     's3_configuration_description' => 'Configurer les identifiants AWS pour le stockage S3 à l\'échelle du système',
@@ -1171,6 +1175,12 @@ return [
     's3_env_region' => 'Région AWS',
     's3_env_bucket' => 'Nom du Bucket S3',
     's3_env_endpoint' => 'Point de Terminaison Personnalisé',
+    's3_env_folder_path' => 'Chemin du Dossier',
+    
+    // S3 Folder Path Configuration
+    's3_folder_path_label' => 'Chemin du Dossier (Optionnel)',
+    's3_folder_path_hint' => 'Chemin de dossier de base optionnel dans votre bucket. Les fichiers seront téléchargés vers :',
+    's3_folder_path_hint_blank' => 'Laissez vide pour télécharger à la racine du bucket. N\'incluez pas de barres obliques au début ou à la fin.',
     
     // S3 JavaScript Validation Messages
     's3_js_access_key_required' => 'L\'ID de Clé d\'Accès est requis',
