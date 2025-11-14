@@ -581,9 +581,6 @@ AWS_BUCKET=my-file-intake-bucket
 # Optional: For S3-compatible services
 AWS_ENDPOINT=https://s3.example.com
 AWS_USE_PATH_STYLE_ENDPOINT=true
-
-# Enable S3 provider
-AWS_S3_ENABLED=true
 ```
 
 ### IAM Policy Template

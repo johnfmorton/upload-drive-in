@@ -299,7 +299,6 @@ class CloudStorageConfigHelper
                 '# GOOGLE_DRIVE_ROOT_FOLDER_ID=root',
             ],
             'amazon-s3' => [
-                'AWS_S3_ENABLED=false',
                 'AWS_ACCESS_KEY_ID=your_access_key_here',
                 'AWS_SECRET_ACCESS_KEY=your_secret_key_here',
                 'AWS_DEFAULT_REGION=us-east-1',

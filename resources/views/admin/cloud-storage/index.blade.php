@@ -1,16 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('messages.cloud_storage_configuration') }}
-            </h2>
-            <div class="flex space-x-2">
-                <a href="{{ route('admin.cloud-storage.provider-management') }}" 
-                   class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    {{ __('Provider Management') }}
-                </a>
-            </div>
-        </div>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('messages.cloud_storage_configuration') }}
+        </h2>
     </x-slot>
 
     <div class="py-12">
@@ -141,7 +133,7 @@
                                             <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                                 <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                                             </svg>
-                                            <span x-text="getProviderLabel(selectedProvider)" class="mr-1"></span> is available and ready to use.
+                                            <span x-text="getProviderLabel(selectedProvider)" class="mr-1"></span> {{ __('messages.provider_available_and_ready') }}
                                         </p>
                                     </template>
                                     <template x-if="!isProviderSelectable(selectedProvider)">
@@ -149,7 +141,7 @@
                                             <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                                 <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
                                             </svg>
-                                            <span x-text="getProviderLabel(selectedProvider)"></span> is <span x-text="getProviderStatusLabel(selectedProvider).toLowerCase()"></span>. Please select an available provider.
+                                            <span x-text="getProviderLabel(selectedProvider)"></span> {{ __('messages.provider_not_available_prefix') }} <span x-text="getProviderStatusLabel(selectedProvider).toLowerCase()"></span>. {{ __('messages.provider_not_available_suffix') }}
                                         </p>
                                     </template>
                                 </div>
@@ -285,7 +277,7 @@
             initialFolderId: @json(old('google_drive_root_folder_id', $currentFolderId ?? '')),
             folderChanged: false,
             currentFolderName: @json($currentFolderName ?: ''),
-            rootFolderName: 'Google Drive Root',
+            rootFolderName: '{{ __('messages.google_drive_root') }}',
             baseFolderShowUrl: '{{ url('/admin/cloud-storage/google-drive/folders') }}',
             folderStack: [],
             folders: [],

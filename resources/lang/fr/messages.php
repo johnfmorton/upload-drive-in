@@ -1241,4 +1241,10 @@ return [
     'file_manager_no_files_for_download' => 'Aucun fichier trouvé pour le téléchargement.',
     'file_manager_zip_creation_failed' => 'Impossible de créer l\'archive ZIP : :error',
     'file_manager_no_files_added_to_zip' => 'Aucun fichier n\'a pu être ajouté à l\'archive. Tous les fichiers peuvent être stockés dans le stockage cloud ou être inaccessibles.',
+
+    // Cloud Storage Provider Selection
+    'google_drive_root' => 'Racine Google Drive',
+    'provider_available_and_ready' => 'est disponible et prêt à être utilisé.',
+    'provider_not_available_prefix' => 'est',
+    'provider_not_available_suffix' => 'Veuillez sélectionner un fournisseur disponible.',
 ];

@@ -78,7 +78,6 @@ GOOGLE_DRIVE_CLIENT_SECRET=your_client_secret
 **Status**: Configuration ready, implementation pending
 
 ```env
-AWS_S3_ENABLED=true
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
 AWS_DEFAULT_REGION=us-east-1

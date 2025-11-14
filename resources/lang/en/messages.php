@@ -1692,4 +1692,10 @@
     'contact_admin_for_storage_configuration' => 'For storage configuration or questions, please contact your administrator.',
     'storage_configuration_error' => 'Cloud storage is not properly configured',
     'contact_admin_to_resolve' => 'Please contact your administrator to resolve this issue',
+
+    // Cloud Storage Provider Selection
+    'google_drive_root' => 'Google Drive Root',
+    'provider_available_and_ready' => 'is available and ready to use.',
+    'provider_not_available_prefix' => 'is',
+    'provider_not_available_suffix' => 'Please select an available provider.',
 ];
