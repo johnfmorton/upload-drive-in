@@ -1093,6 +1093,7 @@ return [
     's3_region_format_invalid' => 'Format de région AWS invalide.',
     's3_bucket_name_format_invalid' => 'Le nom du bucket doit commencer et se terminer par une lettre ou un chiffre, et contenir uniquement des lettres minuscules, des chiffres, des tirets et des points.',
     's3_endpoint_url_invalid' => 'Le point de terminaison doit être une URL valide commençant par http:// ou https://.',
+    's3_folder_path_format_invalid' => 'Le chemin du dossier ne peut contenir que des caractères alphanumériques, des tirets, des traits de soulignement, des barres obliques et des points.',
 
     // Amazon S3 Configuration UI
     'save_configuration' => 'Enregistrer la Configuration',

@@ -970,6 +970,7 @@ return [
     's3_bucket_format_invalid' => 'Bucket-Name muss mit einem Buchstaben oder einer Zahl beginnen und enden und darf nur Kleinbuchstaben, Zahlen, Bindestriche und Punkte enthalten',
     's3_bucket_name_format_invalid' => 'Bucket-Name muss den S3-Namenskonventionen folgen (3-63 Zeichen, Kleinbuchstaben, Zahlen, Bindestriche und Punkte)',
     's3_endpoint_url_invalid' => 'Benutzerdefinierter Endpunkt muss eine gültige URL sein',
+    's3_folder_path_format_invalid' => 'Der Ordnerpfad darf nur alphanumerische Zeichen, Bindestriche, Unterstriche, Schrägstriche und Punkte enthalten.',
     's3_bucket_consecutive_periods' => 'Bucket-Name darf keine aufeinanderfolgenden Punkte enthalten',
     's3_bucket_ip_format' => 'Bucket-Name darf nicht als IP-Adresse formatiert sein',
     's3_endpoint_format_invalid' => 'Endpunkt muss eine gültige URL sein, die mit http:// oder https:// beginnt',

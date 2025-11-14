@@ -618,6 +618,7 @@
     's3_region_format_invalid' => 'Invalid AWS region format.',
     's3_bucket_name_format_invalid' => 'Bucket name must start and end with a letter or number, and contain only lowercase letters, numbers, hyphens, and periods.',
     's3_endpoint_url_invalid' => 'Endpoint must be a valid URL starting with http:// or https://.',
+    's3_folder_path_format_invalid' => 'The folder path may only contain alphanumeric characters, hyphens, underscores, forward slashes, and periods.',
     's3_missing_required_credentials' => 'Missing required S3 credentials. Please provide all required fields or configure them in your .env file.',
     
     'your_upload_page' => 'Your Upload Page',

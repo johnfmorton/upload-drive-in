@@ -994,6 +994,7 @@ return [
     's3_bucket_format_invalid' => 'El nombre del bucket debe comenzar y terminar con una letra o número, y contener solo letras minúsculas, números, guiones y puntos',
     's3_bucket_name_format_invalid' => 'El nombre del bucket debe seguir las convenciones de nomenclatura de S3 (3-63 caracteres, letras minúsculas, números, guiones y puntos)',
     's3_endpoint_url_invalid' => 'El endpoint personalizado debe ser una URL válida',
+    's3_folder_path_format_invalid' => 'La ruta de la carpeta solo puede contener caracteres alfanuméricos, guiones, guiones bajos, barras diagonales y puntos.',
     's3_bucket_consecutive_periods' => 'El nombre del bucket no puede contener puntos consecutivos',
     's3_bucket_ip_format' => 'El nombre del bucket no puede tener formato de dirección IP',
     's3_endpoint_format_invalid' => 'El endpoint debe ser una URL válida que comience con http:// o https://',
