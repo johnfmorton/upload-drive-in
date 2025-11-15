@@ -1433,7 +1433,7 @@ class CloudStorageController extends Controller
             'aws_region.regex' => __('messages.s3_region_format_invalid'),
             'aws_bucket.regex' => __('messages.s3_bucket_name_format_invalid'),
             'aws_endpoint.url' => __('messages.s3_endpoint_url_invalid'),
-            'aws_folder_path.regex' => 'The folder path may only contain alphanumeric characters, hyphens, underscores, forward slashes, and periods.',
+            'aws_folder_path.regex' => __('messages.s3_folder_path_format_invalid'),
         ]);
 
         try {
@@ -1602,7 +1602,7 @@ class CloudStorageController extends Controller
             'aws_region.regex' => __('messages.s3_region_format_invalid'),
             'aws_bucket.regex' => __('messages.s3_bucket_name_format_invalid'),
             'aws_endpoint.url' => __('messages.s3_endpoint_url_invalid'),
-            'aws_folder_path.regex' => 'The folder path may only contain alphanumeric characters, hyphens, underscores, forward slashes, and periods.',
+            'aws_folder_path.regex' => __('messages.s3_folder_path_format_invalid'),
         ]);
 
         try {
