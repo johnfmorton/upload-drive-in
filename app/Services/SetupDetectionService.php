@@ -2,26 +2,26 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Enums\UserRole;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
+use App\Models\User;
 use Carbon\Carbon;
 use Exception;
-use Throwable;
-use PDOException;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use PDOException;
+use Throwable;
 
 /**
  * Service for detecting application setup completion status.
- * 
+ *
  * This service checks various setup requirements including database connectivity,
  * Google Drive configuration, and admin user existence to determine if the
  * application is properly configured.
- * 
+ *
  * Enhanced with comprehensive error handling, timeout management, and fallback mechanisms.
  */
 class SetupDetectionService
@@ -30,55 +30,56 @@ class SetupDetectionService
      * Timeout for database operations in seconds.
      */
     private const DB_TIMEOUT = 5;
-    
+
     /**
      * Cache TTL for fallback results in seconds.
      */
     private const FALLBACK_CACHE_TTL = 300; // 5 minutes
-    
+
     /**
      * Cache key prefix for fallback data.
      */
     private const FALLBACK_CACHE_PREFIX = 'setup_detection_fallback_';
+
     /**
      * Check if the complete setup is finished.
-     * 
+     *
      * @return bool True if all setup requirements are met
      */
     public function isSetupComplete(): bool
     {
         // If setup is disabled, consider it complete (setup process not available)
-        if (!$this->isSetupEnabled()) {
+        if (! $this->isSetupEnabled()) {
             return true;
         }
-        
-        return $this->getDatabaseStatus() 
+
+        return $this->getDatabaseStatus()
             && $this->getMailStatus()
-            && $this->getGoogleDriveStatus() 
+            && $this->getCloudStorageStatus()
             && $this->getAdminUserStatus()
             && $this->getMigrationStatus();
     }
 
     /**
      * Check if the setup process is enabled.
-     * 
+     *
      * @return bool True if setup is enabled
      */
     public function isSetupEnabled(): bool
     {
         $enabled = config('setup.enabled', false);
-        
+
         // Handle string values from environment
         if (is_string($enabled)) {
             return strtolower($enabled) === 'true';
         }
-        
+
         return (bool) $enabled;
     }
 
     /**
      * Check if database connection is properly configured and working.
-     * 
+     *
      * @return bool True if database is accessible
      */
     public function getDatabaseStatus(): bool
@@ -86,32 +87,33 @@ class SetupDetectionService
         try {
             // Clear configuration cache if we're in setup mode to ensure fresh config reads
             $this->clearConfigCacheIfInSetup();
-            
+
             // Use the new DatabaseCredentialService for better checking
             $databaseCredentialService = app(\App\Services\DatabaseCredentialService::class);
             $credentialStatus = $databaseCredentialService->checkDatabaseCredentials();
-            
+
             return $credentialStatus['status'] === 'completed';
-            
+
         } catch (Exception $e) {
             Log::error('Error checking database status', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return false;
         }
     }
 
     /**
      * Check if mail server configuration is properly set up.
-     * 
+     *
      * @return bool True if mail is configured
      */
     public function getMailStatus(): bool
     {
         // Clear configuration cache if we're in setup mode to ensure fresh config reads
         $this->clearConfigCacheIfInSetup();
-        
+
         $mailer = env('MAIL_MAILER');
         $host = env('MAIL_HOST');
         $port = env('MAIL_PORT');
@@ -125,7 +127,7 @@ class SetupDetectionService
         }
 
         // Validate email format
-        if (!filter_var($fromAddress, FILTER_VALIDATE_EMAIL)) {
+        if (! filter_var($fromAddress, FILTER_VALIDATE_EMAIL)) {
             return false;
         }
 
@@ -136,91 +138,123 @@ class SetupDetectionService
         }
 
         // For production/non-local setups, require username and password
-        return !empty($username) && !empty($password);
+        return ! empty($username) && ! empty($password);
     }
 
     /**
      * Check if Google Drive credentials are configured.
-     * 
+     *
      * @return bool True if Google Drive is configured
      */
     public function getGoogleDriveStatus(): bool
     {
         // Clear configuration cache if we're in setup mode to ensure fresh config reads
         $this->clearConfigCacheIfInSetup();
-        
+
         $clientId = config('services.google.client_id') ?: env('GOOGLE_DRIVE_CLIENT_ID');
         $clientSecret = config('services.google.client_secret') ?: env('GOOGLE_DRIVE_CLIENT_SECRET');
-        
-        return !empty($clientId) && !empty($clientSecret);
+
+        return ! empty($clientId) && ! empty($clientSecret);
+    }
+
+    /**
+     * Check if Amazon S3 credentials are configured.
+     *
+     * @return bool True if S3 is configured
+     */
+    public function getS3Status(): bool
+    {
+        // Clear configuration cache if we're in setup mode to ensure fresh config reads
+        $this->clearConfigCacheIfInSetup();
+
+        $accessKeyId = config('filesystems.disks.s3.key') ?: env('AWS_ACCESS_KEY_ID');
+        $secretAccessKey = config('filesystems.disks.s3.secret') ?: env('AWS_SECRET_ACCESS_KEY');
+        $region = config('filesystems.disks.s3.region') ?: env('AWS_DEFAULT_REGION');
+        $bucket = config('filesystems.disks.s3.bucket') ?: env('AWS_BUCKET');
+
+        return ! empty($accessKeyId) && ! empty($secretAccessKey) && ! empty($region) && ! empty($bucket);
+    }
+
+    /**
+     * Check if at least one cloud storage provider is configured.
+     *
+     * @return bool True if either Google Drive OR S3 is configured
+     */
+    public function getCloudStorageStatus(): bool
+    {
+        return $this->getGoogleDriveStatus() || $this->getS3Status();
     }
 
     /**
      * Check if at least one admin user exists in the system.
-     * 
+     *
      * @return bool True if admin user exists
      */
     public function getAdminUserStatus(): bool
     {
-        $cacheKey = self::FALLBACK_CACHE_PREFIX . 'admin_user_status';
-        
+        $cacheKey = self::FALLBACK_CACHE_PREFIX.'admin_user_status';
+
         try {
             // Execute with timeout to prevent hanging
             $result = $this->executeWithTimeout(function () {
                 return User::where('role', UserRole::ADMIN)->exists();
             }, self::DB_TIMEOUT);
-            
+
             // Cache successful result
             if ($result !== null) {
                 Cache::put($cacheKey, $result, self::FALLBACK_CACHE_TTL);
             }
-            
+
             return $result ?? false;
-            
+
         } catch (PDOException $e) {
             Log::warning('Admin user check failed - PDO error', [
                 'error' => $e->getMessage(),
-                'code' => $e->getCode()
+                'code' => $e->getCode(),
             ]);
+
             return $this->getFallbackResult($cacheKey, false);
-            
+
         } catch (QueryException $e) {
             Log::warning('Admin user check failed - Query error', [
                 'error' => $e->getMessage(),
-                'code' => $e->getCode()
+                'code' => $e->getCode(),
             ]);
+
             return $this->getFallbackResult($cacheKey, false);
-            
+
         } catch (Exception $e) {
             Log::error('Admin user check failed - Unexpected error', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return $this->getFallbackResult($cacheKey, false);
-            
+
         } catch (Throwable $e) {
             Log::critical('Admin user check failed - Critical error', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return $this->getFallbackResult($cacheKey, false);
         }
     }
 
     /**
      * Check if database migrations have been run successfully.
-     * 
+     *
      * @return bool True if required database tables exist
      */
     public function getMigrationStatus(): bool
     {
-        $cacheKey = self::FALLBACK_CACHE_PREFIX . 'migration_status';
-        
+        $cacheKey = self::FALLBACK_CACHE_PREFIX.'migration_status';
+
         try {
             // Core tables that must exist for the application to function
             $requiredTables = [
                 'users',
-                'sessions', 
+                'sessions',
                 'password_reset_tokens',
                 'jobs',
                 'failed_jobs',
@@ -228,74 +262,80 @@ class SetupDetectionService
                 'email_validations',
                 'upload_tokens',
                 'google_drive_tokens',
-                'client_user_relationships'
+                'client_user_relationships',
             ];
 
             $result = $this->executeWithTimeout(function () use ($requiredTables) {
                 foreach ($requiredTables as $table) {
-                    if (!Schema::hasTable($table)) {
+                    if (! Schema::hasTable($table)) {
                         Log::debug('Required table missing', ['table' => $table]);
+
                         return false;
                     }
                 }
+
                 return true;
             }, self::DB_TIMEOUT);
-            
+
             // Cache successful result
             if ($result !== null) {
                 Cache::put($cacheKey, $result, self::FALLBACK_CACHE_TTL);
             }
-            
+
             return $result ?? false;
-            
+
         } catch (PDOException $e) {
             Log::warning('Migration status check failed - PDO error', [
                 'error' => $e->getMessage(),
-                'code' => $e->getCode()
+                'code' => $e->getCode(),
             ]);
+
             return $this->getFallbackResult($cacheKey, false);
-            
+
         } catch (QueryException $e) {
             Log::warning('Migration status check failed - Query error', [
                 'error' => $e->getMessage(),
-                'code' => $e->getCode()
+                'code' => $e->getCode(),
             ]);
+
             return $this->getFallbackResult($cacheKey, false);
-            
+
         } catch (Exception $e) {
             Log::error('Migration status check failed - Unexpected error', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return $this->getFallbackResult($cacheKey, false);
-            
+
         } catch (Throwable $e) {
             Log::critical('Migration status check failed - Critical error', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return $this->getFallbackResult($cacheKey, false);
         }
     }
 
     /**
      * Get queue health status by analyzing recent job processing and failed jobs.
-     * 
+     *
      * @return array Queue health information with status and details
      */
     public function getQueueHealthStatus(): array
     {
-        $cacheKey = self::FALLBACK_CACHE_PREFIX . 'queue_health_status';
-        
+        $cacheKey = self::FALLBACK_CACHE_PREFIX.'queue_health_status';
+
         try {
             $result = $this->executeWithTimeout(function () {
                 // Check if jobs table exists first
-                if (!Schema::hasTable('jobs') || !Schema::hasTable('failed_jobs')) {
+                if (! Schema::hasTable('jobs') || ! Schema::hasTable('failed_jobs')) {
                     return [
                         'status' => 'incomplete',
                         'message' => 'Queue tables not found - migrations may not be complete',
                         'details' => [],
-                        'fallback' => false
+                        'fallback' => false,
                     ];
                 }
 
@@ -324,14 +364,14 @@ class SetupDetectionService
                 try {
                     $queueTestService = app(\App\Services\QueueTestService::class);
                     $healthMetrics = $queueTestService->getQueueHealthMetrics();
-                    
+
                     // Use test job statistics as a proxy for recent activity
                     if (isset($healthMetrics['test_job_statistics']['test_jobs_24h'])) {
                         $recentJobActivity = $healthMetrics['test_job_statistics']['test_jobs_24h'];
                     }
                 } catch (Exception $e) {
                     Log::debug('Could not get test job statistics for queue health', [
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
 
@@ -374,53 +414,57 @@ class SetupDetectionService
                         'recent_failed_jobs' => $recentFailedJobs,
                         'total_failed_jobs' => $totalFailedJobs,
                         'stalled_jobs' => $stalledJobs,
-                        'checked_at' => $now->toISOString()
+                        'checked_at' => $now->toISOString(),
                     ],
-                    'fallback' => false
+                    'fallback' => false,
                 ];
             }, self::DB_TIMEOUT);
-            
+
             if ($result !== null) {
                 // Cache successful result
                 Cache::put($cacheKey, $result, self::FALLBACK_CACHE_TTL);
+
                 return $result;
             }
-            
+
             throw new Exception('Timeout occurred during queue health check');
-            
         } catch (PDOException $e) {
             Log::warning('Queue health check failed - PDO error', [
                 'error' => $e->getMessage(),
-                'code' => $e->getCode()
+                'code' => $e->getCode(),
             ]);
+
             return $this->getFallbackQueueStatus($cacheKey, $e);
-            
+
         } catch (QueryException $e) {
             Log::warning('Queue health check failed - Query error', [
                 'error' => $e->getMessage(),
-                'code' => $e->getCode()
+                'code' => $e->getCode(),
             ]);
+
             return $this->getFallbackQueueStatus($cacheKey, $e);
-            
+
         } catch (Exception $e) {
             Log::error('Queue health check failed - Unexpected error', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return $this->getFallbackQueueStatus($cacheKey, $e);
-            
+
         } catch (Throwable $e) {
             Log::critical('Queue health check failed - Critical error', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return $this->getFallbackQueueStatus($cacheKey, $e);
         }
     }
 
     /**
      * Get comprehensive status array for all setup steps.
-     * 
+     *
      * @return array<string, array> Status information for each setup step
      */
     public function getAllStepStatuses(): array
@@ -431,11 +475,11 @@ class SetupDetectionService
         try {
             // Clear configuration cache if we're in setup mode to ensure fresh config reads
             $this->clearConfigCacheIfInSetup();
-            
+
             // Use the new DatabaseCredentialService for detailed checking
             $databaseCredentialService = app(\App\Services\DatabaseCredentialService::class);
             $credentialStatus = $databaseCredentialService->checkDatabaseCredentials();
-            
+
             // Map the detailed status to our setup status format
             $statuses['database'] = [
                 'status' => $credentialStatus['status'],
@@ -444,22 +488,22 @@ class SetupDetectionService
                     'description' => $credentialStatus['details'],
                     'scenario' => $credentialStatus['metadata']['scenario'] ?? 'unknown',
                     'checked_at' => $credentialStatus['metadata']['checked_at'],
-                    'metadata' => $credentialStatus['metadata']
-                ]
+                    'metadata' => $credentialStatus['metadata'],
+                ],
             ];
-            
+
             // Add fix instructions for incomplete or error states
             if (in_array($credentialStatus['status'], ['incomplete', 'error'])) {
                 $fixInstructions = $databaseCredentialService->getFixInstructions($credentialStatus);
                 $statuses['database']['details']['fix_instructions'] = $fixInstructions;
             }
-            
+
         } catch (Exception $e) {
             Log::error('Error getting detailed database status', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             $statuses['database'] = [
                 'status' => 'error',
                 'message' => 'Error checking database status',
@@ -467,8 +511,8 @@ class SetupDetectionService
                     'description' => 'An unexpected error occurred while checking database credentials',
                     'scenario' => 'check_error',
                     'error' => $e->getMessage(),
-                    'checked_at' => Carbon::now()->toISOString()
-                ]
+                    'checked_at' => Carbon::now()->toISOString(),
+                ],
             ];
         }
 
@@ -482,8 +526,8 @@ class SetupDetectionService
                     'message' => 'Mail configuration is valid',
                     'details' => [
                         'driver' => $driver,
-                        'checked_at' => Carbon::now()->toISOString()
-                    ]
+                        'checked_at' => Carbon::now()->toISOString(),
+                    ],
                 ];
             } else {
                 $statuses['mail'] = [
@@ -491,8 +535,8 @@ class SetupDetectionService
                     'message' => 'Mail server configuration not properly set up',
                     'details' => [
                         'driver' => $driver,
-                        'checked_at' => Carbon::now()->toISOString()
-                    ]
+                        'checked_at' => Carbon::now()->toISOString(),
+                    ],
                 ];
             }
         } catch (Exception $e) {
@@ -501,47 +545,77 @@ class SetupDetectionService
                 'message' => 'Error checking mail status',
                 'details' => [
                     'error' => $e->getMessage(),
-                    'checked_at' => Carbon::now()->toISOString()
-                ]
+                    'checked_at' => Carbon::now()->toISOString(),
+                ],
             ];
         }
 
-        // Google Drive status
+        // Cloud Storage status (Google Drive OR S3)
         try {
-            $driveStatus = $this->getGoogleDriveStatus();
-            $clientId = env('GOOGLE_DRIVE_CLIENT_ID');
-            $hasClientId = !empty($clientId);
-            $hasClientSecret = !empty(env('GOOGLE_DRIVE_CLIENT_SECRET'));
-            
-            if ($driveStatus) {
-                $statuses['google_drive'] = [
+            $cloudStorageStatus = $this->getCloudStorageStatus();
+            $googleDriveStatus = $this->getGoogleDriveStatus();
+            $s3Status = $this->getS3Status();
+
+            // Google Drive details
+            $hasGoogleClientId = ! empty(env('GOOGLE_DRIVE_CLIENT_ID'));
+            $hasGoogleClientSecret = ! empty(env('GOOGLE_DRIVE_CLIENT_SECRET'));
+
+            // S3 details
+            $hasS3AccessKey = ! empty(env('AWS_ACCESS_KEY_ID'));
+            $hasS3SecretKey = ! empty(env('AWS_SECRET_ACCESS_KEY'));
+            $hasS3Region = ! empty(env('AWS_DEFAULT_REGION'));
+            $hasS3Bucket = ! empty(env('AWS_BUCKET'));
+
+            if ($cloudStorageStatus) {
+                $activeProvider = $googleDriveStatus ? 'Google Drive' : 'Amazon S3';
+                $statuses['cloud_storage'] = [
                     'status' => 'completed',
-                    'message' => 'Google Drive credentials are configured',
+                    'message' => "Cloud storage configured ({$activeProvider})",
                     'details' => [
-                        'client_id' => $hasClientId ? 'Configured' : 'Missing',
-                        'client_secret' => $hasClientSecret ? 'Configured' : 'Missing',
-                        'checked_at' => Carbon::now()->toISOString()
-                    ]
+                        'google_drive' => [
+                            'configured' => $googleDriveStatus,
+                            'client_id' => $hasGoogleClientId ? 'Configured' : 'Missing',
+                            'client_secret' => $hasGoogleClientSecret ? 'Configured' : 'Missing',
+                        ],
+                        's3' => [
+                            'configured' => $s3Status,
+                            'access_key_id' => $hasS3AccessKey ? 'Configured' : 'Missing',
+                            'secret_access_key' => $hasS3SecretKey ? 'Configured' : 'Missing',
+                            'region' => $hasS3Region ? 'Configured' : 'Missing',
+                            'bucket' => $hasS3Bucket ? 'Configured' : 'Missing',
+                        ],
+                        'checked_at' => Carbon::now()->toISOString(),
+                    ],
                 ];
             } else {
-                $statuses['google_drive'] = [
+                $statuses['cloud_storage'] = [
                     'status' => 'incomplete',
-                    'message' => 'Google Drive credentials not configured',
+                    'message' => 'Cloud storage not configured (Google Drive or S3 required)',
                     'details' => [
-                        'client_id' => $hasClientId ? 'Configured' : 'Missing',
-                        'client_secret' => $hasClientSecret ? 'Configured' : 'Missing',
-                        'checked_at' => Carbon::now()->toISOString()
-                    ]
+                        'google_drive' => [
+                            'configured' => $googleDriveStatus,
+                            'client_id' => $hasGoogleClientId ? 'Configured' : 'Missing',
+                            'client_secret' => $hasGoogleClientSecret ? 'Configured' : 'Missing',
+                        ],
+                        's3' => [
+                            'configured' => $s3Status,
+                            'access_key_id' => $hasS3AccessKey ? 'Configured' : 'Missing',
+                            'secret_access_key' => $hasS3SecretKey ? 'Configured' : 'Missing',
+                            'region' => $hasS3Region ? 'Configured' : 'Missing',
+                            'bucket' => $hasS3Bucket ? 'Configured' : 'Missing',
+                        ],
+                        'checked_at' => Carbon::now()->toISOString(),
+                    ],
                 ];
             }
         } catch (Exception $e) {
-            $statuses['google_drive'] = [
+            $statuses['cloud_storage'] = [
                 'status' => 'cannot_verify',
-                'message' => 'Error checking Google Drive status',
+                'message' => 'Error checking cloud storage status',
                 'details' => [
                     'error' => $e->getMessage(),
-                    'checked_at' => Carbon::now()->toISOString()
-                ]
+                    'checked_at' => Carbon::now()->toISOString(),
+                ],
             ];
         }
 
@@ -553,16 +627,16 @@ class SetupDetectionService
                     'status' => 'completed',
                     'message' => 'Database migrations have been run',
                     'details' => [
-                        'checked_at' => Carbon::now()->toISOString()
-                    ]
+                        'checked_at' => Carbon::now()->toISOString(),
+                    ],
                 ];
             } else {
                 $statuses['migrations'] = [
                     'status' => 'incomplete',
                     'message' => 'Database migrations need to be run',
                     'details' => [
-                        'checked_at' => Carbon::now()->toISOString()
-                    ]
+                        'checked_at' => Carbon::now()->toISOString(),
+                    ],
                 ];
             }
         } catch (Exception $e) {
@@ -571,8 +645,8 @@ class SetupDetectionService
                 'message' => 'Error checking migration status',
                 'details' => [
                     'error' => $e->getMessage(),
-                    'checked_at' => Carbon::now()->toISOString()
-                ]
+                    'checked_at' => Carbon::now()->toISOString(),
+                ],
             ];
         }
 
@@ -584,16 +658,16 @@ class SetupDetectionService
                     'status' => 'completed',
                     'message' => 'Admin user exists in the system',
                     'details' => [
-                        'checked_at' => Carbon::now()->toISOString()
-                    ]
+                        'checked_at' => Carbon::now()->toISOString(),
+                    ],
                 ];
             } else {
                 $statuses['admin_user'] = [
                     'status' => 'incomplete',
                     'message' => 'No admin user found in the system',
                     'details' => [
-                        'checked_at' => Carbon::now()->toISOString()
-                    ]
+                        'checked_at' => Carbon::now()->toISOString(),
+                    ],
                 ];
             }
         } catch (Exception $e) {
@@ -602,8 +676,8 @@ class SetupDetectionService
                 'message' => 'Error checking admin user status',
                 'details' => [
                     'error' => $e->getMessage(),
-                    'checked_at' => Carbon::now()->toISOString()
-                ]
+                    'checked_at' => Carbon::now()->toISOString(),
+                ],
             ];
         }
 
@@ -620,8 +694,8 @@ class SetupDetectionService
                 'enabled' => $setupEnabled,
                 'env_value' => env('APP_SETUP_ENABLED'),
                 'config_value' => config('setup.enabled'),
-                'checked_at' => Carbon::now()->toISOString()
-            ]
+                'checked_at' => Carbon::now()->toISOString(),
+            ],
         ];
 
         return $statuses;
@@ -629,30 +703,30 @@ class SetupDetectionService
 
     /**
      * Get array of missing setup requirements.
-     * 
+     *
      * @return array<string> Array of missing requirement descriptions
      */
     public function getMissingRequirements(): array
     {
         $missing = [];
 
-        if (!$this->getDatabaseStatus()) {
+        if (! $this->getDatabaseStatus()) {
             $missing[] = 'Database connection not configured or not accessible';
         }
 
-        if (!$this->getMailStatus()) {
+        if (! $this->getMailStatus()) {
             $missing[] = 'Mail server configuration not properly set up';
         }
 
-        if (!$this->getGoogleDriveStatus()) {
-            $missing[] = 'Google Drive credentials not configured';
+        if (! $this->getCloudStorageStatus()) {
+            $missing[] = 'Cloud storage not configured (Google Drive or S3 required)';
         }
 
-        if (!$this->getMigrationStatus()) {
+        if (! $this->getMigrationStatus()) {
             $missing[] = 'Database migrations need to be run';
         }
 
-        if (!$this->getAdminUserStatus()) {
+        if (! $this->getAdminUserStatus()) {
             $missing[] = 'No admin user found in the system';
         }
 
@@ -661,18 +735,18 @@ class SetupDetectionService
 
     /**
      * Check if database environment variables are configured.
-     * 
+     *
      * @return bool True if database config is present
      */
     private function isDatabaseConfigured(): bool
     {
         $connection = env('DB_CONNECTION');
-        
+
         // For SQLite, just check if the connection is set
         if ($connection === 'sqlite') {
-            return !empty($connection);
+            return ! empty($connection);
         }
-        
+
         // For MySQL/MariaDB/PostgreSQL, check required credentials
         if (in_array($connection, ['mysql', 'mariadb', 'pgsql'])) {
             // Check if we're in a development environment that auto-provides DB credentials
@@ -680,16 +754,16 @@ class SetupDetectionService
                 // In development environments like DDEV, check if .env file has proper config
                 return $this->isEnvFileDbConfigComplete();
             }
-            
+
             // In production/normal environments, check actual environment variables
             $host = env('DB_HOST');
             $database = env('DB_DATABASE');
             $username = env('DB_USERNAME');
-            
-            return !empty($connection) && !empty($host) && !empty($database) && !empty($username);
+
+            return ! empty($connection) && ! empty($host) && ! empty($database) && ! empty($username);
         }
-        
-        return !empty($connection);
+
+        return ! empty($connection);
     }
 
     /**
@@ -701,20 +775,20 @@ class SetupDetectionService
         if (env('DDEV_PROJECT') || env('IS_DDEV_PROJECT')) {
             return true;
         }
-        
+
         // Check for other common development environments
         if (env('LARAVEL_SAIL') || env('APP_ENV') === 'local') {
             // Additional checks to see if DB credentials are auto-provided
             $host = env('DB_HOST');
             $database = env('DB_DATABASE');
             $username = env('DB_USERNAME');
-            
+
             // If all credentials are simple/default values, likely auto-provided
             if ($host === 'db' && $database === 'db' && $username === 'db') {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -724,50 +798,49 @@ class SetupDetectionService
     private function isEnvFileDbConfigComplete(): bool
     {
         $envPath = base_path('.env');
-        
-        if (!file_exists($envPath)) {
+
+        if (! file_exists($envPath)) {
             Log::info('No .env file found, database configuration incomplete');
+
             return false;
         }
-        
+
         $envContent = file_get_contents($envPath);
         $connection = env('DB_CONNECTION');
-        
+
         // For MySQL/MariaDB/PostgreSQL, check if required fields are uncommented and have values
         if (in_array($connection, ['mysql', 'mariadb', 'pgsql'])) {
             $requiredFields = ['DB_HOST', 'DB_DATABASE', 'DB_USERNAME'];
             $foundFields = [];
-            
+
             foreach ($requiredFields as $field) {
                 // Check if field exists and is not commented out
-                if (preg_match('/^' . preg_quote($field) . '=(.+)$/m', $envContent, $matches)) {
+                if (preg_match('/^'.preg_quote($field).'=(.+)$/m', $envContent, $matches)) {
                     $value = trim($matches[1], '"\'');
-                    if (!empty($value)) {
+                    if (! empty($value)) {
                         $foundFields[] = $field;
                     }
                 }
             }
-            
+
             $isComplete = count($foundFields) === count($requiredFields);
-            
+
             Log::info('Checked .env file database configuration', [
                 'connection' => $connection,
                 'required_fields' => $requiredFields,
                 'found_fields' => $foundFields,
-                'is_complete' => $isComplete
+                'is_complete' => $isComplete,
             ]);
-            
+
             return $isComplete;
         }
-        
+
         return true;
     }
 
     /**
      * Determine if this is a local development mail setup that doesn't require authentication.
-     * 
-     * @param string|null $host
-     * @param string|null $port
+     *
      * @return bool True if this appears to be a local development setup
      */
     private function isLocalDevelopmentMailSetup(?string $host, ?string $port): bool
@@ -778,22 +851,23 @@ class SetupDetectionService
 
         // Check if we're in local environment
         $isLocalEnv = app()->environment('local') || env('APP_ENV') === 'local';
-        
+
         // Check for common local development mail configurations
         $isLocalHost = in_array($host, ['127.0.0.1', 'localhost', 'mailpit', 'mailhog']);
-        
+
         // Mailpit default port is 1025, MailHog uses 1025, some use 8025
         $isLocalPort = in_array($port, ['1025', '8025']);
-        
+
         return $isLocalEnv && $isLocalHost && $isLocalPort;
     }
 
     /**
      * Execute a function with timeout handling.
-     * 
-     * @param callable $callback The function to execute
-     * @param int $timeout Timeout in seconds
+     *
+     * @param  callable  $callback  The function to execute
+     * @param  int  $timeout  Timeout in seconds
      * @return mixed The result of the callback or null on timeout
+     *
      * @throws Exception If the callback throws an exception
      */
     private function executeWithTimeout(callable $callback, int $timeout)
@@ -802,14 +876,14 @@ class SetupDetectionService
         try {
             $originalTimeout = ini_get('default_socket_timeout');
             ini_set('default_socket_timeout', $timeout);
-            
+
             $result = $callback();
-            
+
             // Restore original timeout
             ini_set('default_socket_timeout', $originalTimeout);
-            
+
             return $result;
-            
+
         } catch (Exception $e) {
             // Restore original timeout on error
             if (isset($originalTimeout)) {
@@ -821,61 +895,62 @@ class SetupDetectionService
 
     /**
      * Get fallback result from cache or return default.
-     * 
-     * @param string $cacheKey Cache key to check
-     * @param mixed $default Default value if no cache available
+     *
+     * @param  string  $cacheKey  Cache key to check
+     * @param  mixed  $default  Default value if no cache available
      * @return mixed Cached value or default
      */
     private function getFallbackResult(string $cacheKey, $default)
     {
         $cached = Cache::get($cacheKey);
-        
+
         if ($cached !== null) {
             Log::info('Using cached fallback result', [
                 'cache_key' => $cacheKey,
-                'cached_value' => $cached
+                'cached_value' => $cached,
             ]);
+
             return $cached;
         }
-        
+
         Log::warning('No cached fallback available, using default', [
             'cache_key' => $cacheKey,
-            'default_value' => $default
+            'default_value' => $default,
         ]);
-        
+
         return $default;
     }
 
     /**
      * Get fallback queue status with enhanced error context.
-     * 
-     * @param string $cacheKey Cache key to check
-     * @param Throwable $exception The exception that occurred
+     *
+     * @param  string  $cacheKey  Cache key to check
+     * @param  Throwable  $exception  The exception that occurred
      * @return array Fallback queue status
      */
     private function getFallbackQueueStatus(string $cacheKey, Throwable $exception): array
     {
         $cached = Cache::get($cacheKey);
-        
+
         if ($cached !== null && is_array($cached)) {
             Log::info('Using cached queue health fallback', [
                 'cache_key' => $cacheKey,
-                'cached_status' => $cached['status'] ?? 'unknown'
+                'cached_status' => $cached['status'] ?? 'unknown',
             ]);
-            
+
             // Mark as fallback data
             $cached['fallback'] = true;
             $cached['fallback_reason'] = 'Service temporarily unavailable';
             $cached['last_error'] = $exception->getMessage();
-            
+
             return $cached;
         }
-        
+
         Log::warning('No cached queue health available, returning error state', [
             'cache_key' => $cacheKey,
-            'error' => $exception->getMessage()
+            'error' => $exception->getMessage(),
         ]);
-        
+
         return [
             'status' => 'cannot_verify',
             'message' => 'Unable to check queue status - service temporarily unavailable',
@@ -884,17 +959,15 @@ class SetupDetectionService
                 'error_type' => get_class($exception),
                 'fallback' => true,
                 'fallback_reason' => 'No cached data available',
-                'checked_at' => Carbon::now()->toISOString()
+                'checked_at' => Carbon::now()->toISOString(),
             ],
-            'fallback' => true
+            'fallback' => true,
         ];
     }
 
     /**
      * Clear configuration cache if we're in setup mode and configuration has changed.
      * This prevents cached configuration from interfering with setup detection.
-     * 
-     * @return void
      */
     private function clearConfigCacheIfInSetup(): void
     {
@@ -903,26 +976,26 @@ class SetupDetectionService
             $cacheKey = 'setup_config_hash';
             $currentConfigHash = $this->getEnvironmentConfigHash();
             $cachedConfigHash = Cache::get($cacheKey);
-            
+
             // If configuration has changed, clear caches
             if ($cachedConfigHash !== $currentConfigHash) {
                 try {
                     // Clear configuration cache to ensure fresh env() reads
                     \Illuminate\Support\Facades\Artisan::call('config:clear');
-                    
+
                     // Clear setup-related application cache
                     $this->clearSetupRelatedCache();
-                    
+
                     // Update the cached config hash
                     Cache::put($cacheKey, $currentConfigHash, 300); // Cache for 5 minutes
-                    
+
                     Log::debug('Configuration cache cleared due to environment changes during setup', [
                         'previous_hash' => $cachedConfigHash,
-                        'current_hash' => $currentConfigHash
+                        'current_hash' => $currentConfigHash,
                     ]);
                 } catch (Exception $e) {
                     Log::warning('Failed to clear configuration cache during setup', [
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
@@ -931,7 +1004,7 @@ class SetupDetectionService
 
     /**
      * Generate a hash of key environment configuration values.
-     * 
+     *
      * @return string Hash of current configuration
      */
     private function getEnvironmentConfigHash(): string
@@ -950,14 +1023,12 @@ class SetupDetectionService
             'DB_DATABASE' => env('DB_DATABASE'),
             'DB_USERNAME' => env('DB_USERNAME'),
         ];
-        
+
         return md5(serialize($configValues));
     }
 
     /**
      * Clear setup-related cache entries without flushing all cache.
-     * 
-     * @return void
      */
     private function clearSetupRelatedCache(): void
     {
@@ -968,12 +1039,12 @@ class SetupDetectionService
             'setup_status_detailed_statuses_fallback',
             'setup_status_summary',
             'setup_status_summary_fallback',
-            self::FALLBACK_CACHE_PREFIX . 'database_status',
-            self::FALLBACK_CACHE_PREFIX . 'admin_user_status',
-            self::FALLBACK_CACHE_PREFIX . 'migration_status',
-            self::FALLBACK_CACHE_PREFIX . 'queue_health_status',
+            self::FALLBACK_CACHE_PREFIX.'database_status',
+            self::FALLBACK_CACHE_PREFIX.'admin_user_status',
+            self::FALLBACK_CACHE_PREFIX.'migration_status',
+            self::FALLBACK_CACHE_PREFIX.'queue_health_status',
         ];
-        
+
         foreach ($setupCacheKeys as $key) {
             Cache::forget($key);
         }
@@ -981,23 +1052,23 @@ class SetupDetectionService
 
     /**
      * Determine if we're likely in setup mode based on request context.
-     * 
+     *
      * @return bool True if we appear to be in setup mode
      */
     private function isLikelyInSetupMode(): bool
     {
         // Check if we're being called from setup-related routes or contexts
         $request = request();
-        
+
         if ($request) {
             $path = $request->path();
             $route = $request->route();
-            
+
             // Check for setup-related paths
             if (str_contains($path, 'setup') || str_contains($path, 'instructions')) {
                 return true;
             }
-            
+
             // Check for setup-related route names
             if ($route && $route->getName()) {
                 $routeName = $route->getName();
@@ -1006,7 +1077,7 @@ class SetupDetectionService
                 }
             }
         }
-        
+
         // Check if we're being called from setup-related controllers or services
         $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
         foreach ($backtrace as $trace) {
@@ -1017,7 +1088,7 @@ class SetupDetectionService
                 }
             }
         }
-        
+
         return false;
     }
 }
