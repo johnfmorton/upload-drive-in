@@ -16,16 +16,16 @@ class SetupStatusManager {
         this.generalStatusSteps = [
             "database",
             "mail",
-            "google_drive",
+            "cloud_storage",
             "migrations",
             "admin_user",
         ];
-        
+
         // Keep statusSteps for backward compatibility
         this.statusSteps = [
             "database",
             "mail",
-            "google_drive",
+            "cloud_storage",
             "migrations",
             "admin_user",
             "queue_worker",
@@ -33,6 +33,7 @@ class SetupStatusManager {
         
         this.refreshInProgress = false;
         this.queueWorkerTestInProgress = false;
+        this.emailTestInProgress = false;
         this.retryAttempts = 0;
         this.maxRetryAttempts = 3;
         this.retryDelay = 2000; // 2 seconds
@@ -43,6 +44,7 @@ class SetupStatusManager {
         // Debouncing properties
         this.lastRefreshTime = 0;
         this.lastQueueTestTime = 0;
+        this.lastEmailTestTime = 0;
         this.debounceDelay = 1000; // 1 second debounce
         this.clickTimeouts = new Map(); // Track timeouts for different buttons
         
@@ -64,6 +66,7 @@ class SetupStatusManager {
         this.retryRefresh = this.retryRefresh.bind(this);
         this.getCachedQueueWorkerStatus = this.getCachedQueueWorkerStatus.bind(this);
         this.triggerQueueWorkerTest = this.triggerQueueWorkerTest.bind(this);
+        this.testEmail = this.testEmail.bind(this);
 
         if (this.autoInit) {
             this.init();
@@ -153,7 +156,24 @@ class SetupStatusManager {
             });
         }
 
+        // Email test button with debouncing
+        const testEmailBtn = document.getElementById("test-email-btn");
+        if (testEmailBtn) {
+            testEmailBtn.addEventListener("click", (e) => {
+                this.debouncedTestEmail(e);
+            });
+        }
 
+        // Email test input - allow Enter key to submit
+        const testEmailInput = document.getElementById("test-email-address");
+        if (testEmailInput) {
+            testEmailInput.addEventListener("keypress", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    this.debouncedTestEmail(e);
+                }
+            });
+        }
     }
 
     /**
@@ -2528,9 +2548,37 @@ class SetupStatusManager {
                 }
                 break;
 
-            case "google_drive":
-                if (details.client_id) {
-                    html += `<div class="mb-2"><strong>Client ID configured:</strong> Yes</div>`;
+            case "cloud_storage":
+                // Show status for both providers
+                if (details.google_drive) {
+                    const gdConfigured = details.google_drive.configured;
+                    html += `<div class="mb-3 p-3 ${gdConfigured ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'} rounded">
+                        <div class="flex items-center mb-2">
+                            <span class="text-lg mr-2">${gdConfigured ? '✅' : '⚪'}</span>
+                            <strong class="${gdConfigured ? 'text-green-800' : 'text-gray-700'}">Google Drive</strong>
+                            ${gdConfigured ? '<span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Configured</span>' : ''}
+                        </div>
+                        <ul class="ml-6 text-sm ${gdConfigured ? 'text-green-700' : 'text-gray-600'}">
+                            <li>Client ID: ${details.google_drive.client_id}</li>
+                            <li>Client Secret: ${details.google_drive.client_secret}</li>
+                        </ul>
+                    </div>`;
+                }
+                if (details.s3) {
+                    const s3Configured = details.s3.configured;
+                    html += `<div class="mb-2 p-3 ${s3Configured ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'} rounded">
+                        <div class="flex items-center mb-2">
+                            <span class="text-lg mr-2">${s3Configured ? '✅' : '⚪'}</span>
+                            <strong class="${s3Configured ? 'text-green-800' : 'text-gray-700'}">Amazon S3</strong>
+                            ${s3Configured ? '<span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Configured</span>' : ''}
+                        </div>
+                        <ul class="ml-6 text-sm ${s3Configured ? 'text-green-700' : 'text-gray-600'}">
+                            <li>Access Key ID: ${details.s3.access_key_id}</li>
+                            <li>Secret Access Key: ${details.s3.secret_access_key}</li>
+                            <li>Region: ${details.s3.region}</li>
+                            <li>Bucket: ${details.s3.bucket}</li>
+                        </ul>
+                    </div>`;
                 }
                 break;
         }
@@ -2703,13 +2751,17 @@ class SetupStatusManager {
                 }
                 break;
 
-            case "google_drive":
+            case "cloud_storage":
                 if (status === "incomplete") {
-                    html += "<li>Set GOOGLE_DRIVE_CLIENT_ID in .env file</li>";
-                    html +=
-                        "<li>Set GOOGLE_DRIVE_CLIENT_SECRET in .env file</li>";
-                    html +=
-                        "<li>Complete OAuth setup in Google Cloud Console</li>";
+                    html += "<li><strong>Option 1: Google Drive</strong></li>";
+                    html += "<li class='ml-4'>Set GOOGLE_DRIVE_CLIENT_ID in .env file</li>";
+                    html += "<li class='ml-4'>Set GOOGLE_DRIVE_CLIENT_SECRET in .env file</li>";
+                    html += "<li class='ml-4'>Complete OAuth setup in Google Cloud Console</li>";
+                    html += "<li class='mt-2'><strong>Option 2: Amazon S3</strong></li>";
+                    html += "<li class='ml-4'>Set AWS_ACCESS_KEY_ID in .env file</li>";
+                    html += "<li class='ml-4'>Set AWS_SECRET_ACCESS_KEY in .env file</li>";
+                    html += "<li class='ml-4'>Set AWS_DEFAULT_REGION in .env file</li>";
+                    html += "<li class='ml-4'>Set AWS_BUCKET in .env file</li>";
                 }
                 break;
 
@@ -2779,6 +2831,183 @@ class SetupStatusManager {
         const details = document.getElementById(`details-${stepName}`);
         if (details) {
             details.classList.toggle("show");
+        }
+    }
+
+    /**
+     * Debounced test email to prevent rapid clicking
+     */
+    debouncedTestEmail(event) {
+        event.preventDefault();
+
+        const now = Date.now();
+        const timeSinceLastTest = now - this.lastEmailTestTime;
+
+        // If already in progress or too soon since last test, ignore
+        if (this.emailTestInProgress) {
+            console.log("Email test already in progress, ignoring click");
+            return;
+        }
+
+        if (timeSinceLastTest < this.debounceDelay) {
+            console.log("Debouncing email test request");
+            // Clear any existing timeout for this button
+            if (this.clickTimeouts.has('emailTest')) {
+                clearTimeout(this.clickTimeouts.get('emailTest'));
+            }
+
+            // Set new timeout
+            const timeoutId = setTimeout(() => {
+                this.testEmail();
+                this.clickTimeouts.delete('emailTest');
+            }, this.debounceDelay - timeSinceLastTest);
+
+            this.clickTimeouts.set('emailTest', timeoutId);
+            return;
+        }
+
+        this.lastEmailTestTime = now;
+        this.testEmail();
+    }
+
+    /**
+     * Test email configuration by sending a test email
+     */
+    async testEmail() {
+        const emailInput = document.getElementById("test-email-address");
+        const testBtn = document.getElementById("test-email-btn");
+        const testBtnText = document.getElementById("test-email-btn-text");
+        const testSpinner = document.getElementById("test-email-spinner");
+        const resultsContainer = document.getElementById("email-test-results");
+        const successContainer = document.getElementById("email-test-success");
+        const errorContainer = document.getElementById("email-test-error");
+
+        if (!emailInput) {
+            console.error("Email input not found");
+            return;
+        }
+
+        const email = emailInput.value.trim();
+
+        // Basic client-side validation
+        if (!email) {
+            this.showEmailTestError("Please enter an email address.");
+            return;
+        }
+
+        // Simple email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            this.showEmailTestError("Please enter a valid email address.");
+            return;
+        }
+
+        try {
+            this.emailTestInProgress = true;
+
+            // Update button state
+            if (testBtn) testBtn.disabled = true;
+            if (testBtnText) testBtnText.textContent = "Sending...";
+            if (testSpinner) testSpinner.classList.remove("hidden");
+            if (emailInput) emailInput.disabled = true;
+
+            // Hide previous results
+            if (resultsContainer) resultsContainer.classList.add("hidden");
+            if (successContainer) successContainer.classList.add("hidden");
+            if (errorContainer) errorContainer.classList.add("hidden");
+
+            // Send test email request
+            const response = await this.makeAjaxRequest("/setup/email/test", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": this.getCSRFToken(),
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: JSON.stringify({ email: email }),
+            });
+
+            if (response.success) {
+                this.showEmailTestSuccess(
+                    `Test email sent to ${email}. Please check your inbox to confirm delivery.`
+                );
+            } else {
+                const error = response.error || {};
+                this.showEmailTestError(
+                    error.message || "Failed to send test email.",
+                    error.troubleshooting || []
+                );
+            }
+
+        } catch (error) {
+            console.error("Email test failed:", error);
+
+            // Handle rate limiting
+            if (error.message && error.message.includes("429")) {
+                this.showEmailTestError(
+                    "Too many test email attempts. Please wait a few minutes before trying again."
+                );
+            } else {
+                this.showEmailTestError(
+                    error.message || "An unexpected error occurred while sending the test email."
+                );
+            }
+        } finally {
+            this.emailTestInProgress = false;
+
+            // Reset button state
+            if (testBtn) testBtn.disabled = false;
+            if (testBtnText) testBtnText.textContent = "Send Test Email";
+            if (testSpinner) testSpinner.classList.add("hidden");
+            if (emailInput) emailInput.disabled = false;
+        }
+    }
+
+    /**
+     * Show email test success message
+     */
+    showEmailTestSuccess(message) {
+        const resultsContainer = document.getElementById("email-test-results");
+        const successContainer = document.getElementById("email-test-success");
+        const successMessage = document.getElementById("email-test-success-message");
+        const errorContainer = document.getElementById("email-test-error");
+
+        if (resultsContainer) resultsContainer.classList.remove("hidden");
+        if (errorContainer) errorContainer.classList.add("hidden");
+        if (successContainer) successContainer.classList.remove("hidden");
+        if (successMessage) successMessage.textContent = message;
+    }
+
+    /**
+     * Show email test error message
+     */
+    showEmailTestError(message, troubleshooting = []) {
+        const resultsContainer = document.getElementById("email-test-results");
+        const successContainer = document.getElementById("email-test-success");
+        const errorContainer = document.getElementById("email-test-error");
+        const errorMessage = document.getElementById("email-test-error-message");
+        const troubleshootingContainer = document.getElementById("email-test-troubleshooting");
+        const troubleshootingList = document.getElementById("email-test-troubleshooting-list");
+
+        if (resultsContainer) resultsContainer.classList.remove("hidden");
+        if (successContainer) successContainer.classList.add("hidden");
+        if (errorContainer) errorContainer.classList.remove("hidden");
+        if (errorMessage) errorMessage.textContent = message;
+
+        // Show troubleshooting steps if available
+        if (troubleshootingContainer && troubleshootingList) {
+            if (troubleshooting && troubleshooting.length > 0) {
+                // Clear previous items safely using textContent
+                troubleshootingList.textContent = "";
+                troubleshooting.forEach(step => {
+                    const li = document.createElement("li");
+                    li.textContent = step;
+                    troubleshootingList.appendChild(li);
+                });
+                troubleshootingContainer.classList.remove("hidden");
+            } else {
+                troubleshootingContainer.classList.add("hidden");
+            }
         }
     }
 

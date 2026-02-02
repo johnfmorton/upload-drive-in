@@ -28,5 +28,7 @@ Route::middleware(['web', 'require.setup.enabled'])->prefix('setup')->name('setu
     
     // Setup disable endpoint
     Route::post('/disable', [\App\Http\Controllers\SetupInstructionsController::class, 'disableSetup'])->name('disable');
-    
+
+    // Email test endpoint
+    Route::post('/email/test', [\App\Http\Controllers\SetupController::class, 'testEmail'])->name('email.test');
 });
