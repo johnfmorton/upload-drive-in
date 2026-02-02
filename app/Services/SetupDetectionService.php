@@ -981,7 +981,10 @@ class SetupDetectionService
             if ($cachedConfigHash !== $currentConfigHash) {
                 try {
                     // Clear configuration cache to ensure fresh env() reads
-                    \Illuminate\Support\Facades\Artisan::call('config:clear');
+                    // Skip during unit tests to avoid transaction conflicts with RefreshDatabase
+                    if (! app()->runningUnitTests()) {
+                        \Illuminate\Support\Facades\Artisan::call('config:clear');
+                    }
 
                     // Clear setup-related application cache
                     $this->clearSetupRelatedCache();
