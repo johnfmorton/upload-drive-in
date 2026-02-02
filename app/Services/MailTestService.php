@@ -13,7 +13,7 @@ class MailTestService
     /**
      * Send a test email to verify SMTP configuration.
      *
-     * @param string $toAddress The email address to send the test to
+     * @param  string  $toAddress  The email address to send the test to
      * @return array Result with success status, message, and details
      */
     public function sendTestEmail(string $toAddress): array
@@ -51,11 +51,17 @@ class MailTestService
         } catch (Exception $e) {
             $duration = round((microtime(true) - $startTime) * 1000);
 
-            Log::warning('Test email failed', [
+            Log::error('Test email failed', [
                 'test_id' => $testId,
                 'to' => $toAddress,
                 'error' => $e->getMessage(),
+                'exception_class' => get_class($e),
                 'duration_ms' => $duration,
+                'mailer' => config('mail.default'),
+                'host' => config('mail.mailers.smtp.host'),
+                'port' => config('mail.mailers.smtp.port'),
+                'encryption' => config('mail.mailers.smtp.encryption'),
+                'trace' => collect(explode("\n", $e->getTraceAsString()))->take(5)->implode("\n"),
             ]);
 
             $classified = $this->classifyMailError($e);
@@ -81,7 +87,7 @@ class MailTestService
     /**
      * Classify mail errors and provide troubleshooting guidance.
      *
-     * @param Exception $e The exception to classify
+     * @param  Exception  $e  The exception to classify
      * @return array Error classification with message, type, and troubleshooting tips
      */
     public function classifyMailError(Exception $e): array
@@ -222,7 +228,7 @@ class MailTestService
     /**
      * Sanitize error messages to avoid leaking sensitive information.
      *
-     * @param string $message The error message to sanitize
+     * @param  string  $message  The error message to sanitize
      * @return string Sanitized error message
      */
     private function sanitizeErrorMessage(string $message): string
@@ -241,7 +247,7 @@ class MailTestService
 
         // Truncate very long messages
         if (strlen($message) > 500) {
-            $message = substr($message, 0, 500) . '...';
+            $message = substr($message, 0, 500).'...';
         }
 
         return $message;
