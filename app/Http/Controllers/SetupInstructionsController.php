@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Exception;
@@ -665,6 +666,20 @@ class SetupInstructionsController extends Controller
                         'violations' => $result['violations'] ?? []
                     ]
                 ], 500);
+            }
+
+            // Clear config cache to ensure the new .env value is picked up on subsequent requests
+            try {
+                Artisan::call('config:clear');
+                Log::info('Config cache cleared after disabling setup', [
+                    'request_id' => $requestId
+                ]);
+            } catch (Exception $e) {
+                // Log but don't fail - the .env was updated successfully
+                Log::warning('Failed to clear config cache after disabling setup', [
+                    'request_id' => $requestId,
+                    'error' => $e->getMessage()
+                ]);
             }
 
             Log::info('Setup disabled successfully', [

@@ -244,135 +244,279 @@ MAIL_FROM_ADDRESS=name@example.com</code></pre>
                         </div>
                     </div>
 
-                    <!-- Step 3: Google Drive Configuration -->
-                    <div class="mb-10" data-step="google_drive">
+                    <!-- Step 3: Cloud Storage Configuration -->
+                    <div class="mb-10" data-step="cloud_storage">
                         <div class="step-status-container">
                             <div class="step-header">
                                 <div
                                     class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
                                     3
                                 </div>
-                                <h2 class="ml-3 text-xl font-semibold text-gray-900">Google Drive Configuration</h2>
+                                <h2 class="ml-3 text-xl font-semibold text-gray-900">Cloud Storage Configuration</h2>
                             </div>
                             <div class="flex items-center space-x-2">
-                                <div class="status-indicator status-checking" id="status-google_drive">
+                                <div class="status-indicator status-checking" id="status-cloud_storage">
                                     <span class="status-emoji w-4 h-4 mr-1.5">🔄</span>
-                                    <span id="status-google_drive-text">Click the Check Status button</span>
+                                    <span id="status-cloud_storage-text">Click the Check Status button</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
-                                    onclick="toggleStatusDetails('google_drive')" title="Show details">
+                                    onclick="toggleStatusDetails('cloud_storage')" title="Show details">
                                     <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
                         </div>
-                        <div class="step-status-details" id="details-google_drive">
+                        <div class="step-status-details" id="details-cloud_storage">
                             <div class="p-3 bg-gray-50 rounded-md">
-                                <p class="text-sm text-gray-600" id="details-google_drive-text">Click "Check Status"
-                                    to verify Google Drive configuration.</p>
+                                <p class="text-sm text-gray-600" id="details-cloud_storage-text">Click "Check Status"
+                                    to verify cloud storage configuration.</p>
                             </div>
                         </div>
 
-                        <p class="text-gray-600 mb-4">
-                            Add these Google Drive API credentials to your <code
-                                class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code> file:
-                        </p>
-
-                        <div class="bg-gray-900 rounded-lg p-4 relative">
-                            <button onclick="copyToClipboard('google-drive-config')"
-                                class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
-                                Copy
-                            </button>
-                            <pre id="google-drive-config" class="text-green-400 text-sm overflow-x-auto"><code># Google Drive Configuration
-GOOGLE_DRIVE_CLIENT_ID=your_google_client_id
-GOOGLE_DRIVE_CLIENT_SECRET=your_google_client_secret
-CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
-                        </div>
-
-                        <!-- Google Console Redirect URI -->
-                        <div class="mt-6">
-                            <h3 class="text-lg font-medium text-gray-900 mb-3">Google Console Configuration</h3>
-                            <p class="text-gray-600 mb-4">
-                                When <a href="https://console.cloud.google.com/apis/credentials" target="_blank"
-                                    class="underline text-blue-800" rel="noopener noreferrer">setting up your Google
-                                    Cloud Project OAuth 2.0 client</a>, add the following <strong>Authorized JavaScript
-                                    origin</strong> and <strong>Authorized
-                                    redirect URI</strong> to your app:
-                            </p>
-
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 relative">
-                                <button onclick="copyToClipboard('javascript-origin')"
-                                    class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
-                                    Copy
-                                </button>
-                                <div class="pr-16">
-                                    <label class="block text-sm font-medium text-blue-800 mb-2">Authorized JavaScript
-                                        origin:</label>
-                                    <code id="javascript-origin"
-                                        class="block bg-white border border-blue-300 rounded px-3 py-2 text-blue-900 font-mono text-sm break-all">{{ config('app.url') }}</code>
-                                </div>
-                            </div>
-
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-8  relative">
-                                <button onclick="copyToClipboard('redirect-uri')"
-                                    class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
-                                    Copy
-                                </button>
-                                <div class="pr-16">
-                                    <label class="block text-sm font-medium text-blue-800 mb-2">Authorized redirect
-                                        URI:</label>
-                                    <code id="redirect-uri"
-                                        class="block bg-white border border-blue-300 rounded px-3 py-2 text-blue-900 font-mono text-sm break-all">{{ config('app.url') }}/google-drive/callback</code>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Google Cloud Console Setup Guide -->
-                        <div class="mt-6">
-                            <details class="bg-gray-50 border border-gray-200 rounded-lg">
-                                <summary
-                                    class="cursor-pointer p-4 font-medium text-gray-900 hover:bg-gray-100 transition-colors">
-                                    📋 Step-by-step Google Cloud Console Setup Guide
-                                </summary>
-                                <div class="p-4 pt-0 border-t border-gray-200">
-                                    <ol class="list-decimal list-inside space-y-3 text-sm text-gray-700 pt-3">
-                                        <li>Go to the <a href="https://console.cloud.google.com/" target="_blank"
-                                                class="text-blue-600 hover:text-blue-800 underline">Google Cloud
-                                                Console</a></li>
-                                        <li>Create a new project or select an existing one</li>
-                                        <li>Navigate to <strong>APIs & Services</strong> → <strong>Library</strong></li>
-                                        <li>Search for "Google Drive API" and enable it</li>
-                                        <li>Go to <strong>APIs & Services</strong> → <strong>Credentials</strong></li>
-                                        <li>Click <strong>Create Credentials</strong> → <strong>OAuth 2.0 Client
-                                                IDs</strong></li>
-                                        <li>Choose <strong>Web application</strong> as the application type</li>
-                                        <li>Add the authorized JavaScript origin shown above to <strong>Authorized
-                                                JavaScript origins
-                                            </strong></li>
-                                        <li>Add the redirect URI shown above to <strong>Authorized redirect
-                                                URIs</strong></li>
-                                        <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong> to
-                                            your .env file</li>
-                                    </ol>
-                                </div>
-                            </details>
-                        </div>
-
-                        <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400">
+                        <!-- Info box about provider requirement -->
+                        <div class="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400">
                             <div class="flex">
                                 <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd"
-                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                                             clip-rule="evenodd" />
                                     </svg>
                                 </div>
                                 <div class="ml-3">
-                                    <p class="text-sm text-amber-700">
-                                        <strong>Important:</strong> The redirect URI above is automatically generated
-                                        based on your application URL.
-                                        Make sure to use the exact URL shown when configuring your Google Cloud Console
-                                        OAuth client.
+                                    <p class="text-sm text-blue-700">
+                                        <strong>Note:</strong> You only need to configure <strong>one</strong> cloud storage provider (Google Drive OR Amazon S3).
+                                        Choose the provider that best fits your needs.
                                     </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabbed Interface for Cloud Storage Providers -->
+                        <div class="border border-gray-200 rounded-lg overflow-hidden">
+                            <!-- Tab Navigation -->
+                            <div class="flex border-b border-gray-200 bg-gray-50">
+                                <button id="tab-google-drive"
+                                    class="flex-1 px-4 py-3 text-sm font-medium text-center transition-colors cloud-storage-tab active"
+                                    onclick="switchCloudStorageTab('google-drive')">
+                                    <span class="mr-2">📁</span> Google Drive
+                                </button>
+                                <button id="tab-s3"
+                                    class="flex-1 px-4 py-3 text-sm font-medium text-center transition-colors cloud-storage-tab"
+                                    onclick="switchCloudStorageTab('s3')">
+                                    <span class="mr-2">☁️</span> Amazon S3
+                                </button>
+                            </div>
+
+                            <!-- Google Drive Panel -->
+                            <div id="panel-google-drive" class="cloud-storage-panel p-6">
+                                <p class="text-gray-600 mb-4">
+                                    Add these Google Drive API credentials to your <code
+                                        class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code> file:
+                                </p>
+
+                                <div class="bg-gray-900 rounded-lg p-4 relative">
+                                    <button onclick="copyToClipboard('google-drive-config')"
+                                        class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                        Copy
+                                    </button>
+                                    <pre id="google-drive-config" class="text-green-400 text-sm overflow-x-auto"><code># Google Drive Configuration
+GOOGLE_DRIVE_CLIENT_ID=your_google_client_id
+GOOGLE_DRIVE_CLIENT_SECRET=your_google_client_secret
+CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
+                                </div>
+
+                                <!-- Google Console Redirect URI -->
+                                <div class="mt-6">
+                                    <h3 class="text-lg font-medium text-gray-900 mb-3">Google Console Configuration</h3>
+                                    <p class="text-gray-600 mb-4">
+                                        When <a href="https://console.cloud.google.com/apis/credentials" target="_blank"
+                                            class="underline text-blue-800" rel="noopener noreferrer">setting up your Google
+                                            Cloud Project OAuth 2.0 client</a>, add the following <strong>Authorized JavaScript
+                                            origin</strong> and <strong>Authorized
+                                            redirect URI</strong> to your app:
+                                    </p>
+
+                                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 relative">
+                                        <button onclick="copyToClipboard('javascript-origin')"
+                                            class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                            Copy
+                                        </button>
+                                        <div class="pr-16">
+                                            <label class="block text-sm font-medium text-blue-800 mb-2">Authorized JavaScript
+                                                origin:</label>
+                                            <code id="javascript-origin"
+                                                class="block bg-white border border-blue-300 rounded px-3 py-2 text-blue-900 font-mono text-sm break-all">{{ config('app.url') }}</code>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 relative">
+                                        <button onclick="copyToClipboard('redirect-uri')"
+                                            class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                            Copy
+                                        </button>
+                                        <div class="pr-16">
+                                            <label class="block text-sm font-medium text-blue-800 mb-2">Authorized redirect
+                                                URI:</label>
+                                            <code id="redirect-uri"
+                                                class="block bg-white border border-blue-300 rounded px-3 py-2 text-blue-900 font-mono text-sm break-all">{{ config('app.url') }}/google-drive/callback</code>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Google Cloud Console Setup Guide -->
+                                <div class="mt-6">
+                                    <details class="bg-gray-50 border border-gray-200 rounded-lg">
+                                        <summary
+                                            class="cursor-pointer p-4 font-medium text-gray-900 hover:bg-gray-100 transition-colors">
+                                            📋 Step-by-step Google Cloud Console Setup Guide
+                                        </summary>
+                                        <div class="p-4 pt-0 border-t border-gray-200">
+                                            <ol class="list-decimal list-inside space-y-3 text-sm text-gray-700 pt-3">
+                                                <li>Go to the <a href="https://console.cloud.google.com/" target="_blank"
+                                                        class="text-blue-600 hover:text-blue-800 underline">Google Cloud
+                                                        Console</a></li>
+                                                <li>Create a new project or select an existing one</li>
+                                                <li>Navigate to <strong>APIs & Services</strong> → <strong>Library</strong></li>
+                                                <li>Search for "Google Drive API" and enable it</li>
+                                                <li>Go to <strong>APIs & Services</strong> → <strong>Credentials</strong></li>
+                                                <li>Click <strong>Create Credentials</strong> → <strong>OAuth 2.0 Client
+                                                        IDs</strong></li>
+                                                <li>Choose <strong>Web application</strong> as the application type</li>
+                                                <li>Add the authorized JavaScript origin shown above to <strong>Authorized
+                                                        JavaScript origins
+                                                    </strong></li>
+                                                <li>Add the redirect URI shown above to <strong>Authorized redirect
+                                                        URIs</strong></li>
+                                                <li>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong> to
+                                                    your .env file</li>
+                                            </ol>
+                                        </div>
+                                    </details>
+                                </div>
+
+                                <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm text-amber-700">
+                                                <strong>Important:</strong> The redirect URI above is automatically generated
+                                                based on your application URL.
+                                                Make sure to use the exact URL shown when configuring your Google Cloud Console
+                                                OAuth client.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Amazon S3 Panel -->
+                            <div id="panel-s3" class="cloud-storage-panel p-6 hidden">
+                                <p class="text-gray-600 mb-4">
+                                    Add these Amazon S3 credentials to your <code
+                                        class="bg-gray-100 px-2 py-1 rounded text-sm">.env</code> file:
+                                </p>
+
+                                <div class="bg-gray-900 rounded-lg p-4 relative">
+                                    <button onclick="copyToClipboard('s3-config')"
+                                        class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                        Copy
+                                    </button>
+                                    <pre id="s3-config" class="text-green-400 text-sm overflow-x-auto"><code># Amazon S3 Configuration
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=your_bucket_name
+CLOUD_STORAGE_DEFAULT=s3</code></pre>
+                                </div>
+
+                                <!-- AWS IAM Setup Guide -->
+                                <div class="mt-6">
+                                    <details class="bg-gray-50 border border-gray-200 rounded-lg">
+                                        <summary
+                                            class="cursor-pointer p-4 font-medium text-gray-900 hover:bg-gray-100 transition-colors">
+                                            📋 Step-by-step AWS S3 Setup Guide
+                                        </summary>
+                                        <div class="p-4 pt-0 border-t border-gray-200">
+                                            <ol class="list-decimal list-inside space-y-3 text-sm text-gray-700 pt-3">
+                                                <li>Go to the <a href="https://console.aws.amazon.com/s3" target="_blank"
+                                                        class="text-blue-600 hover:text-blue-800 underline">AWS S3 Console</a></li>
+                                                <li>Create a new S3 bucket or select an existing one</li>
+                                                <li>Note your bucket name and region</li>
+                                                <li>Go to <a href="https://console.aws.amazon.com/iam" target="_blank"
+                                                        class="text-blue-600 hover:text-blue-800 underline">IAM Console</a> → <strong>Users</strong></li>
+                                                <li>Create a new user or select an existing one</li>
+                                                <li>Attach the policy shown below (or use <strong>AmazonS3FullAccess</strong> for simplicity)</li>
+                                                <li>Go to <strong>Security credentials</strong> → <strong>Create access key</strong></li>
+                                                <li>Copy the <strong>Access Key ID</strong> and <strong>Secret Access Key</strong> to your .env file</li>
+                                            </ol>
+                                        </div>
+                                    </details>
+                                </div>
+
+                                <!-- Recommended IAM Policy -->
+                                <div class="mt-6">
+                                    <details class="bg-gray-50 border border-gray-200 rounded-lg">
+                                        <summary
+                                            class="cursor-pointer p-4 font-medium text-gray-900 hover:bg-gray-100 transition-colors">
+                                            🔒 Recommended IAM Policy (Minimal Permissions)
+                                        </summary>
+                                        <div class="p-4 pt-0 border-t border-gray-200">
+                                            <p class="text-sm text-gray-600 mb-3 pt-3">
+                                                For better security, use a minimal IAM policy that only grants the necessary permissions:
+                                            </p>
+                                            <div class="bg-gray-900 rounded-lg p-4 relative">
+                                                <button onclick="copyToClipboard('iam-policy')"
+                                                    class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
+                                                    Copy
+                                                </button>
+                                                <pre id="iam-policy" class="text-green-400 text-xs overflow-x-auto"><code>{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::your_bucket_name",
+                "arn:aws:s3:::your_bucket_name/*"
+            ]
+        }
+    ]
+}</code></pre>
+                                            </div>
+                                            <p class="text-xs text-gray-500 mt-2">
+                                                Replace <code>your_bucket_name</code> with your actual S3 bucket name.
+                                            </p>
+                                        </div>
+                                    </details>
+                                </div>
+
+                                <div class="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm text-amber-700">
+                                                <strong>Security:</strong> Never commit your AWS credentials to version control.
+                                                Keep your Secret Access Key secure and rotate it periodically.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -913,8 +1057,8 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                     <button id="disable-setup-btn" onclick="disableSetup()"
                                         class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                         <span id="disable-setup-text">Disable the set-up process</span>
-
                                     </button>
+                                    <div id="disable-setup-message" class="mt-3 hidden"></div>
                                 </div>
                             </div>
                         </div>
@@ -924,7 +1068,46 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
         </div>
     </div>
 
+    <style>
+        /* Cloud Storage Tab Styles */
+        .cloud-storage-tab {
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+        }
+        .cloud-storage-tab:hover {
+            color: #374151;
+            background-color: #f3f4f6;
+        }
+        .cloud-storage-tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            background-color: #eff6ff;
+        }
+        .cloud-storage-panel.hidden {
+            display: none;
+        }
+    </style>
+
     <script>
+        /**
+         * Switch between cloud storage provider tabs
+         */
+        function switchCloudStorageTab(provider) {
+            // Update tab states
+            const tabs = document.querySelectorAll('.cloud-storage-tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(`tab-${provider}`).classList.add('active');
+
+            // Update panel visibility
+            const panels = document.querySelectorAll('.cloud-storage-panel');
+            panels.forEach(panel => {
+                panel.classList.add('hidden');
+            });
+            document.getElementById(`panel-${provider}`).classList.remove('hidden');
+        }
+
         /**
          * Copy text to clipboard functionality
          */
@@ -1057,6 +1240,32 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
         }
 
         /**
+         * Show an inline message near the disable button
+         */
+        function showDisableMessage(type, title, message) {
+            const messageDiv = document.getElementById('disable-setup-message');
+            if (!messageDiv) return;
+
+            const colors = {
+                success: 'bg-green-100 border-green-400 text-green-700',
+                error: 'bg-red-100 border-red-400 text-red-700',
+                info: 'bg-blue-100 border-blue-400 text-blue-700'
+            };
+
+            // Clear previous content
+            messageDiv.textContent = '';
+            messageDiv.className = `mt-3 px-4 py-3 rounded border ${colors[type] || colors.info}`;
+
+            // Create elements safely
+            const strong = document.createElement('strong');
+            strong.textContent = title;
+            messageDiv.appendChild(strong);
+            messageDiv.appendChild(document.createTextNode(' ' + message));
+
+            messageDiv.classList.remove('hidden');
+        }
+
+        /**
          * Disable the setup process by setting APP_SETUP_ENABLED to false
          */
         async function disableSetup() {
@@ -1065,7 +1274,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
 
             if (!button || !buttonText) {
                 console.error('Required elements not found');
-                alert('Error: Could not find required elements. Please refresh the page and try again.');
+                showDisableMessage('error', 'Error:', 'Could not find required elements. Please refresh the page and try again.');
                 return;
             }
 
@@ -1089,24 +1298,26 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                 const data = await response.json();
 
                 if (data.success) {
-                    // Success - show success message and redirect
+                    // Success - update button and show inline message
                     buttonText.textContent = 'Setup Disabled!';
                     button.classList.remove('bg-green-600', 'hover:bg-green-700');
                     button.classList.add('bg-green-700');
 
-                    // Show success message
-                    alert(
-                        'Setup process has been disabled successfully! The page will now redirect to the main application.'
-                        );
+                    // Show success message inline
+                    showDisableMessage('success', 'Success!',
+                        'Setup process has been disabled. Redirecting to the main application...'
+                    );
 
-                    // Redirect to home page after a short delay
+                    // Redirect immediately using replace() so back button won't return here
                     setTimeout(() => {
-                        window.location.href = '/';
-                    }, 2000);
+                        window.location.replace('/');
+                    }, 1000);
                 } else {
                     // Error response
                     console.error('Setup disable failed:', data.error);
-                    alert('Failed to disable setup: ' + (data.error?.message || 'Unknown error occurred'));
+                    showDisableMessage('error', 'Error:',
+                        data.error?.message || 'Unknown error occurred'
+                    );
 
                     // Reset button state
                     button.disabled = false;
@@ -1114,7 +1325,9 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                 }
             } catch (error) {
                 console.error('Network error:', error);
-                alert('Network error occurred. Please check your connection and try again.');
+                showDisableMessage('error', 'Network Error:',
+                    'Please check your connection and try again.'
+                );
 
                 // Reset button state
                 button.disabled = false;
