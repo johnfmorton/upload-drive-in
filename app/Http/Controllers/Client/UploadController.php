@@ -3,26 +3,25 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\UploadToGoogleDrive;
+use App\Models\FileUpload;
+use App\Models\User;
+use App\Services\ClientUserService;
+use App\Services\GoogleDriveService;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Pion\Laravel\ChunkUpload\Exceptions\UploadMissingFileException;
 use Pion\Laravel\ChunkUpload\Handler\HandlerFactory;
 use Pion\Laravel\ChunkUpload\Receiver\FileReceiver;
-use Illuminate\Http\UploadedFile;
-use App\Jobs\UploadToGoogleDrive;
-use App\Models\FileUpload;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use App\Events\BatchUploadComplete;
-use App\Models\User;
-use App\Services\GoogleDriveService;
-use App\Services\ClientUserService;
 
 class UploadController extends Controller
 {
     protected GoogleDriveService $driveService;
+
     protected ClientUserService $clientUserService;
 
     public function __construct(GoogleDriveService $driveService, ClientUserService $clientUserService)
@@ -40,8 +39,8 @@ class UploadController extends Controller
 
         // Ensure client has a relationship with a company user
         if ($user->isClient() && $user->companyUsers()->count() === 0) {
+            // Find any admin user - cloud storage provider is handled by the upload job
             $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)
-                ->whereHas('googleDriveToken') // Ensure admin has Google Drive connected
                 ->first();
 
             if ($adminUser) {
@@ -51,7 +50,7 @@ class UploadController extends Controller
                     'client_user_id' => $user->id,
                     'client_email' => $user->email,
                     'admin_user_id' => $adminUser->id,
-                    'admin_email' => $adminUser->email
+                    'admin_email' => $adminUser->email,
                 ]);
             }
         }
@@ -62,8 +61,8 @@ class UploadController extends Controller
     /**
      * Handles the file upload using chunks.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
+     *
      * @throws UploadMissingFileException
      */
     public function store(Request $request)
@@ -79,15 +78,15 @@ class UploadController extends Controller
                 ->first();
         }
 
-        if (!$companyUser) {
+        if (! $companyUser) {
             // Fall back to primary company user if none selected or selection invalid
             $companyUser = $user->primaryCompanyUser();
         }
 
         // If still no company user, create a relationship with an admin user as fallback
-        if (!$companyUser) {
+        if (! $companyUser) {
+            // Find any admin user - cloud storage provider is handled by the upload job
             $adminUser = \App\Models\User::where('role', \App\Enums\UserRole::ADMIN)
-                ->whereHas('googleDriveToken') // Ensure admin has Google Drive connected
                 ->first();
 
             if ($adminUser) {
@@ -99,29 +98,30 @@ class UploadController extends Controller
                     'client_user_id' => $user->id,
                     'client_email' => $user->email,
                     'admin_user_id' => $adminUser->id,
-                    'admin_email' => $adminUser->email
+                    'admin_email' => $adminUser->email,
                 ]);
             }
         }
 
-        if (!$companyUser) {
+        if (! $companyUser) {
             Log::error('No company user found for upload', [
                 'client_user_id' => $user->id,
                 'selected_company_user_id' => $request->input('company_user_id'),
-                'has_relationships' => $user->companyUsers()->count() > 0
+                'has_relationships' => $user->companyUsers()->count() > 0,
             ]);
+
             return response()->json([
-                'error' => __('messages.no_valid_upload_destination')
+                'error' => __('messages.no_valid_upload_destination'),
             ], 400);
         }
 
         // Log a warning if the company user doesn't have Google Drive connected
         // but allow the upload to proceed - the job will handle fallbacks
-        if (!$companyUser->hasGoogleDriveConnected()) {
+        if (! $companyUser->hasGoogleDriveConnected()) {
             Log::warning('Company user does not have valid Google Drive connection, upload will rely on job fallbacks', [
                 'client_user_id' => $user->id,
                 'company_user_id' => $companyUser->id,
-                'company_user_email' => $companyUser->email
+                'company_user_email' => $companyUser->email,
             ]);
         }
 
@@ -129,10 +129,11 @@ class UploadController extends Controller
         $receiver = new FileReceiver('file', $request, HandlerFactory::classFromRequest($request));
 
         // Check if the upload is successful
-        if (!$receiver->isUploaded()) {
+        if (! $receiver->isUploaded()) {
             Log::error('FileReceiver initialization failed or file not uploaded.');
+
             return response()->json([
-                'error' => __('messages.no_file_uploaded')
+                'error' => __('messages.no_file_uploaded'),
             ], 400);
         }
 
@@ -142,33 +143,33 @@ class UploadController extends Controller
         } catch (\Exception $e) {
             Log::error('Exception during upload handling.', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
-                'error' => __('messages.failed_to_process_upload')
+                'error' => __('messages.failed_to_process_upload'),
             ], 500);
         }
 
         // Check if the upload has finished
         if ($save->isFinished()) {
             Log::info('Upload finished, saving the complete file.');
+
             return $this->saveFile($save->getFile(), $companyUser, $request);
         }
 
         // We are in chunk mode, lets send the current progress
         Log::debug('Chunk received successfully.');
+
         return response()->json([
             'status' => true,
-            'message' => __('messages.chunk_received_successfully')
+            'message' => __('messages.chunk_received_successfully'),
         ]);
     }
 
     /**
      * Saves the file when all chunks have been uploaded.
      *
-     * @param UploadedFile $file
-     * @param User $companyUser
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     protected function saveFile(UploadedFile $file, User $companyUser, Request $request)
@@ -179,11 +180,11 @@ class UploadController extends Controller
         $fileSize = $file->getSize();
 
         // Build the file path
-        $filePath = "public/uploads/";
-        $finalPath = storage_path("app/" . $filePath);
+        $filePath = 'public/uploads/';
+        $finalPath = storage_path('app/'.$filePath);
 
         // Ensure the upload directory exists
-        if (!Storage::disk('local')->exists($filePath)) {
+        if (! Storage::disk('local')->exists($filePath)) {
             Storage::disk('local')->makeDirectory($filePath);
         }
 
@@ -193,10 +194,11 @@ class UploadController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to move uploaded file.', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
-                'error' => __('messages.failed_to_save_uploaded_file')
+                'error' => __('messages.failed_to_save_uploaded_file'),
             ], 500);
         }
 
@@ -221,21 +223,22 @@ class UploadController extends Controller
 
             return response()->json([
                 'file_upload_id' => $fileUpload->id,
-                'path' => $filePath . $fileName,
+                'path' => $filePath.$fileName,
                 'name' => $fileName,
                 'original_filename' => $originalFilename,
                 'mime_type' => $mimeType,
                 'size' => $fileSize,
-                'status' => true
+                'status' => true,
             ]);
 
         } catch (\Exception $e) {
             Log::error('Failed to create FileUpload record.', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
-                'error' => __('messages.failed_to_record_file_upload')
+                'error' => __('messages.failed_to_record_file_upload'),
             ], 500);
         }
     }
@@ -243,19 +246,18 @@ class UploadController extends Controller
     /**
      * Create unique filename for uploaded file.
      *
-     * @param UploadedFile $file
      * @return string
      */
     protected function createFilename(UploadedFile $file)
     {
         $extension = $file->getClientOriginalExtension();
-        return Str::random(40) . '.' . $extension;
+
+        return Str::random(40).'.'.$extension;
     }
 
     /**
      * Associates a message with one or more FileUpload records.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function associateMessage(Request $request)
@@ -292,7 +294,6 @@ class UploadController extends Controller
      * Handles the completion of a batch upload (called from frontend).
      * Dispatches an event to trigger batch notifications.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function batchComplete(Request $request)
