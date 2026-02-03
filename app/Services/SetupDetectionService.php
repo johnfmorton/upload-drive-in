@@ -740,7 +740,8 @@ class SetupDetectionService
      */
     private function isDatabaseConfigured(): bool
     {
-        $connection = env('DB_CONNECTION');
+        // Use config() instead of env() for cached config compatibility in production
+        $connection = Config::get('database.default');
 
         // For SQLite, just check if the connection is set
         if ($connection === 'sqlite') {
@@ -755,10 +756,10 @@ class SetupDetectionService
                 return $this->isEnvFileDbConfigComplete();
             }
 
-            // In production/normal environments, check actual environment variables
-            $host = env('DB_HOST');
-            $database = env('DB_DATABASE');
-            $username = env('DB_USERNAME');
+            // In production/normal environments, check config values (not env() which fails with cached config)
+            $host = Config::get("database.connections.{$connection}.host");
+            $database = Config::get("database.connections.{$connection}.database");
+            $username = Config::get("database.connections.{$connection}.username");
 
             return ! empty($connection) && ! empty($host) && ! empty($database) && ! empty($username);
         }
@@ -771,17 +772,19 @@ class SetupDetectionService
      */
     private function isDevelopmentEnvironmentWithAutoDb(): bool
     {
-        // Check for DDEV environment
+        // Check for DDEV environment (these env vars are only set by DDEV, safe to use env())
         if (env('DDEV_PROJECT') || env('IS_DDEV_PROJECT')) {
             return true;
         }
 
-        // Check for other common development environments
-        if (env('LARAVEL_SAIL') || env('APP_ENV') === 'local') {
+        // Check for other common development environments using config() for cached compatibility
+        $appEnv = Config::get('app.env');
+        if (env('LARAVEL_SAIL') || $appEnv === 'local') {
             // Additional checks to see if DB credentials are auto-provided
-            $host = env('DB_HOST');
-            $database = env('DB_DATABASE');
-            $username = env('DB_USERNAME');
+            $connection = Config::get('database.default');
+            $host = Config::get("database.connections.{$connection}.host");
+            $database = Config::get("database.connections.{$connection}.database");
+            $username = Config::get("database.connections.{$connection}.username");
 
             // If all credentials are simple/default values, likely auto-provided
             if ($host === 'db' && $database === 'db' && $username === 'db') {
@@ -806,7 +809,7 @@ class SetupDetectionService
         }
 
         $envContent = file_get_contents($envPath);
-        $connection = env('DB_CONNECTION');
+        $connection = Config::get('database.default');
 
         // For MySQL/MariaDB/PostgreSQL, check if required fields are uncommented and have values
         if (in_array($connection, ['mysql', 'mariadb', 'pgsql'])) {
@@ -1012,19 +1015,21 @@ class SetupDetectionService
      */
     private function getEnvironmentConfigHash(): string
     {
+        // Use config() instead of env() for cached config compatibility in production
+        $connection = Config::get('database.default');
         $configValues = [
-            'MAIL_MAILER' => env('MAIL_MAILER'),
-            'MAIL_HOST' => env('MAIL_HOST'),
-            'MAIL_PORT' => env('MAIL_PORT'),
-            'MAIL_USERNAME' => env('MAIL_USERNAME'),
-            'MAIL_PASSWORD' => env('MAIL_PASSWORD'),
-            'MAIL_FROM_ADDRESS' => env('MAIL_FROM_ADDRESS'),
-            'GOOGLE_DRIVE_CLIENT_ID' => env('GOOGLE_DRIVE_CLIENT_ID'),
-            'GOOGLE_DRIVE_CLIENT_SECRET' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
-            'DB_CONNECTION' => env('DB_CONNECTION'),
-            'DB_HOST' => env('DB_HOST'),
-            'DB_DATABASE' => env('DB_DATABASE'),
-            'DB_USERNAME' => env('DB_USERNAME'),
+            'MAIL_MAILER' => Config::get('mail.default'),
+            'MAIL_HOST' => Config::get('mail.mailers.smtp.host'),
+            'MAIL_PORT' => Config::get('mail.mailers.smtp.port'),
+            'MAIL_USERNAME' => Config::get('mail.mailers.smtp.username'),
+            'MAIL_PASSWORD' => Config::get('mail.mailers.smtp.password'),
+            'MAIL_FROM_ADDRESS' => Config::get('mail.from.address'),
+            'GOOGLE_DRIVE_CLIENT_ID' => Config::get('services.google.client_id'),
+            'GOOGLE_DRIVE_CLIENT_SECRET' => Config::get('services.google.client_secret'),
+            'DB_CONNECTION' => $connection,
+            'DB_HOST' => Config::get("database.connections.{$connection}.host"),
+            'DB_DATABASE' => Config::get("database.connections.{$connection}.database"),
+            'DB_USERNAME' => Config::get("database.connections.{$connection}.username"),
         ];
 
         return md5(serialize($configValues));

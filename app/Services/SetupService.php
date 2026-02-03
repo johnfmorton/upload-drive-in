@@ -2,31 +2,38 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Enums\UserRole;
-use App\Services\AssetValidationService;
-use App\Services\SetupSecurityService;
-use App\Services\EnvironmentFileService;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Config;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 
 class SetupService
 {
     private const CACHE_KEY = 'setup_state';
+
     private const STATE_VERSION = '1.0';
+
     private const MAX_BACKUP_FILES = 5;
-    
+
     private string $stateFile;
+
     private string $backupDirectory;
+
     private array $steps;
+
     private array $checks;
+
     private bool $cacheEnabled;
+
     private int $cacheTtl;
+
     private AssetValidationService $assetValidationService;
+
     private SetupSecurityService $securityService;
+
     private EnvironmentFileService $environmentFileService;
 
     public function __construct(
@@ -39,13 +46,13 @@ class SetupService
         $this->environmentFileService = $environmentFileService;
         $this->stateFile = Config::get('setup.state_file', 'setup/setup-state.json');
         $this->backupDirectory = Config::get('setup.backup_directory', 'setup/backups');
-        
+
         $steps = Config::get('setup.steps', ['assets', 'welcome', 'database', 'admin', 'storage', 'complete']);
         $this->steps = is_array($steps) ? $steps : ['assets', 'welcome', 'database', 'admin', 'storage', 'complete'];
-        
+
         $checks = Config::get('setup.checks', []);
         $this->checks = is_array($checks) ? $checks : [];
-        
+
         $this->cacheEnabled = (bool) Config::get('setup.cache_state', true);
         $this->cacheTtl = (int) Config::get('setup.cache_ttl', 300);
     }
@@ -57,7 +64,7 @@ class SetupService
     {
         // Use cached result if available and caching is enabled
         if ($this->cacheEnabled) {
-            $cached = Cache::get(self::CACHE_KEY . '_required');
+            $cached = Cache::get(self::CACHE_KEY.'_required');
             if ($cached !== null) {
                 return $cached;
             }
@@ -67,7 +74,7 @@ class SetupService
 
         // Cache the result if caching is enabled
         if ($this->cacheEnabled) {
-            Cache::put(self::CACHE_KEY . '_required', $required, $this->cacheTtl);
+            Cache::put(self::CACHE_KEY.'_required', $required, $this->cacheTtl);
         }
 
         return $required;
@@ -79,74 +86,81 @@ class SetupService
     private function performSetupChecks(): bool
     {
         \Log::info('Starting setup checks');
-        
+
         // Don't check if setup is already complete - we want fresh checks
-        
+
         // Perform individual checks based on configuration
         try {
             // Asset validation check (first priority)
             if ($this->checks['asset_validation'] ?? true) {
                 \Log::info('Checking assets...');
-                if (!$this->areAssetsValid()) {
+                if (! $this->areAssetsValid()) {
                     \Log::info('Setup required: Assets not valid');
+
                     return true;
                 }
                 \Log::info('Assets check passed');
             }
-            
+
             // Database configuration check (before attempting connection)
             if ($this->checks['database_connectivity'] ?? true) {
                 \Log::info('Checking database configuration...');
-                if (!$this->isDatabaseConfigurationComplete()) {
+                if (! $this->isDatabaseConfigurationComplete()) {
                     \Log::info('Setup required: Database configuration incomplete');
+
                     return true;
                 }
                 \Log::info('Database configuration check passed');
-                
+
                 \Log::info('Checking database connectivity...');
                 DB::connection()->getPdo();
                 \Log::info('Database connectivity check passed');
             }
-            
+
             // Migrations check
             if ($this->checks['migrations_run'] ?? true) {
                 \Log::info('Checking migrations...');
-                if (!Schema::hasTable('users')) {
+                if (! Schema::hasTable('users')) {
                     \Log::info('Setup required: Users table does not exist');
+
                     return true;
                 }
                 \Log::info('Migrations check passed');
             }
-            
+
             // Admin user check
             if ($this->checks['admin_user_exists'] ?? true) {
                 \Log::info('Checking admin users...');
                 $adminExists = User::where('role', UserRole::ADMIN)->exists();
-                if (!$adminExists) {
+                if (! $adminExists) {
                     \Log::info('Setup required: No admin users found');
+
                     return true;
                 }
                 \Log::info('Admin user check passed');
             }
-            
+
             // Cloud storage check
             if ($this->checks['cloud_storage_configured'] ?? true) {
                 \Log::info('Checking cloud storage...');
-                if (!$this->isCloudStorageConfigured()) {
+                if (! $this->isCloudStorageConfigured()) {
                     \Log::info('Setup required: Cloud storage not configured');
+
                     return true;
                 }
                 \Log::info('Cloud storage check passed');
             }
-            
+
             // If all checks pass, mark setup as complete
             \Log::info('All setup checks passed - marking setup as complete');
             $this->markSetupComplete();
+
             return false;
-            
+
         } catch (\Exception $e) {
             // Database connection failed or other issues
-            \Log::info('Setup required: Exception occurred - ' . $e->getMessage());
+            \Log::info('Setup required: Exception occurred - '.$e->getMessage());
+
             return true;
         }
     }
@@ -157,37 +171,37 @@ class SetupService
     public function getSetupStep(): string
     {
         $state = $this->getSetupStateInternal();
-        
+
         // If no state exists, start with assets
         if (empty($state['current_step'])) {
             return 'assets';
         }
-        
+
         // Check each step to determine what's needed
         try {
             // Asset validation step (first priority)
-            if (!$this->areAssetsValid()) {
+            if (! $this->areAssetsValid()) {
                 return 'assets';
             }
-            
+
             // Database step
-            if (!$this->isDatabaseConfigurationComplete() || !$this->isDatabaseConfigured()) {
+            if (! $this->isDatabaseConfigurationComplete() || ! $this->isDatabaseConfigured()) {
                 return 'database';
             }
-            
+
             // Admin user step
-            if (!$this->isAdminUserCreated()) {
+            if (! $this->isAdminUserCreated()) {
                 return 'admin';
             }
-            
+
             // Storage step
-            if (!$this->isCloudStorageConfigured()) {
+            if (! $this->isCloudStorageConfigured()) {
                 return 'storage';
             }
-            
+
             // All steps complete
             return 'complete';
-            
+
         } catch (\Exception $e) {
             // If there's an error, start from assets step
             return 'assets';
@@ -203,9 +217,9 @@ class SetupService
         $state['setup_complete'] = true;
         $state['completed_at'] = now()->toISOString();
         $state['current_step'] = 'complete';
-        
+
         $this->saveSetupState($state);
-        
+
         // Clear cache when setup state changes
         $this->clearSetupCache();
     }
@@ -217,17 +231,17 @@ class SetupService
     {
         try {
             // Remove the setup state file
-            $stateFile = storage_path('app/' . $this->stateFile);
+            $stateFile = storage_path('app/'.$this->stateFile);
             if (File::exists($stateFile)) {
                 File::delete($stateFile);
             }
-            
+
             // Clear any cached state
             $this->clearSetupCache();
-            
+
             \Log::info('Setup state reset due to inconsistency');
         } catch (\Exception $e) {
-            \Log::error('Failed to reset setup state: ' . $e->getMessage());
+            \Log::error('Failed to reset setup state: '.$e->getMessage());
         }
     }
 
@@ -242,14 +256,14 @@ class SetupService
             'password' => bcrypt($data['password']),
             'role' => UserRole::ADMIN,
         ]);
-        
+
         // Set email as verified since this is the initial admin
         $user->email_verified_at = now();
         $user->save();
-        
+
         // Update setup state
         $this->updateSetupStep('admin', true);
-        
+
         return $user;
     }
 
@@ -259,6 +273,7 @@ class SetupService
     public function isSetupComplete(): bool
     {
         $state = $this->getSetupStateInternal();
+
         return $state['setup_complete'] ?? false;
     }
 
@@ -267,38 +282,38 @@ class SetupService
      */
     public function updateSetupStep(string $step, bool $completed = true): void
     {
-        if (!in_array($step, $this->steps)) {
+        if (! in_array($step, $this->steps)) {
             throw new \InvalidArgumentException("Invalid setup step: {$step}");
         }
-        
+
         // Create backup before modifying state if file exists
-        $stateFile = storage_path('app/' . $this->stateFile);
+        $stateFile = storage_path('app/'.$this->stateFile);
         if (File::exists($stateFile) && File::size($stateFile) > 0) {
             try {
                 $this->createStateBackup();
             } catch (\Exception $e) {
                 // Log backup failure but continue with update
-                \Log::warning('Failed to create setup state backup: ' . $e->getMessage());
+                \Log::warning('Failed to create setup state backup: '.$e->getMessage());
             }
         }
-        
+
         $state = $this->getSetupStateInternal();
         $state['steps'][$step] = [
             'completed' => $completed,
             'completed_at' => $completed ? now()->toISOString() : null,
         ];
-        
+
         if ($completed) {
             $state['current_step'] = $this->getNextStep($step);
-            
+
             // Update asset checks if this is the assets step
             if ($step === 'assets') {
                 $this->updateAssetChecks($state);
             }
         }
-        
+
         $this->saveSetupState($state);
-        
+
         // Clear cache when setup state changes
         $this->clearSetupCache();
     }
@@ -306,23 +321,23 @@ class SetupService
     /**
      * Update asset checks in the setup state
      */
-    public function updateAssetChecks(array &$state = null): void
+    public function updateAssetChecks(?array &$state = null): void
     {
         if ($state === null) {
             $state = $this->getSetupStateInternal();
         }
-        
+
         $assetResults = $this->getAssetValidationResults();
         $nodeEnv = $assetResults['node_environment'] ?? [];
-        
+
         $state['asset_checks'] = [
             'vite_manifest_exists' => $assetResults['vite_manifest_exists'] ?? false,
             'build_directory_exists' => $assetResults['build_directory_exists'] ?? false,
-            'node_environment_ready' => ($nodeEnv['package_json_exists'] ?? false) && 
+            'node_environment_ready' => ($nodeEnv['package_json_exists'] ?? false) &&
                                        ($nodeEnv['node_modules_exists'] ?? false),
             'build_instructions_shown' => $state['asset_checks']['build_instructions_shown'] ?? false,
         ];
-        
+
         if ($state !== null) {
             $this->saveSetupState($state);
             $this->clearSetupCache();
@@ -350,6 +365,7 @@ class SetupService
         } catch (\RuntimeException $e) {
             // If state is corrupted, try to recover or recreate
             $this->recreateSetupState();
+
             return $this->getSetupStateInternal();
         }
     }
@@ -361,33 +377,33 @@ class SetupService
     {
         // Use secure file read
         $result = $this->securityService->secureFileRead($this->stateFile);
-        
-        if (!$result['success']) {
+
+        if (! $result['success']) {
             if (str_contains($result['message'], 'does not exist')) {
                 return $this->createInitialSetupState();
             }
-            throw new \RuntimeException('Failed to read setup state: ' . $result['message']);
+            throw new \RuntimeException('Failed to read setup state: '.$result['message']);
         }
-        
+
         $decoded = json_decode($result['content'], true);
-        
+
         if ($decoded === null) {
             throw new \RuntimeException('Setup state file contains invalid JSON');
         }
-        
+
         // Validate state integrity if hash is present
         if (isset($decoded['integrity_hash'])) {
             $expectedHash = $this->generateStateIntegrityHash($decoded);
             if ($decoded['integrity_hash'] !== $expectedHash) {
                 $this->securityService->logSecurityEvent('setup_state_integrity_violation', [
                     'expected_hash' => $expectedHash,
-                    'actual_hash' => $decoded['integrity_hash']
+                    'actual_hash' => $decoded['integrity_hash'],
                 ]);
-                
+
                 throw new \RuntimeException('Setup state integrity check failed');
             }
         }
-        
+
         return $decoded;
     }
 
@@ -399,23 +415,23 @@ class SetupService
         // Add metadata to state
         $state['last_updated_at'] = now()->toISOString();
         $state['version'] = self::STATE_VERSION;
-        
+
         // Add integrity hash
         $state['integrity_hash'] = $this->generateStateIntegrityHash($state);
-        
+
         $content = json_encode($state, JSON_PRETTY_PRINT);
-        
+
         // Use secure file write
         $result = $this->securityService->secureFileWrite($this->stateFile, $content, 0644);
-        
-        if (!$result['success']) {
-            throw new \RuntimeException('Failed to save setup state: ' . $result['message']);
+
+        if (! $result['success']) {
+            throw new \RuntimeException('Failed to save setup state: '.$result['message']);
         }
 
         // Log state change for audit
         $this->securityService->logSecurityEvent('setup_state_updated', [
             'current_step' => $state['current_step'] ?? 'unknown',
-            'setup_complete' => $state['setup_complete'] ?? false
+            'setup_complete' => $state['setup_complete'] ?? false,
         ]);
     }
 
@@ -442,7 +458,7 @@ class SetupService
                 'last_recovery_at' => null,
             ],
         ];
-        
+
         foreach ($this->steps as $step) {
             $state['steps'][$step] = [
                 'completed' => false,
@@ -450,8 +466,9 @@ class SetupService
                 'started_at' => null,
             ];
         }
-        
+
         $this->saveSetupState($state);
+
         return $state;
     }
 
@@ -461,11 +478,11 @@ class SetupService
     private function getNextStep(string $currentStep): string
     {
         $currentIndex = array_search($currentStep, $this->steps);
-        
+
         if ($currentIndex === false || $currentIndex >= count($this->steps) - 1) {
             return 'complete';
         }
-        
+
         return $this->steps[$currentIndex + 1];
     }
 
@@ -515,39 +532,40 @@ class SetupService
     public function isDatabaseConfigurationComplete(): bool
     {
         $connection = Config::get('database.default');
-        
+
         // For SQLite, just check if the connection is set
         if ($connection === 'sqlite') {
             return true; // SQLite doesn't need credentials
         }
-        
+
         // For MySQL/MariaDB/PostgreSQL, check required credentials
         if (in_array($connection, ['mysql', 'mariadb', 'pgsql'])) {
             // Check if we're in a development environment that auto-provides DB credentials
             $isDevelopmentEnvironment = $this->isDevelopmentEnvironmentWithAutoDb();
-            
+
             if ($isDevelopmentEnvironment) {
                 // In development environments like DDEV, check if .env file has proper config
                 return $this->isEnvFileDbConfigComplete();
             }
-            
-            // In production/normal environments, check actual environment variables
-            $host = env('DB_HOST');
-            $database = env('DB_DATABASE');
-            $username = env('DB_USERNAME');
-            
+
+            // In production/normal environments, check config values (not env() which fails with cached config)
+            $host = Config::get("database.connections.{$connection}.host");
+            $database = Config::get("database.connections.{$connection}.database");
+            $username = Config::get("database.connections.{$connection}.username");
+
             // If any required credential is missing/empty, configuration is incomplete
             if (empty($host) || empty($database) || empty($username)) {
                 \Log::info('Database configuration incomplete', [
                     'connection' => $connection,
-                    'has_host' => !empty($host),
-                    'has_database' => !empty($database),
-                    'has_username' => !empty($username)
+                    'has_host' => ! empty($host),
+                    'has_database' => ! empty($database),
+                    'has_username' => ! empty($username),
                 ]);
+
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -556,24 +574,26 @@ class SetupService
      */
     private function isDevelopmentEnvironmentWithAutoDb(): bool
     {
-        // Check for DDEV environment
+        // Check for DDEV environment (these env vars are only set by DDEV, safe to use env())
         if (env('DDEV_PROJECT') || env('IS_DDEV_PROJECT')) {
             return true;
         }
-        
-        // Check for other common development environments
-        if (env('LARAVEL_SAIL') || env('APP_ENV') === 'local') {
+
+        // Check for other common development environments using config() for cached compatibility
+        $appEnv = Config::get('app.env');
+        if (env('LARAVEL_SAIL') || $appEnv === 'local') {
             // Additional checks to see if DB credentials are auto-provided
-            $host = env('DB_HOST');
-            $database = env('DB_DATABASE');
-            $username = env('DB_USERNAME');
-            
+            $connection = Config::get('database.default');
+            $host = Config::get("database.connections.{$connection}.host");
+            $database = Config::get("database.connections.{$connection}.database");
+            $username = Config::get("database.connections.{$connection}.username");
+
             // If all credentials are simple/default values, likely auto-provided
             if ($host === 'db' && $database === 'db' && $username === 'db') {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -583,42 +603,43 @@ class SetupService
     private function isEnvFileDbConfigComplete(): bool
     {
         $envPath = base_path('.env');
-        
-        if (!File::exists($envPath)) {
+
+        if (! File::exists($envPath)) {
             \Log::info('No .env file found, database configuration incomplete');
+
             return false;
         }
-        
+
         $envContent = File::get($envPath);
         $connection = Config::get('database.default');
-        
+
         // For MySQL/MariaDB/PostgreSQL, check if required fields are uncommented and have values
         if (in_array($connection, ['mysql', 'mariadb', 'pgsql'])) {
             $requiredFields = ['DB_HOST', 'DB_DATABASE', 'DB_USERNAME'];
             $foundFields = [];
-            
+
             foreach ($requiredFields as $field) {
                 // Check if field exists and is not commented out
-                if (preg_match('/^' . preg_quote($field) . '=(.+)$/m', $envContent, $matches)) {
+                if (preg_match('/^'.preg_quote($field).'=(.+)$/m', $envContent, $matches)) {
                     $value = trim($matches[1], '"\'');
-                    if (!empty($value)) {
+                    if (! empty($value)) {
                         $foundFields[] = $field;
                     }
                 }
             }
-            
+
             $isComplete = count($foundFields) === count($requiredFields);
-            
+
             \Log::info('Checked .env file database configuration', [
                 'connection' => $connection,
                 'required_fields' => $requiredFields,
                 'found_fields' => $foundFields,
-                'is_complete' => $isComplete
+                'is_complete' => $isComplete,
             ]);
-            
+
             return $isComplete;
         }
-        
+
         return true;
     }
 
@@ -629,11 +650,12 @@ class SetupService
     {
         try {
             // First check if configuration is complete
-            if (!$this->isDatabaseConfigurationComplete()) {
+            if (! $this->isDatabaseConfigurationComplete()) {
                 return false;
             }
-            
+
             DB::connection()->getPdo();
+
             return Schema::hasTable('users');
         } catch (\Exception $e) {
             return false;
@@ -660,11 +682,9 @@ class SetupService
         // Check if Google Drive credentials are configured
         $clientId = Config::get('services.google.client_id');
         $clientSecret = Config::get('services.google.client_secret');
-        
-        return !empty($clientId) && !empty($clientSecret);
+
+        return ! empty($clientId) && ! empty($clientSecret);
     }
-
-
 
     /**
      * Get all setup steps with their status
@@ -672,6 +692,7 @@ class SetupService
     public function getSetupSteps(): array
     {
         $state = $this->getSetupStateInternal();
+
         return $state['steps'] ?? [];
     }
 
@@ -681,12 +702,12 @@ class SetupService
     public function getSetupProgress(): int
     {
         $steps = $this->getSetupSteps();
-        $completedSteps = array_filter($steps, fn($step) => $step['completed'] ?? false);
-        
+        $completedSteps = array_filter($steps, fn ($step) => $step['completed'] ?? false);
+
         if (empty($steps)) {
             return 0;
         }
-        
+
         return (int) round((count($completedSteps) / count($steps)) * 100);
     }
 
@@ -698,10 +719,10 @@ class SetupService
         $steps = $this->getSetupSteps();
         $currentStep = $this->getSetupStep();
         $progress = $this->getSetupProgress();
-        
-        $completedSteps = array_filter($steps, fn($step) => $step['completed'] ?? false);
-        $remainingSteps = array_filter($steps, fn($step) => !($step['completed'] ?? false));
-        
+
+        $completedSteps = array_filter($steps, fn ($step) => $step['completed'] ?? false);
+        $remainingSteps = array_filter($steps, fn ($step) => ! ($step['completed'] ?? false));
+
         return [
             'current_step' => $currentStep,
             'progress_percentage' => $progress,
@@ -718,11 +739,11 @@ class SetupService
     /**
      * Get estimated time remaining for setup completion
      */
-    public function getEstimatedTimeRemaining(array $remainingSteps = null): string
+    public function getEstimatedTimeRemaining(?array $remainingSteps = null): string
     {
         if ($remainingSteps === null) {
             $steps = $this->getSetupSteps();
-            $remainingSteps = array_filter($steps, fn($step) => !($step['completed'] ?? false));
+            $remainingSteps = array_filter($steps, fn ($step) => ! ($step['completed'] ?? false));
         }
 
         $estimatedMinutes = [
@@ -731,7 +752,7 @@ class SetupService
             'database' => 3,
             'admin' => 2,
             'storage' => 4,
-            'complete' => 1
+            'complete' => 1,
         ];
 
         $totalMinutes = 0;
@@ -746,7 +767,8 @@ class SetupService
         } else {
             $hours = floor($totalMinutes / 60);
             $minutes = $totalMinutes % 60;
-            return $minutes > 0 ? "{$hours}h {$minutes}m" : "{$hours} hour" . ($hours > 1 ? 's' : '');
+
+            return $minutes > 0 ? "{$hours}h {$minutes}m" : "{$hours} hour".($hours > 1 ? 's' : '');
         }
     }
 
@@ -756,6 +778,7 @@ class SetupService
     public function getSetupStartTime(): ?string
     {
         $state = $this->getSetupStateInternal();
+
         return $state['started_at'] ?? null;
     }
 
@@ -766,7 +789,7 @@ class SetupService
     {
         $state = $this->getSetupStateInternal();
         $currentStep = $this->getSetupStep();
-        
+
         return $state['steps'][$currentStep]['started_at'] ?? null;
     }
 
@@ -775,13 +798,13 @@ class SetupService
      */
     public function markStepStarted(string $step): void
     {
-        if (!in_array($step, $this->steps)) {
+        if (! in_array($step, $this->steps)) {
             throw new \InvalidArgumentException("Invalid setup step: {$step}");
         }
-        
+
         $state = $this->getSetupStateInternal();
-        
-        if (!isset($state['steps'][$step]['started_at'])) {
+
+        if (! isset($state['steps'][$step]['started_at'])) {
             $state['steps'][$step]['started_at'] = now()->toISOString();
             $this->saveSetupState($state);
         }
@@ -800,8 +823,8 @@ class SetupService
                     'Vite manifest file created successfully',
                     'CSS files compiled and optimized',
                     'JavaScript files bundled and minified',
-                    'Asset versioning configured'
-                ]
+                    'Asset versioning configured',
+                ],
             ],
             'welcome' => [
                 'title' => 'System Requirements Verified',
@@ -810,8 +833,8 @@ class SetupService
                     'PHP version and extensions verified',
                     'File permissions checked',
                     'Directory structure validated',
-                    'Environment configuration verified'
-                ]
+                    'Environment configuration verified',
+                ],
             ],
             'database' => [
                 'title' => 'Database Configured',
@@ -820,8 +843,8 @@ class SetupService
                     'Database connection tested successfully',
                     'Database tables created',
                     'Initial data seeded',
-                    'Database configuration saved'
-                ]
+                    'Database configuration saved',
+                ],
             ],
             'admin' => [
                 'title' => 'Administrator Account Created',
@@ -830,8 +853,8 @@ class SetupService
                     'Admin user account created',
                     'Password securely hashed',
                     'Admin role assigned',
-                    'Account ready for login'
-                ]
+                    'Account ready for login',
+                ],
             ],
             'storage' => [
                 'title' => 'Cloud Storage Configured',
@@ -840,8 +863,8 @@ class SetupService
                     'Storage provider credentials validated',
                     'Connection tested successfully',
                     'Upload permissions verified',
-                    'Storage configuration saved'
-                ]
+                    'Storage configuration saved',
+                ],
             ],
             'complete' => [
                 'title' => 'Setup Complete!',
@@ -850,15 +873,15 @@ class SetupService
                     'All setup steps completed successfully',
                     'Application configuration finalized',
                     'Security settings applied',
-                    'System ready for production use'
-                ]
-            ]
+                    'System ready for production use',
+                ],
+            ],
         ];
 
         return $details[$step] ?? [
-            'title' => ucfirst($step) . ' Complete',
+            'title' => ucfirst($step).' Complete',
             'message' => 'This step has been completed successfully.',
-            'details' => []
+            'details' => [],
         ];
     }
 
@@ -868,9 +891,9 @@ class SetupService
     public function clearSetupCache(): void
     {
         if ($this->cacheEnabled) {
-            Cache::forget(self::CACHE_KEY . '_required');
-            Cache::forget(self::CACHE_KEY . '_step');
-            Cache::forget(self::CACHE_KEY . '_progress');
+            Cache::forget(self::CACHE_KEY.'_required');
+            Cache::forget(self::CACHE_KEY.'_step');
+            Cache::forget(self::CACHE_KEY.'_progress');
         }
     }
 
@@ -897,20 +920,20 @@ class SetupService
         try {
             // Check if storage directory is writable
             $storageDir = storage_path('app/setup');
-            if (!File::exists($storageDir)) {
+            if (! File::exists($storageDir)) {
                 File::makeDirectory($storageDir, 0755, true);
             }
-            if (!is_writable($storageDir)) {
-                $issues[] = 'Setup storage directory is not writable: ' . $storageDir;
+            if (! is_writable($storageDir)) {
+                $issues[] = 'Setup storage directory is not writable: '.$storageDir;
             }
 
             // Check if backup directory is writable
-            $backupDir = storage_path('app/' . $this->backupDirectory);
-            if (!File::exists($backupDir)) {
+            $backupDir = storage_path('app/'.$this->backupDirectory);
+            if (! File::exists($backupDir)) {
                 File::makeDirectory($backupDir, 0755, true);
             }
-            if (!is_writable($backupDir)) {
-                $issues[] = 'Setup backup directory is not writable: ' . $backupDir;
+            if (! is_writable($backupDir)) {
+                $issues[] = 'Setup backup directory is not writable: '.$backupDir;
             }
 
             // Check if cache is available if caching is enabled
@@ -919,7 +942,7 @@ class SetupService
                     Cache::put('setup_test', 'test', 1);
                     Cache::forget('setup_test');
                 } catch (\Exception $e) {
-                    $issues[] = 'Cache is not available but setup caching is enabled: ' . $e->getMessage();
+                    $issues[] = 'Cache is not available but setup caching is enabled: '.$e->getMessage();
                 }
             }
 
@@ -928,12 +951,12 @@ class SetupService
                 try {
                     DB::connection()->getPdo();
                 } catch (\Exception $e) {
-                    $issues[] = 'Database connection failed: ' . $e->getMessage();
+                    $issues[] = 'Database connection failed: '.$e->getMessage();
                 }
             }
 
         } catch (\Exception $e) {
-            $issues[] = 'Setup environment validation failed: ' . $e->getMessage();
+            $issues[] = 'Setup environment validation failed: '.$e->getMessage();
         }
 
         return $issues;
@@ -950,35 +973,37 @@ class SetupService
         // Check required fields
         $requiredFields = ['setup_complete', 'current_step', 'started_at', 'steps'];
         foreach ($requiredFields as $field) {
-            if (!array_key_exists($field, $state)) {
+            if (! array_key_exists($field, $state)) {
                 $issues[] = "Missing required field: {$field}";
             }
         }
 
         // Check state version compatibility
         if (isset($state['version']) && $state['version'] !== self::STATE_VERSION) {
-            $issues[] = "State version mismatch. Expected: " . self::STATE_VERSION . ", Found: " . $state['version'];
+            $issues[] = 'State version mismatch. Expected: '.self::STATE_VERSION.', Found: '.$state['version'];
         }
 
         // Validate steps structure
         if (isset($state['steps']) && is_array($state['steps'])) {
             foreach ($this->steps as $step) {
-                if (!isset($state['steps'][$step])) {
+                if (! isset($state['steps'][$step])) {
                     $issues[] = "Missing step configuration: {$step}";
+
                     continue;
                 }
 
                 $stepData = $state['steps'][$step];
-                if (!is_array($stepData)) {
+                if (! is_array($stepData)) {
                     $issues[] = "Invalid step data structure for: {$step}";
+
                     continue;
                 }
 
-                if (!array_key_exists('completed', $stepData)) {
+                if (! array_key_exists('completed', $stepData)) {
                     $issues[] = "Missing 'completed' field for step: {$step}";
                 }
 
-                if (!array_key_exists('completed_at', $stepData)) {
+                if (! array_key_exists('completed_at', $stepData)) {
                     $issues[] = "Missing 'completed_at' field for step: {$step}";
                 }
 
@@ -987,15 +1012,15 @@ class SetupService
                     try {
                         \Carbon\Carbon::parse($stepData['completed_at']);
                     } catch (\Exception $e) {
-                        $issues[] = "Invalid timestamp format for step {$step}: " . $stepData['completed_at'];
+                        $issues[] = "Invalid timestamp format for step {$step}: ".$stepData['completed_at'];
                     }
                 }
             }
         }
 
         // Validate current step
-        if (isset($state['current_step']) && !in_array($state['current_step'], [...$this->steps, 'complete'])) {
-            $issues[] = "Invalid current step: " . $state['current_step'];
+        if (isset($state['current_step']) && ! in_array($state['current_step'], [...$this->steps, 'complete'])) {
+            $issues[] = 'Invalid current step: '.$state['current_step'];
         }
 
         // Validate timestamps
@@ -1003,7 +1028,7 @@ class SetupService
             try {
                 \Carbon\Carbon::parse($state['started_at']);
             } catch (\Exception $e) {
-                $issues[] = "Invalid started_at timestamp: " . $state['started_at'];
+                $issues[] = 'Invalid started_at timestamp: '.$state['started_at'];
             }
         }
 
@@ -1011,7 +1036,7 @@ class SetupService
             try {
                 \Carbon\Carbon::parse($state['completed_at']);
             } catch (\Exception $e) {
-                $issues[] = "Invalid completed_at timestamp: " . $state['completed_at'];
+                $issues[] = 'Invalid completed_at timestamp: '.$state['completed_at'];
             }
         }
 
@@ -1023,17 +1048,17 @@ class SetupService
      */
     public function createStateBackup(): string
     {
-        $backupDir = storage_path('app/' . $this->backupDirectory);
-        
-        if (!File::exists($backupDir)) {
+        $backupDir = storage_path('app/'.$this->backupDirectory);
+
+        if (! File::exists($backupDir)) {
             File::makeDirectory($backupDir, 0755, true);
         }
 
         $timestamp = now()->format('Y-m-d_H-i-s');
-        $backupFile = $backupDir . "/setup-state-backup-{$timestamp}.json";
-        
-        $stateFile = storage_path('app/' . $this->stateFile);
-        
+        $backupFile = $backupDir."/setup-state-backup-{$timestamp}.json";
+
+        $stateFile = storage_path('app/'.$this->stateFile);
+
         if (File::exists($stateFile)) {
             File::copy($stateFile, $backupFile);
             $this->cleanupOldBackups();
@@ -1047,7 +1072,7 @@ class SetupService
      */
     public function restoreStateFromBackup(string $backupFile): bool
     {
-        if (!File::exists($backupFile)) {
+        if (! File::exists($backupFile)) {
             return false;
         }
 
@@ -1055,7 +1080,7 @@ class SetupService
             // Validate backup file before restoring
             $backupContent = File::get($backupFile);
             $backupState = json_decode($backupContent, true);
-            
+
             if ($backupState === null) {
                 return false;
             }
@@ -1064,7 +1089,7 @@ class SetupService
             $this->createStateBackup();
 
             // Restore the backup
-            $stateFile = storage_path('app/' . $this->stateFile);
+            $stateFile = storage_path('app/'.$this->stateFile);
             File::copy($backupFile, $stateFile);
 
             // Clear cache after restoration
@@ -1081,19 +1106,19 @@ class SetupService
      */
     public function getAvailableBackups(): array
     {
-        $backupDir = storage_path('app/' . $this->backupDirectory);
-        
-        if (!File::exists($backupDir)) {
+        $backupDir = storage_path('app/'.$this->backupDirectory);
+
+        if (! File::exists($backupDir)) {
             return [];
         }
 
         $backups = [];
         $files = File::files($backupDir);
-        
+
         foreach ($files as $file) {
-            if (str_ends_with($file->getFilename(), '.json') && 
+            if (str_ends_with($file->getFilename(), '.json') &&
                 str_starts_with($file->getFilename(), 'setup-state-backup-')) {
-                
+
                 $backups[] = [
                     'file' => $file->getPathname(),
                     'filename' => $file->getFilename(),
@@ -1104,7 +1129,7 @@ class SetupService
         }
 
         // Sort by creation time (newest first)
-        usort($backups, fn($a, $b) => $b['created_at']->timestamp - $a['created_at']->timestamp);
+        usort($backups, fn ($a, $b) => $b['created_at']->timestamp - $a['created_at']->timestamp);
 
         return $backups;
     }
@@ -1115,10 +1140,10 @@ class SetupService
     private function cleanupOldBackups(): void
     {
         $backups = $this->getAvailableBackups();
-        
+
         if (count($backups) > self::MAX_BACKUP_FILES) {
             $backupsToDelete = array_slice($backups, self::MAX_BACKUP_FILES);
-            
+
             foreach ($backupsToDelete as $backup) {
                 File::delete($backup['file']);
             }
@@ -1139,10 +1164,11 @@ class SetupService
 
         try {
             // Check if state file exists and is valid
-            $stateFile = storage_path('app/' . $this->stateFile);
-            
-            if (!File::exists($stateFile)) {
+            $stateFile = storage_path('app/'.$this->stateFile);
+
+            if (! File::exists($stateFile)) {
                 $resumeInfo['actions_taken'][] = 'Created initial setup state';
+
                 return $resumeInfo;
             }
 
@@ -1153,17 +1179,17 @@ class SetupService
             } catch (\RuntimeException $e) {
                 // State file is corrupted
                 $resumeInfo['interrupted'] = true;
-                $resumeInfo['issues_found'][] = 'Setup state file is corrupted: ' . $e->getMessage();
-                
+                $resumeInfo['issues_found'][] = 'Setup state file is corrupted: '.$e->getMessage();
+
                 // Try to recover from backup
                 $backups = $this->getAvailableBackups();
-                
-                if (!empty($backups)) {
+
+                if (! empty($backups)) {
                     $latestBackup = $backups[0];
-                    
+
                     if ($this->restoreStateFromBackup($latestBackup['file'])) {
                         $resumeInfo['resumed_from'] = $latestBackup['filename'];
-                        $resumeInfo['actions_taken'][] = 'Restored state from backup: ' . $latestBackup['filename'];
+                        $resumeInfo['actions_taken'][] = 'Restored state from backup: '.$latestBackup['filename'];
                     } else {
                         $resumeInfo['actions_taken'][] = 'Failed to restore from backup, recreating state';
                         $this->recreateSetupState();
@@ -1172,23 +1198,23 @@ class SetupService
                     $resumeInfo['actions_taken'][] = 'No backups available, recreating state';
                     $this->recreateSetupState();
                 }
-                
+
                 return $resumeInfo;
             }
-            
-            if (!empty($integrityIssues)) {
+
+            if (! empty($integrityIssues)) {
                 $resumeInfo['interrupted'] = true;
                 $resumeInfo['issues_found'] = $integrityIssues;
-                
+
                 // Try to recover from backup
                 $backups = $this->getAvailableBackups();
-                
-                if (!empty($backups)) {
+
+                if (! empty($backups)) {
                     $latestBackup = $backups[0];
-                    
+
                     if ($this->restoreStateFromBackup($latestBackup['file'])) {
                         $resumeInfo['resumed_from'] = $latestBackup['filename'];
-                        $resumeInfo['actions_taken'][] = 'Restored state from backup: ' . $latestBackup['filename'];
+                        $resumeInfo['actions_taken'][] = 'Restored state from backup: '.$latestBackup['filename'];
                     } else {
                         $resumeInfo['actions_taken'][] = 'Failed to restore from backup, recreating state';
                         $this->recreateSetupState();
@@ -1202,10 +1228,10 @@ class SetupService
             // Detect incomplete steps and resume
             $currentStep = $this->getSetupStep();
             $state = $this->getSetupStateInternal();
-            
+
             // Check for steps that were started but not completed
             foreach ($state['steps'] ?? [] as $stepName => $stepData) {
-                if (isset($stepData['started_at']) && !($stepData['completed'] ?? false)) {
+                if (isset($stepData['started_at']) && ! ($stepData['completed'] ?? false)) {
                     $resumeInfo['interrupted'] = true;
                     $resumeInfo['actions_taken'][] = "Detected incomplete step: {$stepName}";
                 }
@@ -1220,7 +1246,7 @@ class SetupService
 
         } catch (\Exception $e) {
             $resumeInfo['interrupted'] = true;
-            $resumeInfo['issues_found'][] = 'Exception during setup detection: ' . $e->getMessage();
+            $resumeInfo['issues_found'][] = 'Exception during setup detection: '.$e->getMessage();
             $resumeInfo['actions_taken'][] = 'Recreated setup state due to exception';
             $this->recreateSetupState();
         }
@@ -1236,10 +1262,10 @@ class SetupService
         // Remove the hash itself from calculation
         $stateForHash = $state;
         unset($stateForHash['integrity_hash']);
-        
+
         // Sort keys for consistent hashing
         ksort($stateForHash);
-        
+
         return hash('sha256', json_encode($stateForHash));
     }
 
@@ -1250,36 +1276,36 @@ class SetupService
     {
         // Sanitize database configuration
         $sanitizationResult = $this->securityService->sanitizeDatabaseConfig($databaseConfig);
-        
-        if (!empty($sanitizationResult['violations'])) {
+
+        if (! empty($sanitizationResult['violations'])) {
             return [
                 'success' => false,
                 'message' => 'Database configuration validation failed',
-                'violations' => $sanitizationResult['violations']
+                'violations' => $sanitizationResult['violations'],
             ];
         }
 
         $sanitizedConfig = $sanitizationResult['sanitized'];
-        
+
         // Prepare environment updates
         $envUpdates = [];
-        
+
         if (isset($sanitizedConfig['database'])) {
             $envUpdates['DB_DATABASE'] = $sanitizedConfig['database'];
         }
-        
+
         if (isset($sanitizedConfig['username'])) {
             $envUpdates['DB_USERNAME'] = $sanitizedConfig['username'];
         }
-        
+
         if (isset($sanitizedConfig['password'])) {
             $envUpdates['DB_PASSWORD'] = $sanitizedConfig['password'];
         }
-        
+
         if (isset($sanitizedConfig['host'])) {
             $envUpdates['DB_HOST'] = $sanitizedConfig['host'];
         }
-        
+
         if (isset($sanitizedConfig['port'])) {
             $envUpdates['DB_PORT'] = (string) $sanitizedConfig['port'];
         }
@@ -1294,52 +1320,53 @@ class SetupService
     public function updateStorageEnvironment(array $storageConfig): array
     {
         Log::info('Starting storage environment update', [
-            'config_keys' => array_keys($storageConfig)
+            'config_keys' => array_keys($storageConfig),
         ]);
-        
+
         // Sanitize storage configuration
         $sanitizationResult = $this->securityService->sanitizeStorageConfig($storageConfig);
-        
+
         Log::info('Storage config sanitization result', [
             'violations' => $sanitizationResult['violations'],
-            'sanitized_keys' => array_keys($sanitizationResult['sanitized'])
+            'sanitized_keys' => array_keys($sanitizationResult['sanitized']),
         ]);
-        
-        if (!empty($sanitizationResult['violations'])) {
+
+        if (! empty($sanitizationResult['violations'])) {
             Log::warning('Storage configuration validation failed', [
-                'violations' => $sanitizationResult['violations']
+                'violations' => $sanitizationResult['violations'],
             ]);
+
             return [
                 'success' => false,
                 'message' => 'Storage configuration validation failed',
-                'violations' => $sanitizationResult['violations']
+                'violations' => $sanitizationResult['violations'],
             ];
         }
 
         $sanitizedConfig = $sanitizationResult['sanitized'];
-        
+
         // Prepare environment updates
         $envUpdates = [];
-        
+
         if (isset($sanitizedConfig['client_id'])) {
             $envUpdates['GOOGLE_DRIVE_CLIENT_ID'] = $sanitizedConfig['client_id'];
         }
-        
+
         if (isset($sanitizedConfig['client_secret'])) {
             $envUpdates['GOOGLE_DRIVE_CLIENT_SECRET'] = $sanitizedConfig['client_secret'];
         }
 
         Log::info('Prepared environment updates', [
-            'update_keys' => array_keys($envUpdates)
+            'update_keys' => array_keys($envUpdates),
         ]);
 
         // Update environment file securely
         $result = $this->environmentFileService->updateEnvironmentFile($envUpdates);
-        
+
         Log::info('Environment file update result', [
             'success' => $result['success'],
             'message' => $result['message'],
-            'violations' => $result['violations'] ?? []
+            'violations' => $result['violations'] ?? [],
         ]);
 
         // Clear configuration cache to ensure new values are loaded
@@ -1349,7 +1376,7 @@ class SetupService
                 Log::info('Configuration cache cleared after environment update');
             } catch (\Exception $e) {
                 Log::warning('Failed to clear configuration cache', [
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -1363,33 +1390,34 @@ class SetupService
     public function updateSessionCookieEnvironment(): array
     {
         Log::info('Starting session cookie environment update');
-        
-        // Get current APP_URL
-        $appUrl = env('APP_URL', '');
-        
+
+        // Get current APP_URL (use config() for cached config compatibility)
+        $appUrl = Config::get('app.url', '');
+
         if (empty($appUrl)) {
             Log::warning('APP_URL is not set, cannot generate session cookie configuration');
+
             return [
                 'success' => false,
                 'message' => 'APP_URL is not configured',
-                'violations' => ['APP_URL must be set before configuring session cookies']
+                'violations' => ['APP_URL must be set before configuring session cookies'],
             ];
         }
 
         // Generate session cookie configuration
         $sessionConfig = $this->environmentFileService->generateSessionCookieConfiguration($appUrl);
-        
+
         Log::info('Generated session cookie configuration', [
             'app_url' => $appUrl,
-            'config' => $sessionConfig
+            'config' => $sessionConfig,
         ]);
 
         // Update environment file with session cookie settings
         $result = $this->environmentFileService->updateEnvironmentFile($sessionConfig);
-        
+
         Log::info('Session cookie environment update result', [
             'success' => $result['success'],
-            'message' => $result['message']
+            'message' => $result['message'],
         ]);
 
         // Clear configuration cache to ensure new values are loaded
@@ -1399,7 +1427,7 @@ class SetupService
                 Log::info('Configuration cache cleared after session cookie update');
             } catch (\Exception $e) {
                 Log::warning('Failed to clear configuration cache', [
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
@@ -1409,8 +1437,8 @@ class SetupService
 
     /**
      * Generate complete environment configuration including session cookies
-     * 
-     * @param array $config Configuration array with keys: app_url, database, storage
+     *
+     * @param  array  $config  Configuration array with keys: app_url, database, storage
      * @return array Environment variables to be written
      */
     public function generateCompleteEnvironmentConfiguration(array $config): array
@@ -1420,7 +1448,7 @@ class SetupService
         // Application configuration
         if (isset($config['app_url'])) {
             $envVars['APP_URL'] = $config['app_url'];
-            
+
             // Generate session cookie configuration based on APP_URL
             $sessionConfig = $this->environmentFileService->generateSessionCookieConfiguration($config['app_url']);
             $envVars = array_merge($envVars, $sessionConfig);
@@ -1463,7 +1491,7 @@ class SetupService
         Log::info('Generated complete environment configuration', [
             'variable_count' => count($envVars),
             'has_session_config' => isset($envVars['SESSION_SECURE_COOKIE']),
-            'app_url' => $config['app_url'] ?? 'not set'
+            'app_url' => $config['app_url'] ?? 'not set',
         ]);
 
         return $envVars;
@@ -1480,7 +1508,7 @@ class SetupService
             'storage' => $this->securityService->sanitizeStorageConfig($input),
             default => [
                 'sanitized' => $input,
-                'violations' => ['Unknown input type']
+                'violations' => ['Unknown input type'],
             ]
         };
     }
@@ -1496,14 +1524,14 @@ class SetupService
             'current_step' => 'assets',
             'session_id' => session()->getId(),
             'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent()
+            'user_agent' => request()->userAgent(),
         ];
 
         session(['setup_session' => $sessionData]);
 
         $this->securityService->logSecurityEvent('setup_session_created', [
-            'session_token' => substr($sessionData['setup_token'], 0, 8) . '...',
-            'ip_address' => $sessionData['ip_address']
+            'session_token' => substr($sessionData['setup_token'], 0, 8).'...',
+            'ip_address' => $sessionData['ip_address'],
         ]);
 
         return $sessionData;
@@ -1515,21 +1543,22 @@ class SetupService
     public function validateSetupSession(): array
     {
         $sessionData = session('setup_session', []);
-        
+
         if (empty($sessionData)) {
             Log::debug('Setup session validation failed: No session data found');
+
             return [
                 'valid' => false,
-                'violations' => ['No setup session found']
+                'violations' => ['No setup session found'],
             ];
         }
 
         $result = $this->securityService->validateSetupSession($sessionData);
-        
-        if (!$result['valid']) {
+
+        if (! $result['valid']) {
             Log::debug('Setup session validation failed', [
                 'violations' => $result['violations'],
-                'session_data_keys' => array_keys($sessionData)
+                'session_data_keys' => array_keys($sessionData),
             ]);
         }
 
@@ -1542,12 +1571,12 @@ class SetupService
     public function clearSetupSession(): void
     {
         $sessionData = session('setup_session', []);
-        
-        if (!empty($sessionData)) {
+
+        if (! empty($sessionData)) {
             $this->securityService->logSecurityEvent('setup_session_cleared', [
-                'session_token' => isset($sessionData['setup_token']) 
-                    ? substr($sessionData['setup_token'], 0, 8) . '...' 
-                    : 'unknown'
+                'session_token' => isset($sessionData['setup_token'])
+                    ? substr($sessionData['setup_token'], 0, 8).'...'
+                    : 'unknown',
             ]);
         }
 
@@ -1564,14 +1593,14 @@ class SetupService
             'setup_state_secure' => false,
             'session_valid' => false,
             'backups_available' => false,
-            'violations' => []
+            'violations' => [],
         ];
 
         try {
             // Check environment file
             $envValidation = $this->environmentFileService->validateEnvironmentFile();
             $status['environment_file_secure'] = $envValidation['valid'];
-            if (!$envValidation['valid']) {
+            if (! $envValidation['valid']) {
                 $status['violations'] = array_merge($status['violations'], $envValidation['violations']);
             }
 
@@ -1586,16 +1615,16 @@ class SetupService
             // Check session validity
             $sessionValidation = $this->validateSetupSession();
             $status['session_valid'] = $sessionValidation['valid'];
-            if (!$sessionValidation['valid']) {
+            if (! $sessionValidation['valid']) {
                 $status['violations'] = array_merge($status['violations'], $sessionValidation['violations']);
             }
 
             // Check backup availability
             $backups = $this->environmentFileService->getAvailableBackups();
-            $status['backups_available'] = !empty($backups);
+            $status['backups_available'] = ! empty($backups);
 
         } catch (\Exception $e) {
-            $status['violations'][] = 'Security status check failed: ' . $e->getMessage();
+            $status['violations'][] = 'Security status check failed: '.$e->getMessage();
         }
 
         return $status;
@@ -1608,22 +1637,22 @@ class SetupService
     {
         try {
             // Check assets first
-            if (!$this->areAssetsValid()) {
+            if (! $this->areAssetsValid()) {
                 return 'assets';
             }
 
             // Check database
-            if (!$this->isDatabaseConfigured()) {
+            if (! $this->isDatabaseConfigured()) {
                 return 'database';
             }
 
             // Check admin user
-            if (!$this->isAdminUserCreated()) {
+            if (! $this->isAdminUserCreated()) {
                 return 'admin';
             }
 
             // Check cloud storage
-            if (!$this->isCloudStorageConfigured()) {
+            if (! $this->isCloudStorageConfigured()) {
                 return 'storage';
             }
 
@@ -1653,16 +1682,16 @@ class SetupService
     private function recreateSetupState(): void
     {
         // Create backup of corrupted state if it exists
-        $stateFile = storage_path('app/' . $this->stateFile);
+        $stateFile = storage_path('app/'.$this->stateFile);
         if (File::exists($stateFile)) {
             $timestamp = now()->format('Y-m-d_H-i-s');
-            $corruptedBackup = storage_path('app/' . $this->backupDirectory . "/corrupted-state-{$timestamp}.json");
-            
+            $corruptedBackup = storage_path('app/'.$this->backupDirectory."/corrupted-state-{$timestamp}.json");
+
             $backupDir = dirname($corruptedBackup);
-            if (!File::exists($backupDir)) {
+            if (! File::exists($backupDir)) {
                 File::makeDirectory($backupDir, 0755, true);
             }
-            
+
             File::move($stateFile, $corruptedBackup);
         }
 
@@ -1699,7 +1728,7 @@ class SetupService
 
         } catch (\Exception $e) {
             // Log cleanup failure but don't throw exception
-            \Log::warning('Setup cleanup failed: ' . $e->getMessage());
+            \Log::warning('Setup cleanup failed: '.$e->getMessage());
         }
     }
 
@@ -1709,9 +1738,9 @@ class SetupService
     public function getRecoveryInfo(): array
     {
         return [
-            'state_file_exists' => File::exists(storage_path('app/' . $this->stateFile)),
-            'state_file_size' => File::exists(storage_path('app/' . $this->stateFile)) 
-                ? File::size(storage_path('app/' . $this->stateFile)) 
+            'state_file_exists' => File::exists(storage_path('app/'.$this->stateFile)),
+            'state_file_size' => File::exists(storage_path('app/'.$this->stateFile))
+                ? File::size(storage_path('app/'.$this->stateFile))
                 : 0,
             'backup_count' => count($this->getAvailableBackups()),
             'latest_backup' => $this->getLatestBackupInfo(),
@@ -1726,6 +1755,7 @@ class SetupService
     private function getLatestBackupInfo(): ?array
     {
         $backups = $this->getAvailableBackups();
-        return !empty($backups) ? $backups[0] : null;
+
+        return ! empty($backups) ? $backups[0] : null;
     }
 }
