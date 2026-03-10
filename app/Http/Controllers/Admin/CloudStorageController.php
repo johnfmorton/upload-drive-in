@@ -48,6 +48,7 @@ class CloudStorageController extends Controller
 
         // Check which S3 settings are defined in environment
         $s3EnvSettings = $this->getS3EnvironmentSettings();
+        $s3ConfigValues = $this->getS3ConfigValues();
 
         try {
             // Use CloudStorageManager to check if user has any valid connection
@@ -68,10 +69,11 @@ class CloudStorageController extends Controller
         }
 
         return view('admin.cloud-storage.index', compact(
-            'currentFolderId', 
+            'currentFolderId',
             'currentFolderName',
             'googleDriveEnvSettings',
-            's3EnvSettings'
+            's3EnvSettings',
+            's3ConfigValues'
         ));
     }
 
@@ -83,12 +85,29 @@ class CloudStorageController extends Controller
     private function getS3EnvironmentSettings(): array
     {
         return [
-            'access_key_id' => !empty(env('AWS_ACCESS_KEY_ID')),
-            'secret_access_key' => !empty(env('AWS_SECRET_ACCESS_KEY')),
-            'region' => !empty(env('AWS_DEFAULT_REGION')),
-            'bucket' => !empty(env('AWS_BUCKET')),
-            'endpoint' => !empty(env('AWS_ENDPOINT')),
-            'folder_path' => !empty(env('AWS_FOLDER_PATH')),
+            'access_key_id' => !empty(config('cloud-storage.providers.amazon-s3.config.access_key_id')),
+            'secret_access_key' => !empty(config('cloud-storage.providers.amazon-s3.config.secret_access_key')),
+            'region' => !empty(config('cloud-storage.providers.amazon-s3.config.region')),
+            'bucket' => !empty(config('cloud-storage.providers.amazon-s3.config.bucket')),
+            'endpoint' => !empty(config('cloud-storage.providers.amazon-s3.config.endpoint')),
+            'folder_path' => !empty(config('cloud-storage.providers.amazon-s3.config.folder_path')),
+        ];
+    }
+
+    /**
+     * Get actual S3 config values for display in views.
+     *
+     * @return array
+     */
+    private function getS3ConfigValues(): array
+    {
+        return [
+            'access_key_id' => config('cloud-storage.providers.amazon-s3.config.access_key_id'),
+            'secret_access_key' => config('cloud-storage.providers.amazon-s3.config.secret_access_key'),
+            'region' => config('cloud-storage.providers.amazon-s3.config.region'),
+            'bucket' => config('cloud-storage.providers.amazon-s3.config.bucket'),
+            'endpoint' => config('cloud-storage.providers.amazon-s3.config.endpoint'),
+            'folder_path' => config('cloud-storage.providers.amazon-s3.config.folder_path'),
         ];
     }
 
@@ -1397,10 +1416,10 @@ class CloudStorageController extends Controller
         
         // Check which fields are configured via environment variables
         $fromEnv = [
-            'access_key_id' => !empty(env('AWS_ACCESS_KEY_ID')),
-            'secret_access_key' => !empty(env('AWS_SECRET_ACCESS_KEY')),
-            'region' => !empty(env('AWS_DEFAULT_REGION')),
-            'bucket' => !empty(env('AWS_BUCKET')),
+            'access_key_id' => !empty(config('cloud-storage.providers.amazon-s3.config.access_key_id')),
+            'secret_access_key' => !empty(config('cloud-storage.providers.amazon-s3.config.secret_access_key')),
+            'region' => !empty(config('cloud-storage.providers.amazon-s3.config.region')),
+            'bucket' => !empty(config('cloud-storage.providers.amazon-s3.config.bucket')),
         ];
         
         // Validate S3 configuration with custom rules for AWS credentials
@@ -1470,17 +1489,17 @@ class CloudStorageController extends Controller
             }
 
             // Add optional endpoint for S3-compatible services (only if not from env)
-            if (!env('AWS_ENDPOINT') && !empty($validated['aws_endpoint'])) {
+            if (!config('cloud-storage.providers.amazon-s3.config.endpoint') && !empty($validated['aws_endpoint'])) {
                 $config['endpoint'] = $validated['aws_endpoint'];
             }
 
             // Add optional storage class (only if not from env)
-            if (!env('AWS_STORAGE_CLASS') && !empty($validated['aws_storage_class'])) {
+            if (!config('cloud-storage.providers.amazon-s3.config.storage_class') && !empty($validated['aws_storage_class'])) {
                 $config['storage_class'] = $validated['aws_storage_class'];
             }
 
             // Add optional folder path (only if not from environment)
-            if (!env('AWS_FOLDER_PATH') && isset($validated['aws_folder_path'])) {
+            if (!config('cloud-storage.providers.amazon-s3.config.folder_path') && isset($validated['aws_folder_path'])) {
                 // Trim slashes before storing
                 $config['folder_path'] = trim($validated['aws_folder_path'], "/ \t\n\r\0\x0B");
             }

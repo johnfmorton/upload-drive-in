@@ -5,16 +5,6 @@
     $s3Status = $settingsService->getS3ConfigurationStatus();
     $s3Connected = $s3Status['is_configured'];
     
-    // Check which settings are configured via environment variables
-    $s3EnvSettings = [
-        'access_key_id' => !empty(env('AWS_ACCESS_KEY_ID')),
-        'secret_access_key' => !empty(env('AWS_SECRET_ACCESS_KEY')),
-        'region' => !empty(env('AWS_DEFAULT_REGION')),
-        'bucket' => !empty(env('AWS_BUCKET')),
-        'endpoint' => !empty(env('AWS_ENDPOINT')),
-        'folder_path' => !empty(env('AWS_FOLDER_PATH')),
-    ];
-    
     // Common AWS regions
     $awsRegions = [
         'us-east-1' => 'US East (N. Virginia)',
@@ -123,7 +113,7 @@
                 <x-input id="aws_access_key_id" 
                          type="text" 
                          class="mt-1 block w-full bg-gray-100" 
-                         :value="env('AWS_ACCESS_KEY_ID')" 
+                         :value="$s3ConfigValues['access_key_id']"
                          readonly />
                 <p class="mt-1 text-sm text-gray-500">{{ __('messages.s3_env_configured_via_environment') }}</p>
             @else
@@ -185,8 +175,8 @@
                 <select id="aws_region" 
                         class="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-100"
                         disabled>
-                    <option value="{{ env('AWS_DEFAULT_REGION') }}" selected>
-                        {{ $awsRegions[env('AWS_DEFAULT_REGION')] ?? env('AWS_DEFAULT_REGION') }}
+                    <option value="{{ $s3ConfigValues['region'] }}" selected>
+                        {{ $awsRegions[$s3ConfigValues['region']] ?? $s3ConfigValues['region'] }}
                     </option>
                 </select>
                 <p class="mt-1 text-sm text-gray-500">{{ __('messages.s3_env_configured_via_environment') }}</p>
@@ -222,7 +212,7 @@
                 <x-input id="aws_bucket" 
                          type="text" 
                          class="mt-1 block w-full bg-gray-100" 
-                         :value="env('AWS_BUCKET')" 
+                         :value="$s3ConfigValues['bucket']"
                          readonly />
                 <p class="mt-1 text-sm text-gray-500">{{ __('messages.s3_env_configured_via_environment') }}</p>
             @else
@@ -253,7 +243,7 @@
                 <x-input id="aws_folder_path" 
                          type="text" 
                          class="mt-1 block w-full bg-gray-100" 
-                         :value="env('AWS_FOLDER_PATH')" 
+                         :value="$s3ConfigValues['folder_path']"
                          readonly />
                 <p class="mt-1 text-sm text-gray-500">{{ __('messages.s3_env_configured_via_environment') }}</p>
             @else
@@ -287,7 +277,7 @@
                 <x-input id="aws_endpoint" 
                          type="text" 
                          class="mt-1 block w-full bg-gray-100" 
-                         :value="env('AWS_ENDPOINT')" 
+                         :value="$s3ConfigValues['endpoint']"
                          readonly />
                 <p class="mt-1 text-sm text-gray-500">{{ __('messages.s3_env_configured_via_environment') }}</p>
             @else
@@ -402,19 +392,19 @@ function s3ConfigurationHandler() {
         init() {
             // Initialize form data with environment values if present
             if (this.envSettings.access_key_id) {
-                this.formData.access_key_id = @json(env('AWS_ACCESS_KEY_ID'));
+                this.formData.access_key_id = @json($s3ConfigValues['access_key_id'] ?? '');
             }
             if (this.envSettings.region) {
-                this.formData.region = @json(env('AWS_DEFAULT_REGION'));
+                this.formData.region = @json($s3ConfigValues['region'] ?? '');
             }
             if (this.envSettings.bucket) {
-                this.formData.bucket = @json(env('AWS_BUCKET'));
+                this.formData.bucket = @json($s3ConfigValues['bucket'] ?? '');
             }
             if (this.envSettings.endpoint) {
-                this.formData.endpoint = @json(env('AWS_ENDPOINT'));
+                this.formData.endpoint = @json($s3ConfigValues['endpoint'] ?? '');
             }
             if (this.envSettings.folder_path) {
-                this.formData.folder_path = @json(env('AWS_FOLDER_PATH'));
+                this.formData.folder_path = @json($s3ConfigValues['folder_path'] ?? '');
             }
             
             this.updateExampleKey();
@@ -565,18 +555,18 @@ function s3ConfigurationHandler() {
             try {
                 // Use environment values if present, otherwise use form values
                 const testConfig = {
-                    aws_access_key_id: this.envSettings.access_key_id ? 
-                        @json(env('AWS_ACCESS_KEY_ID')) : this.formData.access_key_id,
-                    aws_secret_access_key: this.envSettings.secret_access_key ? 
-                        @json(env('AWS_SECRET_ACCESS_KEY')) : this.formData.secret_access_key,
-                    aws_region: this.envSettings.region ? 
-                        @json(env('AWS_DEFAULT_REGION')) : this.formData.region,
-                    aws_bucket: this.envSettings.bucket ? 
-                        @json(env('AWS_BUCKET')) : this.formData.bucket,
-                    aws_endpoint: this.envSettings.endpoint ? 
-                        @json(env('AWS_ENDPOINT')) : this.formData.endpoint,
-                    aws_folder_path: this.envSettings.folder_path ? 
-                        @json(env('AWS_FOLDER_PATH')) : this.formData.folder_path
+                    aws_access_key_id: this.envSettings.access_key_id ?
+                        @json($s3ConfigValues['access_key_id'] ?? '') : this.formData.access_key_id,
+                    aws_secret_access_key: this.envSettings.secret_access_key ?
+                        @json($s3ConfigValues['secret_access_key'] ?? '') : this.formData.secret_access_key,
+                    aws_region: this.envSettings.region ?
+                        @json($s3ConfigValues['region'] ?? '') : this.formData.region,
+                    aws_bucket: this.envSettings.bucket ?
+                        @json($s3ConfigValues['bucket'] ?? '') : this.formData.bucket,
+                    aws_endpoint: this.envSettings.endpoint ?
+                        @json($s3ConfigValues['endpoint'] ?? '') : this.formData.endpoint,
+                    aws_folder_path: this.envSettings.folder_path ?
+                        @json($s3ConfigValues['folder_path'] ?? '') : this.formData.folder_path
                 };
 
                 const response = await fetch('{{ route("admin.cloud-storage.amazon-s3.test-connection") }}', {

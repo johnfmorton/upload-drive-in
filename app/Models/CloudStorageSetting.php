@@ -150,9 +150,8 @@ class CloudStorageSetting extends Model
      */
     public static function isDefinedInEnvironment(string $provider, string $key): bool
     {
-        $envKey = static::getEnvironmentKey($provider, $key);
-        $envValue = env($envKey);
-        return $envValue !== null && $envValue !== '';
+        $configValue = config("cloud-storage.providers.{$provider}.config.{$key}");
+        return $configValue !== null && $configValue !== '';
     }
 
     /**
@@ -160,11 +159,10 @@ class CloudStorageSetting extends Model
      */
     public static function getEffectiveValue(string $provider, string $key): ?string
     {
-        $envKey = static::getEnvironmentKey($provider, $key);
-        $envValue = env($envKey);
-        
-        if ($envValue !== null && $envValue !== '') {
-            return $envValue;
+        $configValue = config("cloud-storage.providers.{$provider}.config.{$key}");
+
+        if ($configValue !== null && $configValue !== '') {
+            return (string) $configValue;
         }
 
         return static::getValue($provider, $key);
