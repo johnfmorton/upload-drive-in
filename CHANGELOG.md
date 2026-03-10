@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-03-10
+
 ### Added
 - Smart Vite dev server startup script (`scripts/start-vite.sh`) with interactive port conflict handling — offers to kill blocking processes, use an alternate port, or quit
 - `serve:smart` npm script for invoking the smart Vite startup
@@ -41,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restricted debug middleware logging to debug mode only
 - Added SECURITY_REVIEW.md with comprehensive findings and remediation details
 - Added ClamAV integration planning document (docs/CLAMAV_INTEGRATION.md)
+
+[1.0.1]: https://github.com/johnfmorton/upload-drive-in/releases/tag/v1.0.1
 
 ## [1.0.0] - 2026-02-03
 
