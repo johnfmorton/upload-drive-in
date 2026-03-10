@@ -90,7 +90,7 @@ class PublicEmployeeUploadController extends Controller
                     return redirect()->back()->withErrors(['files' => $violations[0]['message']]);
                 }
 
-                $originalName = $file->getClientOriginalName();
+                $originalName = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
                 $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
                 \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('uploads', $file, $filename);
 
@@ -209,7 +209,7 @@ class PublicEmployeeUploadController extends Controller
                     return redirect()->back()->withErrors(['files' => $violations[0]['message']]);
                 }
 
-                $originalName = $file->getClientOriginalName();
+                $originalName = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
                 $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
                 \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('uploads', $file, $filename);
 
@@ -330,7 +330,7 @@ class PublicEmployeeUploadController extends Controller
         }
 
         $fileName = $this->createFilename($file);
-        $originalFilename = $file->getClientOriginalName();
+        $originalFilename = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
         $mimeType = $file->getMimeType();
         $fileSize = $file->getSize();
 

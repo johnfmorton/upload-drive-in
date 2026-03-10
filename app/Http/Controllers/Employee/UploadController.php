@@ -209,7 +209,7 @@ class UploadController extends Controller
                     return redirect()->back()->withErrors(['files' => $violations[0]['message']]);
                 }
 
-                $original_name = $file->getClientOriginalName();
+                $original_name = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
                 $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
                 Storage::disk('public')->putFileAs('uploads', $file, $filename);
 

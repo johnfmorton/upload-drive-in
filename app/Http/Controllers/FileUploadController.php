@@ -52,7 +52,7 @@ class FileUploadController extends Controller
                     return redirect()->back()->withErrors(['files' => $violations[0]['message']]);
                 }
 
-                $originalName = $file->getClientOriginalName();
+                $originalName = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
                 $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
 
                 // Store the file

@@ -115,7 +115,7 @@ class UploadController extends Controller
         ]);
 
         $fileName = $this->createFilename($file);
-        $originalFilename = $file->getClientOriginalName();
+        $originalFilename = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
         $mimeType = $file->getMimeType();
         $fileSize = $file->getSize();
 
