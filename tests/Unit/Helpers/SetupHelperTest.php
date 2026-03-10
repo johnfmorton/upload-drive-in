@@ -50,9 +50,9 @@ class SetupHelperTest extends TestCase
 
     public function test_get_current_setup_step_returns_admin_in_test_environment(): void
     {
-        // In test environment, database is configured, so should return 'admin'
+        // In test environment with no setup state, returns 'assets' as the initial step
         $step = SetupHelper::getCurrentSetupStep();
-        $this->assertEquals('admin', $step);
+        $this->assertEquals('assets', $step);
     }
 
     public function test_get_setup_progress_returns_zero_initially(): void

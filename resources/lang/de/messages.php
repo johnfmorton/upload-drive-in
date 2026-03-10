@@ -559,7 +559,7 @@ return [
     'token_refresh_failed_issue_details' => 'Problem-Details:',
     'token_refresh_failed_error_type' => 'Fehlertyp: :type',
     'token_refresh_failed_attempt' => 'Versuch: :current von :max',
-    'token_refresh_failed_description' => 'Beschreibung: :description',
+    'token_refresh_failed_description_label' => 'Beschreibung: :description',
     'token_refresh_failed_technical_details' => 'Technische Details: :details',
     'token_refresh_failed_what_to_do' => 'Was Sie Tun Müssen:',
     'token_refresh_failed_manual_required' => 'Diese Art von Fehler erfordert einen manuellen Eingriff. Bitte verbinden Sie Ihr :provider Konto erneut, um die Datei-Upload-Funktionalität wiederherzustellen.',

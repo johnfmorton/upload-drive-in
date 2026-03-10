@@ -181,7 +181,7 @@ class EmailVerificationMetricsServiceTest extends TestCase
         $restrictionPatterns = $this->metricsService->getRestrictionPatterns(1);
 
         // Assert
-        $currentHour = now()->format('H:00');
+        $currentHour = now()->utc()->format('H:00');
         
         $this->assertArrayHasKey('hourly_distribution', $bypassPatterns);
         $this->assertArrayHasKey($currentHour, $bypassPatterns['hourly_distribution']);

@@ -31,6 +31,7 @@ class User extends Authenticatable
         'email',
         'username',
         'password',
+        'role',
         'receive_upload_notifications',
         'owner_id',
         'google_drive_root_folder_id',

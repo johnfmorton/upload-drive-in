@@ -112,6 +112,7 @@ class CloudStorageErrorTypeTest extends TestCase
     {
         $expectedCases = [
             'TOKEN_EXPIRED',
+            'TOKEN_REFRESH_RATE_LIMITED',
             'INSUFFICIENT_PERMISSIONS',
             'API_QUOTA_EXCEEDED',
             'NETWORK_ERROR',
@@ -125,11 +126,22 @@ class CloudStorageErrorTypeTest extends TestCase
             'INVALID_CREDENTIALS',
             'TIMEOUT',
             'UNKNOWN_ERROR',
+            'BUCKET_NOT_FOUND',
+            'INVALID_BUCKET_NAME',
+            'BUCKET_ACCESS_DENIED',
+            'INVALID_REGION',
+            'STORAGE_CLASS_NOT_SUPPORTED',
+            'PROVIDER_NOT_CONFIGURED',
+            'PROVIDER_INITIALIZATION_FAILED',
+            'FEATURE_NOT_SUPPORTED',
+            'INVALID_PARAMETER',
+            'API_ERROR',
+            'UNSUPPORTED_OPERATION',
         ];
 
         $actualCases = array_map(fn($case) => $case->name, CloudStorageErrorType::cases());
 
         $this->assertEquals($expectedCases, $actualCases);
-        $this->assertCount(14, CloudStorageErrorType::cases());
+        $this->assertCount(26, CloudStorageErrorType::cases());
     }
 }

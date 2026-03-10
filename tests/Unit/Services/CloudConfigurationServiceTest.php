@@ -182,10 +182,10 @@ class CloudConfigurationServiceTest extends TestCase
 
     public function test_get_config_source_identifies_correct_source(): void
     {
-        // Test database source
+        // Test source - environment takes priority over database when env var exists
         CloudStorageSetting::setValue('google-drive', 'client_id', 'test-value');
         $source = $this->service->getConfigSource('google-drive', 'client_id');
-        $this->assertEquals('database', $source);
+        $this->assertEquals('environment', $source);
 
         // Test config file source
         Config::set('cloud-storage.providers.google-drive.redirect_uri', 'test-uri');

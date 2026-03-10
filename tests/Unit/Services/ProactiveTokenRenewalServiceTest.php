@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\ProactiveTokenRenewalService;
 use App\Services\RefreshResult;
 use App\Services\TokenRefreshCoordinator;
+use App\Services\TokenRefreshMonitoringService;
 use Exception;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
@@ -29,7 +30,8 @@ class ProactiveTokenRenewalServiceTest extends TestCase
         parent::setUp();
         
         $this->mockCoordinator = Mockery::mock(TokenRefreshCoordinator::class);
-        $this->service = new ProactiveTokenRenewalService($this->mockCoordinator);
+        $mockMonitoringService = Mockery::mock(TokenRefreshMonitoringService::class)->shouldIgnoreMissing();
+        $this->service = new ProactiveTokenRenewalService($this->mockCoordinator, $mockMonitoringService);
         
         $this->user = User::factory()->create();
         

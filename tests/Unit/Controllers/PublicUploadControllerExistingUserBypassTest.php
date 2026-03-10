@@ -209,7 +209,7 @@ class PublicUploadControllerExistingUserBypassTest extends TestCase
         $this->assertEquals(422, $response->getStatusCode());
         $responseData = json_decode($response->getContent(), true);
         $this->assertFalse($responseData['success']);
-        $this->assertStringContainsString('registration is currently disabled', $responseData['message']);
+        $this->assertStringContainsString('Only invited users', $responseData['message']);
         
         // Verify no verification emails are sent to blocked new users
         Mail::assertNothingSent();
@@ -293,7 +293,7 @@ class PublicUploadControllerExistingUserBypassTest extends TestCase
         $this->assertEquals(422, $response->getStatusCode());
         $responseData = json_decode($response->getContent(), true);
         $this->assertFalse($responseData['success']);
-        $this->assertStringContainsString('registration is currently disabled', $responseData['message']);
+        $this->assertStringContainsString('Only invited users', $responseData['message']);
         
         // Verify no verification emails are sent
         Mail::assertNothingSent();
@@ -333,7 +333,7 @@ class PublicUploadControllerExistingUserBypassTest extends TestCase
         $this->assertFalse($responseData['success']);
         
         // Should be blocked by public registration restriction first
-        $this->assertStringContainsString('registration is currently disabled', $responseData['message']);
+        $this->assertStringContainsString('Only invited users', $responseData['message']);
         
         // Verify no emails sent
         Mail::assertNothingSent();

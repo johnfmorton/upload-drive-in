@@ -4,6 +4,8 @@ namespace Tests\Unit\Services;
 
 use App\Services\SetupService;
 use App\Services\AssetValidationService;
+use App\Services\SetupSecurityService;
+use App\Services\EnvironmentFileService;
 use App\Models\User;
 use App\Enums\UserRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,6 +21,8 @@ class SetupServiceTest extends TestCase
     private SetupService $setupService;
     private string $setupStateFile;
     private AssetValidationService $mockAssetValidationService;
+    private $mockSecurityService;
+    private $mockEnvironmentFileService;
 
     protected function setUp(): void
     {
@@ -51,7 +55,38 @@ class SetupServiceTest extends TestCase
             ])
             ->byDefault();
         
-        $this->setupService = new SetupService($this->mockAssetValidationService);
+        $this->mockSecurityService = Mockery::mock(SetupSecurityService::class)->shouldIgnoreMissing();
+        $mockSecurityService = $this->mockSecurityService;
+        $mockSecurityService->shouldReceive('secureFileRead')
+            ->andReturnUsing(function ($path) {
+                $fullPath = storage_path('app/' . $path);
+                if (!file_exists($fullPath)) {
+                    return ['success' => false, 'message' => 'File does not exist', 'content' => null];
+                }
+                return ['success' => true, 'message' => 'OK', 'content' => file_get_contents($fullPath)];
+            })
+            ->byDefault();
+        $mockSecurityService->shouldReceive('secureFileWrite')
+            ->andReturnUsing(function ($path, $content, $permissions = 0644) {
+                $fullPath = storage_path('app/' . $path);
+                $dir = dirname($fullPath);
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                }
+                file_put_contents($fullPath, $content);
+                return ['success' => true, 'message' => 'OK'];
+            })
+            ->byDefault();
+        $mockSecurityService->shouldReceive('validateStateIntegrity')
+            ->andReturn(true)
+            ->byDefault();
+        $this->mockEnvironmentFileService = Mockery::mock(EnvironmentFileService::class)->shouldIgnoreMissing();
+
+        $this->setupService = new SetupService(
+            $this->mockAssetValidationService,
+            $this->mockSecurityService,
+            $this->mockEnvironmentFileService
+        );
         $this->setupStateFile = storage_path('app/setup/setup-state.json');
         
         // Clean up any existing setup state file
@@ -389,8 +424,12 @@ class SetupServiceTest extends TestCase
         // Update a step with first instance
         $this->setupService->updateSetupStep('welcome', true);
         
-        // Create new service instance with same mock
-        $newService = new SetupService($this->mockAssetValidationService);
+        // Create new service instance with same mocks
+        $newService = new SetupService(
+            $this->mockAssetValidationService,
+            $this->mockSecurityService,
+            $this->mockEnvironmentFileService
+        );
         
         // Check that the state persists
         $steps = $newService->getSetupSteps();

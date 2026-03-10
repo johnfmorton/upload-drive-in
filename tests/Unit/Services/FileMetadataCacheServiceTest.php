@@ -72,7 +72,7 @@ class FileMetadataCacheServiceTest extends TestCase
     {
         // Create test data
         FileUpload::factory()->count(5)->create(['google_drive_file_id' => 'completed']);
-        FileUpload::factory()->count(3)->create(['google_drive_file_id' => null]); // Pending
+        FileUpload::factory()->count(3)->create(['google_drive_file_id' => null, 'provider_file_id' => null]); // Pending
         
         // Create files for different time periods
         FileUpload::factory()->create([
@@ -259,7 +259,7 @@ class FileMetadataCacheServiceTest extends TestCase
     /** @test */
     public function it_detects_pending_status_correctly()
     {
-        $pendingFile = FileUpload::factory()->create(['google_drive_file_id' => null]);
+        $pendingFile = FileUpload::factory()->create(['google_drive_file_id' => null, 'provider_file_id' => null]);
         $completedFile = FileUpload::factory()->create(['google_drive_file_id' => 'drive-id']);
 
         $pendingMetadata = $this->service->getFileMetadata($pendingFile);
@@ -273,7 +273,7 @@ class FileMetadataCacheServiceTest extends TestCase
     public function it_generates_google_drive_urls_correctly()
     {
         $fileWithDriveId = FileUpload::factory()->create(['google_drive_file_id' => 'test-drive-id']);
-        $fileWithoutDriveId = FileUpload::factory()->create(['google_drive_file_id' => null]);
+        $fileWithoutDriveId = FileUpload::factory()->create(['google_drive_file_id' => null, 'provider_file_id' => null]);
 
         $metadataWithUrl = $this->service->getFileMetadata($fileWithDriveId);
         $metadataWithoutUrl = $this->service->getFileMetadata($fileWithoutDriveId);
@@ -307,7 +307,7 @@ class FileMetadataCacheServiceTest extends TestCase
     {
         // Create 7 completed files and 3 pending files (70% completion rate)
         FileUpload::factory()->count(7)->create(['google_drive_file_id' => 'completed']);
-        FileUpload::factory()->count(3)->create(['google_drive_file_id' => null]);
+        FileUpload::factory()->count(3)->create(['google_drive_file_id' => null, 'provider_file_id' => null]);
 
         $statistics = $this->service->getFileStatistics();
 

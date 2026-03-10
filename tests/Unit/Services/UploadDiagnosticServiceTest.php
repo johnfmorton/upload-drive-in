@@ -284,7 +284,8 @@ class UploadDiagnosticServiceTest extends TestCase
         $upload = FileUpload::factory()->create([
             'created_at' => now()->subHours(2), // Stuck upload
             'last_error' => null,
-            'google_drive_file_id' => null // This makes it pending
+            'google_drive_file_id' => null, // This makes it pending
+            'provider_file_id' => null, // Also clear provider_file_id for isStuck() check
         ]);
 
         $result = $this->service->analyzeUploadFailure($upload->id);

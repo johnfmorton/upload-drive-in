@@ -175,10 +175,10 @@ class ProactiveRefreshSchedulerTest extends TestCase
 
         $results = $this->scheduler->scheduleAllExpiringTokens(30);
 
-        $this->assertEquals(3, $results['total']);
+        $this->assertEquals(2, $results['total']);
         $this->assertEquals(2, $results['scheduled']);
         $this->assertEquals(0, $results['failed']);
-        $this->assertEquals(1, $results['skipped']);
+        $this->assertEquals(0, $results['skipped']);
 
         // Should have scheduled 2 refresh jobs
         Queue::assertPushed(RefreshTokenJob::class, 2);

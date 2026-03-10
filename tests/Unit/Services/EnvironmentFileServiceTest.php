@@ -80,12 +80,12 @@ class EnvironmentFileServiceTest extends TestCase
     /** @test */
     public function updates_environment_file_with_validation()
     {
-        // Create initial environment file
-        $initialContent = "APP_NAME=OldApp\nAPP_ENV=testing";
+        // Create initial environment file with all required vars
+        $initialContent = "APP_NAME=OldApp\nAPP_ENV=testing\nAPP_KEY=base64:testkey123456789012345678901234";
         File::put($this->testEnvPath, $initialContent);
 
         $service = $this->createEnvironmentFileServiceWithTestPaths();
-        
+
         $updates = [
             'APP_NAME' => 'NewApp',
             'DB_HOST' => 'localhost',
@@ -93,11 +93,11 @@ class EnvironmentFileServiceTest extends TestCase
         ];
 
         $result = $service->updateEnvironmentFile($updates);
-        
-        $this->assertTrue($result['success']);
+
+        $this->assertTrue($result['success'], 'Update should succeed: ' . ($result['message'] ?? ''));
         $this->assertTrue($result['backup_created']);
         $this->assertNotEmpty($result['backup_path']);
-        
+
         // Verify file was updated
         $updatedContent = File::get($this->testEnvPath);
         $this->assertStringContainsString('APP_NAME=NewApp', $updatedContent);
@@ -150,14 +150,14 @@ class EnvironmentFileServiceTest extends TestCase
     /** @test */
     public function validates_environment_file_format()
     {
-        $validContent = "APP_NAME=TestApp\nAPP_ENV=testing\nDB_HOST=localhost";
+        $validContent = "APP_NAME=TestApp\nAPP_ENV=testing\nAPP_KEY=base64:testkey123456789012345678901234\nDB_HOST=localhost";
         File::put($this->testEnvPath, $validContent);
 
         $service = $this->createEnvironmentFileServiceWithTestPaths();
-        
+
         $result = $service->validateEnvironmentFile();
-        
-        $this->assertTrue($result['valid']);
+
+        $this->assertTrue($result['valid'], 'Validation should pass: ' . implode(', ', $result['violations'] ?? []));
         $this->assertEmpty($result['violations']);
     }
 
@@ -225,14 +225,16 @@ class EnvironmentFileServiceTest extends TestCase
         File::put($this->testEnvPath, "APP_NAME=TestApp");
 
         $service = $this->createEnvironmentFileServiceWithTestPaths();
-        
-        // Create multiple backups
-        $service->createBackup();
+
+        // Create multiple backups and verify each succeeds
+        $result1 = $service->createBackup();
+        $this->assertTrue($result1['success'], 'First backup should succeed: ' . ($result1['message'] ?? ''));
         sleep(1); // Ensure different timestamps
-        $service->createBackup();
-        
+        $result2 = $service->createBackup();
+        $this->assertTrue($result2['success'], 'Second backup should succeed: ' . ($result2['message'] ?? ''));
+
         $backups = $service->getAvailableBackups();
-        
+
         $this->assertCount(2, $backups);
         
         foreach ($backups as $backup) {

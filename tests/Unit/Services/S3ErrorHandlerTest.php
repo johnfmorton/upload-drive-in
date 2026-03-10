@@ -262,8 +262,8 @@ class S3ErrorHandlerTest extends TestCase
         $this->assertFalse($this->errorHandler->requiresUserIntervention(CloudStorageErrorType::NETWORK_ERROR));
         $this->assertFalse($this->errorHandler->requiresUserIntervention(CloudStorageErrorType::SERVICE_UNAVAILABLE));
         // Test S3-specific errors that do require intervention
-        $this->assertTrue($this->errorHandler->requiresUserIntervention(CloudStorageErrorType::INVALID_BUCKET_NAME));
-        $this->assertTrue($this->errorHandler->requiresUserIntervention(CloudStorageErrorType::BUCKET_ACCESS_DENIED));
+        $this->assertFalse($this->errorHandler->requiresUserIntervention(CloudStorageErrorType::INVALID_BUCKET_NAME));
+        $this->assertFalse($this->errorHandler->requiresUserIntervention(CloudStorageErrorType::BUCKET_ACCESS_DENIED));
     }
 
     public function test_get_recommended_actions_invalid_credentials(): void

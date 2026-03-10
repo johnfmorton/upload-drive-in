@@ -100,7 +100,7 @@
         <h4>{{ __('messages.token_refresh_failed_issue_details') }}</h4>
         <p><strong>{{ __('messages.token_refresh_failed_error_type', ['type' => $errorTypeName]) }}</strong></p>
         <p><strong>{{ __('messages.token_refresh_failed_attempt', ['current' => $attemptCount, 'max' => $errorType->getMaxRetryAttempts()]) }}</strong></p>
-        <p><strong>{{ __('messages.token_refresh_failed_description', ['description' => $errorDescription]) }}</strong></p>
+        <p><strong>{{ __('messages.token_refresh_failed_description_label', ['description' => $errorDescription]) }}</strong></p>
         @if($errorMessage)
             <p><strong>{{ __('messages.token_refresh_failed_technical_details', ['details' => $errorMessage]) }}</strong></p>
         @endif

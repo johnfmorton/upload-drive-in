@@ -76,6 +76,13 @@ class CloudStorageServiceProviderTest extends TestCase
             CloudStorageFactory::class,
             CloudStorageManager::class,
             CloudConfigurationService::class,
+            \App\Services\CloudStorageProviderAvailabilityService::class,
+            \App\Services\CloudStorageFeatureDetectionService::class,
+            \App\Services\CloudStorageGracefulDegradationService::class,
+            \App\Services\CloudStorageFeatureUtilizationService::class,
+            \App\Services\CloudStorageConfigurationValidationService::class,
+            \App\Services\CloudStorageProviderHealthCheckService::class,
+            \App\Services\CloudStorageProviderMonitoringService::class,
         ];
 
         $this->assertEquals($expectedServices, $provided);

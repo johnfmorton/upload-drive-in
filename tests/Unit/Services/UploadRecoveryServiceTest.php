@@ -35,6 +35,7 @@ class UploadRecoveryServiceTest extends TestCase
         // Create a recent upload that's not stuck
         FileUpload::factory()->create([
             'google_drive_file_id' => null,
+            'provider_file_id' => null,
             'created_at' => now()->subMinutes(10),
             'last_processed_at' => now()->subMinutes(5)
         ]);
@@ -49,6 +50,7 @@ class UploadRecoveryServiceTest extends TestCase
         // Create a stuck upload (older than 30 minutes)
         $stuckUpload = FileUpload::factory()->create([
             'google_drive_file_id' => null,
+            'provider_file_id' => null,
             'created_at' => now()->subMinutes(45),
             'last_processed_at' => now()->subMinutes(40)
         ]);
@@ -56,6 +58,7 @@ class UploadRecoveryServiceTest extends TestCase
         // Create a non-stuck upload
         FileUpload::factory()->create([
             'google_drive_file_id' => null,
+            'provider_file_id' => null,
             'created_at' => now()->subMinutes(10),
             'last_processed_at' => now()->subMinutes(5)
         ]);
@@ -92,6 +95,7 @@ class UploadRecoveryServiceTest extends TestCase
     {
         $upload = FileUpload::factory()->create([
             'google_drive_file_id' => null,
+            'provider_file_id' => null,
             'recovery_attempts' => 5 // Exceeds max of 5
         ]);
 
@@ -108,6 +112,7 @@ class UploadRecoveryServiceTest extends TestCase
         
         $upload = FileUpload::factory()->create([
             'google_drive_file_id' => null,
+            'provider_file_id' => null,
             'filename' => 'nonexistent-file.txt',
             'recovery_attempts' => 0
         ]);
@@ -136,6 +141,7 @@ class UploadRecoveryServiceTest extends TestCase
         
         $upload = FileUpload::factory()->create([
             'google_drive_file_id' => null,
+            'provider_file_id' => null,
             'filename' => $filename,
             'recovery_attempts' => 0
         ]);
@@ -180,6 +186,7 @@ class UploadRecoveryServiceTest extends TestCase
         // Create stuck uploads
         $upload1 = FileUpload::factory()->create([
             'google_drive_file_id' => null,
+            'provider_file_id' => null,
             'filename' => $filename1,
             'created_at' => now()->subMinutes(45),
             'recovery_attempts' => 0
@@ -187,6 +194,7 @@ class UploadRecoveryServiceTest extends TestCase
         
         $upload2 = FileUpload::factory()->create([
             'google_drive_file_id' => null,
+            'provider_file_id' => null,
             'filename' => $filename2,
             'created_at' => now()->subMinutes(50),
             'recovery_attempts' => 0
@@ -224,12 +232,14 @@ class UploadRecoveryServiceTest extends TestCase
         
         $upload1 = FileUpload::factory()->create([
             'google_drive_file_id' => null,
+            'provider_file_id' => null,
             'filename' => $filename1,
             'recovery_attempts' => 0
         ]);
         
         $upload2 = FileUpload::factory()->create([
             'google_drive_file_id' => null,
+            'provider_file_id' => null,
             'filename' => 'nonexistent-file.txt', // File doesn't exist
             'recovery_attempts' => 0
         ]);
@@ -251,8 +261,10 @@ class UploadRecoveryServiceTest extends TestCase
     {
         // Create various upload states
         FileUpload::factory()->create(['google_drive_file_id' => 'completed-1']);
-        FileUpload::factory()->create(['google_drive_file_id' => null, 'created_at' => now()->subMinutes(45)]);
-        FileUpload::factory()->create(['google_drive_file_id' => null, 'retry_count' => 3, 'last_error' => 'Test error']);
+        FileUpload::factory()->create(['google_drive_file_id' => null,
+            'provider_file_id' => null, 'created_at' => now()->subMinutes(45)]);
+        FileUpload::factory()->create(['google_drive_file_id' => null,
+            'provider_file_id' => null, 'retry_count' => 3, 'last_error' => 'Test error']);
 
         $stats = $this->service->getRecoveryStatistics();
 

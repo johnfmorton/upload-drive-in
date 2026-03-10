@@ -35,16 +35,16 @@ class TokenSecurityServiceTest extends TestCase
 
     public function test_check_user_rate_limit_allows_requests_under_limit(): void
     {
-        Request::shouldReceive('ip')->andReturn('127.0.0.1');
-        
+        Request::spy()->shouldReceive('ip')->andReturn('127.0.0.1');
+
         $result = $this->service->checkUserRateLimit($this->user);
-        
+
         $this->assertTrue($result);
     }
 
     public function test_check_user_rate_limit_blocks_requests_over_limit(): void
     {
-        Request::shouldReceive('ip')->andReturn('127.0.0.1');
+        Request::spy()->shouldReceive('ip')->andReturn('127.0.0.1');
         
         // Simulate 5 attempts (the limit)
         for ($i = 0; $i < 5; $i++) {
@@ -58,8 +58,8 @@ class TokenSecurityServiceTest extends TestCase
 
     public function test_check_ip_rate_limit_allows_requests_under_limit(): void
     {
-        Request::shouldReceive('ip')->andReturn('192.168.1.1');
-        
+        Request::spy()->shouldReceive('ip')->andReturn('192.168.1.1');
+
         $result = $this->service->checkIpRateLimit('192.168.1.1');
         
         $this->assertTrue($result);
@@ -68,8 +68,8 @@ class TokenSecurityServiceTest extends TestCase
     public function test_check_ip_rate_limit_blocks_requests_over_limit(): void
     {
         $ipAddress = '192.168.1.1';
-        Request::shouldReceive('ip')->andReturn($ipAddress);
-        
+        Request::spy()->shouldReceive('ip')->andReturn($ipAddress);
+
         // Simulate 20 attempts (the limit)
         for ($i = 0; $i < 20; $i++) {
             $this->service->recordRefreshAttempt($this->user, $ipAddress);
@@ -83,8 +83,8 @@ class TokenSecurityServiceTest extends TestCase
     public function test_record_refresh_attempt_increments_counters(): void
     {
         $ipAddress = '192.168.1.1';
-        Request::shouldReceive('ip')->andReturn($ipAddress);
-        
+        Request::spy()->shouldReceive('ip')->andReturn($ipAddress);
+
         $this->service->recordRefreshAttempt($this->user, $ipAddress);
         
         $this->assertEquals(4, $this->service->getRemainingUserAttempts($this->user));
@@ -93,7 +93,7 @@ class TokenSecurityServiceTest extends TestCase
 
     public function test_reset_user_rate_limit_clears_counter(): void
     {
-        Request::shouldReceive('ip')->andReturn('192.168.1.1');
+        Request::spy()->shouldReceive('ip')->andReturn('192.168.1.1');
         
         // Record some attempts
         $this->service->recordRefreshAttempt($this->user);
@@ -122,8 +122,9 @@ class TokenSecurityServiceTest extends TestCase
             'expires_in' => 3600,
         ];
 
-        Request::shouldReceive('ip')->andReturn('192.168.1.1');
-        Request::shouldReceive('header')->with('User-Agent')->andReturn('Test Agent');
+        $spy = Request::spy();
+        $spy->shouldReceive('ip')->andReturn('192.168.1.1');
+        $spy->shouldReceive('header')->with('User-Agent')->andReturn('Test Agent');
 
         $updatedToken = $this->service->rotateTokenOnRefresh($token, $newTokenData);
 
@@ -136,9 +137,10 @@ class TokenSecurityServiceTest extends TestCase
     public function test_audit_refresh_failure_logs_security_event(): void
     {
         $exception = new \Exception('Test failure');
-        
-        Request::shouldReceive('ip')->andReturn('192.168.1.1');
-        Request::shouldReceive('header')->with('User-Agent')->andReturn('Test Agent');
+
+        $spy = Request::spy();
+        $spy->shouldReceive('ip')->andReturn('192.168.1.1');
+        $spy->shouldReceive('header')->with('User-Agent')->andReturn('Test Agent');
         
         Log::shouldReceive('channel')->with('security')->andReturnSelf();
         Log::shouldReceive('info')->once();
@@ -148,8 +150,9 @@ class TokenSecurityServiceTest extends TestCase
 
     public function test_audit_user_intervention_logs_security_event(): void
     {
-        Request::shouldReceive('ip')->andReturn('192.168.1.1');
-        Request::shouldReceive('header')->with('User-Agent')->andReturn('Test Agent');
+        $spy = Request::spy();
+        $spy->shouldReceive('ip')->andReturn('192.168.1.1');
+        $spy->shouldReceive('header')->with('User-Agent')->andReturn('Test Agent');
         
         Log::shouldReceive('channel')->with('security')->andReturnSelf();
         Log::shouldReceive('info')->once();
@@ -159,8 +162,9 @@ class TokenSecurityServiceTest extends TestCase
 
     public function test_log_authentication_event_logs_security_event(): void
     {
-        Request::shouldReceive('ip')->andReturn('192.168.1.1');
-        Request::shouldReceive('header')->with('User-Agent')->andReturn('Test Agent');
+        $spy = Request::spy();
+        $spy->shouldReceive('ip')->andReturn('192.168.1.1');
+        $spy->shouldReceive('header')->with('User-Agent')->andReturn('Test Agent');
         
         Log::shouldReceive('channel')->with('security')->andReturnSelf();
         Log::shouldReceive('info')->once();
@@ -170,7 +174,7 @@ class TokenSecurityServiceTest extends TestCase
 
     public function test_get_remaining_user_attempts_returns_correct_count(): void
     {
-        Request::shouldReceive('ip')->andReturn('192.168.1.1');
+        Request::spy()->shouldReceive('ip')->andReturn('192.168.1.1');
         
         $this->assertEquals(5, $this->service->getRemainingUserAttempts($this->user));
         
@@ -187,14 +191,14 @@ class TokenSecurityServiceTest extends TestCase
         
         $this->assertEquals(20, $this->service->getRemainingIpAttempts($ipAddress));
         
-        Request::shouldReceive('ip')->andReturn($ipAddress);
+        Request::spy()->shouldReceive('ip')->andReturn($ipAddress);
         $this->service->recordRefreshAttempt($this->user, $ipAddress);
         $this->assertEquals(19, $this->service->getRemainingIpAttempts($ipAddress));
     }
 
     public function test_get_rate_limit_reset_time_returns_correct_time(): void
     {
-        Request::shouldReceive('ip')->andReturn('192.168.1.1');
+        Request::spy()->shouldReceive('ip')->andReturn('192.168.1.1');
         
         // Record an attempt to set the cache
         $this->service->recordRefreshAttempt($this->user);
@@ -209,8 +213,9 @@ class TokenSecurityServiceTest extends TestCase
     {
         $exception = new \Exception('Test failure', 500);
         
-        Request::shouldReceive('ip')->andReturn('192.168.1.100');
-        Request::shouldReceive('header')->with('User-Agent')->andReturn('Mozilla/5.0 Test Browser');
+        $spy = Request::spy();
+        $spy->shouldReceive('ip')->andReturn('192.168.1.100');
+        $spy->shouldReceive('header')->with('User-Agent')->andReturn('Mozilla/5.0 Test Browser');
         
         Log::shouldReceive('channel')->with('security')->andReturnSelf();
         Log::shouldReceive('info')->once()->with('Token Security Event', \Mockery::on(function ($data) {
@@ -228,7 +233,7 @@ class TokenSecurityServiceTest extends TestCase
 
     public function test_rate_limit_respects_ttl(): void
     {
-        Request::shouldReceive('ip')->andReturn('192.168.1.1');
+        Request::spy()->shouldReceive('ip')->andReturn('192.168.1.1');
         
         // Record attempts up to the limit
         for ($i = 0; $i < 5; $i++) {
@@ -247,7 +252,7 @@ class TokenSecurityServiceTest extends TestCase
 
     public function test_concurrent_rate_limit_checks_are_thread_safe(): void
     {
-        Request::shouldReceive('ip')->andReturn('192.168.1.1');
+        Request::spy()->shouldReceive('ip')->andReturn('192.168.1.1');
         
         // Simulate concurrent requests by checking and recording simultaneously
         $results = [];

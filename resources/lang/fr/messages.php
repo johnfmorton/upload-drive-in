@@ -560,7 +560,7 @@ return [
     'token_refresh_failed_issue_details' => 'Détails du Problème :',
     'token_refresh_failed_error_type' => 'Type d\'Erreur : :type',
     'token_refresh_failed_attempt' => 'Tentative : :current sur :max',
-    'token_refresh_failed_description' => 'Description : :description',
+    'token_refresh_failed_description_label' => 'Description : :description',
     'token_refresh_failed_technical_details' => 'Détails Techniques : :details',
     'token_refresh_failed_what_to_do' => 'Ce Que Vous Devez Faire :',
     'token_refresh_failed_manual_required' => 'Ce type d\'erreur nécessite une intervention manuelle. Veuillez reconnecter votre compte :provider pour restaurer la fonctionnalité de téléchargement de fichiers.',

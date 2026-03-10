@@ -331,7 +331,7 @@ class EnvironmentFileService
                 return $backups;
             }
 
-            $files = File::files($this->backupDirectory);
+            $files = File::files($this->backupDirectory, true);
 
             foreach ($files as $file) {
                 if (str_starts_with($file->getFilename(), '.env.backup.')) {

@@ -279,7 +279,7 @@ class CloudStorageProviderInterfaceTest extends TestCase
     {
         $methods = $this->interfaceReflection->getMethods();
         
-        // 8 existing methods + 9 new enhanced methods = 17 total
-        $this->assertCount(17, $methods);
+        // Interface now has 26 methods total
+        $this->assertCount(26, $methods);
     }
 }

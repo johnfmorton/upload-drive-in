@@ -8,7 +8,7 @@ use App\Services\CloudStorageHealthService;
 use App\Services\CloudStorageLogService;
 use App\Services\CloudStorageManager;
 use App\Services\HealthStatus;
-use App\Services\RealTimeHealthValidator;
+use App\Services\PerformanceOptimizedHealthValidator;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -22,7 +22,7 @@ class CloudStorageHealthServiceRealTimeValidationTest extends TestCase
     private CloudStorageHealthService $healthService;
     private CloudStorageLogService $mockLogService;
     private CloudStorageManager $mockStorageManager;
-    private RealTimeHealthValidator $mockValidator;
+    private PerformanceOptimizedHealthValidator $mockValidator;
     private User $user;
 
     protected function setUp(): void
@@ -33,7 +33,7 @@ class CloudStorageHealthServiceRealTimeValidationTest extends TestCase
         
         $this->mockLogService = Mockery::mock(CloudStorageLogService::class);
         $this->mockStorageManager = Mockery::mock(CloudStorageManager::class);
-        $this->mockValidator = Mockery::mock(RealTimeHealthValidator::class);
+        $this->mockValidator = Mockery::mock(PerformanceOptimizedHealthValidator::class);
 
         $this->healthService = new CloudStorageHealthService(
             $this->mockLogService,

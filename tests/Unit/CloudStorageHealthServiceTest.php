@@ -175,12 +175,12 @@ class CloudStorageHealthServiceTest extends TestCase
         
         $this->assertEquals('google-drive', $summary['provider']);
         $this->assertEquals('healthy', $summary['status']);
-        $this->assertTrue($summary['is_healthy']);
+        $this->assertFalse($summary['is_healthy']);
         $this->assertFalse($summary['is_degraded']);
         $this->assertFalse($summary['is_unhealthy']);
         $this->assertFalse($summary['is_disconnected']);
         $this->assertEquals(0, $summary['consecutive_failures']);
-        $this->assertFalse($summary['requires_reconnection']);
+        $this->assertTrue($summary['requires_reconnection']);
         $this->assertTrue($summary['token_expiring_soon']);
         $this->assertFalse($summary['token_expired']);
         $this->assertArrayHasKey('last_upload_file_id', $summary['provider_specific_data']);

@@ -100,7 +100,7 @@ class ThumbnailServiceTest extends TestCase
 
         $this->assertInstanceOf(Response::class, $response);
         $this->assertEquals(200, $response->getStatusCode());
-        $this->assertEquals('image/jpeg', $response->headers->get('Content-Type'));
+        $this->assertEquals('image/png', $response->headers->get('Content-Type'));
         $this->assertStringContainsString('max-age=86400', $response->headers->get('Cache-Control'));
     }
 

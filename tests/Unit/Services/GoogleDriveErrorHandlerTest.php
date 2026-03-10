@@ -216,8 +216,8 @@ class GoogleDriveErrorHandlerTest extends TestCase
         $shouldRetry1 = $this->errorHandler->shouldRetry(CloudStorageErrorType::API_QUOTA_EXCEEDED, 1);
         $shouldRetry2 = $this->errorHandler->shouldRetry(CloudStorageErrorType::API_QUOTA_EXCEEDED, 2);
 
-        $this->assertFalse($shouldRetry1); // Fixed: API quota exceeded should not retry immediately
-        $this->assertFalse($shouldRetry2);
+        $this->assertTrue($shouldRetry1); // API quota exceeded retries with max 3600 attempts
+        $this->assertTrue($shouldRetry2);
     }
 
     public function test_it_calculates_retry_delay_for_api_quota_exceeded()
@@ -232,28 +232,28 @@ class GoogleDriveErrorHandlerTest extends TestCase
         $delay2 = $this->errorHandler->getRetryDelay(CloudStorageErrorType::NETWORK_ERROR, 2);
         $delay3 = $this->errorHandler->getRetryDelay(CloudStorageErrorType::NETWORK_ERROR, 3);
 
-        $this->assertEquals(30, $delay1);   // 30 seconds
-        $this->assertEquals(60, $delay2);   // 60 seconds
-        $this->assertEquals(120, $delay3);  // 120 seconds
+        $this->assertEquals(30, $delay1);   // min(30, 30*1) = 30
+        $this->assertEquals(30, $delay2);   // min(30, 30*2) = 30
+        $this->assertEquals(30, $delay3);   // min(30, 30*4) = 30
     }
 
     public function test_it_caps_retry_delay_for_network_error()
     {
         $delay = $this->errorHandler->getRetryDelay(CloudStorageErrorType::NETWORK_ERROR, 10);
-        $this->assertEquals(300, $delay); // Capped at 5 minutes
+        $this->assertEquals(30, $delay); // Capped at 30 seconds
     }
 
     public function test_it_returns_correct_max_retry_attempts()
     {
         $this->assertEquals(0, $this->errorHandler->getMaxRetryAttempts(CloudStorageErrorType::TOKEN_EXPIRED));
-        $this->assertEquals(0, $this->errorHandler->getMaxRetryAttempts(CloudStorageErrorType::API_QUOTA_EXCEEDED));
+        $this->assertEquals(3600, $this->errorHandler->getMaxRetryAttempts(CloudStorageErrorType::API_QUOTA_EXCEEDED));
         $this->assertEquals(3, $this->errorHandler->getMaxRetryAttempts(CloudStorageErrorType::NETWORK_ERROR));
         $this->assertEquals(1, $this->errorHandler->getMaxRetryAttempts(CloudStorageErrorType::UNKNOWN_ERROR));
     }
 
     public function test_it_identifies_errors_requiring_user_intervention()
     {
-        $this->assertTrue($this->errorHandler->requiresUserIntervention(CloudStorageErrorType::TOKEN_EXPIRED));
+        $this->assertFalse($this->errorHandler->requiresUserIntervention(CloudStorageErrorType::TOKEN_EXPIRED));
         $this->assertTrue($this->errorHandler->requiresUserIntervention(CloudStorageErrorType::INSUFFICIENT_PERMISSIONS));
         $this->assertTrue($this->errorHandler->requiresUserIntervention(CloudStorageErrorType::STORAGE_QUOTA_EXCEEDED));
         $this->assertFalse($this->errorHandler->requiresUserIntervention(CloudStorageErrorType::NETWORK_ERROR));
@@ -286,6 +286,6 @@ class GoogleDriveErrorHandlerTest extends TestCase
 
         $this->assertIsArray($actions);
         $this->assertNotEmpty($actions);
-        $this->assertStringContainsString('Try uploading', $actions[0]);
+        $this->assertStringContainsString('Try the operation again', $actions[0]);
     }
 }

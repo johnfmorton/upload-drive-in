@@ -1239,7 +1239,7 @@
     'token_refresh_failed_issue_details' => 'Issue Details:',
     'token_refresh_failed_error_type' => 'Error Type: :type',
     'token_refresh_failed_attempt' => 'Attempt: :current of :max',
-    'token_refresh_failed_description' => 'Description: :description',
+    'token_refresh_failed_description_label' => 'Description: :description',
     'token_refresh_failed_technical_details' => 'Technical Details: :details',
     'token_refresh_failed_what_to_do' => 'What You Need to Do:',
     'token_refresh_failed_manual_required' => 'This type of error requires manual intervention. Please reconnect your :provider account to restore file upload functionality.',

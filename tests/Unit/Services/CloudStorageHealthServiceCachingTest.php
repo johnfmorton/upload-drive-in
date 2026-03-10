@@ -7,6 +7,7 @@ use App\Models\CloudStorageHealthStatus;
 use App\Models\User;
 use App\Services\CloudStorageHealthService;
 use App\Services\CloudStorageLogService;
+use App\Services\CloudStorageManager;
 use App\Services\GoogleDriveService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -29,10 +30,11 @@ class CloudStorageHealthServiceCachingTest extends TestCase
 
         $this->user = User::factory()->create();
         
-        $this->mockLogService = Mockery::mock(CloudStorageLogService::class);
+        $this->mockLogService = Mockery::mock(CloudStorageLogService::class)->shouldIgnoreMissing();
         $this->mockGoogleDriveService = Mockery::mock(GoogleDriveService::class);
-        
-        $this->service = new CloudStorageHealthService($this->mockLogService);
+        $mockStorageManager = Mockery::mock(CloudStorageManager::class)->shouldIgnoreMissing();
+
+        $this->service = new CloudStorageHealthService($this->mockLogService, $mockStorageManager);
         
         // Mock the GoogleDriveService in the container
         $this->app->instance(GoogleDriveService::class, $this->mockGoogleDriveService);

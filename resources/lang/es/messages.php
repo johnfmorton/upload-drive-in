@@ -441,7 +441,7 @@ return [
     'token_refresh_failed_issue_details' => 'Detalles del Problema:',
     'token_refresh_failed_error_type' => 'Tipo de Error: :type',
     'token_refresh_failed_attempt' => 'Intento: :current de :max',
-    'token_refresh_failed_description' => 'Descripción: :description',
+    'token_refresh_failed_description_label' => 'Descripción: :description',
     'token_refresh_failed_technical_details' => 'Detalles Técnicos: :details',
     'token_refresh_failed_what_to_do' => 'Qué Necesitas Hacer:',
     'token_refresh_failed_manual_required' => 'Este tipo de error requiere intervención manual. Por favor reconecta tu cuenta de :provider para restaurar la funcionalidad de subida de archivos.',

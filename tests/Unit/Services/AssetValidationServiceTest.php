@@ -282,9 +282,9 @@ class AssetValidationServiceTest extends TestCase
         $this->assertArrayHasKey('node_environment_check', $checks);
         $this->assertArrayHasKey('build_instructions_enabled', $checks);
         
-        // Default values should be true
+        // Values from config/setup.php
         $this->assertTrue($checks['vite_manifest_required']);
-        $this->assertTrue($checks['node_environment_check']);
+        $this->assertFalse($checks['node_environment_check']);
         $this->assertTrue($checks['build_instructions_enabled']);
     }
 

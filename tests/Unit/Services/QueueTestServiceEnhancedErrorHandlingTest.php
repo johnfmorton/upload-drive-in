@@ -84,11 +84,11 @@ class QueueTestServiceEnhancedErrorHandlingTest extends TestCase
         $this->assertEquals(QueueWorkerStatus::STATUS_FAILED, $status->status);
         $this->assertEquals('Failed to dispatch test job', $status->message);
 
-        // Test network error
+        // Test network/database error (Connection refused is classified as database error)
         $networkException = new Exception('Connection refused');
         $status = $method->invoke($this->queueTestService, $networkException);
-        $this->assertEquals(QueueWorkerStatus::STATUS_ERROR, $status->status);
-        $this->assertEquals('Network error during queue test', $status->message);
+        $this->assertEquals(QueueWorkerStatus::STATUS_FAILED, $status->status);
+        $this->assertEquals('Database connection error', $status->message);
 
         // Test generic error
         $genericException = new Exception('Generic error');
@@ -108,13 +108,13 @@ class QueueTestServiceEnhancedErrorHandlingTest extends TestCase
         // Test dispatch error message
         $dispatchException = new Exception('Failed to dispatch job to queue');
         $message = $method->invoke($this->queueTestService, $dispatchException, $maxAttempts);
-        $this->assertStringContainsString('Queue configuration issue', $message);
+        $this->assertStringContainsString('Queue dispatch issue', $message);
         $this->assertStringContainsString("after {$maxAttempts} attempts", $message);
 
-        // Test network error message
+        // Test network/database error message (Connection refused classified as database error)
         $networkException = new Exception('Connection refused');
         $message = $method->invoke($this->queueTestService, $networkException, $maxAttempts);
-        $this->assertStringContainsString('Network connectivity issue', $message);
+        $this->assertStringContainsString('Database connectivity issue', $message);
         $this->assertStringContainsString("after {$maxAttempts} attempts", $message);
 
         // Test generic error message

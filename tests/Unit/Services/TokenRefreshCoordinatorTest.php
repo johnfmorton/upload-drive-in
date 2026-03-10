@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Services\GoogleDriveService;
 use App\Services\RefreshResult;
 use App\Services\TokenRefreshCoordinator;
+use App\Services\TokenRefreshMonitoringService;
+use App\Services\TokenSecurityService;
 use Exception;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,7 +31,15 @@ class TokenRefreshCoordinatorTest extends TestCase
         parent::setUp();
 
         $this->mockGoogleDriveService = Mockery::mock(GoogleDriveService::class);
-        $this->coordinator = new TokenRefreshCoordinator($this->mockGoogleDriveService);
+        $mockMonitoringService = Mockery::mock(TokenRefreshMonitoringService::class)->shouldIgnoreMissing();
+        $mockSecurityService = Mockery::mock(TokenSecurityService::class)->shouldIgnoreMissing();
+        $mockSecurityService->shouldReceive('checkUserRateLimit')->andReturn(true)->byDefault();
+        $mockSecurityService->shouldReceive('checkIpRateLimit')->andReturn(true)->byDefault();
+        $this->coordinator = new TokenRefreshCoordinator(
+            $this->mockGoogleDriveService,
+            $mockMonitoringService,
+            $mockSecurityService
+        );
         
         $this->user = User::factory()->create();
     }
@@ -295,7 +305,14 @@ class TokenRefreshCoordinatorTest extends TestCase
 
     public function test_classify_refresh_error_identifies_network_timeout(): void
     {
-        $coordinator = new TokenRefreshCoordinator($this->mockGoogleDriveService);
+        $mockSec = Mockery::mock(TokenSecurityService::class)->shouldIgnoreMissing();
+        $mockSec->shouldReceive('checkUserRateLimit')->andReturn(true)->byDefault();
+        $mockSec->shouldReceive('checkIpRateLimit')->andReturn(true)->byDefault();
+        $coordinator = new TokenRefreshCoordinator(
+            $this->mockGoogleDriveService,
+            Mockery::mock(TokenRefreshMonitoringService::class)->shouldIgnoreMissing(),
+            $mockSec
+        );
         $reflection = new \ReflectionClass($coordinator);
         $method = $reflection->getMethod('classifyRefreshError');
         $method->setAccessible(true);
@@ -308,7 +325,14 @@ class TokenRefreshCoordinatorTest extends TestCase
 
     public function test_classify_refresh_error_identifies_invalid_refresh_token(): void
     {
-        $coordinator = new TokenRefreshCoordinator($this->mockGoogleDriveService);
+        $mockSec = Mockery::mock(TokenSecurityService::class)->shouldIgnoreMissing();
+        $mockSec->shouldReceive('checkUserRateLimit')->andReturn(true)->byDefault();
+        $mockSec->shouldReceive('checkIpRateLimit')->andReturn(true)->byDefault();
+        $coordinator = new TokenRefreshCoordinator(
+            $this->mockGoogleDriveService,
+            Mockery::mock(TokenRefreshMonitoringService::class)->shouldIgnoreMissing(),
+            $mockSec
+        );
         $reflection = new \ReflectionClass($coordinator);
         $method = $reflection->getMethod('classifyRefreshError');
         $method->setAccessible(true);
@@ -321,7 +345,14 @@ class TokenRefreshCoordinatorTest extends TestCase
 
     public function test_classify_refresh_error_identifies_expired_refresh_token(): void
     {
-        $coordinator = new TokenRefreshCoordinator($this->mockGoogleDriveService);
+        $mockSec = Mockery::mock(TokenSecurityService::class)->shouldIgnoreMissing();
+        $mockSec->shouldReceive('checkUserRateLimit')->andReturn(true)->byDefault();
+        $mockSec->shouldReceive('checkIpRateLimit')->andReturn(true)->byDefault();
+        $coordinator = new TokenRefreshCoordinator(
+            $this->mockGoogleDriveService,
+            Mockery::mock(TokenRefreshMonitoringService::class)->shouldIgnoreMissing(),
+            $mockSec
+        );
         $reflection = new \ReflectionClass($coordinator);
         $method = $reflection->getMethod('classifyRefreshError');
         $method->setAccessible(true);
@@ -334,7 +365,14 @@ class TokenRefreshCoordinatorTest extends TestCase
 
     public function test_classify_refresh_error_identifies_api_quota_exceeded(): void
     {
-        $coordinator = new TokenRefreshCoordinator($this->mockGoogleDriveService);
+        $mockSec = Mockery::mock(TokenSecurityService::class)->shouldIgnoreMissing();
+        $mockSec->shouldReceive('checkUserRateLimit')->andReturn(true)->byDefault();
+        $mockSec->shouldReceive('checkIpRateLimit')->andReturn(true)->byDefault();
+        $coordinator = new TokenRefreshCoordinator(
+            $this->mockGoogleDriveService,
+            Mockery::mock(TokenRefreshMonitoringService::class)->shouldIgnoreMissing(),
+            $mockSec
+        );
         $reflection = new \ReflectionClass($coordinator);
         $method = $reflection->getMethod('classifyRefreshError');
         $method->setAccessible(true);
@@ -347,7 +385,14 @@ class TokenRefreshCoordinatorTest extends TestCase
 
     public function test_classify_refresh_error_identifies_service_unavailable(): void
     {
-        $coordinator = new TokenRefreshCoordinator($this->mockGoogleDriveService);
+        $mockSec = Mockery::mock(TokenSecurityService::class)->shouldIgnoreMissing();
+        $mockSec->shouldReceive('checkUserRateLimit')->andReturn(true)->byDefault();
+        $mockSec->shouldReceive('checkIpRateLimit')->andReturn(true)->byDefault();
+        $coordinator = new TokenRefreshCoordinator(
+            $this->mockGoogleDriveService,
+            Mockery::mock(TokenRefreshMonitoringService::class)->shouldIgnoreMissing(),
+            $mockSec
+        );
         $reflection = new \ReflectionClass($coordinator);
         $method = $reflection->getMethod('classifyRefreshError');
         $method->setAccessible(true);
@@ -360,7 +405,14 @@ class TokenRefreshCoordinatorTest extends TestCase
 
     public function test_classify_refresh_error_defaults_to_unknown_error(): void
     {
-        $coordinator = new TokenRefreshCoordinator($this->mockGoogleDriveService);
+        $mockSec = Mockery::mock(TokenSecurityService::class)->shouldIgnoreMissing();
+        $mockSec->shouldReceive('checkUserRateLimit')->andReturn(true)->byDefault();
+        $mockSec->shouldReceive('checkIpRateLimit')->andReturn(true)->byDefault();
+        $coordinator = new TokenRefreshCoordinator(
+            $this->mockGoogleDriveService,
+            Mockery::mock(TokenRefreshMonitoringService::class)->shouldIgnoreMissing(),
+            $mockSec
+        );
         $reflection = new \ReflectionClass($coordinator);
         $method = $reflection->getMethod('classifyRefreshError');
         $method->setAccessible(true);
