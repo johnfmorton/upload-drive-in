@@ -53,7 +53,7 @@ Route::get('/google-drive/callback', [\App\Http\Controllers\GoogleDriveUnifiedCa
 // Auth routes
 Route::middleware(['guest'])->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
-    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('prevent.client.password.login');
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
@@ -99,18 +99,20 @@ Route::middleware(['auth', \App\Http\Middleware\FileDownloadRateLimitMiddleware:
         ->name('files.download');
 });
 
-// Health check routes
+// Health check routes (basic check is public, detailed requires auth)
 Route::get('/health', [\App\Http\Controllers\HealthController::class, 'check'])->name('health.check');
-Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, 'detailed'])->name('health.detailed');
+Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, 'detailed'])->name('health.detailed')->middleware(['auth', 'admin']);
 
-// Cloud storage health check routes
+// Cloud storage health check routes (public: basic, readiness, liveness; authenticated: the rest)
 Route::prefix('health/cloud-storage')->name('health.cloud-storage.')->group(function () {
     Route::get('/basic', [\App\Http\Controllers\CloudStorageHealthController::class, 'basic'])->name('basic');
+    Route::get('/readiness', [\App\Http\Controllers\CloudStorageHealthController::class, 'readiness'])->name('readiness');
+    Route::get('/liveness', [\App\Http\Controllers\CloudStorageHealthController::class, 'liveness'])->name('liveness');
+});
+Route::middleware(['auth', 'admin'])->prefix('health/cloud-storage')->name('health.cloud-storage.')->group(function () {
     Route::get('/comprehensive', [\App\Http\Controllers\CloudStorageHealthController::class, 'comprehensive'])->name('comprehensive');
     Route::get('/provider/{provider}', [\App\Http\Controllers\CloudStorageHealthController::class, 'provider'])->name('provider');
     Route::get('/configuration', [\App\Http\Controllers\CloudStorageHealthController::class, 'configuration'])->name('configuration');
-    Route::get('/readiness', [\App\Http\Controllers\CloudStorageHealthController::class, 'readiness'])->name('readiness');
-    Route::get('/liveness', [\App\Http\Controllers\CloudStorageHealthController::class, 'liveness'])->name('liveness');
 });
 
 // Authenticated cloud storage health routes

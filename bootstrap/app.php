@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Append CSP headers to all web responses
+        $middleware->appendToGroup('web', \App\Http\Middleware\ContentSecurityPolicy::class);
+
         // Register custom middleware aliases
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,

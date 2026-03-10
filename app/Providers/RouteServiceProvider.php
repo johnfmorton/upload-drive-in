@@ -5,7 +5,7 @@ namespace App\Providers;
 use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\ClientMiddleware;
 use App\Http\Middleware\EmployeeMiddleware;
-use App\Http\Middleware\TwoFactorMiddleware;
+use UploadDriveIn\LaravelAdmin2FA\Http\Middleware\RequireTwoFactorAuth;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -117,7 +117,7 @@ class RouteServiceProvider extends ServiceProvider
     protected function registerProtectedRoutes(): void
     {
         // Admin Routes
-        Route::middleware(['web', 'auth', AdminMiddleware::class, TwoFactorMiddleware::class])
+        Route::middleware(['web', 'auth', AdminMiddleware::class, RequireTwoFactorAuth::class])
             ->prefix('admin')
             ->name('admin.')
             ->group(base_path('routes/admin.php'));

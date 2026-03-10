@@ -19,8 +19,15 @@ class TwoFactorMiddleware
     {
         $user = auth()->user();
 
-        if ($user && $user->isAdmin() && $user->two_factor_enabled && !session('two_factor_verified')) {
-            return redirect()->route('admin.2fa.verify');
+        if ($user && $user->isAdmin() && $user->two_factor_enabled) {
+            $verifiedAt = session('two_factor_verified');
+            $timeout = config('admin-2fa.code_timeout', 300);
+            $isVerified = $verifiedAt && (now()->timestamp - $verifiedAt) < $timeout;
+
+            if (!$isVerified) {
+                session()->forget('two_factor_verified');
+                return redirect()->route('admin.2fa.verify');
+            }
         }
 
         return $next($request);
