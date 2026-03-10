@@ -11,7 +11,7 @@ use App\Models\User;
 use App\Services\CloudStorageHealthService;
 use App\Services\CloudStorageManager;
 use App\Services\TokenRenewalNotificationService;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -20,7 +20,7 @@ use Tests\TestCase;
 
 class PendingUploadRetryJobTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     private $mockStorageManager;
     private $mockHealthService;

@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 // Dashboard
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::post('/dismiss-welcome', [DashboardController::class, 'dismissWelcomeMessage'])->name('dismiss-welcome');
+Route::post('/files/retry-failed', [DashboardController::class, 'retryFailedUploads'])->name('files.retry-failed');
 
 // Queue Testing Routes for admin users
 Route::post('/queue/test', [DashboardController::class, 'testQueue'])->name('queue.test')->middleware('throttle:5,1');

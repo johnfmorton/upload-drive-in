@@ -17,7 +17,7 @@ use App\Services\RecoveryResult;
 use App\Services\TokenRefreshCoordinator;
 use App\Services\TokenRenewalNotificationService;
 use App\Services\RefreshResult;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
@@ -25,7 +25,7 @@ use Tests\TestCase;
 
 class ConnectionRecoveryServiceTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     private ConnectionRecoveryService $service;
     private $mockStorageManager;

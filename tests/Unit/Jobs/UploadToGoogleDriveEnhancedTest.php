@@ -13,7 +13,6 @@ use App\Models\User;
 use App\Services\CloudStorageHealthService;
 use Exception;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
@@ -24,7 +23,7 @@ use Tests\TestCase;
 
 class UploadToGoogleDriveEnhancedTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected $mockProvider;
     protected $mockErrorHandler;

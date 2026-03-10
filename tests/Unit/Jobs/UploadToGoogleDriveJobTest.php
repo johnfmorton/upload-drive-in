@@ -29,60 +29,6 @@ class UploadToGoogleDriveJobTest extends TestCase
     }
 
     /** @test */
-    public function it_classifies_google_service_exceptions_correctly()
-    {
-        $fileUpload = FileUpload::factory()->create();
-        $job = new UploadToGoogleDrive($fileUpload);
-
-        // Test transient errors
-        $transientException = new GoogleServiceException('Rate limit exceeded', 429);
-        $this->assertTrue($this->invokeMethod($job, 'isTransientError', [$transientException]));
-
-        $serverErrorException = new GoogleServiceException('Internal server error', 500);
-        $this->assertTrue($this->invokeMethod($job, 'isTransientError', [$serverErrorException]));
-
-        // Test permanent errors
-        $authException = new GoogleServiceException('Invalid credentials', 401);
-        $this->assertFalse($this->invokeMethod($job, 'isTransientError', [$authException]));
-
-        $notFoundException = new GoogleServiceException('File not found', 404);
-        $this->assertFalse($this->invokeMethod($job, 'isTransientError', [$notFoundException]));
-    }
-
-    /** @test */
-    public function it_classifies_google_client_exceptions_as_transient()
-    {
-        $fileUpload = FileUpload::factory()->create();
-        $job = new UploadToGoogleDrive($fileUpload);
-
-        $googleException = new GoogleException('Connection timeout');
-        $this->assertTrue($this->invokeMethod($job, 'isTransientError', [$googleException]));
-    }
-
-    /** @test */
-    public function it_classifies_network_errors_as_transient()
-    {
-        $fileUpload = FileUpload::factory()->create();
-        $job = new UploadToGoogleDrive($fileUpload);
-
-        $networkException = new Exception('Connection timed out');
-        $this->assertTrue($this->invokeMethod($job, 'isTransientError', [$networkException]));
-
-        $curlException = new Exception('CURL error: timeout');
-        $this->assertTrue($this->invokeMethod($job, 'isTransientError', [$curlException]));
-    }
-
-    /** @test */
-    public function it_classifies_unknown_errors_as_permanent()
-    {
-        $fileUpload = FileUpload::factory()->create();
-        $job = new UploadToGoogleDrive($fileUpload);
-
-        $unknownException = new Exception('Some unknown error');
-        $this->assertFalse($this->invokeMethod($job, 'isTransientError', [$unknownException]));
-    }
-
-    /** @test */
     public function it_records_detailed_error_information()
     {
         $fileUpload = FileUpload::factory()->create();

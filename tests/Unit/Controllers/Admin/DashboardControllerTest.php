@@ -10,6 +10,7 @@ use App\Enums\UserRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use ReflectionClass;
+use UploadDriveIn\LaravelAdmin2FA\Http\Middleware\RequireTwoFactorAuth;
 
 class DashboardControllerTest extends TestCase
 {
@@ -23,6 +24,7 @@ class DashboardControllerTest extends TestCase
         
         $this->admin = User::factory()->create(['role' => UserRole::ADMIN]);
         $this->actingAs($this->admin);
+        $this->withoutMiddleware(RequireTwoFactorAuth::class);
     }
 
     /**
@@ -156,7 +158,7 @@ class DashboardControllerTest extends TestCase
         
         // Verify all expected data is passed to the view
         $response->assertViewHas('files');
-        $response->assertViewHas('isFirstTimeLogin');
+        $response->assertViewHas('showWelcomeMessage');
         $response->assertViewHas('storageProvider');
         
         // Verify storage provider structure

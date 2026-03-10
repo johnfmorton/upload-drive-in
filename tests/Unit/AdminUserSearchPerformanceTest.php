@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
+use UploadDriveIn\LaravelAdmin2FA\Http\Middleware\RequireTwoFactorAuth;
 
 class AdminUserSearchPerformanceTest extends TestCase
 {
@@ -23,6 +24,8 @@ class AdminUserSearchPerformanceTest extends TestCase
             'role' => UserRole::ADMIN,
             'email' => 'admin@example.com',
         ]);
+
+        $this->withoutMiddleware(RequireTwoFactorAuth::class);
     }
 
     public function test_users_table_has_required_indexes_for_search()

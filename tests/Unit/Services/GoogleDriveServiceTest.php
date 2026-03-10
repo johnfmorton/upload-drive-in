@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services;
 
 use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Services\GoogleDriveService;
 use App\Models\User;
 use App\Models\GoogleDriveToken;
@@ -17,6 +18,8 @@ use Exception;
 
 class GoogleDriveServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
     private GoogleDriveService $service;
     private User $user;
     private GoogleDriveToken $token;

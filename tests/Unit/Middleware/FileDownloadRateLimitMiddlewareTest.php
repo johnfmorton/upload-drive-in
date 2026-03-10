@@ -25,7 +25,7 @@ class FileDownloadRateLimitMiddlewareTest extends TestCase
 
         $this->middleware = new FileDownloadRateLimitMiddleware();
         $this->user = User::factory()->create(['role' => UserRole::ADMIN]);
-        
+
         // Clear rate limiter state
         RateLimiter::clear('file_download:' . $this->user->id . ':127.0.0.1:test');
     }
@@ -34,7 +34,7 @@ class FileDownloadRateLimitMiddlewareTest extends TestCase
     public function it_allows_requests_within_rate_limit()
     {
         $request = $this->createRequest();
-        
+
         $response = $this->middleware->handle($request, function ($req) {
             return new Response('Success', 200);
         }, '5', '1');
@@ -47,7 +47,7 @@ class FileDownloadRateLimitMiddlewareTest extends TestCase
     public function it_blocks_requests_exceeding_rate_limit()
     {
         $request = $this->createRequest();
-        
+
         // Make requests up to the limit
         for ($i = 0; $i < 5; $i++) {
             $this->middleware->handle($request, function ($req) {
@@ -61,7 +61,7 @@ class FileDownloadRateLimitMiddlewareTest extends TestCase
         }, '5', '1');
 
         $this->assertEquals(429, $response->getStatusCode());
-        
+
         $responseData = json_decode($response->getContent(), true);
         $this->assertFalse($responseData['success']);
         $this->assertEquals('rate_limit_exceeded', $responseData['error_type']);
@@ -72,7 +72,7 @@ class FileDownloadRateLimitMiddlewareTest extends TestCase
     public function it_adds_rate_limit_headers_to_responses()
     {
         $request = $this->createRequest();
-        
+
         $response = $this->middleware->handle($request, function ($req) {
             return new Response('Success', 200);
         }, '10', '1');
@@ -87,7 +87,7 @@ class FileDownloadRateLimitMiddlewareTest extends TestCase
     public function it_adds_retry_after_header_when_rate_limited()
     {
         $request = $this->createRequest();
-        
+
         // Exceed rate limit
         for ($i = 0; $i < 6; $i++) {
             $response = $this->middleware->handle($request, function ($req) {
@@ -102,31 +102,35 @@ class FileDownloadRateLimitMiddlewareTest extends TestCase
     /** @test */
     public function it_logs_rate_limit_violations()
     {
-        Log::fake();
-        
+        // Spy on the security channel
+        $securityLogger = \Mockery::spy(\Psr\Log\LoggerInterface::class);
+        Log::shouldReceive('channel')->with('security')->andReturn($securityLogger);
+        Log::shouldReceive('warning')->once()->withArgs(function ($message, $context) {
+            return str_contains($message, 'File download rate limit exceeded') &&
+                   $context['user_id'] === $this->user->id &&
+                   $context['ip_address'] === '127.0.0.1';
+        });
+
         $request = $this->createRequest();
-        
+
         // Exceed rate limit
         for ($i = 0; $i < 6; $i++) {
             $this->middleware->handle($request, function ($req) {
                 return new Response('Success', 200);
             }, '5', '1');
         }
-
-        Log::assertLogged('warning', function ($message, $context) {
-            return str_contains($message, 'File download rate limit exceeded') &&
-                   $context['user_id'] === $this->user->id &&
-                   $context['ip_address'] === '127.0.0.1';
-        });
     }
 
     /** @test */
     public function it_logs_to_security_channel()
     {
-        Log::fake();
-        
+        // Spy on the security channel
+        $securityLogger = \Mockery::spy(\Psr\Log\LoggerInterface::class);
+        Log::shouldReceive('channel')->with('security')->andReturn($securityLogger);
+        Log::shouldReceive('warning')->withAnyArgs();
+
         $request = $this->createRequest();
-        
+
         // Exceed rate limit
         for ($i = 0; $i < 6; $i++) {
             $this->middleware->handle($request, function ($req) {
@@ -134,11 +138,11 @@ class FileDownloadRateLimitMiddlewareTest extends TestCase
             }, '5', '1');
         }
 
-        Log::channel('security')->assertLogged('warning', function ($message, $context) {
+        $securityLogger->shouldHaveReceived('warning')->withArgs(function ($message, $context) {
             return str_contains($message, 'Rate limit exceeded for file downloads') &&
                    $context['user'] === $this->user->email &&
                    $context['ip'] === '127.0.0.1';
-        });
+        })->atLeast()->once();
     }
 
     /** @test */
@@ -214,7 +218,7 @@ class FileDownloadRateLimitMiddlewareTest extends TestCase
     public function it_uses_default_parameters_when_not_specified()
     {
         $request = $this->createRequest();
-        
+
         $response = $this->middleware->handle($request, function ($req) {
             return new Response('Success', 200);
         });
@@ -234,7 +238,7 @@ class FileDownloadRateLimitMiddlewareTest extends TestCase
         $request->setUserResolver(fn() => $user);
         $request->server->set('REMOTE_ADDR', $ip);
         $request->headers->set('User-Agent', 'Test Browser');
-        
+
         return $request;
     }
 }
