@@ -191,17 +191,17 @@ class FileManagerService
 
         // Apply sorting with enhanced options
         $sortBy = $filters['sort_by'] ?? 'created_at';
-        $sortDirection = $filters['sort_direction'] ?? 'desc';
-        
+        $sortDirection = in_array($filters['sort_direction'] ?? 'desc', ['asc', 'desc']) ? $filters['sort_direction'] : 'desc';
+
         $allowedSortFields = [
-            'created_at', 'updated_at', 'original_filename', 'file_size', 
+            'created_at', 'updated_at', 'original_filename', 'file_size',
             'email', 'mime_type'
         ];
-        
+
         if (in_array($sortBy, $allowedSortFields)) {
             if ($sortBy === 'original_filename') {
                 // Case-insensitive sorting for filenames
-                $query->orderByRaw("LOWER(original_filename) {$sortDirection}");
+                $query->orderByRaw("LOWER(original_filename) " . ($sortDirection === 'asc' ? 'ASC' : 'DESC'));
             } else {
                 $query->orderBy($sortBy, $sortDirection);
             }

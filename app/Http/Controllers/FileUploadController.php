@@ -4,12 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Jobs\UploadToGoogleDrive;
 use App\Models\FileUpload;
+use App\Services\FileSecurityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class FileUploadController extends Controller
 {
+    public function __construct(
+        private FileSecurityService $fileSecurityService
+    ) {}
+
     public function index()
     {
         $uploads = FileUpload::where('email', auth()->user()->email)
@@ -41,10 +46,16 @@ class FileUploadController extends Controller
 
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
-                $originalName = $file->getClientOriginalName();
+                // Validate file security (extension, MIME type, content)
+                $violations = $this->fileSecurityService->validateFileUpload($file);
+                if (!empty($violations)) {
+                    return redirect()->back()->withErrors(['files' => $violations[0]['message']]);
+                }
+
+                $originalName = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
                 $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
 
-                // Store the file in the public disk under uploads directory
+                // Store the file
                 $path = Storage::disk('public')->putFileAs('uploads', $file, $filename);
 
                 $fileUpload = FileUpload::create([

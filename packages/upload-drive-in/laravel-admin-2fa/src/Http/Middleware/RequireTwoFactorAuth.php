@@ -29,8 +29,16 @@ class RequireTwoFactorAuth
             return $next($request);
         }
 
-        // If 2FA is enabled but not verified in this session
-        if ($user->two_factor_enabled && !session('two_factor_verified')) {
+        // If 2FA is enabled but not verified (or verification expired) in this session
+        $verifiedAt = session('two_factor_verified');
+        $timeout = config('admin-2fa.code_timeout', 300);
+        $isVerified = $verifiedAt && (now()->timestamp - $verifiedAt) < $timeout;
+
+        if ($user->two_factor_enabled && !$isVerified) {
+            // Clear expired verification
+            if ($verifiedAt) {
+                session()->forget('two_factor_verified');
+            }
             // Store the intended URL in the session
             session(['url.intended' => $request->url()]);
             return redirect()->route('admin.2fa.verify')

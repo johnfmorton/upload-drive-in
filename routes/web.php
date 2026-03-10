@@ -19,7 +19,7 @@ Route::post('/upload/{name}/batch-complete', [\App\Http\Controllers\PublicEmploy
 
 // Token-based login route (needs to be accessible to everyone)
 Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'loginViaToken'])
-    ->middleware('signed')
+    ->middleware(['signed', 'throttle:6,1'])
     ->name('login.via.token');
 
 
@@ -53,7 +53,7 @@ Route::get('/google-drive/callback', [\App\Http\Controllers\GoogleDriveUnifiedCa
 // Auth routes
 Route::middleware(['guest'])->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
-    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('prevent.client.password.login');
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
@@ -99,18 +99,20 @@ Route::middleware(['auth', \App\Http\Middleware\FileDownloadRateLimitMiddleware:
         ->name('files.download');
 });
 
-// Health check routes
+// Health check routes (basic check is public, detailed requires auth)
 Route::get('/health', [\App\Http\Controllers\HealthController::class, 'check'])->name('health.check');
-Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, 'detailed'])->name('health.detailed');
+Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, 'detailed'])->name('health.detailed')->middleware(['auth', 'admin']);
 
-// Cloud storage health check routes
+// Cloud storage health check routes (public: basic, readiness, liveness; authenticated: the rest)
 Route::prefix('health/cloud-storage')->name('health.cloud-storage.')->group(function () {
     Route::get('/basic', [\App\Http\Controllers\CloudStorageHealthController::class, 'basic'])->name('basic');
+    Route::get('/readiness', [\App\Http\Controllers\CloudStorageHealthController::class, 'readiness'])->name('readiness');
+    Route::get('/liveness', [\App\Http\Controllers\CloudStorageHealthController::class, 'liveness'])->name('liveness');
+});
+Route::middleware(['auth', 'admin'])->prefix('health/cloud-storage')->name('health.cloud-storage.')->group(function () {
     Route::get('/comprehensive', [\App\Http\Controllers\CloudStorageHealthController::class, 'comprehensive'])->name('comprehensive');
     Route::get('/provider/{provider}', [\App\Http\Controllers\CloudStorageHealthController::class, 'provider'])->name('provider');
     Route::get('/configuration', [\App\Http\Controllers\CloudStorageHealthController::class, 'configuration'])->name('configuration');
-    Route::get('/readiness', [\App\Http\Controllers\CloudStorageHealthController::class, 'readiness'])->name('readiness');
-    Route::get('/liveness', [\App\Http\Controllers\CloudStorageHealthController::class, 'liveness'])->name('liveness');
 });
 
 // Authenticated cloud storage health routes
@@ -140,8 +142,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin/token-refresh')->name('admin
     Route::get('/status', [\App\Http\Controllers\Admin\TokenRefreshConfigController::class, 'getStatus'])->name('status');
 });
 
-// Cloud storage dashboard routes
-Route::middleware(['auth'])->group(function () {
+// Cloud storage dashboard routes (admin only)
+Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard/cloud-storage-status', [\App\Http\Controllers\CloudStorageDashboardController::class, 'getStatus'])
         ->middleware('token.refresh.rate.limit')
         ->name('admin.dashboard.cloud-storage-status');
@@ -151,7 +153,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/dashboard/cloud-storage/{provider}/health-check', [\App\Http\Controllers\CloudStorageDashboardController::class, 'checkHealth'])
         ->middleware('token.refresh.rate.limit')
         ->name('admin.dashboard.cloud-storage.health-check');
-    
+
     // File manager bulk retry routes
     Route::post('/admin/file-manager/bulk-retry', [\App\Http\Controllers\FileManagerBulkRetryController::class, 'bulkRetry'])
         ->name('admin.file-manager.bulk-retry');

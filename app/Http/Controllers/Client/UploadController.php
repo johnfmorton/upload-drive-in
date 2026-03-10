@@ -7,6 +7,7 @@ use App\Jobs\UploadToGoogleDrive;
 use App\Models\FileUpload;
 use App\Models\User;
 use App\Services\ClientUserService;
+use App\Services\FileSecurityService;
 use App\Services\GoogleDriveService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -24,10 +25,13 @@ class UploadController extends Controller
 
     protected ClientUserService $clientUserService;
 
-    public function __construct(GoogleDriveService $driveService, ClientUserService $clientUserService)
+    protected FileSecurityService $fileSecurityService;
+
+    public function __construct(GoogleDriveService $driveService, ClientUserService $clientUserService, FileSecurityService $fileSecurityService)
     {
         $this->driveService = $driveService;
         $this->clientUserService = $clientUserService;
+        $this->fileSecurityService = $fileSecurityService;
     }
 
     /**
@@ -174,8 +178,14 @@ class UploadController extends Controller
      */
     protected function saveFile(UploadedFile $file, User $companyUser, Request $request)
     {
+        // Validate file security (extension, MIME type, content)
+        $violations = $this->fileSecurityService->validateFileUpload($file);
+        if (!empty($violations)) {
+            return response()->json(['error' => $violations[0]['message']], 422);
+        }
+
         $fileName = $this->createFilename($file);
-        $originalFilename = $file->getClientOriginalName();
+        $originalFilename = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
         $mimeType = $file->getMimeType();
         $fileSize = $file->getSize();
 

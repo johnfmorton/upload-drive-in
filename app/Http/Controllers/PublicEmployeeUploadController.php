@@ -16,17 +16,20 @@ use Illuminate\Support\Str;
 use App\Jobs\UploadToGoogleDrive;
 use App\Models\FileUpload;
 use App\Services\ClientUserService;
+use App\Services\FileSecurityService;
 
 class PublicEmployeeUploadController extends Controller
 {
     protected GoogleDriveManager $drive_manager;
+    protected FileSecurityService $fileSecurityService;
 
     /**
-     * Inject the GoogleDriveManager.
+     * Inject dependencies.
      */
-    public function __construct(GoogleDriveManager $drive_manager)
+    public function __construct(GoogleDriveManager $drive_manager, FileSecurityService $fileSecurityService)
     {
         $this->drive_manager = $drive_manager;
+        $this->fileSecurityService = $fileSecurityService;
     }
 
     /**
@@ -81,7 +84,13 @@ class PublicEmployeeUploadController extends Controller
 
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
-                $originalName = $file->getClientOriginalName();
+                // Validate file security (extension, MIME type, content)
+                $violations = $this->fileSecurityService->validateFileUpload($file);
+                if (!empty($violations)) {
+                    return redirect()->back()->withErrors(['files' => $violations[0]['message']]);
+                }
+
+                $originalName = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
                 $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
                 \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('uploads', $file, $filename);
 
@@ -194,7 +203,13 @@ class PublicEmployeeUploadController extends Controller
 
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
-                $originalName = $file->getClientOriginalName();
+                // Validate file security (extension, MIME type, content)
+                $violations = $this->fileSecurityService->validateFileUpload($file);
+                if (!empty($violations)) {
+                    return redirect()->back()->withErrors(['files' => $violations[0]['message']]);
+                }
+
+                $originalName = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
                 $filename = \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
                 \Illuminate\Support\Facades\Storage::disk('public')->putFileAs('uploads', $file, $filename);
 
@@ -308,8 +323,14 @@ class PublicEmployeeUploadController extends Controller
      */
     protected function saveChunkedFile(\Illuminate\Http\UploadedFile $file, User $employee, Request $request)
     {
+        // Validate file security (extension, MIME type, content)
+        $violations = $this->fileSecurityService->validateFileUpload($file);
+        if (!empty($violations)) {
+            return response()->json(['error' => $violations[0]['message']], 422);
+        }
+
         $fileName = $this->createFilename($file);
-        $originalFilename = $file->getClientOriginalName();
+        $originalFilename = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
         $mimeType = $file->getMimeType();
         $fileSize = $file->getSize();
 

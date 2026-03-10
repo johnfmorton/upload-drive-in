@@ -28,12 +28,15 @@ class GoogleDriveManager
         // Use unified callback endpoint
         $client->setRedirectUri(route('google-drive.unified-callback'));
 
-        // Add user ID as state parameter to identify user after callback
-        $state = base64_encode(json_encode([
+        // Add signed state parameter to identify user after callback (prevents forgery)
+        $statePayload = json_encode([
             'user_id' => $user->id,
-            'user_type' => $user->role->value
-        ]));
-        
+            'user_type' => $user->role->value,
+            'timestamp' => now()->timestamp
+        ]);
+        $mac = hash_hmac('sha256', $statePayload, config('app.key'));
+        $state = base64_encode(json_encode(['payload' => $statePayload, 'mac' => $mac]));
+
         $client->setState($state);
 
         return $client->createAuthUrl();

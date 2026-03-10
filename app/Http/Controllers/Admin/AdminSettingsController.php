@@ -96,7 +96,8 @@ class AdminSettingsController extends Controller
         if (File::exists($path)) {
             $content = File::get($path);
 
-            // Ensure value is wrapped in quotes for .env
+            // Strip newlines to prevent .env injection, then wrap in quotes
+            $value = str_replace(["\n", "\r"], '', $value);
             $value = '"' . str_replace('"', '\\"', $value) . '"';
 
             // If key exists, replace its value

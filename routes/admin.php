@@ -20,10 +20,9 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 Route::post('/dismiss-welcome', [DashboardController::class, 'dismissWelcomeMessage'])->name('dismiss-welcome');
 
 // Queue Testing Routes for admin users
-// TODO: Re-add rate limiting middleware once container resolution is fixed
-Route::post('/queue/test', [DashboardController::class, 'testQueue'])->name('queue.test');
-Route::get('/queue/test/status', [DashboardController::class, 'checkQueueTestStatus'])->name('queue.test.status');
-Route::get('/queue/health', [DashboardController::class, 'getQueueHealth'])->name('queue.health');
+Route::post('/queue/test', [DashboardController::class, 'testQueue'])->name('queue.test')->middleware('throttle:5,1');
+Route::get('/queue/test/status', [DashboardController::class, 'checkQueueTestStatus'])->name('queue.test.status')->middleware('throttle:30,1');
+Route::get('/queue/health', [DashboardController::class, 'getQueueHealth'])->name('queue.health')->middleware('throttle:30,1');
 
 // Admin profile routes
 Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

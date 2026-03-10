@@ -57,11 +57,23 @@ class GoogleDriveToken extends Model
     ];
 
     /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<string>
+     */
+    protected $hidden = [
+        'access_token',
+        'refresh_token',
+    ];
+
+    /**
      * The attributes that should be cast to native types.
      *
      * @var array<string, string>
      */
     protected $casts = [
+        'access_token' => 'encrypted',
+        'refresh_token' => 'encrypted',
         'expires_at' => 'datetime',
         'scopes' => 'array',
         'last_refresh_attempt_at' => 'datetime',

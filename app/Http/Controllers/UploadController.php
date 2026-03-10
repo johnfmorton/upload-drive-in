@@ -15,10 +15,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Pion\Laravel\ChunkUpload\Save\ChunkSave;
-use App\Events\BatchUploadComplete; // <-- Add NEW Event import
+use App\Events\BatchUploadComplete;
+use App\Services\FileSecurityService;
 
 class UploadController extends Controller
 {
+    public function __construct(
+        private FileSecurityService $fileSecurityService
+    ) {}
+
     /**
      * Handles the file upload using chunks.
      *
@@ -97,15 +102,20 @@ class UploadController extends Controller
      */
     protected function saveFile(UploadedFile $file)
     {
+        // Validate file security (extension, MIME type, content)
+        $violations = $this->fileSecurityService->validateFileUpload($file);
+        if (!empty($violations)) {
+            return response()->json(['error' => $violations[0]['message']], 422);
+        }
+
         Log::info('saveFile method entered.', [
             'original_name' => $file->getClientOriginalName(),
             'size' => $file->getSize(),
             'mime' => $file->getMimeType(),
-            'temp_path' => $file->getRealPath() // Path where pion assembled the file
         ]);
 
         $fileName = $this->createFilename($file);
-        $originalFilename = $file->getClientOriginalName();
+        $originalFilename = $this->fileSecurityService->sanitizeFilename($file->getClientOriginalName());
         $mimeType = $file->getMimeType();
         $fileSize = $file->getSize();
 

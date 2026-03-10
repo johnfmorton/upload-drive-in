@@ -58,7 +58,19 @@ class GoogleDriveUnifiedCallbackController extends Controller
                 return $this->redirectWithError(__('messages.oauth_state_parameter_missing'));
             }
 
-            $stateData = json_decode(base64_decode($state), true);
+            $stateOuter = json_decode(base64_decode($state), true);
+            if (!$stateOuter || !isset($stateOuter['payload']) || !isset($stateOuter['mac'])) {
+                return $this->redirectWithError(__('messages.oauth_state_parameter_invalid'));
+            }
+
+            // Verify HMAC signature to prevent state forgery
+            $expectedMac = hash_hmac('sha256', $stateOuter['payload'], config('app.key'));
+            if (!hash_equals($expectedMac, $stateOuter['mac'])) {
+                Log::warning('OAuth callback state signature verification failed');
+                return $this->redirectWithError(__('messages.oauth_state_parameter_invalid'));
+            }
+
+            $stateData = json_decode($stateOuter['payload'], true);
             if (!$stateData || !isset($stateData['user_id'])) {
                 return $this->redirectWithError(__('messages.oauth_state_parameter_invalid'));
             }

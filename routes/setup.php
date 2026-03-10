@@ -13,22 +13,20 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', 'require.setup.enabled'])->prefix('setup')->name('setup.')->group(function () {
-    
+Route::middleware(['web', 'require.setup.enabled', 'throttle:setup'])->prefix('setup')->name('setup.')->group(function () {
+
     // Setup instructions route - accessible without authentication
     // This route handles its own redirect logic when setup is complete
     Route::get('/instructions', [\App\Http\Controllers\SetupInstructionsController::class, 'show'])->name('instructions');
-    
+
     // AJAX endpoints for real-time status updates
-    // These routes require CSRF protection (handled by VerifyCsrfToken middleware)
-    // TODO: Re-add rate limiting middleware once container resolution is fixed
     Route::post('/status/refresh', [\App\Http\Controllers\SetupInstructionsController::class, 'refreshStatus'])->name('status.refresh');
     Route::post('/status/refresh-step', [\App\Http\Controllers\SetupInstructionsController::class, 'refreshSingleStep'])->name('status.refresh-step');
     Route::get('/queue-worker/status', [\App\Http\Controllers\SetupInstructionsController::class, 'getQueueWorkerStatus'])->name('queue-worker.status');
-    
+
     // Setup disable endpoint
     Route::post('/disable', [\App\Http\Controllers\SetupInstructionsController::class, 'disableSetup'])->name('disable');
 
-    // Email test endpoint
-    Route::post('/email/test', [\App\Http\Controllers\SetupController::class, 'testEmail'])->name('email.test');
+    // Email test endpoint (extra rate limiting to prevent spam)
+    Route::post('/email/test', [\App\Http\Controllers\SetupController::class, 'testEmail'])->name('email.test')->middleware('throttle:3,5');
 });

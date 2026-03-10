@@ -10,9 +10,12 @@ class TrustProxies extends Middleware
     /**
      * The trusted proxies for this application.
      *
+     * Set to '*' if behind a trusted reverse proxy (e.g., AWS ALB, Cloudflare).
+     * For tighter security, replace with specific proxy IPs.
+     *
      * @var array<int, string>|string|null
      */
-    protected $proxies;
+    protected $proxies = '*';
 
     /**
      * The headers that should be used to detect proxies.

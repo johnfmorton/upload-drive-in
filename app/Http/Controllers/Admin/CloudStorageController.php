@@ -574,6 +574,8 @@ class CloudStorageController extends Controller
         $path = base_path('.env');
         if (File::exists($path)) {
             $content = File::get($path);
+            // Strip newlines to prevent .env injection, then wrap in quotes
+            $value = str_replace(["\n", "\r"], '', $value);
             $escapedValue = '"' . str_replace('"', '\\"', $value) . '"';
             if (preg_match("/^{$key}=.*/m", $content)) {
                 $content = preg_replace(

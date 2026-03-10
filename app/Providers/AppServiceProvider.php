@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 use App\Services\SetupService;
 
 class AppServiceProvider extends ServiceProvider
@@ -43,6 +44,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Set secure password defaults for all validation using Password::defaults()
+        Password::defaults(fn () => Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised());
+
         // Register model observers
         \App\Models\FileUpload::observe(\App\Observers\FileUploadObserver::class);
         \App\Models\DomainAccessRule::observe(\App\Observers\DomainAccessRuleObserver::class);
