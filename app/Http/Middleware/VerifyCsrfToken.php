@@ -13,6 +13,5 @@ class VerifyCsrfToken extends Middleware
      */
     protected $except = [
         'setup/ajax/refresh-csrf-token',
-        'setup/admin', // Temporary - for debugging CSRF issues
     ];
 }

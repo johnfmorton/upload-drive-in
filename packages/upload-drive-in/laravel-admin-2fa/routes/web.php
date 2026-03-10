@@ -9,12 +9,15 @@ Route::middleware(['web', 'auth', \App\Http\Middleware\AdminMiddleware::class])-
         ->name('admin.2fa.setup');
     Route::post('/admin/2fa/enable', [TwoFactorAuthController::class, 'enable'])
         ->name('admin.2fa.enable');
+    // 2FA Setup/Disable requires password re-confirmation
     Route::post('/admin/2fa/disable', [TwoFactorAuthController::class, 'disable'])
+        ->middleware('password.confirm')
         ->name('admin.2fa.disable');
 
-    // 2FA Verification Routes
+    // 2FA Verification Routes (rate limited to prevent brute-force)
     Route::get('/admin/2fa/verify', [TwoFactorAuthController::class, 'showVerifyForm'])
         ->name('admin.2fa.verify');
     Route::post('/admin/2fa/verify', [TwoFactorAuthController::class, 'verify'])
+        ->middleware('throttle:5,1')
         ->name('admin.2fa.verify.store');
 });

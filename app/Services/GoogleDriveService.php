@@ -384,14 +384,16 @@ class GoogleDriveService
         // Use unified callback endpoint for all user types
         $this->client->setRedirectUri(route('google-drive.unified-callback'));
 
-        // Add user ID and reconnection flag as state parameter to identify user after callback
-        $state = base64_encode(json_encode([
+        // Add signed state parameter to identify user after callback (prevents forgery)
+        $statePayload = json_encode([
             'user_id' => $user->id,
             'user_type' => $user->role->value,
             'is_reconnection' => $isReconnection,
             'timestamp' => now()->timestamp
-        ]));
-        
+        ]);
+        $mac = hash_hmac('sha256', $statePayload, config('app.key'));
+        $state = base64_encode(json_encode(['payload' => $statePayload, 'mac' => $mac]));
+
         $this->client->setState($state);
 
         return $this->client->createAuthUrl();
@@ -853,13 +855,13 @@ class GoogleDriveService
                     'attempt' => $attempt,
                     'operation_id' => $operationId,
                     'error_type' => $errorType->value,
-                    'response' => $newToken
+                    'response_keys' => is_array($newToken) ? array_keys($newToken) : 'non-array',
                 ]);
-                
+
                 Log::error('Google Drive token refresh failed - no access token in response', [
                     'user_id' => $token->user_id,
                     'operation_id' => $operationId,
-                    'response' => $newToken
+                    'response_keys' => is_array($newToken) ? array_keys($newToken) : 'non-array',
                 ]);
                 
                 // Mark the failure on the token

@@ -31,13 +31,9 @@ class User extends Authenticatable
         'email',
         'username',
         'password',
-        'role',
         'receive_upload_notifications',
         'owner_id',
         'google_drive_root_folder_id',
-        'two_factor_enabled',
-        'two_factor_secret',
-        'two_factor_recovery_codes',
         'two_factor_confirmed_at',
         'last_login_at',
         'preferred_cloud_provider',
@@ -79,7 +75,7 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $appends = ['login_url', 'upload_url'];
+    protected $appends = ['upload_url'];
 
     public function isAdmin(): bool
     {

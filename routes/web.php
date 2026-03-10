@@ -19,7 +19,7 @@ Route::post('/upload/{name}/batch-complete', [\App\Http\Controllers\PublicEmploy
 
 // Token-based login route (needs to be accessible to everyone)
 Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'loginViaToken'])
-    ->middleware('signed')
+    ->middleware(['signed', 'throttle:6,1'])
     ->name('login.via.token');
 
 
@@ -140,8 +140,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin/token-refresh')->name('admin
     Route::get('/status', [\App\Http\Controllers\Admin\TokenRefreshConfigController::class, 'getStatus'])->name('status');
 });
 
-// Cloud storage dashboard routes
-Route::middleware(['auth'])->group(function () {
+// Cloud storage dashboard routes (admin only)
+Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/dashboard/cloud-storage-status', [\App\Http\Controllers\CloudStorageDashboardController::class, 'getStatus'])
         ->middleware('token.refresh.rate.limit')
         ->name('admin.dashboard.cloud-storage-status');
@@ -151,7 +151,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/dashboard/cloud-storage/{provider}/health-check', [\App\Http\Controllers\CloudStorageDashboardController::class, 'checkHealth'])
         ->middleware('token.refresh.rate.limit')
         ->name('admin.dashboard.cloud-storage.health-check');
-    
+
     // File manager bulk retry routes
     Route::post('/admin/file-manager/bulk-retry', [\App\Http\Controllers\FileManagerBulkRetryController::class, 'bulkRetry'])
         ->name('admin.file-manager.bulk-retry');

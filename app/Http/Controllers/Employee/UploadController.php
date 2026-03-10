@@ -9,22 +9,22 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Models\FileUpload;
+use App\Services\FileSecurityService;
 use App\Services\GoogleDriveService;
 use App\Jobs\UploadToGoogleDrive;
 
 class UploadController extends Controller
 {
     protected GoogleDriveService $driveService;
+    protected FileSecurityService $fileSecurityService;
 
     /**
      * Construct the controller.
-     *
-     * @param  GoogleDriveService  $driveService
-     * @return void
      */
-    public function __construct(GoogleDriveService $driveService)
+    public function __construct(GoogleDriveService $driveService, FileSecurityService $fileSecurityService)
     {
         $this->driveService = $driveService;
+        $this->fileSecurityService = $fileSecurityService;
     }
 
     /**
@@ -203,6 +203,12 @@ class UploadController extends Controller
 
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
+                // Validate file security (extension, MIME type, content)
+                $violations = $this->fileSecurityService->validateFileUpload($file);
+                if (!empty($violations)) {
+                    return redirect()->back()->withErrors(['files' => $violations[0]['message']]);
+                }
+
                 $original_name = $file->getClientOriginalName();
                 $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
                 Storage::disk('public')->putFileAs('uploads', $file, $filename);

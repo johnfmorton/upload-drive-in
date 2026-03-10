@@ -93,7 +93,7 @@ class QueueWorkerPerformanceHeaders
             $response->headers->set('X-Queue-Worker-Timestamp', now()->toISOString());
             
             // Add cache performance statistics for debugging
-            if (config('app.debug') || $request->hasHeader('X-Debug-Performance')) {
+            if (config('app.debug')) {
                 $cacheStats = $this->performanceService->getCachePerformanceStats();
                 
                 $response->headers->set('X-Queue-Worker-Cache-Driver', $cacheStats['cache_driver'] ?? 'unknown');
