@@ -188,15 +188,24 @@ class User extends Authenticatable
     public function hasGoogleDriveConnected(): bool
     {
         $token = $this->googleDriveToken;
-        
+
         if (!$token) {
             return false;
         }
-        
-        // User is connected if:
-        // 1. Token hasn't expired, OR
-        // 2. Token has expired but can be refreshed (has refresh token and doesn't require user intervention)
-        return !$token->hasExpired() || $token->canBeRefreshed();
+
+        try {
+            // User is connected if:
+            // 1. Token hasn't expired, OR
+            // 2. Token has expired but can be refreshed (has refresh token and doesn't require user intervention)
+            return !$token->hasExpired() || $token->canBeRefreshed();
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            // Token was encrypted with a different APP_KEY and can't be decrypted
+            \Log::warning('Google Drive token decryption failed for user', [
+                'user_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     /**

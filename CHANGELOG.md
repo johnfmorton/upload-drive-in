@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Smart Vite dev server startup script (`scripts/start-vite.sh`) with interactive port conflict handling — offers to kill blocking processes, use an alternate port, or quit
+- `serve:smart` npm script for invoking the smart Vite startup
+
+### Changed
+- `make dev` now runs the smart Vite startup script and depends on the `build` target
+- Content Security Policy allows Bunny Fonts (`fonts.bunny.net`) for styles and fonts
+- Content Security Policy allows Vite dev server origin in local environment for HMR support
+
+### Fixed
+- File manager crash when no sort direction filter is provided (undefined array key in `FileManagerService`)
+- File manager controller return type missing `RedirectResponse`, causing a secondary TypeError on exceptions
+- Google Drive token decryption error (`DecryptException`) when APP_KEY changes — now gracefully returns "not connected"
+- Docker Compose `version` attribute warning in `.ddev/docker-compose.redis.yaml`
+
 ### Security
 - Fixed critical OAuth authentication bypass by adding HMAC-signed state parameters to Google Drive callbacks
 - Fixed SQL injection vulnerability in file manager sort direction parameter

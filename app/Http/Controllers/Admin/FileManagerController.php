@@ -60,7 +60,7 @@ class FileManagerController extends AdminController
     /**
      * Display a listing of files with enhanced filtering and pagination.
      */
-    public function index(Request $request): View|JsonResponse
+    public function index(Request $request): View|JsonResponse|RedirectResponse
     {
         try {
             $this->checkAdminAccess();

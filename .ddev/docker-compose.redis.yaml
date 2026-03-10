@@ -7,8 +7,6 @@
 # 3. Redis will be available at redis:6379 from within containers
 # 4. Configure your .env file with Redis settings (see documentation)
 
-version: '3.6'
-
 services:
   redis:
     image: redis:7-alpine

@@ -1,13 +1,13 @@
 .PHONY: dev build init
 
-dev:
+dev: build
 	ddev launch
 	ddev php artisan migrate
 	ddev exec php artisan queue:work &
 	@echo "Starting Vite dev server..."
 	@ddev exec pkill -f "vite" || true
 	@sleep 1
-	ddev exec npm run dev
+	ddev exec npm run serve:smart
 
 build:
 	ddev start

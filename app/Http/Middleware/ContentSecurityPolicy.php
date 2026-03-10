@@ -17,13 +17,18 @@ class ContentSecurityPolicy
             return $response;
         }
 
+        $viteOrigin = '';
+        if (app()->environment('local') && ($viteUrl = config('app.asset_url') ?: env('VITE_DEV_SERVER_URL'))) {
+            $viteOrigin = ' ' . rtrim($viteUrl, '/');
+        }
+
         $directives = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'" . $viteOrigin,
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.bunny.net" . $viteOrigin,
             "img-src 'self' data: blob:",
-            "font-src 'self' https://cdn.jsdelivr.net",
-            "connect-src 'self'",
+            "font-src 'self' https://cdn.jsdelivr.net https://fonts.bunny.net",
+            "connect-src 'self'" . ($viteOrigin ? " {$viteOrigin} wss:" : ''),
             "frame-src 'none'",
             "object-src 'none'",
             "base-uri 'self'",

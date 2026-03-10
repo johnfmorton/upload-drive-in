@@ -191,7 +191,7 @@ class FileManagerService
 
         // Apply sorting with enhanced options
         $sortBy = $filters['sort_by'] ?? 'created_at';
-        $sortDirection = in_array($filters['sort_direction'] ?? 'desc', ['asc', 'desc']) ? $filters['sort_direction'] : 'desc';
+        $sortDirection = in_array($filters['sort_direction'] ?? 'desc', ['asc', 'desc']) ? ($filters['sort_direction'] ?? 'desc') : 'desc';
 
         $allowedSortFields = [
             'created_at', 'updated_at', 'original_filename', 'file_size',
