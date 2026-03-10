@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Fixed critical OAuth authentication bypass by adding HMAC-signed state parameters to Google Drive callbacks
+- Fixed SQL injection vulnerability in file manager sort direction parameter
+- Integrated FileSecurityService (extension blocking, MIME validation, magic byte checking, filename sanitization) into all five upload controllers
+- Added encrypted casts for Google Drive access and refresh tokens stored at rest
+- Removed sensitive fields (`role`, `two_factor_secret`, `two_factor_recovery_codes`) from User model mass assignment
+- Fixed 2FA enforcement with timestamp-based verification and configurable timeout
+- Added Content Security Policy (CSP) headers middleware
+- Enforced session encryption by default
+- Added rate limiting to setup routes, 2FA verification, and queue test endpoints
+- Removed CSRF exclusion for setup admin route
+- Stripped newlines from .env value updates to prevent .env injection
+- Sanitized token refresh logging to avoid leaking credentials
+- Removed debug header bypass in queue worker performance middleware
+- Added password complexity requirements (mixed case, numbers, symbols, uncompromised check)
+- Required password re-confirmation for 2FA disable action
+- Restricted debug middleware logging to debug mode only
+- Added SECURITY_REVIEW.md with comprehensive findings and remediation details
+- Added ClamAV integration planning document (docs/CLAMAV_INTEGRATION.md)
+
 ## [1.0.0] - 2026-02-03
 
 ### Added
