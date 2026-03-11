@@ -19,7 +19,8 @@
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=outfit:400,500,600,700&display=swap" rel="stylesheet" />
 
     <!-- Scripts -->
     @php
@@ -44,15 +45,17 @@
 
 </head>
 
-<body class="font-sans text-gray-900 antialiased">
-    <div class="min-h-dvh flex flex-col justify-between">
+<body class="font-sans text-warm-900 antialiased">
+    <div class="min-h-dvh flex flex-col justify-between bg-cream-100 noise-overlay">
         <div
-            class="flex flex-col justify-center items-center pb-6 sm:pt-0 bg-gradient-to-b from-gray-100 to-gray-300 px-6 flex-1">
-            <div class="w-full max-w-md px-6 py-6 bg-white shadow-md overflow-hidden rounded-lg">
+            class="relative z-10 flex flex-col justify-center items-center pb-6 sm:pt-0 px-6 flex-1">
+            <div class="w-full max-w-md px-8 py-8 bg-white border border-cream-200 overflow-hidden rounded-2xl shadow-[0_2px_8px_rgba(45,42,38,0.06),0_8px_32px_rgba(45,42,38,0.04)]" style="animation: cardFloat 0.5s ease-out both;">
                 {{ $slot }}
             </div>
         </div>
-        @include('components.footer')
+        <div class="relative z-10">
+            @include('components.footer')
+        </div>
     </div>
     @stack('scripts')
 </body>

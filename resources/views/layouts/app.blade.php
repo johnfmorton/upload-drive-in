@@ -17,29 +17,32 @@
         @include('components.favicon')
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=outfit:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-dvh bg-gradient-to-b from-gray-100 to-gray-300 flex flex-col justify-between">
-            <div>
+    <body class="font-sans antialiased text-warm-900">
+        <div class="min-h-dvh bg-cream-100 flex flex-col justify-between noise-overlay">
+            <div class="relative z-10">
               @include('layouts.navigation')
               <!-- Page Heading -->
               @isset($header)
-                  <header class="bg-gradient-to-b from-gray-50 via-white to-white shadow">
+                  <header class="bg-white/70 backdrop-blur-sm border-b border-cream-200">
                       <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                           {{ $header }}
                       </div>
                   </header>
               @endisset
               <!-- Page Content -->
-              <main>
+              <main style="animation: pageReveal 0.4s ease-out both;">
                   {{ $slot }}
               </main>
             </div>
-            @include('components.footer')
+            <div class="relative z-10">
+                @include('components.footer')
+            </div>
         </div>
         @stack('scripts')
     </body>

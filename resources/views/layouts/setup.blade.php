@@ -19,7 +19,8 @@
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=outfit:400,500,600,700&display=swap" rel="stylesheet" />
 
     <!-- Scripts -->
     @php
@@ -46,20 +47,20 @@
     @endif
 </head>
 
-<body class="font-sans text-gray-900 antialiased">
-    <div class="min-h-dvh bg-gradient-to-b from-gray-100 to-gray-300">
+<body class="font-sans text-warm-900 antialiased">
+    <div class="min-h-dvh bg-cream-100">
         <!-- Setup Header -->
-        <header class="bg-white shadow-sm border-b border-gray-200">
+        <header class="bg-white/80 backdrop-blur-md border-b border-cream-200">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
                         <x-application-logo class="h-8 w-8" />
-                        <h1 class="text-xl font-semibold text-gray-900">
+                        <h1 class="text-xl font-semibold text-warm-900 font-display">
                             {{ config('app.name', 'Upload Drive-In') }} Setup
                         </h1>
                     </div>
                     @if(isset($currentStep) && isset($totalSteps))
-                        <div class="text-sm text-gray-500">
+                        <div class="text-sm text-warm-500">
                             Step {{ $currentStep }} of {{ $totalSteps }}
                         </div>
                     @endif
@@ -69,7 +70,7 @@
 
         <!-- Progress Indicator -->
         @if(isset($currentStep) && isset($totalSteps) && isset($steps))
-            <div class="bg-white border-b border-gray-200">
+            <div class="bg-white/80 backdrop-blur-sm border-b border-cream-200">
                 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <nav aria-label="Setup progress" role="progressbar" aria-valuenow="{{ $currentStep }}" aria-valuemin="1" aria-valuemax="{{ $totalSteps }}">
                         <ol class="flex items-center justify-between">
@@ -117,7 +118,7 @@
         <!-- Main Content -->
         <main class="py-8">
             <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                <div class="bg-white border border-cream-200 shadow-lg rounded-2xl overflow-hidden">
                     {{ $slot }}
                 </div>
             </div>
@@ -126,7 +127,7 @@
         <!-- Footer -->
         <footer class="mt-auto py-6">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center text-sm text-gray-500">
+                <div class="text-center text-sm text-warm-500">
                     <p>{{ config('app.name', 'Upload Drive-In') }} Initial Setup</p>
                 </div>
             </div>

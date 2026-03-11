@@ -1,4 +1,4 @@
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
+<nav x-data="{ open: false }" class="bg-white/80 backdrop-blur-md border-b border-cream-200 sticky top-0 z-40">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
@@ -64,7 +64,7 @@
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button
-                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                            class="inline-flex items-center px-3 py-2 border border-cream-200 text-sm leading-4 font-medium rounded-full text-warm-700 bg-cream-50 hover:bg-cream-200 hover:text-warm-900 focus:outline-none transition ease-in-out duration-200">
                             <div>{{ Auth::user()->name }}</div>
 
                             <div class="ml-1">
@@ -90,7 +90,7 @@
                             <x-dropdown-link :href="route('admin.employees.index')">
                                 {{ __('messages.employee_management') }}
                             </x-dropdown-link>
-                            <div class="border-t border-gray-100"></div>
+                            <div class="border-t border-cream-200"></div>
                             <x-dropdown-link :href="route('admin.cloud-storage.index')">
                                 {{ __('messages.nav_cloud_storage') }}
                             </x-dropdown-link>
@@ -117,14 +117,14 @@
                                 $requiresUserAuth = ($providerConfig['auth_type'] ?? 'oauth') === 'oauth';
                             @endphp
                             @if($requiresUserAuth)
-                                <div class="border-t border-gray-100"></div>
+                                <div class="border-t border-cream-200"></div>
                                 <x-dropdown-link :href="route('employee.cloud-storage.index', ['username' => auth()->user()->username])">
                                     {{ __('messages.nav_cloud_storage') }}
                                 </x-dropdown-link>
                             @endif
                         @endif
                         <!-- Authentication -->
-                        <div class="border-t border-gray-100"></div>
+                        <div class="border-t border-cream-200"></div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <x-dropdown-link :href="route('logout')"
@@ -140,7 +140,7 @@
             <!-- Hamburger -->
             <div class="-me-2 flex items-center sm:hidden">
                 <button @click="open = ! open"
-                    class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
+                    class="inline-flex items-center justify-center p-2 rounded-xl text-warm-500 hover:text-warm-700 hover:bg-cream-200 focus:outline-none focus:bg-cream-200 focus:text-warm-700 transition duration-200 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{ 'hidden': open, 'inline-flex': !open }" class="inline-flex"
                             stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -185,7 +185,7 @@
             </div>
 
             <!-- Responsive Settings Options -->
-            <div class="pt-4 pb-1 border-t border-gray-200">
+            <div class="pt-4 pb-1 border-t border-cream-200">
                 <div class="px-4">
                     <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
                     <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
@@ -199,7 +199,7 @@
                         <x-responsive-nav-link :href="route('admin.cloud-storage.index')">
                             {{ __('messages.nav_cloud_storage') }}
                         </x-responsive-nav-link>
-                        <div class="border-t border-gray-200 my-2"></div>
+                        <div class="border-t border-cream-200 my-2"></div>
                         <x-responsive-nav-link :href="route('admin.profile.edit')">
                             {{ __('Profile') }}
                         </x-responsive-nav-link>
@@ -221,14 +221,14 @@
                                 {{ __('Cloud Storage') }}
                             </x-responsive-nav-link>
                         @endif
-                        <div class="border-t border-gray-200 my-2"></div>
+                        <div class="border-t border-cream-200 my-2"></div>
                         <x-responsive-nav-link :href="route('employee.profile.edit', ['username' => auth()->user()->username])">
                             {{ __('Profile') }}
                         </x-responsive-nav-link>
                     @endif
 
                     <!-- Authentication -->
-                    <div class="border-t border-gray-200 my-2"></div>
+                    <div class="border-t border-cream-200 my-2"></div>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <x-responsive-nav-link :href="route('logout')"

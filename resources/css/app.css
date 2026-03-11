@@ -15,8 +15,29 @@
 }
 
 @theme {
-  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-display: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+
+  /* Warm Studio palette */
+  --color-cream-50: #FAF8F5;
+  --color-cream-100: #F5F0EB;
+  --color-cream-200: #EDE6DD;
+  --color-cream-300: #E0D6C9;
+  --color-cream-400: #C9BBAA;
+  --color-warm-50: #FEFCFA;
+  --color-warm-100: #FBF7F2;
+  --color-warm-200: #F5EDE3;
+  --color-warm-300: #E8DDD0;
+  --color-warm-400: #D4C5B3;
+  --color-warm-500: #B0A08A;
+  --color-warm-600: #8A7A66;
+  --color-warm-700: #625646;
+  --color-warm-800: #3D3530;
+  --color-warm-900: #2D2A26;
+  --color-accent-400: #F29B4B;
+  --color-accent-500: #E8772E;
+  --color-accent-600: #D06420;
 
   --animate-wiggle: wiggle 1s ease-in-out infinite;
   @keyframes wiggle {
@@ -30,9 +51,136 @@
   }
 }
 
+/* ========================================
+   WARM STUDIO DESIGN SYSTEM
+   ======================================== */
+
+/* Page-level entrance animation */
+@keyframes pageReveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cardFloat {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Warm surface card styling */
+.warm-card {
+  background: white;
+  border: 1px solid var(--color-cream-200);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(45, 42, 38, 0.04), 0 4px 12px rgba(45, 42, 38, 0.02);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.warm-card:hover {
+  box-shadow: 0 2px 8px rgba(45, 42, 38, 0.06), 0 8px 24px rgba(45, 42, 38, 0.04);
+}
+
+/* Heading typography using display font */
+.font-display {
+  font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Warm accent dot */
+.accent-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent-500);
+}
+
+/* Noise texture overlay for depth */
+.noise-overlay::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.015;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  z-index: 1;
+}
+
+/* ========================================
+   GLOBAL WARM OVERRIDES
+   Warms up existing Tailwind gray patterns
+   ======================================== */
+
+/* Warm up card containers: bg-white shadow sm:rounded-lg → warm rounded cards */
+main .bg-white.shadow,
+main .bg-white.shadow-sm,
+main .bg-white.shadow-md {
+  border: 1px solid var(--color-cream-200);
+  border-radius: 1rem !important;
+  box-shadow: 0 1px 3px rgba(45, 42, 38, 0.04), 0 4px 12px rgba(45, 42, 38, 0.02) !important;
+}
+
+/* Warm up stat cards with gray-50 backgrounds */
+main .bg-gray-50 {
+  background-color: var(--color-cream-50) !important;
+  border: 1px solid var(--color-cream-200);
+}
+
+main .bg-gray-50.rounded-lg {
+  border-radius: 0.75rem !important;
+}
+
+/* Warm up section headers */
+main h2.text-lg.font-medium.text-gray-900,
+main h2.font-semibold.text-xl.text-gray-800,
+main h3.text-lg.font-medium.text-gray-900 {
+  font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  color: var(--color-warm-900) !important;
+  letter-spacing: -0.01em;
+}
+
+/* Warm up muted text */
+main .text-gray-500 { color: var(--color-warm-500) !important; }
+main .text-gray-600 { color: var(--color-warm-600) !important; }
+
+/* Warm up gradient welcome banners */
+main .bg-gradient-to-r.from-blue-50.to-indigo-50 {
+  background: linear-gradient(135deg, var(--color-warm-100) 0%, var(--color-cream-100) 100%) !important;
+  border-color: var(--color-cream-300) !important;
+  border-radius: 1rem !important;
+}
+
+/* Warm up blue action buttons to warm dark */
+main a.bg-blue-600,
+main button.bg-blue-600 {
+  background-color: var(--color-warm-900) !important;
+  border-radius: 9999px !important;
+  text-transform: none !important;
+  letter-spacing: 0.02em !important;
+}
+
+main a.bg-blue-600:hover,
+main button.bg-blue-600:hover {
+  background-color: var(--color-warm-800) !important;
+}
+
+/* Warm up inline blue links */
+main a.text-blue-500 { color: var(--color-accent-500) !important; }
+main a.text-blue-500:hover { color: var(--color-accent-600) !important; }
+main a.text-blue-600 { color: var(--color-accent-500) !important; }
+main a.text-blue-600:hover { color: var(--color-accent-600) !important; }
+
+/* Warm up dividers */
+main .border-gray-100 { border-color: var(--color-cream-200) !important; }
+main .border-gray-200 { border-color: var(--color-cream-200) !important; }
+
+/* Warm up badges/pills */
+main .rounded-full.bg-yellow-100 {
+  background-color: #FEF3C7 !important;
+}
+
 /* Custom File Input Styles */
 :root {
-  --primary-color: #0964b0; /* Define primary color variable used in file input styles */
+  --primary-color: var(--brand-color, #E8772E);
 }
 
 input[type='file'] {
@@ -44,17 +192,17 @@ input[type='file'] {
 
 /* File Selector Button Styles */
 input[type='file']::file-selector-button {
-  border-radius: 4px;
+  border-radius: 9999px;
   padding: 0 16px;
   height: 40px;
   cursor: pointer;
   background-color: white;
-  border: 1px solid rgba(0, 0, 0, 0.16);
-  box-shadow: 0px 1px 0px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--color-cream-300);
+  box-shadow: 0px 1px 0px rgba(45, 42, 38, 0.03);
   margin-right: 16px;
-  width: 132px; /* Adjust width as needed for icon + label */
-  color: transparent; /* Hide default button text */
-  transition: background-color 0.2s ease-in-out; /* Add transition */
+  width: 132px;
+  color: transparent;
+  transition: all 0.2s ease-in-out;
 }
 
 /* Firefox specific fallback to show text */
@@ -65,11 +213,12 @@ input[type='file']::file-selector-button {
 }
 
 input[type='file']::file-selector-button:hover {
-  background-color: #f3f4f6; /* Use Tailwind gray-100 */
+  background-color: var(--color-cream-100);
+  border-color: var(--color-cream-400);
 }
 
 input[type='file']::file-selector-button:active {
-  background-color: #e5e7eb; /* Use Tailwind gray-200 */
+  background-color: var(--color-cream-200);
 }
 
 /* Faked icon using ::before */
@@ -110,8 +259,7 @@ input[type='file']:focus::file-selector-button {
   margin-left: 1px;
   width: 12px;
   height: 12px;
-  /* background-color: #0964b0; */
-  fill: #0964b0;
+  fill: var(--color-warm-600);
 }
 
 /* Setup Status Details */
@@ -264,11 +412,11 @@ input[type='file']:focus::file-selector-button {
 }
 
 .refresh-button {
-  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply bg-warm-900 hover:bg-warm-800 text-white font-medium py-2 px-4 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .refresh-button:disabled {
-  @apply bg-gray-400;
+  @apply bg-warm-400;
 }
 
 .loading-spinner {
@@ -511,8 +659,8 @@ input[type='file']:focus::file-selector-button {
 .modal-backdrop {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
+    background-color: rgba(45, 42, 38, 0.4);
+    backdrop-filter: blur(8px);
     transition: opacity 300ms ease-out;
 }
 
