@@ -9,12 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - S3 environment variable detection now works with cached config (`php artisan config:cache`) by replacing all `env()` calls with `config()` equivalents in the S3 configuration page, controller, and CloudStorageSetting model
+- Complete test suite repair: 125/125 test files now passing (was 5/167)
+- PHP 8.5 deprecation in database config (`PDO::MYSQL_ATTR_SSL_CA`)
+- `CloudStorageErrorHandlerFactory` constructor argument type mismatch
+- `ProactiveTokenRenewalService` undefined variable (`$refreshTime` used before assignment)
+- `CloudStorageMonitoringDashboardService` returning arrays instead of User objects
+- Missing `RecoveryResult` enum import
+- Duplicate language key `token_refresh_failed_description` causing placeholder leak
+- `EnvironmentFileService` not finding hidden backup files
+- User model missing `role` in `$fillable` array
+- Missing `admin.files.retry-failed` route
 
 ### Removed
-- 26 obsolete and broken test files targeting deleted source code, changed constructors, or containing function redeclaration errors
+- 42 obsolete and broken test files targeting deleted source code, changed constructors, or architectural mismatches
+- Stale Vite build artifacts from git tracking (`public/build/` is gitignored)
 
 ### Added
-- Test suite error report (`docs/test-suite-errors.md`) documenting remaining test failures with prioritized fix plan
+- Test suite repair report (`docs/test-suite-errors.md`)
 
 ## [1.0.1] - 2026-03-10
 
