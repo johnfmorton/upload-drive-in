@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-03-10
+
 ### Fixed
 - S3 environment variable detection now works with cached config (`php artisan config:cache`) by replacing all `env()` calls with `config()` equivalents in the S3 configuration page, controller, and CloudStorageSetting model
 - Complete test suite repair: 125/125 test files now passing (was 5/167)
@@ -26,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Test suite repair report (`docs/test-suite-errors.md`)
+
+[1.0.2]: https://github.com/johnfmorton/upload-drive-in/releases/tag/v1.0.2
 
 ## [1.0.1] - 2026-03-10
 
