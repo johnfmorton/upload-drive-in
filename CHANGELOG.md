@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Email templates redesigned with Warm Studio aesthetic to match the app UI — cream backgrounds (#FAF8F5), warm brown text (#625646), orange accent links (#E8772E)
+- Email buttons restyled as pill-shaped with warm dark (#2D2A26) primary and orange accent success/error variants
+- Email card containers now use 16px border radius and warm-tint shadows
+- Typography in emails upgraded to DM Sans (body) and Outfit (headings) via Bunny Fonts
+- Panel accents changed from dark blue-gray to orange (#E8772E)
+- Footer, subcopy borders, and table headers use warm cream tones
+
+### Fixed
+- Removed duplicate "thank you" message in client batch upload confirmation email
+- Standardized sign-off format across batch upload emails to use consistent comma-separated signature
+
 ## [1.1.0] - 2026-03-10
 
 ### Changed
