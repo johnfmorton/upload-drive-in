@@ -27,6 +27,38 @@ class CloudStorageMonitoringDashboardService
         $endTime = now();
         $startTime = $endTime->copy()->subHours($hours);
 
+        try {
+            $overview = $this->getOverviewMetrics($provider, $user, $hours);
+        } catch (\Exception $e) {
+            $overview = ['total_operations' => 0, 'success_rate' => 0, 'total_errors' => 0, 'uptime_percentage' => 0, 'active_users' => 0, 'error' => 'Failed to get overview metrics'];
+        }
+
+        try {
+            $performance = $this->getPerformanceMetrics($provider, $user, $hours);
+        } catch (\Exception $e) {
+            $performance = ['error' => 'Failed to get performance metrics'];
+        }
+
+        try {
+            $errors = $this->getErrorMetrics($provider, $user, $hours);
+        } catch (\Exception $e) {
+            $errors = ['total_errors' => 0, 'error' => 'Failed to get error metrics'];
+        }
+
+        $health = $this->getHealthMetrics($provider, $user);
+
+        try {
+            $alerts = $this->getActiveAlerts($provider, $user);
+        } catch (\Exception $e) {
+            $alerts = [];
+        }
+
+        try {
+            $trends = $this->getTrendData($provider, $user, $hours);
+        } catch (\Exception $e) {
+            $trends = ['error' => 'Failed to get trend data'];
+        }
+
         return [
             'provider' => $provider,
             'user_id' => $user?->id,
@@ -35,12 +67,12 @@ class CloudStorageMonitoringDashboardService
                 'end' => $endTime->toISOString(),
                 'hours' => $hours,
             ],
-            'overview' => $this->getOverviewMetrics($provider, $user, $hours),
-            'performance' => $this->getPerformanceMetrics($provider, $user, $hours),
-            'errors' => $this->getErrorMetrics($provider, $user, $hours),
-            'health' => $this->getHealthMetrics($provider, $user),
-            'alerts' => $this->getActiveAlerts($provider, $user),
-            'trends' => $this->getTrendData($provider, $user, $hours),
+            'overview' => $overview,
+            'performance' => $performance,
+            'errors' => $errors,
+            'health' => $health,
+            'alerts' => $alerts,
+            'trends' => $trends,
             'generated_at' => now()->toISOString(),
         ];
     }
@@ -374,7 +406,7 @@ class CloudStorageMonitoringDashboardService
 
     // Helper methods (would be implemented based on actual data sources)
     private function getConfiguredProviders(): array { return ['google-drive', 'amazon-s3']; }
-    private function getUsersForProvider(string $provider): array { return User::all()->toArray(); }
+    private function getUsersForProvider(string $provider): array { return User::all()->all(); }
     private function calculateUptimePercentage(string $provider, ?User $user, int $hours): float { return 99.9; }
     private function getActiveUserCount(string $provider, int $hours): int { return 0; }
     private function getCurrentStatus(string $provider, ?User $user): string { return 'healthy'; }

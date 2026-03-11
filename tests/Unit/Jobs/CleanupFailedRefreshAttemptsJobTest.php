@@ -154,10 +154,13 @@ class CleanupFailedRefreshAttemptsJobTest extends TestCase
 
     public function test_cleans_up_orphaned_health_records(): void
     {
-        // Create health record for non-existent user
+        // Create a user then delete it to create an orphaned health record
+        $tempUser = User::factory()->create();
         $healthRecord = CloudStorageHealthStatus::factory()->create([
-            'user_id' => 99999 // Non-existent user ID
+            'user_id' => $tempUser->id
         ]);
+        // Delete user to orphan the health record (bypass FK cascade by using raw delete)
+        \Illuminate\Support\Facades\DB::table('users')->where('id', $tempUser->id)->delete();
 
         $job = new CleanupFailedRefreshAttemptsJob();
         $job->handle();
@@ -230,9 +233,11 @@ class CleanupFailedRefreshAttemptsJobTest extends TestCase
             'expires_at' => now()->addHours(2)
         ]);
 
+        $tempUser = User::factory()->create();
         $orphanedHealth = CloudStorageHealthStatus::factory()->create([
-            'user_id' => 88888 // Non-existent user
+            'user_id' => $tempUser->id
         ]);
+        \Illuminate\Support\Facades\DB::table('users')->where('id', $tempUser->id)->delete();
 
         $job = new CleanupFailedRefreshAttemptsJob();
         $job->handle();

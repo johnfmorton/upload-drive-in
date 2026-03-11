@@ -118,8 +118,9 @@ class CloudStorageConnectionAlertTest extends TestCase
 
         $mailMessage = $notification->toMail($this->user);
         
-        // Employee users also get the admin cloud-storage URL as their reconnection link
-        $this->assertStringContainsString('admin/cloud-storage', $mailMessage->actionUrl);
+        // Employee users get the employee cloud-storage URL as their reconnection link
+        $this->assertStringContainsString('employee/', $mailMessage->actionUrl);
+        $this->assertStringContainsString('cloud-storage', $mailMessage->actionUrl);
     }
 
     public function test_notification_can_be_queued(): void

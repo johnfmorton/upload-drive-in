@@ -93,12 +93,13 @@ class CloudStorageFactoryTest extends TestCase
         $user = User::factory()->make();
         $providerClass = get_class($this->mockProvider);
         $config = ['client_id' => 'test'];
+        $defaultProvider = config('cloud-storage.default', 'google-drive');
 
-        $this->factory->register('google-drive', $providerClass);
+        $this->factory->register($defaultProvider, $providerClass);
 
         $this->mockConfigService
             ->shouldReceive('getEffectiveConfig')
-            ->with('google-drive')
+            ->with($defaultProvider)
             ->twice()
             ->andReturn($config);
 

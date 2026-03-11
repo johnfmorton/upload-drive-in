@@ -115,9 +115,9 @@ class CloudStorageErrorHandlerFactory
             return $handler;
         } catch (\Exception $e) {
             throw new CloudStorageException(
-                "Failed to create error handler for provider '{$providerName}': " . $e->getMessage(),
-                0,
-                $e
+                message: "Failed to create error handler for provider '{$providerName}': " . $e->getMessage(),
+                code: 0,
+                previous: $e
             );
         }
     }

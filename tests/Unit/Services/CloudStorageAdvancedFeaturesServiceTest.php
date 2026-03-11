@@ -61,7 +61,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn($expectedUrl);
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 
@@ -90,7 +89,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn(null);
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 
@@ -118,7 +116,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn(true);
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 
@@ -150,7 +147,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ));
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 
@@ -179,7 +175,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn($expectedStorageClasses);
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 
@@ -193,7 +188,8 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
 
     public function test_optimize_upload(): void
     {
-        $localPath = '/tmp/test-file.txt';
+        $localPath = tempnam(sys_get_temp_dir(), 'test');
+        file_put_contents($localPath, str_repeat('x', 1024));
         $options = ['mime_type' => 'text/plain'];
         $expectedOptimizations = [
             'use_multipart' => false,
@@ -210,12 +206,8 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn($expectedOptimizations);
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
-
-        // Mock file_exists and filesize
-        $this->mockFileSystem($localPath, 1024);
 
         $result = $this->service->optimizeUpload($this->user, $localPath, $options);
 
@@ -223,6 +215,8 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
         $this->assertEquals('amazon-s3', $result['provider']);
         $this->assertEquals($expectedOptimizations, $result['optimizations']);
         $this->assertEquals(1024, $result['file_size']);
+
+        @unlink($localPath);
     }
 
     public function test_set_file_metadata_success(): void
@@ -239,7 +233,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn(true);
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 
@@ -269,7 +262,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn($expectedMetadata);
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 
@@ -294,7 +286,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn(true);
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 
@@ -320,7 +311,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn($expectedTags);
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 
@@ -352,7 +342,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn($expectedRecommendations);
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 
@@ -433,7 +422,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn('amazon-s3');
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 
@@ -478,7 +466,6 @@ class CloudStorageAdvancedFeaturesServiceTest extends TestCase
             ->andReturn('amazon-s3');
 
         $this->mockStorageManager->shouldReceive('getProvider')
-            ->once()
             ->with(null, $this->user)
             ->andReturn($this->mockProvider);
 

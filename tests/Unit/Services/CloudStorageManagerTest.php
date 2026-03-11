@@ -36,21 +36,23 @@ class CloudStorageManagerTest extends TestCase
 
     public function test_get_provider_returns_default_when_no_provider_specified(): void
     {
+        $defaultProvider = config('cloud-storage.default', 'google-drive');
+
         $this->mockConfigService
             ->shouldReceive('isProviderConfigured')
-            ->with('google-drive')
+            ->with($defaultProvider)
             ->once()
             ->andReturn(true);
 
         $this->mockFactory
             ->shouldReceive('createForUser')
-            ->with(null, 'google-drive')
+            ->with(null, $defaultProvider)
             ->once()
             ->andReturn($this->mockProvider);
 
         $this->mockProvider
             ->shouldReceive('getProviderName')
-            ->andReturn('google-drive');
+            ->andReturn($defaultProvider);
 
         $result = $this->manager->getProvider();
 
@@ -124,23 +126,24 @@ class CloudStorageManagerTest extends TestCase
 
     public function test_get_user_provider_falls_back_to_default_when_no_preference(): void
     {
+        $defaultProvider = config('cloud-storage.default', 'google-drive');
         $user = User::factory()->make(['preferred_cloud_provider' => null]);
 
         $this->mockConfigService
             ->shouldReceive('isProviderConfigured')
-            ->with('google-drive')
+            ->with($defaultProvider)
             ->once()
             ->andReturn(true);
 
         $this->mockFactory
             ->shouldReceive('createForUser')
-            ->with($user, 'google-drive')
+            ->with($user, $defaultProvider)
             ->once()
             ->andReturn($this->mockProvider);
 
         $this->mockProvider
             ->shouldReceive('getProviderName')
-            ->andReturn('google-drive');
+            ->andReturn($defaultProvider);
 
         $result = $this->manager->getUserProvider($user);
 

@@ -192,16 +192,22 @@ class QueueTestServiceEnhancedErrorDetectionTest extends TestCase
         $testingStatus = QueueWorkerStatus::testing('test_job_123', 'Testing...');
         Cache::put(QueueWorkerStatus::CACHE_KEY, $testingStatus->toArray(), 3600);
 
-        // Mock a timeout job status
-        $this->mockTestJobStatus('test_job_123', ['status' => 'timeout']);
-
-        // Mock queue health for worker not running scenario
-        $this->mockQueueHealthMetrics([
+        // Create a single mock that stubs all needed methods
+        $securityService = app(QueueWorkerTestSecurityService::class);
+        $performanceService = app(QueueWorkerPerformanceService::class);
+        $mock = $this->getMockBuilder(QueueTestService::class)
+            ->setConstructorArgs([$securityService, $performanceService])
+            ->onlyMethods(['checkTestJobStatus', 'getQueueHealthMetrics', 'getCachedQueueWorkerStatus'])
+            ->getMock();
+        $mock->method('getCachedQueueWorkerStatus')->willReturn($testingStatus);
+        $mock->method('checkTestJobStatus')->with('test_job_123')->willReturn(['status' => 'timeout']);
+        $mock->method('getQueueHealthMetrics')->willReturn([
             'job_statistics' => [
                 'pending_jobs' => 0,
                 'failed_jobs_1h' => 0
             ]
         ]);
+        $this->queueTestService = $mock;
 
         $result = $this->queueTestService->checkQueueWorkerTimeout('test_job_123');
 

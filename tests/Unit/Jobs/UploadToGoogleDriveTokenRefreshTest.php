@@ -43,6 +43,8 @@ class UploadToGoogleDriveTokenRefreshTest extends TestCase
         $provider = Mockery::mock(CloudStorageProviderInterface::class);
         $provider->shouldReceive('getProviderName')->andReturn('google-drive');
         $provider->shouldReceive('hasValidConnection')->andReturn(true);
+        $provider->shouldReceive('getAuthenticationType')->andReturn('oauth');
+        $provider->shouldReceive('getStorageModel')->andReturn('per-user');
         return $provider;
     }
 
@@ -77,7 +79,10 @@ class UploadToGoogleDriveTokenRefreshTest extends TestCase
         $provider->shouldReceive('uploadFile')->andReturn('file-id-123');
 
         $errorHandler = $this->createMockErrorHandler();
-        
+        $errorHandler->shouldReceive('classifyError')->andReturn(\App\Enums\CloudStorageErrorType::UNKNOWN_ERROR);
+        $errorHandler->shouldReceive('handleError')->andReturn(null);
+        $errorHandler->shouldReceive('getUserMessage')->andReturn('An error occurred');
+
         $storageManager->shouldReceive('getUserProvider')->with($user)->andReturn($provider);
         $storageManager->shouldReceive('getErrorHandler')->with('google-drive')->andReturn($errorHandler);
 

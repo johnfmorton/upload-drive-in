@@ -37,8 +37,10 @@ class ClientManagementControllerTest extends TestCase
         $this->clientUserService = Mockery::mock(ClientUserService::class);
         $this->controller = new ClientManagementController();
         
-        Auth::shouldReceive('user')->andReturn($this->employee);
-        Auth::shouldReceive('id')->andReturn($this->employee->id);
+        $this->actingAs($this->employee);
+
+        // Set a previous URL for redirect()->back() to work
+        $this->app['session']->setPreviousUrl('/employee/test/clients');
     }
 
     protected function tearDown(): void
@@ -171,10 +173,12 @@ class ClientManagementControllerTest extends TestCase
     public function test_store_creates_client_with_invitation()
     {
         Mail::fake();
-        URL::shouldReceive('temporarySignedRoute')
-            ->once()
+        $urlGenerator = $this->app['url'];
+        $mock = Mockery::mock($urlGenerator)->makePartial();
+        $mock->shouldReceive('temporarySignedRoute')
             ->with('login.via.token', Mockery::any(), ['user' => 1])
             ->andReturn('http://example.com/login/token');
+        $this->app->instance('url', $mock);
         
         $clientUser = User::factory()->make([
             'id' => 1,
@@ -235,10 +239,12 @@ class ClientManagementControllerTest extends TestCase
         Mail::shouldReceive('to')
             ->andThrow(new \Exception('Email sending failed'));
         
-        URL::shouldReceive('temporarySignedRoute')
-            ->once()
+        $urlGenerator = $this->app['url'];
+        $mock = Mockery::mock($urlGenerator)->makePartial();
+        $mock->shouldReceive('temporarySignedRoute')
             ->with('login.via.token', Mockery::any(), ['user' => 1])
             ->andReturn('http://example.com/login/token');
+        $this->app->instance('url', $mock);
         
         $clientUser = User::factory()->make([
             'id' => 1,
@@ -326,9 +332,11 @@ class ClientManagementControllerTest extends TestCase
     public function test_store_accepts_valid_action_create_and_invite()
     {
         Mail::fake();
-        URL::shouldReceive('temporarySignedRoute')
-            ->once()
+        $urlGenerator = $this->app['url'];
+        $mock = Mockery::mock($urlGenerator)->makePartial();
+        $mock->shouldReceive('temporarySignedRoute')
             ->andReturn('http://example.com/login/token');
+        $this->app->instance('url', $mock);
         
         $clientUser = User::factory()->make([
             'id' => 1,
@@ -385,9 +393,11 @@ class ClientManagementControllerTest extends TestCase
     public function test_store_returns_correct_status_for_create_and_invite_action()
     {
         Mail::fake();
-        URL::shouldReceive('temporarySignedRoute')
-            ->once()
+        $urlGenerator = $this->app['url'];
+        $mock = Mockery::mock($urlGenerator)->makePartial();
+        $mock->shouldReceive('temporarySignedRoute')
             ->andReturn('http://example.com/login/token');
+        $this->app->instance('url', $mock);
         
         $clientUser = User::factory()->make([
             'id' => 1,

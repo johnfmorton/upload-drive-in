@@ -155,6 +155,9 @@ class ProactiveTokenRenewalService
     {
         $operationId = uniqid('schedule_refresh_', true);
         
+        // Calculate when to schedule the refresh (15 minutes before expiration)
+        $refreshTime = $expiresAt->copy()->subMinutes(self::PROACTIVE_REFRESH_MINUTES);
+
         Log::info('Scheduling preemptive token refresh', [
             'user_id' => $user->id,
             'provider' => $provider,
@@ -164,9 +167,9 @@ class ProactiveTokenRenewalService
 
         // Log proactive refresh scheduling
         $this->monitoringService->logProactiveRefreshScheduled(
-            $user, 
-            $provider, 
-            $refreshTime, 
+            $user,
+            $provider,
+            $refreshTime,
             'token_expiring_soon',
             ['expires_at' => $expiresAt->toISOString(), 'operation_id' => $operationId]
         );
@@ -180,9 +183,6 @@ class ProactiveTokenRenewalService
             ]);
             return;
         }
-
-        // Calculate when to schedule the refresh (15 minutes before expiration)
-        $refreshTime = $expiresAt->copy()->subMinutes(self::PROACTIVE_REFRESH_MINUTES);
         
         // Don't schedule if the refresh time is in the past
         if ($refreshTime->isPast()) {
