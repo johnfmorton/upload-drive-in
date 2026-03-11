@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-10
+
 ### Changed
 - Redesigned UI with "Warm Studio" aesthetic — cream/sand backgrounds, warm shadows, and refined color palette replacing generic gray gradients
 - Typography upgraded to DM Sans (body) and Outfit (display headings) for a distinctive, modern feel
@@ -17,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Global CSS overrides warm up existing Tailwind gray patterns (cards, text, dividers, action buttons) across all views
 - Page and card entrance animations for smoother transitions
 - Subtle noise texture overlay for visual depth
+
+[1.1.0]: https://github.com/johnfmorton/upload-drive-in/releases/tag/v1.1.0
 
 ## [1.0.2] - 2026-03-10
 
