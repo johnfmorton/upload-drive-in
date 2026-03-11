@@ -17,9 +17,7 @@
 @endforeach
 </ul>
 
-{{ __('messages.upload_thank_you') }}
-
-{{ __('messages.email_signature') }}<br>
+{{ __('messages.email_signature') }},<br>
 {{ config('app.name') }}
 
 {{-- Unsubscribe Link button --}}

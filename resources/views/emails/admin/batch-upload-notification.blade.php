@@ -16,6 +16,6 @@
 @endif
 @endforeach
 
-{{ __('messages.upload_thank_you') }}<br>
+{{ __('messages.email_signature') }},<br>
 {{ config('app.name') }}
 </x-mail::message>

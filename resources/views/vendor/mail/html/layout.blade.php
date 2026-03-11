@@ -7,6 +7,8 @@
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
 <style>
+@import url('https://fonts.bunny.net/css?family=dm-sans:400,500,700|outfit:500,700');
+
 @media only screen and (max-width: 600px) {
 .inner-body {
 width: 100% !important;

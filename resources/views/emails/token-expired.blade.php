@@ -5,52 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ __('messages.token_expired_heading', ['provider' => $providerName]) }}</title>
     <style>
+        @import url('https://fonts.bunny.net/css?family=dm-sans:400,500,700|outfit:500,700');
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: #625646;
+            background-color: #FAF8F5;
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
         }
+        h1, h3 {
+            font-family: 'Outfit', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        h1 {
+            color: #2D2A26;
+        }
+        h3 {
+            color: #3D3530;
+        }
         .header {
-            background-color: #f8f9fa;
+            background-color: #F5F0EB;
             padding: 20px;
-            border-radius: 8px;
+            border-radius: 16px;
+            border: 1px solid #E0D6C9;
             margin-bottom: 20px;
             text-align: center;
         }
         .alert {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
+            background-color: #FFF8F0;
+            border: 1px solid #E8772E;
+            color: #625646;
             padding: 15px;
             border-radius: 5px;
             margin-bottom: 20px;
         }
         .button {
             display: inline-block;
-            background-color: #007bff;
+            background-color: #2D2A26;
             color: white;
             padding: 12px 24px;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 9999px;
             margin: 10px 0;
-        }
-        .button:hover {
-            background-color: #0056b3;
         }
         .footer {
             margin-top: 30px;
             padding-top: 20px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid #EDE6DD;
             font-size: 14px;
-            color: #666;
+            color: #B0A08A;
         }
         .steps {
-            background-color: #f8f9fa;
+            background-color: #F5F0EB;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 12px;
             margin: 20px 0;
         }
         .steps ol {
@@ -59,6 +69,9 @@
         }
         .steps li {
             margin-bottom: 8px;
+        }
+        a {
+            color: #E8772E;
         }
     </style>
 </head>
@@ -105,7 +118,7 @@
 
     <div class="footer">
         <p><strong>{{ __('messages.token_expired_footer_important', ['provider' => $providerName]) }}</strong></p>
-        
+
         <p>{{ __('messages.token_expired_footer_automated') }}</p>
     </div>
 </body>

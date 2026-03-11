@@ -5,61 +5,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ __('messages.connection_restored_heading', ['provider' => $providerName]) }}</title>
     <style>
+        @import url('https://fonts.bunny.net/css?family=dm-sans:400,500,700|outfit:500,700');
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: #625646;
+            background-color: #FAF8F5;
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
         }
+        h1, h3, h4 {
+            font-family: 'Outfit', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        h1 {
+            color: #2D2A26;
+        }
+        h3, h4 {
+            color: #3D3530;
+        }
         .header {
-            background-color: #d4edda;
+            background-color: #F5F0EB;
             padding: 20px;
-            border-radius: 8px;
+            border-radius: 16px;
+            border: 1px solid #E0D6C9;
             margin-bottom: 20px;
             text-align: center;
-            border: 1px solid #c3e6cb;
         }
         .success {
-            background-color: #d1ecf1;
-            border: 1px solid #bee5eb;
-            color: #0c5460;
+            background-color: #FFF8F0;
+            border: 1px solid #E8772E;
+            color: #625646;
             padding: 15px;
             border-radius: 5px;
             margin-bottom: 20px;
         }
         .button {
             display: inline-block;
-            background-color: #28a745;
+            background-color: #2D2A26;
             color: white;
             padding: 12px 24px;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 9999px;
             margin: 10px 0;
-        }
-        .button:hover {
-            background-color: #218838;
         }
         .footer {
             margin-top: 30px;
             padding-top: 20px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid #EDE6DD;
             font-size: 14px;
-            color: #666;
+            color: #B0A08A;
         }
         .status-summary {
-            background-color: #f8f9fa;
+            background-color: #F5F0EB;
             padding: 15px;
             border-radius: 5px;
             margin: 20px 0;
-            border-left: 4px solid #28a745;
+            border-left: 4px solid #E8772E;
         }
         .next-steps {
-            background-color: #e7f3ff;
+            background-color: #F5F0EB;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 12px;
             margin: 20px 0;
+        }
+        a {
+            color: #E8772E;
         }
     </style>
 </head>
@@ -121,7 +133,7 @@
     <div class="footer">
         <p><strong>{{ __('messages.connection_restored_footer_timestamp', ['timestamp' => now()->format('Y-m-d H:i:s T')]) }}</strong></p>
         <p><strong>{{ __('messages.connection_restored_footer_service_status') }}</strong></p>
-        
+
         <p>{{ __('messages.connection_restored_footer_thanks') }}</p>
     </div>
 </body>
