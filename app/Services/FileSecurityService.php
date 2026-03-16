@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\FileUpload;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -13,6 +14,10 @@ use Illuminate\Support\Str;
  */
 class FileSecurityService
 {
+    public function __construct(
+        private ClamAvService $clamAv = new ClamAvService()
+    ) {}
+
     /**
      * Dangerous file extensions that should be blocked.
      */
@@ -90,6 +95,25 @@ class FileSecurityService
         if ($file->getSize() <= self::MAX_SCAN_SIZE) {
             $contentViolations = $this->scanFileContent($file->getRealPath());
             $violations = array_merge($violations, $contentViolations);
+        }
+
+        // ClamAV virus scan (runs last since it's the most expensive check)
+        if (empty($violations)) {
+            $scanResult = $this->clamAv->scan($file->getRealPath());
+
+            if (! $scanResult['clean']) {
+                $violations[] = [
+                    'type' => 'virus_detected',
+                    'message' => 'The uploaded file failed security scanning and cannot be accepted.',
+                    'severity' => 'critical',
+                ];
+
+                Log::warning('Virus detected in uploaded file', [
+                    'original_name' => $file->getClientOriginalName(),
+                    'virus' => $scanResult['virus'],
+                    'size' => $file->getSize(),
+                ]);
+            }
         }
 
         return $violations;

@@ -19,6 +19,9 @@ class FileSecurityServiceTest extends TestCase
     {
         parent::setUp();
 
+        // Disable ClamAV for existing tests (no daemon in CI)
+        config(['filesecurity.clamav.enabled' => false]);
+
         $this->fileSecurityService = new FileSecurityService();
         Storage::fake('public');
     }

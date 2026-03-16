@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- ClamAV virus scanning integration — optional antivirus scanning for uploaded files via ClamAV daemon (socket or TCP), with fail-open/fail-closed modes
+- `ClamAvService` for communicating with the ClamAV daemon using the INSTREAM protocol
+- `config/filesecurity.php` for ClamAV configuration (enabled, connection type, timeout, max file size, fail mode)
+- ClamAV environment variables in `.env.example`
+- Unit tests for ClamAV service (disabled state, missing files, oversized files, fail-open, fail-closed, unreachable daemon)
+- Comprehensive `DOCUMENTATION.md` covering project setup, configuration, architecture, features, deployment, and ClamAV instructions
+
 ### Changed
 - Email templates redesigned with Warm Studio aesthetic to match the app UI — cream backgrounds (#FAF8F5), warm brown text (#625646), orange accent links (#E8772E)
 - Email buttons restyled as pill-shaped with warm dark (#2D2A26) primary and orange accent success/error variants
