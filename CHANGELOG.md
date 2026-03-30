@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `.gitignore` to exclude build output, screenshots, Playwright logs, and AI tool directories
 - 21 implementation summary docs (fix reports, code reviews, optimization logs) — replaced by git history
 
+### Security
+- Updated `aws/aws-sdk-php` to 3.374.2 — fixes CloudFront policy document injection (CVE high)
+- Updated `phpseclib/phpseclib` — fixes AES-CBC padding oracle timing attack (CVE high)
+- Updated `league/commonmark` — fixes embed extension domain bypass and raw HTML filter bypass (CVE medium)
+- Updated `firebase/php-jwt` to 7.x (via `google/apiclient`) — fixes weak encryption (CVE low)
+- Updated `picomatch` to 4.0.4 — fixes method injection in POSIX character classes (CVE medium)
+
 ### Changed
 - Email templates redesigned with Warm Studio aesthetic to match the app UI — cream backgrounds (#FAF8F5), warm brown text (#625646), orange accent links (#E8772E)
 - Email buttons restyled as pill-shaped with warm dark (#2D2A26) primary and orange accent success/error variants
