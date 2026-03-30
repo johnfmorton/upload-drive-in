@@ -364,7 +364,7 @@
     'nav_logo_alt' => ':company_name Logo',
 
     // Email Validation Form
-    'email_validation_title' => 'Upload files to :company_name',
+    'email_validation_title' => 'Upload files to',
     'email_validation_subtitle' => 'Validate your email address to log in.',
     'already_have_account' => 'Already have an account?',
     'sign_in' => 'Sign In',

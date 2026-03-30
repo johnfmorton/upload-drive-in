@@ -862,7 +862,7 @@ return [
     'nav_validation_success' => 'Sie erhalten eine E-Mail mit einem Link zur Validierung Ihrer E-Mail-Adresse. Durch Klicken auf den Link, den wir Ihnen senden, können Sie Dateien zu :company_name hochladen.',
     'nav_validation_error' => 'Bei der Bearbeitung Ihrer Anfrage ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.',
     'nav_logo_alt' => ':company_name Logo',
-    'email_validation_title' => 'Dateien zu :company_name hochladen',
+    'email_validation_title' => 'Dateien hochladen zu',
     'email_validation_subtitle' => 'Beginnen Sie mit der Validierung Ihrer E-Mail-Adresse.',
     'already_have_account' => 'Haben Sie bereits ein Konto?',
     'sign_in' => 'Anmelden',

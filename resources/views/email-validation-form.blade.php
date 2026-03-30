@@ -10,7 +10,8 @@
             <div class="w-8 h-px bg-accent-500 mx-auto mb-8"></div>
 
             <h1 class="font-display text-4xl sm:text-5xl text-warm-900 mb-4 tracking-tight leading-[1.1]">
-                {{ __('messages.email_validation_title', ['company_name' => config('app.company_name')]) }}
+                {{ __('messages.email_validation_title') }}<br>
+                {{ config('app.company_name') }}
             </h1>
             <p class="text-warm-500 text-base max-w-sm mx-auto leading-relaxed">{{ __('messages.email_validation_subtitle') }}</p>
         </div>

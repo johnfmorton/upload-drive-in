@@ -883,7 +883,7 @@ return [
     'nav_validation_success' => 'Recibirás un correo electrónico con un enlace para validar tu dirección de correo. Al hacer clic en el enlace que te enviamos, podrás subir archivos a :company_name.',
     'nav_validation_error' => 'Hubo un error procesando tu solicitud. Por favor intenta de nuevo.',
     'nav_logo_alt' => 'Logo de :company_name',
-    'email_validation_title' => 'Subir archivos a :company_name',
+    'email_validation_title' => 'Subir archivos a',
     'email_validation_subtitle' => 'Comienza validando tu dirección de correo electrónico.',
     'already_have_account' => '¿Ya tienes una cuenta?',
     'sign_in' => 'Iniciar Sesión',

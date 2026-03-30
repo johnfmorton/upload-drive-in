@@ -1008,7 +1008,7 @@ return [
     'nav_validation_success' => 'Vous recevrez un e-mail avec un lien pour valider votre adresse e-mail. En cliquant sur le lien que nous vous envoyons, vous pourrez télécharger des fichiers vers :company_name.',
     'nav_validation_error' => 'Une erreur s\'est produite lors du traitement de votre demande. Veuillez réessayer.',
     'nav_logo_alt' => 'Logo de :company_name',
-    'email_validation_title' => 'Télécharger des fichiers vers :company_name',
+    'email_validation_title' => 'Télécharger des fichiers vers',
     'email_validation_subtitle' => 'Commencez par valider votre adresse e-mail.',
     'already_have_account' => 'Vous avez déjà un compte ?',
     'sign_in' => 'Se Connecter',
