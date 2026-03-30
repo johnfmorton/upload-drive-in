@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-03-30
+
 ### Added
 - ClamAV virus scanning integration — optional antivirus scanning for uploaded files via ClamAV daemon (socket or TCP), with fail-open/fail-closed modes
 - `ClamAvService` for communicating with the ClamAV daemon using the INSTREAM protocol
@@ -16,10 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Corrected "Upload Drive-in" to "Upload Drive-In" across all views, language files, legal pages, manifest, and docs
+- Removed duplicate "thank you" message in client batch upload confirmation email
+- Standardized sign-off format across batch upload emails to use consistent comma-separated signature
 
 ### Changed
 - Rewrote `README.md` as a project showcase with features, tech stack, architecture overview, and quick start
 - Moved Google Drive API setup instructions from README to `docs/setup/google-drive-api-setup.md`
+- Email templates redesigned with Warm Studio aesthetic to match the app UI — cream backgrounds (#FAF8F5), warm brown text (#625646), orange accent links (#E8772E)
+- Email buttons restyled as pill-shaped with warm dark (#2D2A26) primary and orange accent success/error variants
+- Email card containers now use 16px border radius and warm-tint shadows
+- Typography in emails upgraded to DM Sans (body) and Outfit (headings) via Bunny Fonts
+- Panel accents changed from dark blue-gray to orange (#E8772E)
+- Footer, subcopy borders, and table headers use warm cream tones
 
 ### Removed
 - 129 Kiro AI tool spec files (`.kiro/` directory) — completed feature specs not needed in shipped repo
@@ -38,17 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `firebase/php-jwt` to 7.x (via `google/apiclient`) — fixes weak encryption (CVE low)
 - Updated `picomatch` to 4.0.4 — fixes method injection in POSIX character classes (CVE medium)
 
-### Changed
-- Email templates redesigned with Warm Studio aesthetic to match the app UI — cream backgrounds (#FAF8F5), warm brown text (#625646), orange accent links (#E8772E)
-- Email buttons restyled as pill-shaped with warm dark (#2D2A26) primary and orange accent success/error variants
-- Email card containers now use 16px border radius and warm-tint shadows
-- Typography in emails upgraded to DM Sans (body) and Outfit (headings) via Bunny Fonts
-- Panel accents changed from dark blue-gray to orange (#E8772E)
-- Footer, subcopy borders, and table headers use warm cream tones
-
-### Fixed
-- Removed duplicate "thank you" message in client batch upload confirmation email
-- Standardized sign-off format across batch upload emails to use consistent comma-separated signature
+[1.1.1]: https://github.com/johnfmorton/upload-drive-in/releases/tag/v1.1.1
 
 ## [1.1.0] - 2026-03-10
 
