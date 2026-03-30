@@ -80,18 +80,6 @@ This documentation is organized into several specialized guides, each targeting 
 - Validation and testing procedures
 - Migration between configurations
 
-### 🎨 [Dashboard Widget Examples](./dashboard-token-status-widget-examples.md)
-**Audience**: Frontend Developers, UI/UX Designers  
-**Purpose**: Visual examples and implementation guide for the enhanced token status widget
-
-**Contents**:
-- Widget layout examples for all status states
-- Interactive elements and real-time updates
-- Mobile responsive design patterns
-- Color schemes and accessibility features
-- Animation and transition specifications
-- Implementation notes and performance considerations
-
 ## Quick Start Guide
 
 ### For New Deployments

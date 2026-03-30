@@ -22,7 +22,7 @@ This directory contains documentation for various aspects of the Upload Drive-In
 - [Cloud Storage Caching Guide](cloud-storage-caching-guide.md) - Caching strategies for cloud storage
 - [Cloud Storage Logging and Monitoring](cloud-storage-logging-monitoring.md) - Logging and monitoring setup
 - [Email Validation Redirect Behavior](email-validation-redirect-behavior.md) - Email validation flow
-- [Employee Admin Upload Navigation Fix](employee-admin-upload-navigation-fix.md) - Navigation improvements
+
 
 ## API Documentation
 

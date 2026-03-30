@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `public/favicon.zip` — archive file not needed in public directory
 - `CLAUDE.md`, `design-criteria.md`, `design-log.md` untracked from repo (kept locally)
 - Updated `.gitignore` to exclude build output, screenshots, Playwright logs, and AI tool directories
+- 21 implementation summary docs (fix reports, code reviews, optimization logs) — replaced by git history
 
 ### Changed
 - Email templates redesigned with Warm Studio aesthetic to match the app UI — cream backgrounds (#FAF8F5), warm brown text (#625646), orange accent links (#E8772E)
