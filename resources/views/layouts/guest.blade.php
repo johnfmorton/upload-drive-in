@@ -20,7 +20,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.bunny.net/css?family=outfit:400,500,600,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=instrument-serif:400,400i&display=swap" rel="stylesheet" />
 
     <!-- Scripts -->
     @php
@@ -46,10 +46,13 @@
 </head>
 
 <body class="font-sans text-warm-900 antialiased">
-    <div class="min-h-dvh flex flex-col justify-between bg-cream-100 noise-overlay">
-        <div
-            class="relative z-10 flex flex-col justify-center items-center pb-6 sm:pt-0 px-6 flex-1">
-            <div class="w-full max-w-md px-8 py-8 bg-white border border-cream-200 overflow-hidden rounded-2xl shadow-[0_2px_8px_rgba(45,42,38,0.06),0_8px_32px_rgba(45,42,38,0.04)]" style="animation: cardFloat 0.5s ease-out both;">
+    <div class="min-h-dvh flex flex-col justify-between bg-cream-50 noise-overlay relative overflow-hidden">
+        {{-- Decorative geometric accent --}}
+        <div class="absolute top-0 right-0 w-[600px] h-[600px] opacity-[0.04] pointer-events-none" style="background: radial-gradient(circle at 70% 30%, var(--color-accent-500) 0%, transparent 70%);"></div>
+        <div class="absolute bottom-0 left-0 w-[400px] h-[400px] opacity-[0.03] pointer-events-none" style="background: radial-gradient(circle at 30% 70%, var(--color-warm-900) 0%, transparent 70%);"></div>
+
+        <div class="relative z-10 flex flex-col justify-center items-center pb-6 sm:pt-0 px-6 flex-1">
+            <div class="w-full max-w-lg px-10 py-12 bg-white/80 backdrop-blur-sm border border-cream-200 overflow-hidden rounded-3xl shadow-[0_2px_8px_rgba(28,25,23,0.04),0_12px_40px_rgba(28,25,23,0.06)]" style="animation: cardFloat 0.5s ease-out both;">
                 {{ $slot }}
             </div>
         </div>

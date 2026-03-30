@@ -1,7 +1,7 @@
 <?php /* resources/views/public-employee/upload-by-name.blade.php */ ?>
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-display text-2xl text-warm-900 leading-tight">
             {{ __('messages.upload_files_for_employee', ['name' => $employee->name]) }}
         </h2>
     </x-slot>

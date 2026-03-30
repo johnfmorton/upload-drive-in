@@ -1,137 +1,130 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Upload Files') }}
-        </h2>
-    </x-slot>
+    <div class="py-8 sm:py-12">
+        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
+            {{-- Header --}}
+            <div class="flex justify-between items-end mb-8 px-4 sm:px-0">
+                <div>
+                    <div class="w-8 h-px bg-accent-500 mb-4"></div>
+                    <h1 class="font-display text-3xl sm:text-4xl text-warm-900">File Upload</h1>
+                    <p class="text-warm-500 mt-1 text-sm">Upload your files securely to {{ config('app.company_name') }}</p>
+                </div>
+                <div class="text-right hidden sm:block">
+                    <p class="text-xs text-warm-400">{{ auth()->user()->email }}</p>
+                    <form method="POST" action="{{ route('logout') }}" class="inline">
+                        @csrf
+                        <button type="submit" class="text-xs text-accent-500 hover:text-accent-600 transition-colors">
+                            Sign out
+                        </button>
+                    </form>
+                </div>
+            </div>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    <div class="flex justify-between items-center mb-8">
-                        <div>
-                            <h1 class="text-2xl font-bold text-gray-900">File Upload</h1>
-                            <p class="text-gray-600">Upload your files securely</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm text-gray-600">Logged in as: {{ auth()->user()->email }}</p>
-                            <form method="POST" action="{{ route('logout') }}" class="inline">
-                                @csrf
-                                <button type="submit" class="text-sm text-[var(--brand-color)] hover:brightness-75">
-                                    Not you? Sign out
-                                </button>
-                            </form>
+            @if (session('success'))
+                <div class="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            {{-- Recipient Selection --}}
+            @if(auth()->user()->companyUsers->count() > 1)
+                <div class="mb-6 p-5 bg-cream-50 rounded-2xl border border-cream-200">
+                    <label for="company_user_id" class="block text-xs font-medium text-warm-500 mb-2 tracking-wide uppercase">
+                        {{ __('messages.select_recipient') }}
+                    </label>
+                    <select id="company_user_id" name="company_user_id"
+                            class="w-full px-4 py-3 bg-white border border-cream-300 rounded-xl text-warm-900 focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 text-sm">
+                        @foreach(auth()->user()->companyUsers as $companyUser)
+                            <option value="{{ $companyUser->id }}"
+                                    @if($companyUser->pivot->is_primary) selected @endif>
+                                {{ $companyUser->name }} ({{ $companyUser->email }})
+                                @if($companyUser->pivot->is_primary) - Primary @endif
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-2 text-xs text-warm-400">
+                        {{ __('messages.select_recipient_help') }}
+                    </p>
+                </div>
+            @endif
+
+            {{-- Upload Card --}}
+            <div class="bg-white border border-cream-200 rounded-2xl overflow-hidden">
+                <form id="messageForm" class="p-6 sm:p-10 space-y-8">
+                    @csrf
+
+                    {{-- Dropzone Container --}}
+                    <div id="file-upload-dropzone"
+                         class="dropzone group relative border-2 border-dashed border-cream-300 rounded-2xl p-12 text-center cursor-pointer hover:border-accent-500 hover:bg-accent-500/[0.02] transition-all duration-300"
+                         data-upload-url="{{ route('client.chunk.upload') }}">
+                        <div class="dz-message" data-dz-message>
+                            <div class="mx-auto w-14 h-14 rounded-2xl bg-cream-100 group-hover:bg-accent-500/10 flex items-center justify-center mb-5 transition-colors duration-300">
+                                <svg class="w-7 h-7 text-warm-400 group-hover:text-accent-500 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                            </div>
+                            <span class="block text-base font-medium text-warm-700">Drop files here or click to upload</span>
+                            <span class="block text-sm text-warm-400 mt-2">Any file type, any size</span>
                         </div>
                     </div>
 
-                    @if (session('success'))
-                        <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
-                            {{ session('success') }}
-                        </div>
-                    @endif
+                    {{-- Hidden input to store successful upload IDs --}}
+                    <input type="hidden" name="file_upload_ids" id="file_upload_ids" value="[]">
 
-                    {{-- Recipient Selection (only show if client has multiple company users) --}}
-                    @if(auth()->user()->companyUsers->count() > 1)
-                        <div class="mb-6 p-4 bg-gray-50 rounded-lg border">
-                            <label for="company_user_id" class="block text-sm font-medium text-gray-700 mb-2">
-                                {{ __('messages.select_recipient') }}
-                            </label>
-                            <select id="company_user_id" name="company_user_id" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--brand-color)] focus:border-[var(--brand-color)] sm:text-sm">
-                                @foreach(auth()->user()->companyUsers as $companyUser)
-                                    <option value="{{ $companyUser->id }}" 
-                                            @if($companyUser->pivot->is_primary) selected @endif>
-                                        {{ $companyUser->name }} ({{ $companyUser->email }})
-                                        @if($companyUser->pivot->is_primary) - Primary @endif
-                                    </option>
-                                @endforeach
-                            </select>
-                            <p class="mt-2 text-sm text-gray-500">
-                                {{ __('messages.select_recipient_help') }}
-                            </p>
-                        </div>
-                    @endif
+                    {{-- Area to display upload errors --}}
+                    <div id="upload-errors" class="hidden mt-4"></div>
 
-                    <form id="messageForm" class="space-y-6">
-                        @csrf {{-- Important for CSRF protection --}}
-
-                        {{-- Dropzone Container --}}
-                        <div id="file-upload-dropzone"
-                             class="dropzone border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-[var(--brand-color)] transition-colors duration-200"
-                             data-upload-url="{{ route('client.chunk.upload') }}">
-                            <div class="dz-message" data-dz-message>
-                                <span class="block text-lg font-medium text-gray-700">Drop files here or click to upload.</span>
-                                <span class="block text-sm text-gray-500">(Large files will be uploaded in chunks)</span>
+                    {{-- Upload Progress Overlay --}}
+                    <div id="upload-progress-overlay" class="hidden fixed inset-0 bg-warm-900/40 backdrop-blur-sm z-50 items-center justify-center">
+                        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-cream-200">
+                            <div class="text-center mb-6">
+                                <div class="inline-flex items-center justify-center w-12 h-12 bg-accent-500/10 rounded-full mb-4">
+                                    <svg class="w-6 h-6 text-accent-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="font-display text-xl text-warm-900">Uploading Files</h3>
+                                <p id="progress-status" class="text-sm text-warm-500 mt-1">Preparing upload...</p>
                             </div>
-                            {{-- Dropzone will automatically add file previews here --}}
-                        </div>
 
-                        {{-- Hidden input to store successful upload IDs --}}
-                        <input type="hidden" name="file_upload_ids" id="file_upload_ids" value="[]">
-
-                        {{-- Area to display upload errors --}}
-                        <div id="upload-errors" class="hidden mt-4"></div>
-
-                        {{-- Upload Progress Overlay --}}
-                        <div id="upload-progress-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center">
-                            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
-                                <div class="text-center mb-4">
-                                    <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-3">
-                                        <svg class="w-6 h-6 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                    </div>
-                                    <h3 class="text-lg font-semibold text-gray-900">Uploading Files</h3>
-                                    <p id="progress-status" class="text-sm text-gray-600 mt-1">Preparing upload...</p>
+                            <div class="mb-6">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-medium text-warm-500 uppercase tracking-wide">Progress</span>
+                                    <span id="overall-progress-text" class="text-xs text-warm-500">0%</span>
                                 </div>
-
-                                {{-- Overall Progress --}}
-                                <div class="mb-4">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm font-medium text-gray-700">Overall Progress</span>
-                                        <span id="overall-progress-text" class="text-sm text-gray-600">0%</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-3">
-                                        <div id="overall-progress-bar" class="bg-blue-600 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
-                                    </div>
-                                </div>
-
-                                {{-- Individual File Progress --}}
-                                <div class="max-h-48 overflow-y-auto">
-                                    <div id="file-progress-container" class="space-y-3">
-                                        {{-- Individual file progress bars will be inserted here --}}
-                                    </div>
-                                </div>
-
-                                {{-- Cancel Button (Optional) --}}
-                                <div class="mt-6 text-center">
-                                    <button type="button" 
-                                            onclick="if(confirm('Are you sure you want to cancel the upload?')) { location.reload(); }"
-                                            class="text-sm text-gray-500 hover:text-gray-700 underline">
-                                        Cancel Upload
-                                    </button>
+                                <div class="w-full bg-cream-200 rounded-full h-2">
+                                    <div id="overall-progress-bar" class="bg-accent-500 h-2 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
                                 </div>
                             </div>
-                        </div>
 
-                        {{-- Message Textarea --}}
-                        <div>
-                            <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message (Optional)</label>
-                            <textarea id="message" name="message" rows="4"
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--brand-color)] focus:border-[var(--brand-color)]"
-                                      placeholder="Enter an optional message to associate with the uploaded files..."></textarea>
-                        </div>
+                            <div class="max-h-48 overflow-y-auto">
+                                <div id="file-progress-container" class="space-y-3"></div>
+                            </div>
 
-                         {{-- Submit Button --}}
-                         <div class="text-center">
-                             <button type="submit"
-                                     class="bg-[var(--brand-color)] text-white px-6 py-2 rounded-md hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-color)] transition-colors duration-200">
-                                 Upload and Send Message
-                             </button>
-                    </form>
-                </div>
+                            <div class="mt-6 text-center">
+                                <button type="button"
+                                        onclick="if(confirm('Are you sure you want to cancel the upload?')) { location.reload(); }"
+                                        class="text-xs text-warm-400 hover:text-warm-600 transition-colors">
+                                    Cancel Upload
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Message Textarea --}}
+                    <div>
+                        <label for="message" class="block text-xs font-medium text-warm-500 mb-2 tracking-wide uppercase">Message (Optional)</label>
+                        <textarea id="message" name="message" rows="3"
+                                  class="w-full px-4 py-3.5 bg-cream-50 border border-cream-300 rounded-xl text-warm-900 text-sm placeholder-warm-400 focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition-all duration-200"
+                                  placeholder="Add a note about these files..."></textarea>
+                    </div>
+
+                    {{-- Submit Button --}}
+                    <div class="pt-2">
+                        <button type="submit"
+                                class="w-full sm:w-auto bg-warm-900 text-cream-50 px-10 py-3.5 rounded-xl font-medium text-sm tracking-wide hover:bg-warm-800 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-warm-900 transition-all duration-200">
+                            Upload and Send Message
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

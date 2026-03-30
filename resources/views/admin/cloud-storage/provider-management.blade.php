@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="font-display text-2xl text-warm-900 leading-tight">
                 {{ __('Provider Management') }}
             </h2>
             <div class="flex space-x-2">

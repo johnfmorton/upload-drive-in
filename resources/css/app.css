@@ -17,27 +17,27 @@
 @theme {
   --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  --font-display: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
 
-  /* Warm Studio palette */
-  --color-cream-50: #FAF8F5;
-  --color-cream-100: #F5F0EB;
-  --color-cream-200: #EDE6DD;
-  --color-cream-300: #E0D6C9;
-  --color-cream-400: #C9BBAA;
-  --color-warm-50: #FEFCFA;
-  --color-warm-100: #FBF7F2;
-  --color-warm-200: #F5EDE3;
-  --color-warm-300: #E8DDD0;
-  --color-warm-400: #D4C5B3;
-  --color-warm-500: #B0A08A;
-  --color-warm-600: #8A7A66;
-  --color-warm-700: #625646;
-  --color-warm-800: #3D3530;
-  --color-warm-900: #2D2A26;
-  --color-accent-400: #F29B4B;
-  --color-accent-500: #E8772E;
-  --color-accent-600: #D06420;
+  /* Refined palette — brass accent, stone neutrals */
+  --color-cream-50: #FAFAF8;
+  --color-cream-100: #F5F4F0;
+  --color-cream-200: #ECEAE4;
+  --color-cream-300: #DDD9D0;
+  --color-cream-400: #C4BEB2;
+  --color-warm-50: #FAFAF8;
+  --color-warm-100: #F5F4F0;
+  --color-warm-200: #ECEAE4;
+  --color-warm-300: #DDD9D0;
+  --color-warm-400: #C4BEB2;
+  --color-warm-500: #A8A29E;
+  --color-warm-600: #78716C;
+  --color-warm-700: #57534E;
+  --color-warm-800: #292524;
+  --color-warm-900: #1C1917;
+  --color-accent-400: #C9A55A;
+  --color-accent-500: #B08D57;
+  --color-accent-600: #8B6F3A;
 
   --animate-wiggle: wiggle 1s ease-in-out infinite;
   @keyframes wiggle {
@@ -81,7 +81,7 @@
 
 /* Heading typography using display font */
 .font-display {
-  font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
 }
 
 /* Warm accent dot */
@@ -133,7 +133,8 @@ main .bg-gray-50.rounded-lg {
 main h2.text-lg.font-medium.text-gray-900,
 main h2.font-semibold.text-xl.text-gray-800,
 main h3.text-lg.font-medium.text-gray-900 {
-  font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
   color: var(--color-warm-900) !important;
   letter-spacing: -0.01em;
 }
@@ -168,6 +169,46 @@ main a.text-blue-500 { color: var(--color-accent-500) !important; }
 main a.text-blue-500:hover { color: var(--color-accent-600) !important; }
 main a.text-blue-600 { color: var(--color-accent-500) !important; }
 main a.text-blue-600:hover { color: var(--color-accent-600) !important; }
+
+/* Warm up remaining blue text/icon patterns */
+main .text-blue-600 { color: var(--color-accent-500) !important; }
+main .text-blue-800 { color: var(--color-warm-800) !important; }
+main .text-blue-700 { color: var(--color-warm-700) !important; }
+
+/* Warm up blue backgrounds */
+main .bg-blue-50 { background-color: var(--color-cream-100) !important; }
+main .bg-blue-100 { background-color: var(--color-cream-200) !important; }
+main .border-blue-200 { border-color: var(--color-cream-300) !important; }
+main .border-blue-300 { border-color: var(--color-cream-300) !important; }
+
+/* Warm up blue focus/ring states */
+main .focus\:ring-blue-500:focus { --tw-ring-color: var(--color-accent-500) !important; }
+
+/* Warm up green action links (not status badges) */
+main a.text-green-600 { color: var(--color-accent-500) !important; }
+main a.text-green-600:hover { color: var(--color-accent-600) !important; }
+main button.text-green-600 { color: var(--color-accent-500) !important; }
+
+/* Override the brand color to match the warm design system */
+:root {
+  --brand-color: #B08D57 !important;
+}
+
+/* Warm up indigo backgrounds */
+main a.bg-indigo-600,
+main button.bg-indigo-600 {
+  background-color: var(--color-warm-900) !important;
+  border-radius: 0.75rem !important;
+}
+main a.bg-indigo-600:hover,
+main button.bg-indigo-600:hover {
+  background-color: var(--color-warm-800) !important;
+}
+
+/* Warm up blue badges/pills */
+main .bg-blue-100 { background-color: var(--color-cream-200) !important; }
+main .text-blue-800 { color: var(--color-warm-800) !important; }
+main .border-blue-400 { border-color: var(--color-cream-400) !important; }
 
 /* Warm up dividers */
 main .border-gray-100 { border-color: var(--color-cream-200) !important; }

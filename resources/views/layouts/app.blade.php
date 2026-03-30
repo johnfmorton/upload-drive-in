@@ -18,13 +18,15 @@
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700&display=swap" rel="stylesheet" />
-        <link href="https://fonts.bunny.net/css?family=outfit:400,500,600,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=instrument-serif:400,400i&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased text-warm-900">
-        <div class="min-h-dvh bg-cream-100 flex flex-col justify-between noise-overlay">
+        <div class="min-h-dvh bg-cream-50 flex flex-col justify-between noise-overlay relative overflow-hidden">
+            {{-- Subtle decorative background --}}
+            <div class="absolute top-0 right-0 w-[600px] h-[600px] opacity-[0.03] pointer-events-none" style="background: radial-gradient(circle at 70% 30%, var(--color-accent-500) 0%, transparent 70%);"></div>
             <div class="relative z-10">
               @include('layouts.navigation')
               <!-- Page Heading -->

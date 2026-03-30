@@ -1,3 +1,4 @@
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -94,3 +95,46 @@ Extensive documentation in `/docs/` including:
 - Token refresh system
 - Deployment guides
 - Troubleshooting guides
+
+---
+
+## Design Improvement Mode
+
+When working on the visual design of this site, apply the following
+process. This mode is activated when the task involves redesigning,
+restyling, or improving the visual design of the site.
+
+### Process
+1. Read `design-criteria.md` before doing anything else
+2. Start the dev server if it is not running
+3. Use Playwright MCP to screenshot and navigate the live site on
+   localhost before scoring — do not score from code alone
+4. Implement design changes
+5. Score the result against all four criteria in `design-criteria.md`
+6. Append the result to `design-log.md` using the template below
+7. If Design Quality or Originality score below 7, either refine the
+   current direction or make a full aesthetic pivot — do not just tweak
+8. Repeat for a minimum of 5 iterations before declaring done
+
+### Design Log Entry Template
+Append to `design-log.md` after each iteration:
+
+## Iteration N — [date]
+**Strategy:** [What you changed and why. What aesthetic direction
+  you are pursuing or pivoting to.]
+**Design Quality:** X/10
+**Originality:** X/10
+**Craft:** X/10
+**Functionality:** X/10
+**Notes:** [Anything notable — what worked, what didn't, what a
+  reviewer would likely flag]
+**Next move:** [Refine or pivot — and specifically why]
+
+### Design Principles
+- Typography first: choose fonts before touching layouts
+- Color palette before components: define 3–4 colors and stick to them
+- Bold maximalism and refined minimalism both work — the key is
+  intentionality, not intensity
+- The best designs are museum quality — hold the work to that standard
+- Never converge on safe, "technically functional but visually
+  unremarkable" outputs
