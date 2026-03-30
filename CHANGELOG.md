@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ClamAV environment variables in `.env.example`
 - Unit tests for ClamAV service (disabled state, missing files, oversized files, fail-open, fail-closed, unreachable daemon)
 
+### Changed
+- Rewrote `README.md` as a project showcase with features, tech stack, architecture overview, and quick start
+- Moved Google Drive API setup instructions from README to `docs/setup/google-drive-api-setup.md`
+
 ### Removed
 - 129 Kiro AI tool spec files (`.kiro/` directory) — completed feature specs not needed in shipped repo
 - 4 unused preview-modal blade variants (backup, fixed, new, previous-version)
