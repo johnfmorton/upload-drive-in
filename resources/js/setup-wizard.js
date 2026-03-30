@@ -2,7 +2,7 @@
  * Setup Wizard JavaScript Functionality
  * 
  * Handles dynamic form behavior, real-time validation, and AJAX functionality
- * for the Upload Drive-in setup wizard.
+ * for the Upload Drive-In setup wizard.
  */
 
 class SetupWizard {

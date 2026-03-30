@@ -1,4 +1,4 @@
-## This is a suggested deployment script for Laravel Forge for Upload Drive-in
+## This is a suggested deployment script for Laravel Forge for Upload Drive-In
 
 set -euo pipefail
 

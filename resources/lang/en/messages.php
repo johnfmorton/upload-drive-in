@@ -108,8 +108,8 @@
     'welcome_message_dismiss_button_title' => 'Dismiss this message',
     
     // Welcome Message Content
-    'welcome_message_title' => '🎉 Welcome to Upload Drive-in!',
-    'welcome_message_intro' => 'Congratulations! Your Upload Drive-in application has been successfully installed.',
+    'welcome_message_title' => '🎉 Welcome to Upload Drive-In!',
+    'welcome_message_intro' => 'Congratulations! Your Upload Drive-In application has been successfully installed.',
     'welcome_message_next_steps_title' => 'Next steps to get started:',
     'welcome_message_step_cloud_storage' => 'Configure a cloud storage provider.',
     'welcome_message_step_security_settings' => 'Review security settings and access control.',

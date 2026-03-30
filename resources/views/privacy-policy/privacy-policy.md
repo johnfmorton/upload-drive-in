@@ -34,11 +34,11 @@ We follow industry best practices to keep your data secure, including encryption
 
 5. International Use
 
-By using **Upload Drive-in**, you understand and agree that your information may be transferred and processed outside your home country, in accordance with this policy.
+By using **Upload Drive-In**, you understand and agree that your information may be transferred and processed outside your home country, in accordance with this policy.
 
 6. Consent
 
-By using **Upload Drive-in**, you consent to the collection and use of anonymized data as described in this policy.
+By using **Upload Drive-In**, you consent to the collection and use of anonymized data as described in this policy.
 
 7. Changes to This Policy
 

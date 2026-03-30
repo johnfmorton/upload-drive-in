@@ -1002,8 +1002,8 @@ return [
     'welcome_message_dismiss_button_title' => 'Diese Nachricht ausblenden',
     
     // Welcome Message Content
-    'welcome_message_title' => '🎉 Willkommen bei Upload Drive-in!',
-    'welcome_message_intro' => 'Herzlichen Glückwunsch! Ihre Upload Drive-in-Anwendung wurde erfolgreich installiert.',
+    'welcome_message_title' => '🎉 Willkommen bei Upload Drive-In!',
+    'welcome_message_intro' => 'Herzlichen Glückwunsch! Ihre Upload Drive-In-Anwendung wurde erfolgreich installiert.',
     'welcome_message_next_steps_title' => 'Nächste Schritte für den Einstieg:',
     'welcome_message_step_cloud_storage' => 'Konfigurieren Sie einen Cloud-Speicher-Anbieter.',
     'welcome_message_step_security_settings' => 'Überprüfen Sie Sicherheitseinstellungen und Zugriffskontrolle.',

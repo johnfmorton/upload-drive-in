@@ -179,7 +179,7 @@ class SetupHelper
     public static function getStepDescription(string $step): string
     {
         return match ($step) {
-            'welcome' => 'Welcome to Upload Drive-in setup wizard',
+            'welcome' => 'Welcome to Upload Drive-In setup wizard',
             'database' => 'Configure your database connection and run migrations',
             'admin' => 'Create your administrator account',
             'storage' => 'Configure cloud storage providers',

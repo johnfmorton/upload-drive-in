@@ -43,8 +43,8 @@ class SetupCompletionIntegrationTest extends TestCase
 
         // Assert the first-time login message is shown
         $response->assertStatus(200);
-        $response->assertSee('Welcome to Upload Drive-in!');
-        $response->assertSee('Congratulations! Your Upload Drive-in application has been successfully configured');
+        $response->assertSee('Welcome to Upload Drive-In!');
+        $response->assertSee('Congratulations! Your Upload Drive-In application has been successfully configured');
     }
 
     public function test_admin_dashboard_does_not_show_first_time_login_message_for_returning_user()
@@ -66,8 +66,8 @@ class SetupCompletionIntegrationTest extends TestCase
 
         // Assert the first-time login message is NOT shown
         $response->assertStatus(200);
-        $response->assertDontSee('Welcome to Upload Drive-in!');
-        $response->assertDontSee('Congratulations! Your Upload Drive-in application has been successfully configured');
+        $response->assertDontSee('Welcome to Upload Drive-In!');
+        $response->assertDontSee('Congratulations! Your Upload Drive-In application has been successfully configured');
     }
 
     public function test_last_login_at_is_updated_on_login()
@@ -110,7 +110,7 @@ class SetupCompletionIntegrationTest extends TestCase
         
         // Visit the dashboard - should show first-time login message
         $response = $this->get(route('admin.dashboard'));
-        $response->assertSee('Welcome to Upload Drive-in!');
+        $response->assertSee('Welcome to Upload Drive-In!');
     }
 
     public function test_setup_completion_is_logged_to_audit()

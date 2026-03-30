@@ -52,7 +52,7 @@ class SetupWizardFlowTest extends TestCase
         
         $response->assertStatus(200);
         $response->assertViewIs('setup.welcome');
-        $response->assertSee('Welcome to Upload Drive-in Setup');
+        $response->assertSee('Welcome to Upload Drive-In Setup');
         $response->assertSee('System Requirements');
     }
 

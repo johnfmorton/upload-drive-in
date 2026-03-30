@@ -2,11 +2,11 @@
 
 Effective Date: April 23, 2025
 
-Welcome to **Upload Drive-in**. By accessing or using our services, you agree to these Terms of Service (“Terms”). If you do not agree, please do not use the app.
+Welcome to **Upload Drive-In**. By accessing or using our services, you agree to these Terms of Service (“Terms”). If you do not agree, please do not use the app.
 
 1. Use of the Service
 
-You may use **Upload Drive-in** only in compliance with these Terms and all applicable laws. You’re responsible for any activity under your account.
+You may use **Upload Drive-In** only in compliance with these Terms and all applicable laws. You’re responsible for any activity under your account.
 
 2. User Accounts and Data Deletion
 
@@ -14,7 +14,7 @@ Accounts can be created to access the app’s features. You may delete your acco
 
 3. File Uploads
 
-Files uploaded to **Upload Drive-in** are stored only to provide you with the core functionality of the app. We do not use your files for any other purpose.
+Files uploaded to **Upload Drive-In** are stored only to provide you with the core functionality of the app. We do not use your files for any other purpose.
 
 4. Analytics and Monitoring
 
@@ -38,7 +38,7 @@ The app is provided “as is” without warranties of any kind. We do not guaran
 
 8. Limitation of Liability
 
-To the extent permitted by law, **Upload Drive-in** will not be liable for any indirect, incidental, or consequential damages arising from your use of the app.
+To the extent permitted by law, **Upload Drive-In** will not be liable for any indirect, incidental, or consequential damages arising from your use of the app.
 
 9. Governing Law
 

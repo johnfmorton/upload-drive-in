@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ClamAV environment variables in `.env.example`
 - Unit tests for ClamAV service (disabled state, missing files, oversized files, fail-open, fail-closed, unreachable daemon)
 
+### Fixed
+- Corrected "Upload Drive-in" to "Upload Drive-In" across all views, language files, legal pages, manifest, and docs
+
 ### Changed
 - Rewrote `README.md` as a project showcase with features, tech stack, architecture overview, and quick start
 - Moved Google Drive API setup instructions from README to `docs/setup/google-drive-api-setup.md`

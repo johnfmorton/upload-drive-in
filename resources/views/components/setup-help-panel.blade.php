@@ -23,7 +23,7 @@ $helpContent = match($step) {
     ],
     'welcome' => [
         'title' => 'Getting Started',
-        'description' => 'This setup wizard will guide you through configuring Upload Drive-in for first use.',
+        'description' => 'This setup wizard will guide you through configuring Upload Drive-In for first use.',
         'tips' => [
             'Ensure you have administrator access to your server',
             'Have your database credentials ready',
@@ -81,7 +81,7 @@ $helpContent = match($step) {
     ],
     'complete' => [
         'title' => 'Setup Complete',
-        'description' => 'Congratulations! Your Upload Drive-in installation is now ready to use.',
+        'description' => 'Congratulations! Your Upload Drive-In installation is now ready to use.',
         'tips' => [
             'Connect your Google Drive account in the admin panel',
             'Create employee accounts to help manage uploads',

@@ -2,7 +2,7 @@
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p class="text-xs text-warm-400 tracking-wide">
-                &copy; {{ date('Y') }} Upload Drive-in
+                &copy; {{ date('Y') }} Upload Drive-In
                 @auth
                     @if(auth()->user()->isAdmin() || auth()->user()->isEmployee())
                         <span class="ml-2 text-warm-300">v{{ config('app.version') }}</span>
