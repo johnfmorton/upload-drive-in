@@ -13,7 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `config/filesecurity.php` for ClamAV configuration (enabled, connection type, timeout, max file size, fail mode)
 - ClamAV environment variables in `.env.example`
 - Unit tests for ClamAV service (disabled state, missing files, oversized files, fail-open, fail-closed, unreachable daemon)
-- Comprehensive `DOCUMENTATION.md` covering project setup, configuration, architecture, features, deployment, and ClamAV instructions
+
+### Removed
+- 129 Kiro AI tool spec files (`.kiro/` directory) — completed feature specs not needed in shipped repo
+- 4 unused preview-modal blade variants (backup, fixed, new, previous-version)
+- 9 test documentation artifacts (summaries, reports, and a demo script)
+- `DOCUMENTATION.md`, `LOGO-REDESIGN.md`, `SECURITY_REVIEW.md` — internal development notes
+- `public/favicon.zip` — archive file not needed in public directory
+- `CLAUDE.md`, `design-criteria.md`, `design-log.md` untracked from repo (kept locally)
+- Updated `.gitignore` to exclude build output, screenshots, Playwright logs, and AI tool directories
 
 ### Changed
 - Email templates redesigned with Warm Studio aesthetic to match the app UI — cream backgrounds (#FAF8F5), warm brown text (#625646), orange accent links (#E8772E)

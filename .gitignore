@@ -1,7 +1,6 @@
 /.phpunit.cache
 /node_modules
-# Added build files to repo - 17AUG2025
-# /public/build
+/public/build
 /public/hot
 /public/storage
 /storage/*.key
@@ -59,7 +58,17 @@ yarn-error.log
 public/images/*
 
 
-# not in repo
+# Local development artifacts
+.playwright-mcp/
+screenshots/
+DESIGN-HARNESS-RUNBOOK.md
+design-prompt-customized.md
+.kiro/
+CLAUDE.md
+design-criteria.md
+design-log.md
+
+# Not in repo
 /not in repo
 
 # Translation overrides
