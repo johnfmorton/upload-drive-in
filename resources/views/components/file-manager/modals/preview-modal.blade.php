@@ -142,9 +142,9 @@
                 </div>
 
                 <!-- Image Preview -->
-                <div x-show="!loading && previewType === 'image'" class="flex-1 min-h-0 flex items-center justify-center overflow-hidden relative bg-gray-100">
+                <div x-show="!loading && previewType === 'image'" class="flex-1 min-h-0 relative bg-gray-100 p-4">
                     <div
-                        class="w-full h-full overflow-auto cursor-move flex items-center justify-center"
+                        class="absolute inset-4 overflow-hidden cursor-move flex items-center justify-center"
                         x-on:mousedown="startImageDrag($event)"
                         x-on:mousemove="dragImage($event)"
                         x-on:mouseup="endImageDrag()"
