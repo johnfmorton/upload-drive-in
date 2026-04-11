@@ -16,8 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Append CSP headers to all web responses
-        $middleware->appendToGroup('web', \App\Http\Middleware\ContentSecurityPolicy::class);
+        // Append security headers (CSP, HSTS, X-Frame-Options, etc.) to all web responses
+        $middleware->appendToGroup('web', \App\Http\Middleware\SecurityHeaders::class);
 
         // Register custom middleware aliases
         $middleware->alias([

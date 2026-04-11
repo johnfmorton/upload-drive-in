@@ -41,8 +41,7 @@ class AdminSettingsController extends Controller
     {
         $validated = $request->validate([
             'company_name' => ['required', 'string', 'max:255'],
-            // Validate incoming color as a string (e.g., hex, rgb, named color)
-            'branding_color' => ['required', 'string', 'max:50'], // Allow various CSS color formats
+            'branding_color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'app_icon' => ['nullable', 'image', 'mimes:jpeg,png,svg', 'max:2048'], // 2MB max
         ]);
 

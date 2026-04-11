@@ -11,11 +11,15 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [PublicUploadController::class, 'index'])->name('home')->middleware(\App\Http\Middleware\SetupDetectionMiddleware::class);
 
 // Employee upload page (public access)
-Route::get('/upload/{name}', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'showByName'])->name('upload.employee');
-Route::post('/upload/{name}', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'uploadByName'])->name('upload.employee.submit');
-Route::post('/upload/{name}/chunk', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'chunkUpload'])->name('upload.employee.chunk');
-Route::post('/upload/{name}/associate-message', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'associateMessage'])->name('upload.employee.associate-message');
-Route::post('/upload/{name}/batch-complete', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'batchComplete'])->name('upload.employee.batch-complete');
+Route::get('/upload/{name}', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'showByName'])
+    ->middleware('throttle:30,1')
+    ->name('upload.employee');
+Route::middleware(['throttle:10,1'])->group(function () {
+    Route::post('/upload/{name}', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'uploadByName'])->name('upload.employee.submit');
+    Route::post('/upload/{name}/chunk', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'chunkUpload'])->name('upload.employee.chunk');
+    Route::post('/upload/{name}/associate-message', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'associateMessage'])->name('upload.employee.associate-message');
+    Route::post('/upload/{name}/batch-complete', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'batchComplete'])->name('upload.employee.batch-complete');
+});
 
 // Token-based login route (needs to be accessible to everyone)
 Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'loginViaToken'])
@@ -104,7 +108,7 @@ Route::get('/health', [\App\Http\Controllers\HealthController::class, 'check'])-
 Route::get('/health/detailed', [\App\Http\Controllers\HealthController::class, 'detailed'])->name('health.detailed')->middleware(['auth', 'admin']);
 
 // Cloud storage health check routes (public: basic, readiness, liveness; authenticated: the rest)
-Route::prefix('health/cloud-storage')->name('health.cloud-storage.')->group(function () {
+Route::middleware(['throttle:10,1'])->prefix('health/cloud-storage')->name('health.cloud-storage.')->group(function () {
     Route::get('/basic', [\App\Http\Controllers\CloudStorageHealthController::class, 'basic'])->name('basic');
     Route::get('/readiness', [\App\Http\Controllers\CloudStorageHealthController::class, 'readiness'])->name('readiness');
     Route::get('/liveness', [\App\Http\Controllers\CloudStorageHealthController::class, 'liveness'])->name('liveness');

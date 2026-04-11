@@ -23,8 +23,10 @@ class FileSecurityService
      */
     private const DANGEROUS_EXTENSIONS = [
         'exe', 'bat', 'cmd', 'com', 'pif', 'scr', 'vbs', 'js', 'jar',
-        'php', 'asp', 'aspx', 'jsp', 'pl', 'py', 'rb', 'sh', 'ps1',
-        'msi', 'deb', 'rpm', 'dmg', 'pkg', 'app'
+        'php', 'phtml', 'phar', 'phps', 'pht',
+        'asp', 'aspx', 'jsp', 'pl', 'py', 'rb', 'sh', 'ps1',
+        'msi', 'deb', 'rpm', 'dmg', 'pkg', 'app',
+        'shtml', 'htaccess', 'htpasswd',
     ];
 
     /**
@@ -68,7 +70,7 @@ class FileSecurityService
             $violations[] = [
                 'type' => 'mime_mismatch',
                 'message' => "File MIME type mismatch: declared '{$declaredMime}', detected '{$detectedMime}'",
-                'severity' => 'medium'
+                'severity' => 'high'
             ];
         }
 

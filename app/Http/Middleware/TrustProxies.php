@@ -10,12 +10,18 @@ class TrustProxies extends Middleware
     /**
      * The trusted proxies for this application.
      *
-     * Set to '*' if behind a trusted reverse proxy (e.g., AWS ALB, Cloudflare).
-     * For tighter security, replace with specific proxy IPs.
+     * Set TRUSTED_PROXIES in .env to a comma-separated list of IPs (e.g., "10.0.0.0/8,172.16.0.0/12").
+     * Defaults to '*' (trust all) for development/Docker environments.
      *
      * @var array<int, string>|string|null
      */
-    protected $proxies = '*';
+    protected $proxies;
+
+    public function __construct()
+    {
+        $proxies = env('TRUSTED_PROXIES', '*');
+        $this->proxies = $proxies === '*' ? $proxies : explode(',', $proxies);
+    }
 
     /**
      * The headers that should be used to detect proxies.

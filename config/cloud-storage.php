@@ -35,7 +35,7 @@ return [
                 'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
                 'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
                 'redirect_uri' => config('app.url') . '/admin/cloud-storage/google-drive/callback',
-                'scopes' => ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive'],
+                'scopes' => ['https://www.googleapis.com/auth/drive.file'],
                 'access_type' => 'offline',
                 'approval_prompt' => 'force',
             ],

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Rate-limited public upload endpoints (`throttle:30,1` GET, `throttle:10,1` POST) and public health check endpoints to prevent abuse
+- Narrowed Google Drive OAuth scope from `drive` + `drive.file` to `drive.file` only — admin must re-authenticate after deploy
+- Removed automatic client-employee relationship creation when clients visit employee upload pages — relationships now require admin/employee approval
+- Added security headers middleware: `X-Content-Type-Options`, `X-Frame-Options`, `Strict-Transport-Security` (production), `Referrer-Policy`, `Permissions-Policy`
+- Expanded blocked file extensions with server-executable types: `phtml`, `phar`, `phps`, `pht`, `shtml`, `htaccess`, `htpasswd`
+- Elevated MIME type mismatch from warning to blocking violation for file downloads
+- Made trusted proxy configuration environment-driven via `TRUSTED_PROXIES` (defaults to `*` for dev)
+- Tightened branding color input validation to accept only 6-digit hex colors
+- Added production security checklist at `docs/security/production-security-checklist.md`
+
 ## [1.1.1] - 2026-03-30
 
 ### Added
