@@ -3,13 +3,14 @@
     'username' => null
 ])
 
+@push('modals')
 <!-- Enhanced Preview Modal with Z-Index Management -->
 <div
     x-data="filePreviewModal('{{ $userType }}', '{{ $username }}')"
     x-on:open-preview-modal.window="openModal($event.detail)"
     x-show="open"
     x-cloak
-    class="fixed inset-0 z-[10002] overflow-y-auto modal-container"
+    class="fixed inset-0 z-[10002] overflow-hidden modal-container"
     aria-labelledby="preview-modal-title"
     role="dialog"
     aria-modal="true"
@@ -20,7 +21,7 @@
     x-on:keydown.escape.window="closeModal()"
     style="pointer-events: auto; display: none;"
 >
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <div class="flex items-center justify-center h-full p-4 sm:p-6">
         <!-- Background overlay -->
         <div
             x-show="open"
@@ -47,13 +48,14 @@
             x-transition:leave="ease-in duration-200"
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] z-[10003] relative modal-content"
+            class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:max-w-4xl w-full z-[10003] relative modal-content flex flex-col"
+            style="height: calc(100vh - 3rem);"
             data-modal-name="file-manager-preview"
             data-z-index="10003"
             data-modal-type="content"
         >
             <!-- Header -->
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200 shrink-0">
                 <div class="flex items-center justify-between">
                     <div class="flex-1 min-w-0">
                         <h3 id="preview-modal-title" class="text-lg leading-6 font-medium text-gray-900">
@@ -132,15 +134,15 @@
             </div>
 
             <!-- Content -->
-            <div class="bg-white flex-1 overflow-hidden" style="max-height: 70vh;">
+            <div class="bg-white flex-1 min-h-0 flex flex-col overflow-hidden">
                 <!-- Loading state -->
-                <div x-show="loading" class="flex items-center justify-center py-12">
+                <div x-show="loading" class="flex-1 flex items-center justify-center">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                     <span class="ml-2 text-sm text-gray-600">{{ __('messages.loading_preview') }}</span>
                 </div>
 
                 <!-- Image Preview -->
-                <div x-show="!loading && previewType === 'image'" class="flex items-center justify-center overflow-hidden relative bg-gray-100" style="height: 60vh;">
+                <div x-show="!loading && previewType === 'image'" class="flex-1 min-h-0 flex items-center justify-center overflow-hidden relative bg-gray-100">
                     <div
                         class="w-full h-full overflow-auto cursor-move flex items-center justify-center"
                         x-on:mousedown="startImageDrag($event)"
@@ -164,36 +166,35 @@
                 </div>
 
                 <!-- PDF Preview -->
-                <div x-show="!loading && previewType === 'pdf'" class="h-full">
+                <div x-show="!loading && previewType === 'pdf'" class="flex-1 min-h-0">
                     <div class="h-full bg-gray-100">
                         <template x-if="previewContent && previewType === 'pdf'">
                             <embed
                                 :src="previewContent"
                                 type="application/pdf"
                                 class="w-full h-full border-0"
-                                style="min-height: 600px;"
                             >
                         </template>
                     </div>
                 </div>
 
                 <!-- Text Preview -->
-                <div x-show="!loading && previewType === 'text'" class="max-h-[600px] p-6 flex flex-col">
+                <div x-show="!loading && previewType === 'text'" class="flex-1 min-h-0 p-6 flex flex-col">
                     <template x-if="previewContent && previewType === 'text'">
                         <pre class="text-sm font-mono whitespace-pre-wrap break-words bg-gray-50 p-4 rounded border flex-1 overflow-auto min-h-0" x-text="previewContent"></pre>
                     </template>
                 </div>
 
                 <!-- Code Preview -->
-                <div x-show="!loading && previewType === 'code'" class="h-full max-h-[600px] p-6 flex flex-col">
+                <div x-show="!loading && previewType === 'code'" class="flex-1 min-h-0 p-6 flex flex-col">
                     <template x-if="previewContent && previewType === 'code'">
                         <pre class="text-sm font-mono whitespace-pre-wrap break-words bg-gray-50 p-4 rounded border flex-1 overflow-auto min-h-0" x-text="previewContent"></pre>
                     </template>
                 </div>
 
                 <!-- Unsupported Preview -->
-                <div x-show="!loading && previewType === 'unsupported'" class="flex items-center justify-center py-12">
-                    <div class="text-center">
+                <div x-show="!loading && previewType === 'unsupported'" class="flex-1 min-h-0 flex items-center justify-center overflow-auto">
+                    <div class="text-center py-6">
                         <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                         </svg>
@@ -223,7 +224,7 @@
                 </div>
 
                 <!-- Error state -->
-                <div x-show="!loading && error && previewType !== 'pdf'" class="flex items-center justify-center py-12">
+                <div x-show="!loading && error && previewType !== 'pdf'" class="shrink-0 flex items-center justify-center py-4">
                     <div class="text-center">
                         <svg class="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
@@ -235,7 +236,7 @@
             </div>
 
             <!-- Footer -->
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200 shrink-0">
                 <button
                     x-on:click="downloadFile()"
                     type="button"
@@ -489,3 +490,4 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 </script>
+@endpush

@@ -38,7 +38,7 @@
                   </header>
               @endisset
               <!-- Page Content -->
-              <main style="animation: pageReveal 0.4s ease-out both;">
+              <main style="animation: pageReveal 0.4s ease-out both;" onanimationend="this.style.animation=''">
                   {{ $slot }}
               </main>
             </div>
@@ -46,6 +46,7 @@
                 @include('components.footer')
             </div>
         </div>
+        @stack('modals')
         @stack('scripts')
     </body>
 </html>

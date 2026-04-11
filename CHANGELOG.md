@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Preview modal header and footer were hidden behind page content due to CSS stacking context issues — portaled modal to body level via Blade `@stack('modals')` and cleared `pageReveal` animation transform after completion
+
 ### Security
 - Rate-limited public upload endpoints (`throttle:30,1` GET, `throttle:10,1` POST) and public health check endpoints to prevent abuse
 - Narrowed Google Drive OAuth scope from `drive` + `drive.file` to `drive.file` only — admin must re-authenticate after deploy
