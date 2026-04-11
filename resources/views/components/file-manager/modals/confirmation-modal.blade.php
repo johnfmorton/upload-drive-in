@@ -174,7 +174,7 @@
     @endif
 </div>
 
-<script>
+<script @cspNonce>
 document.addEventListener('alpine:init', () => {
     Alpine.data('fileConfirmationModal', (userType = 'admin', username = null) => ({
         open: false,

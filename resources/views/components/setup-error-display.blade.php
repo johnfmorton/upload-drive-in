@@ -68,8 +68,8 @@
             <!-- Technical details toggle -->
             @if(!empty($error['technical_message']) && $error['technical_message'] !== $error['user_message'])
             <div class="mt-4">
-                <button type="button" 
-                        onclick="toggleTechnicalDetails()"
+                <button type="button" x-data
+                        @click="toggleTechnicalDetails()"
                         class="text-sm text-red-600 hover:text-red-800 underline focus:outline-none">
                     <span id="technical-toggle-text">Show technical details</span>
                 </button>
@@ -96,8 +96,8 @@
 
             <!-- Action buttons -->
             <div class="mt-4 flex space-x-3">
-                <button type="button" 
-                        onclick="window.location.reload()"
+                <button type="button" x-data
+                        @click="window.location.reload()"
                         class="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                     <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -106,8 +106,8 @@
                 </button>
                 
                 @if(!empty($error['recovery_suggestions']))
-                <button type="button" 
-                        onclick="showRecoveryHelp()"
+                <button type="button" x-data
+                        @click="showRecoveryHelp()"
                         class="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                     <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -120,7 +120,7 @@
     </div>
 </div>
 
-<script>
+<script @cspNonce>
 function toggleTechnicalDetails() {
     const details = document.getElementById('technical-details');
     const toggleText = document.getElementById('technical-toggle-text');

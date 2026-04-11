@@ -137,7 +137,7 @@
     </form>
 </div>
 
-<script>
+<script @cspNonce>
 function googleDriveConnectHandler() {
     return {
         isConnecting: false,

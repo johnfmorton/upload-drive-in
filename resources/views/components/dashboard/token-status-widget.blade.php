@@ -194,7 +194,7 @@
     </div>
 </div>
 
-<script>
+<script @cspNonce>
 function tokenStatusWidget(initialTokenStatus, provider) {
     return {
         tokenStatus: initialTokenStatus,

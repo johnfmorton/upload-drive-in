@@ -32,6 +32,13 @@ Before deploying Upload Drive-In to a client server, verify every item below.
 
 - [ ] `LOG_LEVEL=info` (or `warning`) -- `debug` level can log sensitive data
 
+## Content Security Policy
+
+- [ ] `CSP_ENFORCE=false` initially -- starts in Report-Only mode, which logs CSP violations in the browser console without blocking anything
+- [ ] Open every major page type (login, dashboard, setup wizard, file manager, settings, profile) and check the browser console for CSP violation reports
+- [ ] Once no violations appear, set `CSP_ENFORCE=true` to switch from Report-Only to enforcing mode
+- [ ] Note: `'unsafe-eval'` remains in `script-src` because Alpine.js requires it for expression evaluation -- this is expected
+
 ## Proxy & Networking
 
 - [ ] `TRUSTED_PROXIES` set to specific proxy IPs (not `*`) if behind a reverse proxy

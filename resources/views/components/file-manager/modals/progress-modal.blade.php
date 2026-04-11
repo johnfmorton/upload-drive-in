@@ -212,7 +212,7 @@
     @endif
 </div>
 
-<script>
+<script @cspNonce>
 document.addEventListener('alpine:init', () => {
     Alpine.data('fileProgressModal', (userType = 'admin', username = null) => ({
         open: false,

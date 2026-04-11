@@ -412,7 +412,7 @@
         </div>
     </div>
 
-    <script>
+    <script @cspNonce>
         function providerManagement() {
             return {
                 showDetailsModal: false,

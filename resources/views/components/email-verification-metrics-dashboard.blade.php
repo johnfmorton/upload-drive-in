@@ -218,7 +218,7 @@
     <div class="mt-6 pt-4 border-t border-gray-200 text-center">
         <p class="text-xs text-gray-500">
             {{ __('messages.email_verification_dashboard_last_updated') }}: {{ now()->format('Y-m-d H:i:s T') }} | 
-            <a href="#" onclick="location.reload()" class="text-blue-600 hover:text-blue-800">{{ __('messages.email_verification_dashboard_refresh') }}</a>
+            <a href="#" x-data @click.prevent="location.reload()" class="text-blue-600 hover:text-blue-800">{{ __('messages.email_verification_dashboard_refresh') }}</a>
         </p>
     </div>
 </div>

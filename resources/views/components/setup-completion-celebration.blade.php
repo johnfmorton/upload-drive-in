@@ -124,7 +124,7 @@
 </div>
 
 <!-- Confetti Styles -->
-<style>
+<style @cspNonce>
 .confetti-container {
     position: absolute;
     top: 0;
@@ -159,7 +159,7 @@
 }
 </style>
 
-<script>
+<script @cspNonce>
 function setupCelebration() {
     return {
         show: true,

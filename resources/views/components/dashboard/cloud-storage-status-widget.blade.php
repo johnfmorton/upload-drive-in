@@ -324,7 +324,7 @@
     </div>
 </div>
 
-<script>
+<script @cspNonce>
 function cloudStorageStatusWidget(initialProviders) {
     return {
         providers: initialProviders,

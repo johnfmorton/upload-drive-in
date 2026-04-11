@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made trusted proxy configuration environment-driven via `TRUSTED_PROXIES` (defaults to `*` for dev)
 - Tightened branding color input validation to accept only 6-digit hex colors
 - Added production security checklist at `docs/security/production-security-checklist.md`
+- Implemented nonce-based Content Security Policy, replacing `'unsafe-inline'` with per-request nonces for all inline scripts and styles
+- Converted all `onclick` HTML handlers to Alpine.js `@click` directives for CSP compliance
+- Added `CSP_ENFORCE` env toggle — starts in Report-Only mode to log violations without blocking, set to `true` after verifying no issues in browser console
 
 ## [1.1.1] - 2026-03-30
 

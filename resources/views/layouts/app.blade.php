@@ -8,7 +8,7 @@
         <title>{{ config('app.name', 'Upload Drive-In') }}</title>
 
         {{-- Inject Brand Color CSS Variable --}}
-        <style>
+        <style @cspNonce>
             :root {
                 --brand-color: {{ config('branding.color', '#6366F1') }};
             }

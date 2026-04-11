@@ -28,7 +28,7 @@
         <div class="text-sm font-medium text-gray-700 mb-2">{{ __('Manual Entry Code') }}</div>
         <div class="flex items-center space-x-2">
             <input type="text" value="{{ $secret }}" class="bg-gray-100 text-gray-800 text-sm py-2 px-3 rounded-md w-full font-mono" readonly>
-            <button onclick="copyToClipboard(this)" data-secret="{{ $secret }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm" type="button">
+            <button x-data @click="copyToClipboard($el)" data-secret="{{ $secret }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm" type="button">
                 <span class="copy-text">{{ __('Copy') }}</span>
             </button>
         </div>
@@ -77,7 +77,7 @@
 </div>
 
 {{-- Copy to Clipboard Script --}}
-<script>
+<script @cspNonce>
 function copyToClipboard(button) {
     const secret = button.getAttribute('data-secret');
     navigator.clipboard.writeText(secret).then(() => {

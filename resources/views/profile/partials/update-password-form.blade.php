@@ -22,7 +22,7 @@
             <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
             <p class="mt-2 text-sm text-gray-600">
                 {{ __('Don\'t know your current password?') }} 
-                <button type="button" onclick="sendPasswordReset()" class="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer">
+                <button type="button" x-data @click="sendPasswordReset()" class="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer">
                     {{ __('Click here to send a password reset link to your email address.') }}
                 </button>
             </p>

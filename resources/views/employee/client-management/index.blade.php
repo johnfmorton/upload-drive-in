@@ -389,7 +389,7 @@
         </div>
     </div>
 
-    <script>
+    <script @cspNonce>
         function employeeClientsData() {
             return {
                 clientsData: [],

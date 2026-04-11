@@ -100,8 +100,8 @@
                             </div>
 
                             <div class="mt-6 text-center">
-                                <button type="button"
-                                        onclick="if(confirm('Are you sure you want to cancel the upload?')) { location.reload(); }"
+                                <button type="button" x-data
+                                        @click="if(confirm('Are you sure you want to cancel the upload?')) { location.reload(); }"
                                         class="text-xs text-warm-400 hover:text-warm-600 transition-colors">
                                     Cancel Upload
                                 </button>

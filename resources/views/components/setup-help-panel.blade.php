@@ -113,9 +113,9 @@ $helpContent = match($step) {
 $content = $helpContent;
 @endphp
 
-<div class="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
-    <button type="button" 
-            onclick="toggleHelpPanel()"
+<div x-data class="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+    <button type="button"
+            @click="toggleHelpPanel()"
             class="w-full px-4 py-3 text-left bg-blue-100 hover:bg-blue-150 focus:outline-none focus:bg-blue-150 transition-colors">
         <div class="flex items-center justify-between">
             <div class="flex items-center">
@@ -171,7 +171,7 @@ $content = $helpContent;
     </div>
 </div>
 
-<script>
+<script @cspNonce>
 function toggleHelpPanel() {
     const content = document.getElementById('help-content');
     const chevron = document.getElementById('help-chevron');

@@ -202,7 +202,7 @@ $totalSteps = count($allSteps);
     @endif
 </div>
 
-<script>
+<script @cspNonce>
 function setupProgress(initialProgress, currentStep, animated) {
     return {
         animatedProgress: 0,

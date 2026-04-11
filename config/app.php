@@ -70,6 +70,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | CSP Enforcement
+    |--------------------------------------------------------------------------
+    |
+    | When false, the Content-Security-Policy header is sent as Report-Only,
+    | which logs violations without blocking them. Set to true in production
+    | after confirming no violations appear in browser consoles.
+    |
+    */
+
+    'csp_enforce' => (bool) env('CSP_ENFORCE', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application URL
     |--------------------------------------------------------------------------
     |

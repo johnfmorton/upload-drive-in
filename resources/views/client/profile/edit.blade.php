@@ -27,7 +27,7 @@
         </div>
     </div>
 
-    <script>
+    <script @cspNonce>
         async function sendPasswordReset() {
             const statusDiv = document.getElementById('password-reset-status');
             const userEmail = '{{ auth()->user()->email }}';

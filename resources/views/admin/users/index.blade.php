@@ -514,7 +514,7 @@
         </div>
     </div>
 
-    <script>
+    <script @cspNonce>
         function adminUsersData() {
             return {
                 columns: Alpine.$persist({

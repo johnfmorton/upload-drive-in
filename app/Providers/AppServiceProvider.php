@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use App\Services\SetupService;
@@ -46,6 +47,12 @@ class AppServiceProvider extends ServiceProvider
     {
         // Set secure password defaults for all validation using Password::defaults()
         Password::defaults(fn () => Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised());
+
+        // Register @cspNonce Blade directive for nonce-based Content Security Policy.
+        // Usage: <script @cspNonce> or <style @cspNonce>
+        Blade::directive('cspNonce', function () {
+            return '<?php echo \'nonce="\' . request()->attributes->get(\'csp-nonce\', \'\') . \'"\'; ?>';
+        });
 
         // Register model observers
         \App\Models\FileUpload::observe(\App\Observers\FileUploadObserver::class);

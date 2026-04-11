@@ -82,7 +82,7 @@
     </form>
 </div>
 
-<script>
+<script @cspNonce>
     function employeeGoogleDriveFolderPicker() {
         return {
             showModal: false,

@@ -2,9 +2,9 @@
     'expanded' => false
 ])
 
-<div class="bg-yellow-50 border border-yellow-200 rounded-lg overflow-hidden">
-    <button type="button" 
-            onclick="toggleTroubleshooting()"
+<div x-data class="bg-yellow-50 border border-yellow-200 rounded-lg overflow-hidden">
+    <button type="button"
+            @click="toggleTroubleshooting()"
             class="w-full px-4 py-3 text-left bg-yellow-100 hover:bg-yellow-150 focus:outline-none focus:bg-yellow-150 transition-colors">
         <div class="flex items-center justify-between">
             <div class="flex items-center">
@@ -142,7 +142,7 @@
     </div>
 </div>
 
-<script>
+<script @cspNonce>
 function toggleTroubleshooting() {
     const content = document.getElementById('troubleshooting-content');
     const chevron = document.getElementById('troubleshooting-chevron');

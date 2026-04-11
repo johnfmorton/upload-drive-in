@@ -72,7 +72,7 @@
                                     <span id="status-database-text">Click the Check Status button</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
-                                    onclick="toggleStatusDetails('database')" title="Show details">
+                                    @click="toggleStatusDetails('database')" title="Show details">
                                     <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
@@ -90,7 +90,7 @@
                         </p>
 
                         <div class="bg-gray-900 rounded-lg p-4 relative">
-                            <button onclick="copyToClipboard('database-config')"
+                            <button @click="copyToClipboard('database-config')"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Copy
                             </button>
@@ -133,7 +133,7 @@ DB_PASSWORD=your_database_password</code></pre>
                                     <span class="status-emoji w-4 h-4 mr-1.5">🔄</span>
                                     <span id="status-mail-text">Click the Check Status button</span>
                                 </div>
-                                <button class="text-gray-400 hover:text-gray-600" onclick="toggleStatusDetails('mail')"
+                                <button class="text-gray-400 hover:text-gray-600" @click="toggleStatusDetails('mail')"
                                     title="Show details">
                                     <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
@@ -153,7 +153,7 @@ DB_PASSWORD=your_database_password</code></pre>
                         </p>
 
                         <div class="bg-gray-900 rounded-lg p-4 relative">
-                            <button onclick="copyToClipboard('mail-config')"
+                            <button @click="copyToClipboard('mail-config')"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Copy
                             </button>
@@ -326,7 +326,7 @@ MAIL_FROM_ADDRESS=name@example.com</code></pre>
                                     <span id="status-cloud_storage-text">Click the Check Status button</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
-                                    onclick="toggleStatusDetails('cloud_storage')" title="Show details">
+                                    @click="toggleStatusDetails('cloud_storage')" title="Show details">
                                     <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
@@ -363,12 +363,12 @@ MAIL_FROM_ADDRESS=name@example.com</code></pre>
                             <div class="flex border-b border-gray-200 bg-gray-50">
                                 <button id="tab-google-drive"
                                     class="flex-1 px-4 py-3 text-sm font-medium text-center transition-colors cloud-storage-tab active"
-                                    onclick="switchCloudStorageTab('google-drive')">
+                                    @click="switchCloudStorageTab('google-drive')">
                                     <span class="mr-2">📁</span> Google Drive
                                 </button>
                                 <button id="tab-s3"
                                     class="flex-1 px-4 py-3 text-sm font-medium text-center transition-colors cloud-storage-tab"
-                                    onclick="switchCloudStorageTab('s3')">
+                                    @click="switchCloudStorageTab('s3')">
                                     <span class="mr-2">☁️</span> Amazon S3
                                 </button>
                             </div>
@@ -381,7 +381,7 @@ MAIL_FROM_ADDRESS=name@example.com</code></pre>
                                 </p>
 
                                 <div class="bg-gray-900 rounded-lg p-4 relative">
-                                    <button onclick="copyToClipboard('google-drive-config')"
+                                    <button @click="copyToClipboard('google-drive-config')"
                                         class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                         Copy
                                     </button>
@@ -403,7 +403,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                     </p>
 
                                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 relative">
-                                        <button onclick="copyToClipboard('javascript-origin')"
+                                        <button @click="copyToClipboard('javascript-origin')"
                                             class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
                                             Copy
                                         </button>
@@ -416,7 +416,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                     </div>
 
                                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 relative">
-                                        <button onclick="copyToClipboard('redirect-uri')"
+                                        <button @click="copyToClipboard('redirect-uri')"
                                             class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
                                             Copy
                                         </button>
@@ -489,7 +489,7 @@ CLOUD_STORAGE_DEFAULT=google-drive</code></pre>
                                 </p>
 
                                 <div class="bg-gray-900 rounded-lg p-4 relative">
-                                    <button onclick="copyToClipboard('s3-config')"
+                                    <button @click="copyToClipboard('s3-config')"
                                         class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                         Copy
                                     </button>
@@ -537,7 +537,7 @@ CLOUD_STORAGE_DEFAULT=s3</code></pre>
                                                 For better security, use a minimal IAM policy that only grants the necessary permissions:
                                             </p>
                                             <div class="bg-gray-900 rounded-lg p-4 relative">
-                                                <button onclick="copyToClipboard('iam-policy')"
+                                                <button @click="copyToClipboard('iam-policy')"
                                                     class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                                     Copy
                                                 </button>
@@ -604,7 +604,7 @@ CLOUD_STORAGE_DEFAULT=s3</code></pre>
                                     <span id="status-queue_worker-text">Click the Test Queue Worker button below</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
-                                    onclick="toggleStatusDetails('queue_worker')" title="Show details">
+                                    @click="toggleStatusDetails('queue_worker')" title="Show details">
                                     <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
@@ -795,7 +795,7 @@ CLOUD_STORAGE_DEFAULT=s3</code></pre>
                         </div>
 
                         <div class="bg-gray-900 rounded-lg p-4 relative">
-                            <button onclick="copyToClipboard('worker-command')"
+                            <button @click="copyToClipboard('worker-command')"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Copy
                             </button>
@@ -1006,7 +1006,7 @@ CLOUD_STORAGE_DEFAULT=s3</code></pre>
                                     <span id="status-migrations-text">Click the Check Status button</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
-                                    onclick="toggleStatusDetails('migrations')" title="Show details">
+                                    @click="toggleStatusDetails('migrations')" title="Show details">
                                     <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
@@ -1023,7 +1023,7 @@ CLOUD_STORAGE_DEFAULT=s3</code></pre>
                         </p>
 
                         <div class="bg-gray-900 rounded-lg p-4 relative">
-                            <button onclick="copyToClipboard('migration-command')"
+                            <button @click="copyToClipboard('migration-command')"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Copy
                             </button>
@@ -1047,7 +1047,7 @@ CLOUD_STORAGE_DEFAULT=s3</code></pre>
                                     <span id="status-admin_user-text">Click the Check Status button</span>
                                 </div>
                                 <button class="text-gray-400 hover:text-gray-600"
-                                    onclick="toggleStatusDetails('admin_user')" title="Show details">
+                                    @click="toggleStatusDetails('admin_user')" title="Show details">
                                     <span class="w-4 h-4 text-base">ℹ️</span>
                                 </button>
                             </div>
@@ -1064,7 +1064,7 @@ CLOUD_STORAGE_DEFAULT=s3</code></pre>
                         </p>
 
                         <div class="bg-gray-900 rounded-lg p-4 relative">
-                            <button onclick="copyToClipboard('admin-command')"
+                            <button @click="copyToClipboard('admin-command')"
                                 class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm transition-colors">
                                 Copy
                             </button>
@@ -1120,7 +1120,7 @@ CLOUD_STORAGE_DEFAULT=s3</code></pre>
                                     </p>
                                 </div>
                                 <div class="mt-4">
-                                    <button id="disable-setup-btn" onclick="disableSetup()"
+                                    <button id="disable-setup-btn" @click="disableSetup()"
                                         class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                         <span id="disable-setup-text">Disable the set-up process</span>
                                     </button>
@@ -1134,7 +1134,7 @@ CLOUD_STORAGE_DEFAULT=s3</code></pre>
         </div>
     </div>
 
-    <style>
+    <style @cspNonce>
         /* Cloud Storage Tab Styles */
         .cloud-storage-tab {
             color: #6b7280;
@@ -1154,7 +1154,7 @@ CLOUD_STORAGE_DEFAULT=s3</code></pre>
         }
     </style>
 
-    <script>
+    <script @cspNonce>
         /**
          * Switch between cloud storage provider tabs
          */

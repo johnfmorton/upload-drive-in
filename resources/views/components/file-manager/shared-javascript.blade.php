@@ -3,7 +3,7 @@
     'username' => null, // Required for employee routes
 ])
 
-<script>
+<script @cspNonce>
 document.addEventListener('alpine:init', () => {
     Alpine.data('fileManager', (initialFiles, initialStatistics = {}) => ({
         // Data

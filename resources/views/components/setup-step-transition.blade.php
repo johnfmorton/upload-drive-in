@@ -56,7 +56,7 @@
     </div>
 </div>
 
-<script>
+<script @cspNonce>
 function stepTransition() {
     return {
         show: true,

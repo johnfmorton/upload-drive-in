@@ -594,7 +594,7 @@
     </div>
 
     @push('scripts')
-    <script>
+    <script @cspNonce>
         function welcomeMessageHandler() {
             return {
                 dismissed: false,

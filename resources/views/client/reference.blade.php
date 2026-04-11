@@ -80,8 +80,8 @@
 
                                  {{-- Cancel Button (Optional) --}}
                                  <div class="mt-6 text-center">
-                                     <button type="button" 
-                                             onclick="if(confirm('{{ __('messages.upload_progress_cancel_confirm') }}')) { location.reload(); }"
+                                     <button type="button" x-data
+                                             @click="if(confirm('{{ __('messages.upload_progress_cancel_confirm') }}')) { location.reload(); }"
                                              class="text-sm text-gray-500 hover:text-gray-700 underline">
                                          {{ __('messages.upload_progress_cancel_button') }}
                                      </button>

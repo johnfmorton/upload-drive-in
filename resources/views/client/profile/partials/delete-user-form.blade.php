@@ -75,7 +75,7 @@
     @endif
 </section>
 
-<script>
+<script @cspNonce>
 document.getElementById('deletion-form').addEventListener('submit', function(e) {
     console.log('Form submission triggered');
 });

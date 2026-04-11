@@ -300,8 +300,8 @@
 </div>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js" @cspNonce></script>
+<script @cspNonce>
 function tokenMonitoringDashboard() {
     return {
         dashboardData: @json($dashboardData),
@@ -486,7 +486,7 @@ function tokenMonitoringDashboard() {
 @endpush
 
 @push('styles')
-<style>
+<style @cspNonce>
 [x-cloak] { display: none !important; }
 
 .card {

@@ -101,8 +101,8 @@
 
                                 {{-- Cancel Button (Optional) --}}
                                 <div class="mt-6 text-center">
-                                    <button type="button" 
-                                            onclick="if(confirm('Are you sure you want to cancel the upload?')) { location.reload(); }"
+                                    <button type="button" x-data
+                                            @click="if(confirm('Are you sure you want to cancel the upload?')) { location.reload(); }"
                                             class="text-sm text-gray-500 hover:text-gray-700 underline">
                                         Cancel Upload
                                     </button>
@@ -141,7 +141,7 @@
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Upload Complete!</h3>
                     <p class="text-sm text-gray-600">Your files have been uploaded successfully to {{ $employee->name }}.</p>
                     <div class="mt-6">
-                        <button type="button" onclick="window.location.reload()"
+                        <button type="button" x-data @click="window.location.reload()"
                                 class="w-full bg-[var(--brand-color)] text-white px-4 py-2 rounded hover:brightness-90 transition">
                             Upload More Files
                         </button>
@@ -152,7 +152,7 @@
     </div>
 
     @push('scripts')
-    <script>
+    <script @cspNonce>
         // Employee-specific upload functionality
         // The main app.js will handle the Dropzone initialization
         // We just need to customize the endpoints for employee uploads

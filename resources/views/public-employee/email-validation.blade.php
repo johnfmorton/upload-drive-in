@@ -61,7 +61,7 @@
     </div>
 
     @push('scripts')
-    <script>
+    <script @cspNonce>
         document.getElementById('emailValidationForm').addEventListener('submit', function(e) {
             e.preventDefault();
 

@@ -383,7 +383,7 @@
     </div>
 </div>
 
-<script>
+<script @cspNonce>
 function tokenRefreshConfig() {
     return {
         loading: false,

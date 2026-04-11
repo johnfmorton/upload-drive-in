@@ -163,7 +163,7 @@ aria-atomic="true">
     </div>
 </div>
 
-<style>
+<style @cspNonce>
 @keyframes shrink {
     from { width: 100%; }
     to { width: 0%; }

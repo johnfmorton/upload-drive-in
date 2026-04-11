@@ -274,7 +274,7 @@
     </div>
 </x-app-layout>
 
-<script>
+<script @cspNonce>
     function googleDriveFolderPicker() {
         return {
             showModal: false,

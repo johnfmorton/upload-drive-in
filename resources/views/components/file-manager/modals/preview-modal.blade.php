@@ -258,7 +258,7 @@
     </div>
 </div>
 
-<script>
+<script @cspNonce>
 document.addEventListener('alpine:init', () => {
     Alpine.data('filePreviewModal', (userType = 'admin', username = null) => ({
         open: false,

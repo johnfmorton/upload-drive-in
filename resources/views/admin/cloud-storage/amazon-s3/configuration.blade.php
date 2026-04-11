@@ -46,7 +46,7 @@
                     @method('DELETE')
                     <button type="submit" 
                             class="px-4 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                            onclick="return confirm('{{ __('messages.s3_disconnect_confirmation') }}')">
+                            x-data @click="if(!confirm('{{ __('messages.s3_disconnect_confirmation') }}')) $event.preventDefault()">
                         {{ __('messages.disconnect') }}
                     </button>
                 </form>
@@ -370,7 +370,7 @@
     </form>
 </div>
 
-<script>
+<script @cspNonce>
 function s3ConfigurationHandler() {
     return {
         formData: {

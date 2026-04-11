@@ -9,7 +9,7 @@
     <title>{{ config('app.name', 'Upload Drive-In') }}</title>
 
     {{-- Inject Brand Color CSS Variable --}}
-    <style>
+    <style @cspNonce>
         :root {
             --brand-color: {{ config('branding.color', '#6366F1') }};
         }
@@ -32,8 +32,8 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @else
         <!-- Fallback CSS for when Vite assets are not available -->
-        <script src="https://cdn.tailwindcss.com"></script>
-        <style>
+        <script src="https://cdn.tailwindcss.com" @cspNonce></script>
+        <style @cspNonce>
             /* Basic styles when Vite is not available */
             .min-h-dvh { min-height: 100vh; }
             .bg-gradient-to-b { background: linear-gradient(to bottom, var(--tw-gradient-stops)); }

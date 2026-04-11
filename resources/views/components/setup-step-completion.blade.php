@@ -131,7 +131,7 @@
     </div>
 </div>
 
-<script>
+<script @cspNonce>
 function stepCompletion() {
     return {
         show: true,
