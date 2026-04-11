@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-04-11
+
 ### Fixed
 - Preview modal header and footer were hidden behind page content due to CSS stacking context issues — portaled modal to body level via Blade `@stack('modals')` and cleared `pageReveal` animation transform after completion
 
@@ -23,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented nonce-based Content Security Policy, replacing `'unsafe-inline'` with per-request nonces for all inline scripts and styles
 - Converted all `onclick` HTML handlers to Alpine.js `@click` directives for CSP compliance
 - Added `CSP_ENFORCE` env toggle — starts in Report-Only mode to log violations without blocking, set to `true` after verifying no issues in browser console
+
+[1.2.0]: https://github.com/johnfmorton/upload-drive-in/releases/tag/v1.2.0
 
 ## [1.1.1] - 2026-03-30
 
