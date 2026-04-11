@@ -11,6 +11,7 @@ dev: build
 
 build:
 	ddev start
+	ddev exec npm ci
 	ddev exec npm run build
 
 mailhog:
