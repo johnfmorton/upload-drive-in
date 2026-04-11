@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Debug console.log statements from file manager modals and shared JavaScript that were visible in production
+
 ## [1.2.1] - 2026-04-11
 
 ### Fixed

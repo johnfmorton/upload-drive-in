@@ -324,25 +324,11 @@ document.addEventListener('alpine:init', () => {
 
             this.open = true;
 
-            // Log modal opening in debug mode
-            if (this.debugMode) {
-                console.log('🔍 Progress modal opened:', {
-                    operation: this.operation,
-                    total: this.total,
-                    userType: this.userType,
-                    username: this.username
-                });
-            }
         },
 
         closeModal() {
             this.open = false;
             this.resetState();
-
-            // Log modal closing in debug mode
-            if (this.debugMode) {
-                console.log('🔍 Progress modal closed');
-            }
 
             // Call completion callback if provided
             if (this.onComplete && typeof this.onComplete === 'function') {
@@ -395,24 +381,12 @@ document.addEventListener('alpine:init', () => {
                 this.estimatedTimeRemaining = remaining / rate;
             }
 
-            if (this.debugMode) {
-                console.log('🔍 Progress updated:', {
-                    current: this.current,
-                    total: this.total,
-                    status: this.status,
-                    percentage: this.progressPercentage
-                });
-            }
         },
 
         async cancelOperation() {
             if (this.cancelling) return;
 
             this.cancelling = true;
-
-            if (this.debugMode) {
-                console.log('🔍 Cancelling operation');
-            }
 
             try {
                 if (this.onCancel && typeof this.onCancel === 'function') {
@@ -429,10 +403,6 @@ document.addEventListener('alpine:init', () => {
 
             } catch (error) {
                 console.error('Cancel operation failed:', error);
-                
-                if (this.debugMode) {
-                    console.log('🔍 Cancel operation failed:', error);
-                }
 
                 this.status = 'error';
                 this.errorMessage = error.message || '{{ __("messages.cancel_failed") }}';
@@ -443,10 +413,6 @@ document.addEventListener('alpine:init', () => {
         },
 
         async retryOperation() {
-            if (this.debugMode) {
-                console.log('🔍 Retrying operation');
-            }
-
             try {
                 if (this.onRetry && typeof this.onRetry === 'function') {
                     await this.onRetry();
@@ -465,10 +431,6 @@ document.addEventListener('alpine:init', () => {
 
             } catch (error) {
                 console.error('Retry operation failed:', error);
-                
-                if (this.debugMode) {
-                    console.log('🔍 Retry operation failed:', error);
-                }
 
                 this.status = 'error';
                 this.errorMessage = error.message || '{{ __("messages.retry_failed") }}';
@@ -504,27 +466,10 @@ document.addEventListener('alpine:init', () => {
         toggleDebugMode() {
             this.debugMode = !this.debugMode;
             localStorage.setItem('modal-debug', this.debugMode.toString());
-            
-            if (this.debugMode) {
-                console.log('🔍 Progress modal debug mode enabled');
-                this.logModalState();
-            } else {
-                console.log('🔍 Progress modal debug mode disabled');
-            }
         },
 
         logModalState() {
-            console.group('🔍 Progress Modal State');
-            console.log('Open:', this.open);
-            console.log('User Type:', this.userType);
-            console.log('Username:', this.username);
-            console.log('Operation:', this.operation);
-            console.log('Status:', this.status);
-            console.log('Progress:', `${this.current}/${this.total} (${this.progressPercentage}%)`);
-            console.log('Cancellable:', this.cancellable);
-            console.log('Retryable:', this.retryable);
-            console.log('Debug Mode:', this.debugMode);
-            console.groupEnd();
+            // Debug state inspection (no-op in production)
         }
     }));
 });

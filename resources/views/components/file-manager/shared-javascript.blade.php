@@ -447,53 +447,36 @@ document.addEventListener('alpine:init', () => {
         },
 
         deleteFile(file) {
-            console.log('🔍 deleteFile called with:', file);
             this.currentFile = file;
-            
+
             // Simple modal state management
-            console.log('🔍 Setting showDeleteModal to true');
             this.showDeleteModal = true;
             this.deleteModalFile = file;
             this.deleteModalTitle = 'Delete File';
             this.deleteModalMessage = `Are you sure you want to delete "${file.original_filename}"? This action cannot be undone.`;
-            console.log('🔍 Modal state set:', {
-                showDeleteModal: this.showDeleteModal,
-                deleteModalTitle: this.deleteModalTitle,
-                deleteModalMessage: this.deleteModalMessage
-            });
         },
         
         confirmDelete() {
-            console.log('🔍 confirmDelete called, isDeleting:', this.isDeleting);
             if (!this.deleteModalFile || this.isDeleting) {
-                console.log('🔍 Returning early - no file or already deleting');
                 return;
             }
-            
-            console.log('🔍 Starting delete operation');
-            
+
             // Check if this is a bulk delete or single file delete
             if (this.deleteModalFile.bulk) {
-                console.log('🔍 Performing bulk delete');
                 this.performBulkDelete()
                     .then(() => {
-                        console.log('🔍 Bulk delete successful, closing modal');
                         this.closeDeleteModal();
                     })
                     .catch(error => {
-                        console.error('🔍 Bulk delete failed:', error);
                         this.showError(error.message || 'Failed to delete files');
                         // Don't close modal on error, let user retry
                     });
             } else {
-                console.log('🔍 Performing single file delete');
                 this.performDeleteFile(this.deleteModalFile)
                     .then(() => {
-                        console.log('🔍 Single delete successful, closing modal');
                         this.closeDeleteModal();
                     })
                     .catch(error => {
-                        console.error('🔍 Single delete failed:', error);
                         this.showError(error.message || 'Failed to delete file');
                         // Don't close modal on error, let user retry
                     });
@@ -510,7 +493,6 @@ document.addEventListener('alpine:init', () => {
 
         // Process Pending Modal Methods
         openProcessPendingModal() {
-            console.log('🔍 Opening process pending modal');
             this.showProcessPendingModal = true;
             this.pendingCount = this.getPendingCount();
             this.processingProgress = 0;
@@ -521,7 +503,6 @@ document.addEventListener('alpine:init', () => {
         },
 
         closeProcessPendingModal() {
-            console.log('🔍 Closing process pending modal');
             this.showProcessPendingModal = false;
             this.isProcessingPending = false;
             this.processingProgress = 0;
@@ -532,16 +513,12 @@ document.addEventListener('alpine:init', () => {
         },
 
         confirmProcessPending() {
-            console.log('🔍 Confirm process pending called');
             if (this.isProcessingPending || this.pendingCount === 0) {
-                console.log('🔍 Returning early - already processing or no pending files');
                 return;
             }
 
-            console.log('🔍 Starting process pending operation');
             this.performProcessPending()
                 .then((result) => {
-                    console.log('🔍 Process pending successful:', result);
                     this.processingResults = result;
                     // Auto-close modal after 3 seconds on success
                     if (result.success) {
@@ -553,7 +530,6 @@ document.addEventListener('alpine:init', () => {
                     }
                 })
                 .catch(error => {
-                    console.error('🔍 Process pending failed:', error);
                     this.processingResults = {
                         success: false,
                         message: error.message || 'Failed to process pending uploads'
@@ -634,7 +610,6 @@ document.addEventListener('alpine:init', () => {
             }
 
             this.isDeleting = true;
-            console.log('🔍 Starting delete for file:', file.id);
 
             try {
                 @if($userType === 'employee')
@@ -653,7 +628,6 @@ document.addEventListener('alpine:init', () => {
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success) {
-                        console.log('Delete successful for file:', file.id);
                         // Remove file from local array
                         this.files = this.files.filter(f => f.id !== file.id);
                         // Remove from selected files if it was selected
@@ -665,7 +639,6 @@ document.addEventListener('alpine:init', () => {
                     }
                 } else if (response.status === 404) {
                     // File already deleted, treat as success
-                    console.warn('File not found (404), treating as already deleted');
                     this.files = this.files.filter(f => f.id !== file.id);
                     this.selectedFiles = this.selectedFiles.filter(id => id !== file.id);
                     this.showSuccess(`File "${file.original_filename}" was already deleted.`);
@@ -681,7 +654,6 @@ document.addEventListener('alpine:init', () => {
             } finally {
                 this.isDeleting = false;
                 this.currentFile = null;
-                console.log('Delete operation completed for file:', file.id);
             }
         },
 
@@ -927,7 +899,6 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            console.log('🔍 Retrying file upload:', file.id);
             this.retryingFiles.push(file.id);
 
             try {
@@ -942,7 +913,6 @@ document.addEventListener('alpine:init', () => {
                 const data = await response.json();
 
                 if (data.success) {
-                    console.log('🔍 File retry successful');
                     this.showSuccess(data.message || 'File upload retry initiated successfully');
                     
                     // Update the file in the local array
@@ -955,11 +925,9 @@ document.addEventListener('alpine:init', () => {
                         this.files[fileIndex].cloud_storage_error_severity = null;
                     }
                 } else {
-                    console.error('🔍 File retry failed:', data.message);
                     this.showError(data.message || 'Failed to retry file upload');
                 }
             } catch (error) {
-                console.error('🔍 File retry error:', error);
                 this.showError('An error occurred while retrying the file upload');
             } finally {
                 // Remove from retrying list
@@ -977,7 +945,6 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            console.log('🔍 Starting bulk retry for', recoverableFiles.length, 'files');
             this.showBulkProgress('Retrying Files', recoverableFiles.length);
 
             let successCount = 0;
@@ -1014,11 +981,9 @@ document.addEventListener('alpine:init', () => {
                     });
                 } else {
                     failureCount = recoverableFiles.length;
-                    console.error('🔍 Bulk retry failed:', data.message);
                 }
             } catch (error) {
                 failureCount = recoverableFiles.length;
-                console.error('🔍 Bulk retry error:', error);
             }
 
             this.hideBulkProgress();
