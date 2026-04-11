@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- 2FA verification expired after 5 minutes regardless of session lifetime, forcing admins to re-verify constantly
+- No way to sign out from the 2FA verification page, trapping users in a verification loop
+
+### Changed
+- 2FA verification timeout now follows the session lifetime instead of a hardcoded 5-minute window
+
 ### Removed
 - Debug console.log statements from file manager modals and shared JavaScript that were visible in production
+- Unused `code_timeout` config from the 2FA package
 
 ## [1.2.1] - 2026-04-11
 

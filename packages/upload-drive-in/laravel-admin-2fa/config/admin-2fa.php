@@ -21,13 +21,4 @@ return [
     */
     'recovery_codes_count' => 8,
 
-    /*
-    |--------------------------------------------------------------------------
-    | Code Timeout
-    |--------------------------------------------------------------------------
-    |
-    | The time in seconds that a 2FA session remains valid.
-    |
-    */
-    'code_timeout' => 300, // 5 minutes
 ];

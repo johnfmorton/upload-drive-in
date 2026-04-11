@@ -21,7 +21,7 @@ class TwoFactorMiddleware
 
         if ($user && $user->isAdmin() && $user->two_factor_enabled) {
             $verifiedAt = session('two_factor_verified');
-            $timeout = config('admin-2fa.code_timeout', 300);
+            $timeout = config('session.lifetime', 120) * 60;
             $isVerified = $verifiedAt && (now()->timestamp - $verifiedAt) < $timeout;
 
             if (!$isVerified) {
