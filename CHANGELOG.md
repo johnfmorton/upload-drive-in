@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-04-11
+
 ### Fixed
 - Tall images in file preview modal were cropped instead of scaling down to fit the available space
+
+[1.2.1]: https://github.com/johnfmorton/upload-drive-in/releases/tag/v1.2.1
 
 ## [1.2.0] - 2026-04-11
 
