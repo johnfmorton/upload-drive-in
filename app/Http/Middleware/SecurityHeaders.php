@@ -54,7 +54,7 @@ class SecurityHeaders
         $directives = [
             "default-src 'self'",
             "script-src 'self' 'nonce-{$nonce}' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com" . $viteOrigin,
-            "style-src 'self' 'nonce-{$nonce}' https://cdn.jsdelivr.net https://fonts.bunny.net" . $viteOrigin,
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.bunny.net" . $viteOrigin,
             "img-src 'self' data: blob:",
             "font-src 'self' https://cdn.jsdelivr.net https://fonts.bunny.net",
             "connect-src 'self'" . ($viteOrigin ? " {$viteOrigin} wss:" : ''),

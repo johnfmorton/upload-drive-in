@@ -38,7 +38,7 @@
                   </header>
               @endisset
               <!-- Page Content -->
-              <main style="animation: pageReveal 0.4s ease-out both;" onanimationend="this.style.animation=''">
+              <main id="main-content" style="animation: pageReveal 0.4s ease-out both;">
                   {{ $slot }}
               </main>
             </div>
@@ -47,6 +47,11 @@
             </div>
         </div>
         @stack('modals')
+        <script @cspNonce>
+            document.getElementById('main-content')?.addEventListener('animationend', function() {
+                this.style.animation = '';
+            }, { once: true });
+        </script>
         @stack('scripts')
     </body>
 </html>
