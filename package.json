@@ -20,7 +20,7 @@
     "@uppy/xhr-upload": "^4.3.3",
     "alpinejs": "^3.4.2",
     "autoprefixer": "^10.4.21",
-    "axios": "^1.8.2",
+    "axios": "^1.18.0",
     "concurrently": "^9.0.1",
     "dotenv": "^16.5.0",
     "laravel-vite-plugin": "^1.2.0",
