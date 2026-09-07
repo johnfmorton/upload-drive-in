@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Updated development dependencies to clear 10 npm audit advisories (Vite, Babel, Jest transitive packages); no runtime dependency majors changed
+
 ## [1.2.3] - 2026-09-07
 
 ### Fixed
