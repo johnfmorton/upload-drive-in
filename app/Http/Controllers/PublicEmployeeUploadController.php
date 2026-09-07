@@ -144,10 +144,7 @@ class PublicEmployeeUploadController extends Controller
             return view('public-employee.email-validation', compact('name', 'employee'));
         }
 
-        // Check if employee has Google Drive connected
-        $hasGoogleDriveConnected = $employee->hasGoogleDriveConnected();
-
-        return view('public-employee.upload-by-name', compact('name', 'employee', 'hasGoogleDriveConnected'));
+        return view('public-employee.upload-by-name', compact('name', 'employee'));
     }
 
     /**
@@ -396,6 +393,23 @@ class PublicEmployeeUploadController extends Controller
             ->where('uploaded_by_user_id', $employee->id)
             ->where('email', \Illuminate\Support\Facades\Auth::user()->email)
             ->update(['message' => $validated['message']]);
+
+        // Dispatch batch completion event to trigger emails when a message was associated
+        try {
+            $currentUser = \Illuminate\Support\Facades\Auth::user();
+            \App\Events\BatchUploadComplete::dispatch($validated['file_upload_ids'], $currentUser->id);
+            \Illuminate\Support\Facades\Log::info('Dispatched BatchUploadComplete event after message association (public employee upload).', [
+                'employee_id' => $employee->id,
+                'client_user_id' => $currentUser->id,
+                'file_upload_ids' => $validated['file_upload_ids'],
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to dispatch BatchUploadComplete event after message association (public employee upload).', [
+                'employee_id' => $employee->id,
+                'file_upload_ids' => $validated['file_upload_ids'],
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json(['success' => true]);
     }

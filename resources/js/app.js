@@ -646,10 +646,14 @@ if (dropzoneElement && messageForm && messageInput && fileIdsInput) {
                         hideProgressOverlay();
                         setUploadInProgress(false);
 
-                        // Redirect to My Uploads page after a short delay
-                        setTimeout(() => {
-                            window.location.href = "/client/my-uploads";
-                        }, 2000); // 2 second delay to show success message
+                        // Client uploads redirect to My Uploads. The employee/admin
+                        // upload page has its own success modal and no equivalent
+                        // page, so stay put there (the client-only route would 403).
+                        if (!window.employeeUploadConfig) {
+                            setTimeout(() => {
+                                window.location.href = "/client/my-uploads";
+                            }, 2000); // 2 second delay to show success message
+                        }
                     })
                     .catch((error) => {
                         console.error(
