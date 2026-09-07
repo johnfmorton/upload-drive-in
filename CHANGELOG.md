@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Dropped the unused axios dependency from the frontend bundle; every request already used `fetch`. The main JavaScript bundle shrinks from 336 kB to 290 kB (101 kB to 84 kB gzipped)
+
 ### Security
 - Updated development dependencies to clear 10 npm audit advisories (Vite, Babel, Jest transitive packages); no runtime dependency majors changed
 

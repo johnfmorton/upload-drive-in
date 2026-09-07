@@ -1,5 +1,3 @@
-import "./bootstrap";
-
 // Import File Manager modules
 import "./file-manager-coordination";
 
