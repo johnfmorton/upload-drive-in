@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-09-07
+
 ### Fixed
 - Admins and employees uploading via their own `/upload/{name}` page saw a 403 error after a successful upload because the page redirected to the client-only My Uploads route
 - Uploads with a message on the `/upload/{name}` page never sent notification emails because the batch-complete event was only dispatched for message-less uploads
 
 ### Removed
 - Google Drive connection status banner from the `/upload/{name}` page so uploaders no longer see storage backend details
+
+[1.2.3]: https://github.com/johnfmorton/upload-drive-in/releases/tag/v1.2.3
 
 ## [1.2.2] - 2026-04-11
 
