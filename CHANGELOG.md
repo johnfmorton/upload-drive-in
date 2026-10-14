@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Screenshots saved to the repository root (e.g. by Playwright) are now git-ignored; images elsewhere, such as `public/`, are unaffected
+
 ### Fixed
 - The five scheduled cloud storage health tasks that were left off in 1.2.5 now run safely, and are scheduled again:
   - Health checks, monitoring and config validation only look at providers in use (the default provider plus any released, configured provider), so an S3-only install no longer reports critical because Google Drive, Dropbox, Azure or Microsoft Teams are unconfigured
