@@ -12,7 +12,7 @@ database:
 hooks:
     post-start:
         - exec: php artisan migrate
-        - exec: php artisan key:generate
+        - exec: grep -q '^APP_KEY=base64:' .env || php artisan key:generate
 use_dns_when_possible: true
 composer_version: "2"
 web_environment: []
