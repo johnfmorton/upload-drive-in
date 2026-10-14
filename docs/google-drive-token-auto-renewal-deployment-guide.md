@@ -115,7 +115,7 @@ This guide provides step-by-step instructions for deploying the Google Drive Tok
 
 ### Phase 5: Scheduler Configuration
 
-1. **Add to `app/Console/Kernel.php`:**
+1. **Add to `routes/console.php`:**
    ```php
    protected function schedule(Schedule $schedule)
    {
@@ -293,7 +293,7 @@ LOG_LEVEL=warning
    php artisan queue:clear
    
    # Remove from scheduler temporarily
-   # Comment out jobs in app/Console/Kernel.php
+   # Comment out jobs in routes/console.php
    ```
 
 3. **Clear problematic cache:**

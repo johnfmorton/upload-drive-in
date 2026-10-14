@@ -645,7 +645,7 @@ The following commands are scheduled to run automatically via Laravel's task sch
 ### Google Drive Token Refresh
 
 ```php
-// Defined in app/Console/Kernel.php
+// Defined in routes/console.php
 $schedule->command('google-drive:refresh-tokens')->everySixHours();
 $schedule->command('google-drive:refresh-tokens')->dailyAt('09:00');
 ```
@@ -667,7 +667,7 @@ ddev artisan google-drive:refresh-tokens --dry-run
 
 ## Laravel Scheduler Setup
 
-**Important**: The `schedule()` method in `app/Console/Kernel.php` only **defines** when commands should run. To actually execute scheduled commands, you need to set up a cron job or daemon.
+**Important**: The `schedule()` method in `routes/console.php` only **defines** when commands should run. To actually execute scheduled commands, you need to set up a cron job or daemon.
 
 ### Development Environment (DDEV)
 

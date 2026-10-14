@@ -62,7 +62,7 @@ Represents "firm asked client for something."
 ### Artisan command + scheduler
 
 - **`app/Console/Commands/DispatchDueRemindersCommand.php`** — `php artisan reminders:dispatch`. Queries `upload_requests` where `status = pending AND next_reminder_at <= now()`, dispatches `DispatchDueRemindersJob` for each onto the queue.
-- **`app/Console/Kernel.php`** — Schedule `reminders:dispatch` every 15 minutes (add after existing token maintenance schedule, ~line 188).
+- **`routes/console.php`** — Schedule `reminders:dispatch` every 15 minutes (add after existing token maintenance schedule, ~line 188).
 
 ### Job
 
@@ -189,7 +189,7 @@ tests/Feature/ReminderDispatchTest.php
 
 ### Modified files
 
-- `app/Console/Kernel.php` — add `reminders:dispatch` every 15 min
+- `routes/console.php` — add `reminders:dispatch` every 15 min
 - `app/Models/User.php` — add `uploadRequestsAsClient()` and `uploadRequestsAsCompany()` hasMany relationships
 - `app/Models/FileUpload.php` — add nullable `upload_request_id` to `$fillable`, add `belongsTo(UploadRequest::class)`
 - `app/Listeners/SendBatchUploadNotifications.php` — extend to check UploadRequest fulfillment

@@ -559,7 +559,7 @@ grep "Notification sent" storage/logs/laravel.log | tail -10
    pkill -f "queue:work"
    
    # Disable scheduler
-   # Comment out jobs in app/Console/Kernel.php
+   # Comment out jobs in routes/console.php
    ```
 
 2. **Restore from Backup:**
