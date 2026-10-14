@@ -85,7 +85,7 @@ class FileSecurityService
         }
 
         // Check file size limits
-        if ($file->getSize() > config('filesystems.max_file_size', 100 * 1024 * 1024)) {
+        if ($file->getSize() > config('upload.limits.max_file_size', 5 * 1024 * 1024 * 1024)) {
             $violations[] = [
                 'type' => 'size_exceeded',
                 'message' => 'File size exceeds maximum allowed limit',

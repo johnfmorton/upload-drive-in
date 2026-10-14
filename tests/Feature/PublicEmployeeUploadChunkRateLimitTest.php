@@ -16,16 +16,28 @@ class PublicEmployeeUploadChunkRateLimitTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_chunk_endpoint_accepts_more_than_ten_requests_per_minute()
+    private User $uploader;
+
+    protected function setUp(): void
     {
+        parent::setUp();
+
         User::factory()->create([
             'email' => 'admin@company.com',
             'role' => UserRole::ADMIN,
         ]);
 
+        $this->uploader = User::factory()->create([
+            'email' => 'client@example.com',
+            'role' => UserRole::CLIENT,
+        ]);
+    }
+
+    public function test_chunk_endpoint_accepts_more_than_ten_requests_per_minute()
+    {
         // 25 chunks = a ~125MB file
         for ($i = 0; $i < 25; $i++) {
-            $response = $this->postJson('/upload/admin/chunk');
+            $response = $this->actingAs($this->uploader)->postJson('/upload/admin/chunk');
 
             $this->assertNotEquals(429, $response->getStatusCode(), 'Chunk request #'.($i + 1).' was rate limited');
         }
@@ -33,17 +45,27 @@ class PublicEmployeeUploadChunkRateLimitTest extends TestCase
 
     public function test_chunk_requests_do_not_consume_the_shared_upload_limit()
     {
-        User::factory()->create([
-            'email' => 'admin@company.com',
-            'role' => UserRole::ADMIN,
-        ]);
-
         for ($i = 0; $i < 15; $i++) {
-            $this->postJson('/upload/admin/chunk');
+            $this->actingAs($this->uploader)->postJson('/upload/admin/chunk');
         }
 
-        $response = $this->postJson('/upload/admin/batch-complete');
+        $response = $this->actingAs($this->uploader)->postJson('/upload/admin/batch-complete');
 
         $this->assertNotEquals(429, $response->getStatusCode());
+    }
+
+    public function test_guests_cannot_upload_chunks()
+    {
+        $this->postJson('/upload/admin/chunk', ['dzuuid' => 'abc', 'dztotalchunkcount' => 1])
+            ->assertStatus(401);
+    }
+
+    public function test_oversized_files_are_rejected_on_the_first_chunk()
+    {
+        config(['upload.limits.max_file_size' => 100 * 1024 * 1024]);
+
+        $this->actingAs($this->uploader)
+            ->postJson('/upload/admin/chunk', ['dztotalfilesize' => 200 * 1024 * 1024])
+            ->assertStatus(422);
     }
 }

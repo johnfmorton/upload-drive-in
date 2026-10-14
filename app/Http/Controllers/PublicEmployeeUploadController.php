@@ -227,6 +227,19 @@ class PublicEmployeeUploadController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
 
+        // Uploaders verify their email (and are logged in) before the page shows
+        // the dropzone, and saveChunkedFile() needs Auth::user(). Reject guests
+        // up front so anonymous requests can't write chunks to disk.
+        if (!\Illuminate\Support\Facades\Auth::check()) {
+            return response()->json(['error' => 'Unauthenticated.'], 401);
+        }
+
+        // Refuse oversized files on the first chunk instead of after every
+        // chunk has been uploaded and merged
+        if ((int) $request->input('dztotalfilesize', 0) > config('upload.limits.max_file_size')) {
+            return response()->json(['error' => 'File size exceeds maximum allowed limit'], 422);
+        }
+
         // Create the file receiver
         $receiver = new \Pion\Laravel\ChunkUpload\Receiver\FileReceiver(
             'file',

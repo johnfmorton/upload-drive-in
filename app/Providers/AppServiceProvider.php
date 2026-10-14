@@ -61,7 +61,7 @@ class AppServiceProvider extends ServiceProvider
         // needs far more requests than the shared throttle:10,1 allows. A
         // dedicated limiter (own cache key) keeps other routes from eating into it.
         RateLimiter::for('upload-chunks', function (Request $request) {
-            return Limit::perMinute(600)->by('upload-chunks|'.$request->ip());
+            return Limit::perMinute(600)->by('upload-chunks|'.($request->user()?->id ?: $request->ip()));
         });
 
         // Register model observers

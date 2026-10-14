@@ -108,13 +108,27 @@ class FileSecurityServiceTest extends TestCase
         $largeFile = UploadedFile::fake()->create('large.pdf', 200 * 1024); // 200MB
 
         // Mock the config to set a smaller limit
-        config(['filesystems.max_file_size' => 100 * 1024 * 1024]); // 100MB
+        config(['upload.limits.max_file_size' => 100 * 1024 * 1024]); // 100MB
 
         $violations = $this->fileSecurityService->validateFileUpload($largeFile);
 
         $this->assertTrue(
             collect($violations)->contains(fn($v) => $v['type'] === 'size_exceeded'),
             'Should detect file size exceeded'
+        );
+    }
+
+    /** @test */
+    public function it_accepts_files_over_100mb_under_the_default_upload_limit()
+    {
+        // The size check used to read an undefined config key and fall back to 100MB
+        $largeFile = UploadedFile::fake()->create('large.pdf', 200 * 1024); // 200MB
+
+        $violations = $this->fileSecurityService->validateFileUpload($largeFile);
+
+        $this->assertFalse(
+            collect($violations)->contains(fn($v) => $v['type'] === 'size_exceeded'),
+            'A 200MB file should be within the default 5GB upload limit'
         );
     }
 
