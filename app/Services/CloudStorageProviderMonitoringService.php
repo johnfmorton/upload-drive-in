@@ -90,7 +90,7 @@ class CloudStorageProviderMonitoringService
     {
         $results = [];
         $configService = app(CloudConfigurationService::class);
-        $supportedProviders = $configService->getSupportedProviders();
+        $supportedProviders = $configService->getProvidersInUse();
 
         foreach ($supportedProviders as $providerName) {
             try {
@@ -124,8 +124,9 @@ class CloudStorageProviderMonitoringService
     {
         $results = [];
         
-        // Get users who have cloud storage connections
-        $users = User::whereHas('cloudStorageHealthStatuses')->get();
+        // Get users who have connections to a provider this installation uses
+        $providersInUse = app(CloudConfigurationService::class)->getProvidersInUse();
+        $users = User::whereHas('cloudStorageHealthStatuses', fn ($q) => $q->whereIn('provider', $providersInUse))->get();
         
         foreach ($users as $user) {
             try {
@@ -288,10 +289,20 @@ class CloudStorageProviderMonitoringService
     /**
      * Send critical alert
      */
+    /**
+     * Identify an issue for de-duplication. Issues carry a fresh 'timestamp' on
+     * every run, so hashing the whole array never matched and the 5-minute
+     * monitor re-sent the same alert each time.
+     */
+    private function alertFingerprint(array $issue): string
+    {
+        return md5(json_encode(\Illuminate\Support\Arr::except($issue, ['timestamp', 'details'])));
+    }
+
     private function sendCriticalAlert(array $issue): void
     {
         // Rate limit critical alerts to prevent spam
-        $cacheKey = "critical_alert_" . md5(json_encode($issue));
+        $cacheKey = "critical_alert_" . $this->alertFingerprint($issue);
         if (Cache::has($cacheKey)) {
             return; // Already sent recently
         }
@@ -328,7 +339,7 @@ class CloudStorageProviderMonitoringService
     private function sendWarningAlert(array $issue): void
     {
         // Rate limit warning alerts to prevent spam
-        $cacheKey = "warning_alert_" . md5(json_encode($issue));
+        $cacheKey = "warning_alert_" . $this->alertFingerprint($issue);
         if (Cache::has($cacheKey)) {
             return; // Already sent recently
         }
@@ -365,7 +376,7 @@ class CloudStorageProviderMonitoringService
      */
     private function shouldSendWarningAlert(array $issue): bool
     {
-        $cacheKey = "warning_alert_" . md5(json_encode($issue));
+        $cacheKey = "warning_alert_" . $this->alertFingerprint($issue);
         return !Cache::has($cacheKey);
     }
 

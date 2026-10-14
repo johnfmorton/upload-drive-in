@@ -39,7 +39,17 @@ class CheckCloudStorageHealth extends Command
     {
         $this->info('Starting cloud storage health check...');
         
-        $providers = $this->option('provider') ?: ['google-drive'];
+        // This command only knows how to check Google Drive connections; skip it
+        // when this installation doesn't use Google Drive (e.g. S3-only)
+        $providers = $this->option('provider') ?: array_values(array_intersect(
+            ['google-drive'],
+            app(\App\Services\CloudConfigurationService::class)->getProvidersInUse()
+        ));
+
+        if (empty($providers)) {
+            $this->info('Google Drive is not in use; no per-user connections to check.');
+            return self::SUCCESS;
+        }
         $userId = $this->option('user');
         $shouldNotify = $this->option('notify');
         
@@ -83,13 +93,11 @@ class CheckCloudStorageHealth extends Command
                             $this->line("  - Disconnected");
                     }
                     
-                    // Check for token expiration warnings
+                    // No notification for expiring tokens: Google access tokens last about
+                    // an hour and are refreshed automatically (TokenMaintenanceJob). Only a
+                    // failed refresh needs the user, which surfaces as an unhealthy status.
                     if ($healthStatus->isTokenExpiringSoon()) {
-                        $this->warn("  ⏰ Token will refresh soon: {$healthStatus->token_expires_at}");
-                        
-                        if ($shouldNotify) {
-                            $this->sendTokenExpirationWarning($user, $provider, $healthStatus);
-                        }
+                        $this->line("  ⏰ Access token expires {$healthStatus->token_expires_at} (refreshed automatically)");
                     }
                     
                 } catch (Exception $e) {
@@ -124,12 +132,6 @@ class CheckCloudStorageHealth extends Command
             $this->info('Sending notifications for issues found...');
             
             foreach ($providers as $provider) {
-                // Send notifications for expiring tokens
-                $expiringNotifications = $this->healthService->notifyUsersWithExpiringTokens($provider, 24);
-                if ($expiringNotifications > 0) {
-                    $this->info("Sent {$expiringNotifications} token refresh notifications for {$provider}");
-                }
-                
                 // Send notifications for unhealthy connections
                 $unhealthyNotifications = $this->healthService->notifyUsersWithUnhealthyConnections($provider);
                 if ($unhealthyNotifications > 0) {
@@ -253,31 +255,6 @@ class CheckCloudStorageHealth extends Command
         }
         
         return CloudStorageErrorType::UNKNOWN_ERROR;
-    }
-    
-    /**
-     * Send token expiration warning notification.
-     */
-    private function sendTokenExpirationWarning(User $user, string $provider, \App\Models\CloudStorageHealthStatus $healthStatus): void
-    {
-        try {
-            $user->notify(new \App\Notifications\CloudStorageConnectionAlert(
-                $provider,
-                'token_expiring',
-                $healthStatus
-            ));
-            
-            $this->line("  📧 Token expiration warning sent to {$user->email}");
-            
-        } catch (\Exception $e) {
-            Log::error('Failed to send token expiration warning', [
-                'user_id' => $user->id,
-                'provider' => $provider,
-                'error' => $e->getMessage(),
-            ]);
-            
-            $this->error("  ✗ Failed to send notification to {$user->email}: {$e->getMessage()}");
-        }
     }
     
     /**

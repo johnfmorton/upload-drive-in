@@ -34,8 +34,13 @@ class CloudStorageHealthServiceTest extends TestCase
         $logService->shouldReceive('logHealthStatusChange')->andReturn(null);
         $logService->shouldReceive('getRecentErrorPatterns')->andReturn([]);
         $logService->shouldReceive('getRecentLogs')->andReturn(collect());
+        $logService->shouldReceive('logStatusDetermination')->andReturn(null);
         $storageManager = $this->createMock(\App\Services\CloudStorageManager::class);
         $storageManager->method('getAvailableProviders')->willReturn(['google-drive', 'amazon-s3']);
+        // S3 status comes from the provider's own connection check (system credentials)
+        $s3Provider = $this->createMock(\App\Contracts\CloudStorageProviderInterface::class);
+        $s3Provider->method('getConnectionHealth')->willReturn(\App\Services\CloudStorageHealthStatus::healthy('amazon-s3'));
+        $storageManager->method('getProvider')->willReturn($s3Provider);
         $this->service = new CloudStorageHealthService($logService, $storageManager);
         $this->user = User::factory()->create();
     }

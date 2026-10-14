@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\CloudStorageErrorType;
 use App\Models\CloudStorageHealthStatus;
-use App\Models\CloudStorageSetting;
 use App\Models\User;
 use App\Notifications\CloudStorageConnectionAlert;
 use Carbon\Carbon;
@@ -563,7 +562,13 @@ class CloudStorageHealthService
             ]);
         }
         
-        if ($needsRecalculation) {
+        if ($needsRecalculation && $provider === 'amazon-s3') {
+            // S3 uses system credentials, not per-user tokens; the live validators
+            // below run a token check that always fails for it. Use the S3 path
+            // in determineConsolidatedStatus(), which also updates the record.
+            $consolidatedStatus = $this->determineConsolidatedStatus($user, $provider);
+            $healthStatus->refresh();
+        } elseif ($needsRecalculation) {
             // Use performance-optimized validation for recalculation
             if ($this->performanceValidator) {
                 $liveValidationResult = $this->performanceValidator->validateConnectionHealth($user, $provider);
@@ -2662,20 +2667,9 @@ class CloudStorageHealthService
     private function hasS3SystemConfiguration(): bool
     {
         try {
-            $requiredSettings = ['access_key_id', 'secret_access_key', 'region', 'bucket'];
-            
-            foreach ($requiredSettings as $setting) {
-                $exists = CloudStorageSetting::where('provider', 'amazon-s3')
-                    ->where('setting_key', $setting)
-                    ->whereNotNull('setting_value')
-                    ->exists();
-                    
-                if (!$exists) {
-                    return false;
-                }
-            }
-            
-            return true;
+            // Credentials can come from the database or from .env (AWS_*);
+            // CloudConfigurationService merges both into the effective config
+            return app(CloudConfigurationService::class)->isProviderConfigured('amazon-s3');
         } catch (\Exception $e) {
             Log::error('Failed to check S3 system configuration', [
                 'error' => $e->getMessage(),

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- The five scheduled cloud storage health tasks that were left off in 1.2.5 now run safely, and are scheduled again:
+  - Health checks, monitoring and config validation only look at providers in use (the default provider plus any released, configured provider), so an S3-only install no longer reports critical because Google Drive, Dropbox, Azure or Microsoft Teams are unconfigured
+  - S3 was reported as disabled (no `enabled` key in its config) and as "authentication required" (stale statuses were recalculated with a token check S3 doesn't use); its credentials are now also found when set in `.env`
+  - `cloud-storage:monitor` and `cloud-storage:health-check` no longer crash on a private property
+  - `cloud-storage:check-health --notify` no longer emails every Google Drive user a "token will refresh soon" notice (with a negative time) on each run; access tokens refresh automatically, so only real connection failures alert, at most every 12 hours
+  - Monitoring alerts are de-duplicated again: each issue carried a fresh timestamp, so the same outage alert would have been sent every 5 minutes
+  - `HealthStatusValidationJob` no longer calls an undefined method, and only validates users who have connected Google Drive
+
 ## [1.2.5] - 2026-10-14
 
 ### Added

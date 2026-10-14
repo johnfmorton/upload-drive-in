@@ -222,6 +222,24 @@ class CloudConfigurationService
     }
 
     /**
+     * Get the providers this installation actually uses: the default provider,
+     * plus any fully available provider that has been configured. Health checks
+     * and alerts should only look at these; unconfigured or unreleased
+     * providers (Dropbox, Azure, Teams, an unused Google Drive) are not failures.
+     */
+    public function getProvidersInUse(): array
+    {
+        $availability = app(CloudStorageProviderAvailabilityService::class);
+        $default = config('cloud-storage.default');
+
+        return array_values(array_filter(
+            $this->getSupportedProviders(),
+            fn (string $provider) => $provider === $default
+                || ($availability->isProviderFullyFunctional($provider) && $this->isProviderConfigured($provider))
+        ));
+    }
+
+    /**
      * Migrate configuration from environment to database
      */
     public function migrateFromEnvironment(string $providerName): array
