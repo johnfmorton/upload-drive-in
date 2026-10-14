@@ -16,10 +16,13 @@ Route::get('/upload/{name}', [\App\Http\Controllers\PublicEmployeeUploadControll
     ->name('upload.employee');
 Route::middleware(['throttle:10,1'])->group(function () {
     Route::post('/upload/{name}', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'uploadByName'])->name('upload.employee.submit');
-    Route::post('/upload/{name}/chunk', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'chunkUpload'])->name('upload.employee.chunk');
     Route::post('/upload/{name}/associate-message', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'associateMessage'])->name('upload.employee.associate-message');
     Route::post('/upload/{name}/batch-complete', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'batchComplete'])->name('upload.employee.batch-complete');
 });
+// One request per 5MB chunk; uses its own limiter so large files aren't cut off mid-upload
+Route::post('/upload/{name}/chunk', [\App\Http\Controllers\PublicEmployeeUploadController::class, 'chunkUpload'])
+    ->middleware('throttle:upload-chunks')
+    ->name('upload.employee.chunk');
 
 // Token-based login route (needs to be accessible to everyone)
 Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'loginViaToken'])

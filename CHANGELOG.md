@@ -5,17 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.4] - 2026-10-14
 
 ### Changed
 - Dropped the unused axios dependency from the frontend bundle; every request already used `fetch`. The main JavaScript bundle shrinks from 336 kB to 290 kB (101 kB to 84 kB gzipped)
-
 - DDEV no longer regenerates `APP_KEY` on every `ddev start`, which silently invalidated locally encrypted data (Google Drive tokens, cloud storage settings) and sessions; a key is now only generated when `.env` has none
 
+### Fixed
+- Uploads over ~50MB on the public `/upload/{name}` page failed partway through with a 429 error: every 5MB chunk counted against the 10-requests-per-minute limit shared with the page's other endpoints. Chunk uploads now have their own limit of 600 requests per minute per uploader
+- Files over 100MB were rejected with "File size exceeds maximum allowed limit" after uploading completely, on every upload page: the security check read an undefined config key and fell back to 100MB. It now uses `UPLOAD_MAX_FILE_SIZE` (default 5GB), and the `/upload/{name}` page rejects oversized files on the first chunk instead of the last
+
 ### Security
+- The `/upload/{name}` chunk endpoint now requires a verified (logged-in) uploader, so anonymous requests can no longer write chunk files to disk
 - Updated development dependencies to clear 10 npm audit advisories (Vite, Babel, Jest transitive packages); no runtime dependency majors changed
 - Updated Composer dependencies within existing constraints to clear all 40 runtime advisories, including a critical code-injection issue in `mtdowling/jmespath.php` (via the AWS SDK), denial-of-service and XSS-filter bypasses in `league/commonmark`, CRLF injection in Laravel's `email` validation rule (Laravel 12.49 → 12.70), host and cookie scoping issues in Guzzle, and email header injection in Symfony Mime; `phpseclib` is no longer a dependency
 - Upgraded Jest to v30 to clear the remaining high-severity npm advisories in dev tooling; two moderate dev-only advisories (`postcss-selector-parser` via `@tailwindcss/typography`, `sprintf-js`) remain with no upstream fix
+
+[1.2.4]: https://github.com/johnfmorton/upload-drive-in/releases/tag/v1.2.4
 
 ## [1.2.3] - 2026-09-07
 

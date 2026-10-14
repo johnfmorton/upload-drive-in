@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use App\Services\SetupService;
@@ -52,6 +55,13 @@ class AppServiceProvider extends ServiceProvider
         // Usage: <script @cspNonce> or <style @cspNonce>
         Blade::directive('cspNonce', function () {
             return '<?php echo \'nonce="\' . request()->attributes->get(\'csp-nonce\', \'\') . \'"\'; ?>';
+        });
+
+        // Chunked uploads send one request per 5MB chunk, so a single large file
+        // needs far more requests than the shared throttle:10,1 allows. A
+        // dedicated limiter (own cache key) keeps other routes from eating into it.
+        RateLimiter::for('upload-chunks', function (Request $request) {
+            return Limit::perMinute(600)->by('upload-chunks|'.($request->user()?->id ?: $request->ip()));
         });
 
         // Register model observers
