@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.6] - 2026-10-14
 
 ### Changed
 - Screenshots saved to the repository root (e.g. by Playwright) are now git-ignored; images elsewhere, such as `public/`, are unaffected
@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `cloud-storage:check-health --notify` no longer emails every Google Drive user a "token will refresh soon" notice (with a negative time) on each run; access tokens refresh automatically, so only real connection failures alert, at most every 12 hours
   - Monitoring alerts are de-duplicated again: each issue carried a fresh timestamp, so the same outage alert would have been sent every 5 minutes
   - `HealthStatusValidationJob` no longer calls an undefined method, and only validates users who have connected Google Drive
+
+[1.2.6]: https://github.com/johnfmorton/upload-drive-in/releases/tag/v1.2.6
 
 ## [1.2.5] - 2026-10-14
 
