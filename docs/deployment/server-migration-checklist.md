@@ -20,7 +20,7 @@ confirming everything works afterwards. Tick items as you go.
 - [ ] **Deploy the scheduler fix first.** Previously the scheduled tasks
       lived in `app/Console/Kernel.php`, which Laravel 12 never loads, so none
       of them ran. They're now in `routes/console.php`. Deploy that to the old
-      server and confirm `php artisan schedule:list` shows 12 tasks, so you
+      server and confirm `php artisan schedule:list` shows 16 tasks, so you
       know the schedule works before you move it.
 - [ ] **Record the old server's setup** so you can recreate it. Run on the old
       server and save the output:
@@ -164,7 +164,7 @@ Work through these in order. Each step relies on the ones before it.
 
 ### Background jobs and schedule
 
-- [ ] `php artisan schedule:list` shows 12 tasks: the 11 in
+- [ ] `php artisan schedule:list` shows 16 tasks: the 15 in
       `routes/console.php` plus the chunk-upload package's `uploads:clear`.
 - [ ] The cron is firing. Don't rely on `crontab -l` (see above). Instead, just
       after a quarter hour, check that

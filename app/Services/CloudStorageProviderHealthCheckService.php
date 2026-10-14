@@ -93,7 +93,7 @@ class CloudStorageProviderHealthCheckService
     {
         $providerHealth = [];
         $configService = app(CloudConfigurationService::class);
-        $supportedProviders = $configService->getSupportedProviders();
+        $supportedProviders = $configService->getProvidersInUse();
 
         foreach ($supportedProviders as $providerName) {
             $providerHealth[$providerName] = $this->checkProviderHealth($providerName);
@@ -127,7 +127,8 @@ class CloudStorageProviderHealthCheckService
             
             // 2. Check if provider is enabled
             $providerConfig = config("cloud-storage.providers.{$providerName}");
-            $result['is_enabled'] = $providerConfig['enabled'] ?? false;
+            // Providers without an explicit 'enabled' flag (e.g. amazon-s3) are enabled
+            $result['is_enabled'] = $providerConfig['enabled'] ?? true;
             
             // 3. Validate configuration
             $configValidation = $this->configValidationService->validateProviderConfiguration($providerName);
@@ -145,7 +146,7 @@ class CloudStorageProviderHealthCheckService
             if ($result['configuration_valid']) {
                 try {
                     $config = $configService->getEffectiveConfig($providerName);
-                    $provider = $this->storageManager->factory->create($providerName, $config);
+                    $provider = app(CloudStorageFactory::class)->create($providerName, $config);
                     $result['can_instantiate'] = true;
                     
                     // 5. Test basic connectivity (if provider supports it)
@@ -233,8 +234,9 @@ class CloudStorageProviderHealthCheckService
     {
         $userHealth = [];
         
-        // Get all users who have cloud storage connections
-        $users = User::whereHas('cloudStorageHealthStatuses')->get();
+        // Get all users who have connections to a provider this installation uses
+        $providersInUse = app(CloudConfigurationService::class)->getProvidersInUse();
+        $users = User::whereHas('cloudStorageHealthStatuses', fn ($q) => $q->whereIn('provider', $providersInUse))->get();
         
         foreach ($users as $user) {
             $userHealth[$user->id] = $this->checkUserHealth($user);
@@ -258,8 +260,10 @@ class CloudStorageProviderHealthCheckService
             'last_checked' => now()->toISOString(),
         ];
 
-        // Get all providers this user has health status records for
-        $healthStatuses = $user->cloudStorageHealthStatuses;
+        // Get this user's health records for providers in use; a stale record
+        // for a provider the installation doesn't use isn't a connection issue
+        $providersInUse = app(CloudConfigurationService::class)->getProvidersInUse();
+        $healthStatuses = $user->cloudStorageHealthStatuses->whereIn('provider', $providersInUse);
         
         foreach ($healthStatuses as $healthStatus) {
             $providerName = $healthStatus->provider;

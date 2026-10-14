@@ -233,4 +233,33 @@ class CloudConfigurationServiceTest extends TestCase
         $this->assertArrayHasKey('microsoft-teams', $configs);
         $this->assertArrayHasKey('dropbox', $configs);
     }
+
+    public function test_providers_in_use_includes_the_default_provider_only_when_others_are_unconfigured(): void
+    {
+        Config::set('cloud-storage.default', 'amazon-s3');
+        Config::set('cloud-storage.providers.google-drive.config.client_id', null);
+        Config::set('cloud-storage.providers.google-drive.config.client_secret', null);
+
+        $this->assertSame(['amazon-s3'], $this->service->getProvidersInUse());
+    }
+
+    public function test_providers_in_use_includes_a_configured_available_provider(): void
+    {
+        Config::set('cloud-storage.default', 'amazon-s3');
+        Config::set('cloud-storage.providers.google-drive.config.client_id', 'id');
+        Config::set('cloud-storage.providers.google-drive.config.client_secret', 'secret');
+
+        $this->assertEqualsCanonicalizing(['amazon-s3', 'google-drive'], $this->service->getProvidersInUse());
+    }
+
+    public function test_providers_in_use_excludes_unreleased_providers(): void
+    {
+        Config::set('cloud-storage.default', 'amazon-s3');
+
+        $inUse = $this->service->getProvidersInUse();
+
+        $this->assertNotContains('microsoft-teams', $inUse);
+        $this->assertNotContains('dropbox', $inUse);
+        $this->assertNotContains('azure-blob', $inUse);
+    }
 }

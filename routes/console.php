@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\CleanupFailedRefreshAttemptsJob;
+use App\Jobs\HealthStatusValidationJob;
 use App\Jobs\TokenMaintenanceJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -16,19 +17,9 @@ Artisan::command('inspire', function () {
 | Scheduled tasks
 |--------------------------------------------------------------------------
 |
-| Laravel 12 reads the schedule from here; app/Console/Kernel.php is never
-| loaded, so tasks defined there silently never ran. Times are in the app
-| timezone (UTC). The server needs `php artisan schedule:run` every minute.
-|
-| Not scheduled (each was in the old Kernel but is broken or harmful):
-| - cloud-storage:check-health --notify: emails every Google Drive user a
-|   "token will refresh soon" notice with a negative time on every run.
-| - cloud-storage:monitor and cloud-storage:health-check: both crash with
-|   "Cannot access private property CloudStorageManager::$factory".
-| - cloud-storage:validate-config: fails whenever a provider that isn't in
-|   use (e.g. Google Drive on an S3 install) is unconfigured.
-| - HealthStatusValidationJob: calls the undefined
-|   CloudStorageHealthService::updateHealthStatus().
+| Laravel 12 reads the schedule from here (an app/Console/Kernel.php schedule
+| is never loaded). Times are in the app timezone (UTC). The server needs
+| `php artisan schedule:run` every minute.
 |
 */
 
@@ -58,12 +49,42 @@ Schedule::job(new CleanupFailedRefreshAttemptsJob)
     ->name('cleanup-failed-refresh-attempts')
     ->onFailure(fn () => Log::error('CleanupFailedRefreshAttemptsJob failed'));
 
-// Cloud storage health: refresh the status records the dashboard reads (no notifications)
-Schedule::command('cloud-storage:check-health')
+Schedule::job(new HealthStatusValidationJob)
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->name('health-status-validation')
+    ->onFailure(fn () => Log::error('HealthStatusValidationJob failed'));
+
+// Cloud storage health. All checks only look at providers in use
+// (CloudConfigurationService::getProvidersInUse()), so unused or unreleased
+// providers don't count as failures.
+
+// Per-user Google Drive connections; emails a user only after 3+ consecutive
+// failures, at most every 12 hours. No-op when Google Drive isn't in use.
+Schedule::command('cloud-storage:check-health --notify')
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/cloud-storage-health.log'));
+
+// Provider monitoring; alerts admins on outages (same issue at most hourly)
+Schedule::command('cloud-storage:monitor --alert --quiet')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/cloud-storage-monitoring.log'));
+
+Schedule::command('cloud-storage:health-check --cache --quiet')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/comprehensive-health-check.log'));
+
+Schedule::command('cloud-storage:validate-config --log --quiet')
+    ->dailyAt('02:00')
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/config-validation.log'));
 
 Schedule::command('cloud-storage:fix-health-status')
     ->dailyAt('04:00')

@@ -268,7 +268,7 @@ class CloudStorageConfigurationValidationService
             ]
         ];
 
-        $supportedProviders = $this->configService->getSupportedProviders();
+        $supportedProviders = $this->configService->getProvidersInUse();
         $results['summary']['total_providers'] = count($supportedProviders);
 
         foreach ($supportedProviders as $providerName) {

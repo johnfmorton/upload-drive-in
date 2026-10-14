@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Models\User;
-use App\Services\RealTimeHealthValidator;
 use App\Services\CloudStorageHealthService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
@@ -52,35 +51,25 @@ class HealthStatusValidationJob implements ShouldQueue
 
     private function validateActiveUserHealthStatus(string $operationId): void
     {
-        // Find users who have been active in the last 7 days or have Google Drive tokens
-        $activeUserIds = collect();
-        
-        // Users who have uploaded files recently (as company users or uploaded_by_user)
-        $recentUploaderIds = \DB::table('file_uploads')
-            ->where('created_at', '>=', now()->subDays(7))
-            ->whereNotNull('company_user_id')
-            ->pluck('company_user_id')
-            ->merge(
-                \DB::table('file_uploads')
-                    ->where('created_at', '>=', now()->subDays(7))
-                    ->whereNotNull('uploaded_by_user_id')
-                    ->pluck('uploaded_by_user_id')
-            );
-            
-        $activeUserIds = $activeUserIds->merge($recentUploaderIds);
-        
-        // Users who have Google Drive tokens
-        $tokenUserIds = \DB::table('google_drive_tokens')->pluck('user_id');
-        $activeUserIds = $activeUserIds->merge($tokenUserIds);
-        
-        $activeUsers = User::whereIn('id', $activeUserIds->unique())->get();
+        // Only Google Drive has per-user connections to validate (S3 uses system
+        // credentials and is covered by the provider-level health checks)
+        if (! in_array('google-drive', app(\App\Services\CloudConfigurationService::class)->getProvidersInUse(), true)) {
+            Log::info('Skipping health validation: Google Drive is not in use', [
+                'operation_id' => $operationId,
+            ]);
+
+            return;
+        }
+
+        // Users who have connected Google Drive. Recent uploaders without a
+        // token (clients) have no connection to validate.
+        $activeUsers = User::whereIn('id', \DB::table('google_drive_tokens')->pluck('user_id'))->get();
 
         Log::info('Found active users for health validation', [
             'operation_id' => $operationId,
             'count' => $activeUsers->count()
         ]);
 
-        $healthValidator = app(RealTimeHealthValidator::class);
         $healthService = app(CloudStorageHealthService::class);
         
         $validatedCount = 0;
@@ -88,19 +77,15 @@ class HealthStatusValidationJob implements ShouldQueue
 
         foreach ($activeUsers as $user) {
             try {
-                // Validate Google Drive connection health
-                $healthStatus = $healthValidator->validateConnectionHealth($user, 'google-drive');
-                
-                // Update consolidated status if needed
-                $healthService->updateHealthStatus($user, 'google-drive', $healthStatus);
-                
+                // Live-validate the connection and persist the consolidated status
+                $status = $healthService->determineConsolidatedStatus($user, 'google-drive');
+
                 $validatedCount++;
-                
+
                 Log::debug('Validated user health status', [
                     'operation_id' => $operationId,
                     'user_id' => $user->id,
-                    'health_status' => $healthStatus->status,
-                    'is_healthy' => $healthStatus->isHealthy()
+                    'consolidated_status' => $status,
                 ]);
                 
             } catch (\Exception $e) {
