@@ -30,7 +30,7 @@ confirming everything works afterwards. Tick items as you go.
       php -i | grep -E 'upload_max_filesize|post_max_size|memory_limit|max_execution_time'
       cat /etc/nginx/conf.d/uploads.conf             # client_max_body_size 20M
       grep -n fastcgi_read_timeout /etc/nginx/sites-available/uploads.morton.dev
-      grep -E '^(DB_CONNECTION|QUEUE_CONNECTION|SESSION_DRIVER|CACHE_STORE|CLAMAV_|CLOUD_STORAGE_DEFAULT|MAIL_MAILER|TRUSTED_PROXIES)' ../.env
+      grep -E '^(DB_CONNECTION|QUEUE_CONNECTION|SESSION_DRIVER|CACHE_STORE|CLAMAV_|CLOUD_STORAGE_DEFAULT|MAIL_MAILER)' ../.env
       sudo grep -r schedule:run /etc/cron.d/        # scheduler (Forge uses cron.d, not crontab)
       sudo ls /etc/supervisor/conf.d/              # queue workers
       sudo cat /etc/supervisor/conf.d/*.conf | grep command
@@ -84,8 +84,6 @@ confirming everything works afterwards. Tick items as you go.
       no upload is half-transferred to S3 during the copy.
 - [ ] **Copy `.env`** from the old server to the new site (same `APP_KEY`).
       While there:
-  - [ ] Set `TRUSTED_PROXIES=` (empty). There's no proxy in front, and the
-        default `*` lets clients fake their IP to get around rate limits.
   - [ ] Confirm `APP_ENV=production`, `APP_DEBUG=false`,
         `APP_SETUP_ENABLED=false`.
 - [ ] **Database:** dump on the old server, import on the new one. The jobs,
@@ -180,7 +178,6 @@ Work through these in order. Each step relies on the ones before it.
       "failed security scanning".
 - [ ] Rate limits are active: responses on the upload routes include
       `X-Ratelimit-Limit` headers.
-- [ ] `TRUSTED_PROXIES` is empty in production `.env`.
 
 ### A day later
 

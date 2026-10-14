@@ -113,21 +113,10 @@ class SetupSecurityTest extends TestCase
     /** @test */
     public function it_requires_csrf_token_for_post_requests()
     {
-        // Test that CSRF middleware class exists and is configured
-        $this->assertTrue(class_exists(\App\Http\Middleware\VerifyCsrfToken::class));
-        
-        // Test that the middleware is registered in the kernel
-        $kernel = app(\App\Http\Kernel::class);
-        $reflection = new \ReflectionClass($kernel);
-        $middlewareGroupsProperty = $reflection->getProperty('middlewareGroups');
-        $middlewareGroupsProperty->setAccessible(true);
-        $middlewareGroups = $middlewareGroupsProperty->getValue($kernel);
-        
-        $webMiddleware = $middlewareGroups['web'] ?? [];
-        // Check for either our custom CSRF middleware or Laravel's default
-        $hasCSRFMiddleware = in_array(\App\Http\Middleware\VerifyCsrfToken::class, $webMiddleware) ||
-                           in_array(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class, $webMiddleware);
-        $this->assertTrue($hasCSRFMiddleware);
+        // The CSRF middleware must be in the live 'web' group (bootstrap/app.php
+        // defaults), not just listed somewhere: app/Http/Kernel.php was never loaded
+        $webMiddleware = app('router')->getMiddlewareGroups()['web'] ?? [];
+        $this->assertContains(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class, $webMiddleware);
         
         // Test CSRF token validation logic
         $request = $this->createRequest('POST', '/setup/status/refresh');

@@ -366,7 +366,7 @@ class SetupAdminUserCreationTest extends TestCase
 
     public function test_admin_creation_csrf_protection(): void
     {
-        $response = $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)
+        $response = $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
             ->post('/setup/admin', [
                 'name' => 'John Administrator',
                 'email' => 'admin@example.com',

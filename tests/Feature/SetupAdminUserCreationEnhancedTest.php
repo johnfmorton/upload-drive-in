@@ -347,7 +347,7 @@ class SetupAdminUserCreationEnhancedTest extends TestCase
     public function test_admin_creation_csrf_protection_with_enhanced_validation(): void
     {
         // Test CSRF protection by making request without CSRF token
-        $response = $this->withoutMiddleware(\App\Http\Middleware\EncryptCookies::class)
+        $response = $this->withoutMiddleware(\Illuminate\Cookie\Middleware\EncryptCookies::class)
             ->post('/setup/admin', [
                 'name' => 'John Administrator',
                 'email' => 'admin@example.com',

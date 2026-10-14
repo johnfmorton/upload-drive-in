@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+- Dead `app/Http/Kernel.php` and the six middleware classes only it referenced (`TrustProxies`, `VerifyCsrfToken`, `EncryptCookies`, `TrimStrings`, `PreventRequestsDuringMaintenance`, `QueueWorkerPerformanceHeaders`). Laravel 12 never loads that file; the framework's own middleware was already handling every request, so behavior is unchanged
+
+### Fixed
+- Security docs said to set `TRUSTED_PROXIES`; that variable was only read by the dead `TrustProxies` class. Laravel trusts no proxies by default, so client-supplied `X-Forwarded-For` was already ignored. The production security and server migration checklists now say so, and explain how to trust a proxy in `bootstrap/app.php` if one is added
+- `SetupSecurityTest` checked for CSRF protection in the dead kernel, so it would have passed even without it; it now checks the live `web` middleware group. Tests that disabled the app's CSRF/cookie middleware now target the framework classes that actually run
+
 ## [1.2.6] - 2026-10-14
 
 ### Changed
