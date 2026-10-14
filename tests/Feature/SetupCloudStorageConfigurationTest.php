@@ -402,7 +402,7 @@ class SetupCloudStorageConfigurationTest extends TestCase
 
     public function test_storage_configuration_csrf_protection(): void
     {
-        $response = $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)
+        $response = $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
             ->post('/setup/storage', [
                 'provider' => 'google-drive',
                 'client_id' => 'test-client-id.apps.googleusercontent.com',
