@@ -107,23 +107,81 @@
         </div>
     </div>
 
-    {{-- Success Modal --}}
-    <div id="success-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden" aria-hidden="true">
-        <div class="flex items-center justify-center min-h-screen">
-            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-                <div class="text-center">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Upload Complete!</h3>
-                    <p class="text-sm text-gray-600">Your files have been uploaded successfully to {{ $employee->name }}.</p>
-                    <div class="mt-6">
-                        <button type="button" x-data @click="window.location.reload()"
-                                class="w-full bg-[var(--brand-color)] text-white px-4 py-2 rounded hover:brightness-90 transition">
-                            Upload More Files
-                        </button>
-                    </div>
-                </div>
+    {{-- Status Modals (opened by the open-modal events dispatched from app.js) --}}
+    <x-modal name="upload-success" :show="false" maxWidth="md" focusable>
+        <div class="p-6">
+            <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-green-100">
+                <svg class="size-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </div>
+            <div class="mt-3 text-center sm:mt-5">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Upload complete</h3>
+                <p class="mt-2 text-sm text-gray-500">Your files were received and are being delivered to {{ $employee->name }}. You can upload more files or leave this page.</p>
+            </div>
+            <div class="mt-5 sm:mt-6">
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Done</button>
             </div>
         </div>
-    </div>
+    </x-modal>
+
+    <x-modal name="association-success" :show="false" maxWidth="md" focusable>
+        <div class="p-6">
+            <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-green-100">
+                <svg class="size-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </div>
+            <div class="mt-3 text-center sm:mt-5">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Upload complete</h3>
+                <p class="mt-2 text-sm text-gray-500">Your files and message were received and are being delivered to {{ $employee->name }}. You can upload more files or leave this page.</p>
+            </div>
+            <div class="mt-5 sm:mt-6">
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Done</button>
+            </div>
+        </div>
+    </x-modal>
+
+    <x-modal name="association-error" :show="false" maxWidth="md" focusable>
+        <div class="p-6">
+            <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-red-100">
+                <svg class="size-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z" /></svg>
+            </div>
+            <div class="mt-3 text-center sm:mt-5">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Upload not finalized</h3>
+                <p class="mt-2 text-sm text-gray-500">Your files were uploaded, but we couldn't finish processing them. Please try again, or contact {{ $employee->name }} if the problem continues.</p>
+            </div>
+            <div class="mt-5 sm:mt-6">
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Close</button>
+            </div>
+        </div>
+    </x-modal>
+
+    <x-modal name="upload-error" :show="false" maxWidth="md" focusable>
+        <div class="p-6">
+            <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-red-100">
+                <svg class="size-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z" /></svg>
+            </div>
+            <div class="mt-3 text-center sm:mt-5">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Upload failed</h3>
+                <p class="mt-2 text-sm text-gray-500">Some files failed to upload. Please remove them or check the errors and try again.</p>
+            </div>
+            <div class="mt-5 sm:mt-6">
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Close</button>
+            </div>
+        </div>
+    </x-modal>
+
+    <x-modal name="no-files-error" :show="false" maxWidth="md" focusable>
+        <div class="p-6">
+            <div class="mx-auto flex size-12 items-center justify-center rounded-full bg-yellow-100">
+                <svg class="size-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.008v.008H12v-.008Z" /></svg>
+            </div>
+            <div class="mt-3 text-center sm:mt-5">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">No files added</h3>
+                <p class="mt-2 text-sm text-gray-500">Please add one or more files to upload before submitting.</p>
+            </div>
+            <div class="mt-5 sm:mt-6">
+                <button @click="show = false" type="button" class="inline-flex w-full justify-center rounded-md bg-[var(--brand-color)] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-color)]">Close</button>
+            </div>
+        </div>
+    </x-modal>
 
     @push('scripts')
     <script @cspNonce>
@@ -137,14 +195,6 @@
             batchCompleteUrl: '{{ route('upload.employee.batch-complete', ['name' => $name]) }}',
             employeeName: '{{ $employee->name }}'
         };
-
-        // Listen for modal events (triggered by main app.js)
-        window.addEventListener('open-modal', function(e) {
-            const modalName = e.detail;
-            if (modalName === 'upload-success' || modalName === 'association-success') {
-                document.getElementById('success-modal').classList.remove('hidden');
-            }
-        });
     </script>
     @endpush
 </x-app-layout>

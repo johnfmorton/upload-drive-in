@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Uploads over ~50MB on the public `/upload/{name}` page failed partway through with a 429 error: every 5MB chunk counted against the 10-requests-per-minute limit shared with the page's other endpoints. Chunk uploads now have their own limit of 600 requests per minute per uploader
 - Files over 100MB were rejected with "File size exceeds maximum allowed limit" after uploading completely, on every upload page: the security check read an undefined config key and fell back to 100MB. It now uses `UPLOAD_MAX_FILE_SIZE` (default 5GB), and the `/upload/{name}` page rejects oversized files on the first chunk instead of the last
+- The `/upload/{name}` page's success modal opened behind the page content, so a finished upload looked like nothing happened. It now uses the shared modal component, tells the uploader their files (and message) are being delivered, and returns them to a cleared upload form when dismissed. The page also now shows the upload-error and no-files modals it was silently missing
 
 ### Security
 - The `/upload/{name}` chunk endpoint now requires a verified (logged-in) uploader, so anonymous requests can no longer write chunk files to disk
