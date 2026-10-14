@@ -31,7 +31,8 @@ confirming everything works afterwards. Tick items as you go.
       cat /etc/nginx/conf.d/uploads.conf             # client_max_body_size 20M
       grep -n fastcgi_read_timeout /etc/nginx/sites-available/uploads.morton.dev
       grep -E '^(DB_CONNECTION|QUEUE_CONNECTION|SESSION_DRIVER|CACHE_STORE|CLAMAV_|CLOUD_STORAGE_DEFAULT|MAIL_MAILER|TRUSTED_PROXIES)' ../.env
-      crontab -l; sudo ls /etc/supervisor/conf.d/   # scheduler + queue workers
+      sudo grep -r schedule:run /etc/cron.d/        # scheduler (Forge uses cron.d, not crontab)
+      sudo ls /etc/supervisor/conf.d/              # queue workers
       sudo cat /etc/supervisor/conf.d/*.conf | grep command
       systemctl is-active clamav-daemon 2>/dev/null
       du -sh ../storage/app/*                        # local file volume to copy
@@ -66,7 +67,9 @@ confirming everything works afterwards. Tick items as you go.
 - [ ] **Queue worker** (Forge → Daemons/Queue): connection `database`,
       all five queues, `--tries` and `--timeout` matching the old worker.
 - [ ] **Scheduler** (Forge → Scheduler): `php artisan schedule:run` every
-      minute, as the `forge` user.
+      minute, as the `forge` user. Forge writes this to a system cron file in
+      `/etc/cron.d/`, so `crontab -l` will still say "no crontab for forge".
+      That's normal; check the logs instead (Part 2).
 - [ ] **ClamAV** if `CLAMAV_ENABLED=true`: install `clamav-daemon`, let
       freshclam download definitions, and check the socket matches
       `CLAMAV_SOCKET`. With `CLAMAV_FAIL_CLOSED=true` and no daemon, **every
@@ -163,8 +166,11 @@ Work through these in order. Each step relies on the ones before it.
 
 - [ ] `php artisan schedule:list` shows 12 tasks: the 11 in
       `routes/console.php` plus the chunk-upload package's `uploads:clear`.
-- [ ] The cron is firing: within 30 minutes `storage/logs/pending-uploads.log`
-      gets a new entry (`uploads:process-pending` runs every 30 minutes).
+- [ ] The cron is firing. Don't rely on `crontab -l` (see above). Instead, just
+      after a quarter hour, check that
+      `storage/logs/email-verification-alerts.log` was written at that time,
+      and after :00 or :30 that `storage/logs/pending-uploads.log` says
+      "Processing pending uploads...". Compare against `date -u`.
 - [ ] `php artisan queue:failed` lists nothing new.
 - [ ] Jobs on all five queues get processed (the `jobs` table doesn't grow).
 
