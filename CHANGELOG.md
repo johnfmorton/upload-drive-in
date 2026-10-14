@@ -10,8 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Dropped the unused axios dependency from the frontend bundle; every request already used `fetch`. The main JavaScript bundle shrinks from 336 kB to 290 kB (101 kB to 84 kB gzipped)
 
+- DDEV no longer regenerates `APP_KEY` on every `ddev start`, which silently invalidated locally encrypted data (Google Drive tokens, cloud storage settings) and sessions; a key is now only generated when `.env` has none
+
 ### Security
 - Updated development dependencies to clear 10 npm audit advisories (Vite, Babel, Jest transitive packages); no runtime dependency majors changed
+- Updated Composer dependencies within existing constraints to clear all 40 runtime advisories, including a critical code-injection issue in `mtdowling/jmespath.php` (via the AWS SDK), denial-of-service and XSS-filter bypasses in `league/commonmark`, CRLF injection in Laravel's `email` validation rule (Laravel 12.49 → 12.70), host and cookie scoping issues in Guzzle, and email header injection in Symfony Mime; `phpseclib` is no longer a dependency
+- Upgraded Jest to v30 to clear the remaining high-severity npm advisories in dev tooling; two moderate dev-only advisories (`postcss-selector-parser` via `@tailwindcss/typography`, `sprintf-js`) remain with no upstream fix
 
 ## [1.2.3] - 2026-09-07
 
