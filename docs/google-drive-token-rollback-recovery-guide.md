@@ -49,7 +49,7 @@ php artisan queue:clear redis:high
 php artisan queue:clear redis:maintenance
 
 # Stop scheduler temporarily
-# Comment out token-related jobs in app/Console/Kernel.php
+# Comment out token-related jobs in routes/console.php
 ```
 
 #### 3. Clear Problematic Cache (30 seconds)

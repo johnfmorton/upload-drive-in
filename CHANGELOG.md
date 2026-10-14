@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Server migration to-do list and post-move verification checklist (`docs/deployment/server-migration-checklist.md`)
+
+### Fixed
+- Scheduled tasks never ran: they were defined in `app/Console/Kernel.php`, which Laravel 12 doesn't load. They now live in `routes/console.php`, so pending-upload retries, Google Drive token refresh, cloud storage health status updates, cache warm-up and housekeeping run on schedule
+- Five tasks from the old schedule stay off because they are broken or harmful: `cloud-storage:check-health --notify` (emailed every Google Drive user a "token will refresh soon" notice with a negative time), `cloud-storage:monitor` and `cloud-storage:health-check` (crash), `cloud-storage:validate-config` (fails when an unused provider is unconfigured), and `HealthStatusValidationJob` (calls an undefined method)
+
 ## [1.2.4] - 2026-10-14
 
 ### Changed

@@ -168,7 +168,7 @@ ddev artisan queue:flush
 
 ## Scheduled Tasks
 
-The pending uploads processing is scheduled in `app/Console/Kernel.php`:
+The pending uploads processing is scheduled in `routes/console.php`:
 
 ```php
 $schedule->command('uploads:process-pending --limit=25')
@@ -182,7 +182,7 @@ $schedule->command('uploads:process-pending --limit=25')
 
 To modify the automatic processing:
 
-1. Edit `app/Console/Kernel.php`
+1. Edit `routes/console.php`
 2. Adjust the frequency (e.g., `->hourly()`, `->daily()`)
 3. Change the limit (e.g., `--limit=50`)
 4. Modify logging destination if needed

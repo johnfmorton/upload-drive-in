@@ -303,7 +303,7 @@ class TokenAlertService
 #### Scheduled Alert Checks
 
 ```php
-// app/Console/Kernel.php
+// routes/console.php
 protected function schedule(Schedule $schedule)
 {
     // Check metrics every 5 minutes
