@@ -61,6 +61,10 @@ public/images/*
 # Local development artifacts
 .playwright-mcp/
 screenshots/
+# Playwright screenshots saved to the repo root (root only; doesn't affect public/ or docs/ images)
+/*.png
+/*.jpg
+/*.jpeg
 DESIGN-HARNESS-RUNBOOK.md
 design-prompt-customized.md
 .kiro/
