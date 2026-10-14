@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dropped the unused axios dependency from the frontend bundle; every request already used `fetch`. The main JavaScript bundle shrinks from 336 kB to 290 kB (101 kB to 84 kB gzipped)
 - DDEV no longer regenerates `APP_KEY` on every `ddev start`, which silently invalidated locally encrypted data (Google Drive tokens, cloud storage settings) and sessions; a key is now only generated when `.env` has none
 
+### Fixed
+- Uploads over ~50MB on the public `/upload/{name}` page failed partway through with a 429 error: every 5MB chunk counted against the 10-requests-per-minute limit shared with the page's other endpoints. Chunk uploads now have their own limit of 600 requests per minute per IP
+
 ### Security
 - Updated development dependencies to clear 10 npm audit advisories (Vite, Babel, Jest transitive packages); no runtime dependency majors changed
 - Updated Composer dependencies within existing constraints to clear all 40 runtime advisories, including a critical code-injection issue in `mtdowling/jmespath.php` (via the AWS SDK), denial-of-service and XSS-filter bypasses in `league/commonmark`, CRLF injection in Laravel's `email` validation rule (Laravel 12.49 → 12.70), host and cookie scoping issues in Guzzle, and email header injection in Symfony Mime; `phpseclib` is no longer a dependency
