@@ -173,7 +173,7 @@ class QueueWorkerTestSecurityTest extends TestCase
     public function test_csrf_protection_on_queue_test_endpoints()
     {
         // Disable CSRF middleware for this test to verify it's normally enabled
-        $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
         
         // Test without CSRF token - should work when middleware is disabled
         $response = $this->post('/setup/queue/test', ['timeout' => 10]);
@@ -181,7 +181,7 @@ class QueueWorkerTestSecurityTest extends TestCase
         
         // Re-enable CSRF middleware
         $this->app->make(\Illuminate\Contracts\Http\Kernel::class)
-            ->pushMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
+            ->pushMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
     }
 
     public function test_status_update_validation_sanitizes_data()

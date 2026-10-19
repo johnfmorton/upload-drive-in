@@ -197,7 +197,7 @@ class QueueWorkerErrorRecoveryEndToEndTest extends TestCase
         $response->assertOk(); // Should handle gracefully
         
         // Step 2: Test missing CSRF token
-        $response = $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class)
+        $response = $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
                         ->post('/setup/queue-worker/test');
         
         $response->assertOk();

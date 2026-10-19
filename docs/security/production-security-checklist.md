@@ -41,7 +41,8 @@ Before deploying Upload Drive-In to a client server, verify every item below.
 
 ## Proxy & Networking
 
-- [ ] `TRUSTED_PROXIES` set to specific proxy IPs (not `*`) if behind a reverse proxy
+- [ ] No reverse proxy in front: nothing to configure. Laravel trusts no proxies by default, so a client-supplied `X-Forwarded-For` is ignored and rate limits use the real IP
+- [ ] If a reverse proxy or load balancer is added later (e.g. Cloudflare), trust only its IPs with `$middleware->trustProxies(at: [...])` in `bootstrap/app.php`. The `TRUSTED_PROXIES` env variable is not read
 - [ ] HTTPS/TLS configured at the web server or load balancer level
 
 ## Google Drive Integration
