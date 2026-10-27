@@ -581,22 +581,38 @@ class FileManagerService
         ]);
 
         try {
+            $downloadUser = $user ?? auth()->user();
             $storageManager = app(\App\Services\CloudStorageManager::class);
-            $provider = $storageManager->getUserProvider($user ?? auth()->user());
-            
-            // Download file content from S3
-            $fileContent = $provider->downloadFile($user ?? auth()->user(), $file->google_drive_file_id);
-            
-            // Return as streamed response
-            return response()->streamDownload(function () use ($fileContent) {
-                echo $fileContent;
-            }, $file->original_filename, [
+            $provider = $storageManager->getProvider('amazon-s3', $downloadUser);
+
+            // getProvider() may fall back to another provider, which can't read an S3 key
+            if (!$provider instanceof S3Provider) {
+                throw new \Exception('Amazon S3 provider is not available');
+            }
+
+            // Open the object as a stream so large files are never held in memory
+            $download = $provider->downloadFileStream($downloadUser, $file->google_drive_file_id);
+            $body = $download['body'];
+
+            $headers = [
                 'Content-Type' => $file->mime_type,
-                'Content-Length' => strlen($fileContent),
                 'Cache-Control' => 'no-cache, must-revalidate',
                 'Pragma' => 'no-cache',
                 'Expires' => '0'
-            ]);
+            ];
+
+            if ($download['content_length'] !== null) {
+                $headers['Content-Length'] = $download['content_length'];
+            }
+
+            return response()->streamDownload(function () use ($body) {
+                while (!$body->eof()) {
+                    echo $body->read(1024 * 1024); // 1MB chunks
+                    flush();
+                }
+
+                $body->close();
+            }, $file->original_filename, $headers);
         } catch (\Exception $e) {
             Log::error('Failed to download file from S3', [
                 'file_id' => $file->id,

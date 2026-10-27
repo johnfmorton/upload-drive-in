@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead `app/Http/Kernel.php` and the six middleware classes only it referenced (`TrustProxies`, `VerifyCsrfToken`, `EncryptCookies`, `TrimStrings`, `PreventRequestsDuringMaintenance`, `QueueWorkerPerformanceHeaders`). Laravel 12 never loads that file; the framework's own middleware was already handling every request, so behavior is unchanged
 
 ### Fixed
+- Downloading a file stored in Amazon S3 from the admin or employee file manager loaded the whole file into PHP memory before sending it, so large files failed. S3 downloads now stream from the bucket in 1MB pieces, like Google Drive downloads. They also always use the S3 provider, rather than the user's preferred provider, which might not be S3
 - Security docs said to set `TRUSTED_PROXIES`; that variable was only read by the dead `TrustProxies` class. Laravel trusts no proxies by default, so client-supplied `X-Forwarded-For` was already ignored. The production security and server migration checklists now say so, and explain how to trust a proxy in `bootstrap/app.php` if one is added
 - `SetupSecurityTest` checked for CSRF protection in the dead kernel, so it would have passed even without it; it now checks the live `web` middleware group. Tests that disabled the app's CSRF/cookie middleware now target the framework classes that actually run
 

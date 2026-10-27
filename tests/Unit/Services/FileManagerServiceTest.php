@@ -534,4 +534,41 @@ class FileManagerServiceTest extends TestCase
 
         $this->assertEquals($expectedOptions, $result);
     }
+
+    public function test_download_file_from_s3_streams_body()
+    {
+        $this->testFile->forceFill([
+            'cloud_storage_provider' => 'amazon-s3',
+            'google_drive_file_id' => 'test_example_com/test-document.pdf',
+        ])->save();
+
+        $body = \GuzzleHttp\Psr7\Utils::streamFor('s3 file content');
+
+        $mockS3Provider = Mockery::mock(\App\Services\S3Provider::class);
+        $mockS3Provider->shouldReceive('downloadFileStream')
+            ->once()
+            ->with($this->user, 'test_example_com/test-document.pdf')
+            ->andReturn(['body' => $body, 'content_length' => 15]);
+        $mockS3Provider->shouldNotReceive('downloadFile');
+
+        $mockManager = Mockery::mock(\App\Services\CloudStorageManager::class);
+        $mockManager->shouldReceive('getProvider')
+            ->once()
+            ->with('amazon-s3', $this->user)
+            ->andReturn($mockS3Provider);
+        $this->app->instance(\App\Services\CloudStorageManager::class, $mockManager);
+
+        $response = $this->service->downloadFile($this->testFile, $this->user);
+
+        $this->assertInstanceOf(\Symfony\Component\HttpFoundation\StreamedResponse::class, $response);
+        $this->assertEquals(15, $response->headers->get('Content-Length'));
+        $this->assertEquals('application/pdf', $response->headers->get('Content-Type'));
+
+        // Body is only read when the response is sent
+        $this->assertSame(0, $body->tell());
+
+        ob_start();
+        $response->sendContent();
+        $this->assertEquals('s3 file content', ob_get_clean());
+    }
 }
