@@ -43,6 +43,7 @@ class FileUpload extends Model
         'error_details',
         'last_processed_at',
         'recovery_attempts',
+        'cloud_storage_provider',
         'cloud_storage_error_type',
         'cloud_storage_error_context',
         'connection_health_at_failure',

@@ -441,4 +441,34 @@ class FileUploadTest extends TestCase
         $this->assertNull($file->last_error);
         $this->assertNotNull($file->last_processed_at);
     }
+
+    public function test_update_persists_cloud_storage_provider()
+    {
+        $file = FileUpload::factory()->create(['cloud_storage_provider' => null]);
+
+        $file->update(['cloud_storage_provider' => 'amazon-s3']);
+
+        $this->assertEquals('amazon-s3', $file->fresh()->cloud_storage_provider);
+    }
+
+    public function test_backfill_migration_sets_provider_from_cloud_file_id()
+    {
+        $s3File = FileUpload::factory()->create(['google_drive_file_id' => 'client_example_com/report_123.pdf']);
+        $driveFile = FileUpload::factory()->create(['google_drive_file_id' => '1AbCdEfGhIjKlMnOp']);
+        $pendingFile = FileUpload::factory()->create(['google_drive_file_id' => null]);
+        $alreadySet = FileUpload::factory()->create(['google_drive_file_id' => 'folder/file.pdf']);
+
+        // Simulate rows written before the fix, when the column was always dropped
+        FileUpload::whereKey([$s3File->id, $driveFile->id, $pendingFile->id])
+            ->update(['cloud_storage_provider' => null]);
+        FileUpload::whereKey($alreadySet->id)->update(['cloud_storage_provider' => 'google-drive']);
+
+        $migration = require database_path('migrations/2026_10_27_000000_backfill_cloud_storage_provider_on_file_uploads.php');
+        $migration->up();
+
+        $this->assertEquals('amazon-s3', $s3File->fresh()->cloud_storage_provider);
+        $this->assertEquals('google-drive', $driveFile->fresh()->cloud_storage_provider);
+        $this->assertNull($pendingFile->fresh()->cloud_storage_provider);
+        $this->assertEquals('google-drive', $alreadySet->fresh()->cloud_storage_provider);
+    }
 }
