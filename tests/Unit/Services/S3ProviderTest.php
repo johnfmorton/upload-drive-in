@@ -722,4 +722,45 @@ class S3ProviderTest extends TestCase
             }
         }
     }
+
+    /**
+     * Test streaming download asks the SDK not to buffer the body and hands it back unread
+     */
+    public function test_download_file_stream_returns_unbuffered_body(): void
+    {
+        $body = \GuzzleHttp\Psr7\Utils::streamFor('streamed content');
+
+        $mockS3Client = Mockery::mock(S3Client::class);
+        $mockS3Client->shouldReceive('getObject')
+            ->once()
+            ->with(Mockery::on(function ($params) {
+                return $params['Bucket'] === 'test-bucket'
+                    && $params['Key'] === 'client_example_com/report.pdf'
+                    && ($params['@http']['stream'] ?? false) === true;
+            }))
+            ->andReturn(new \Aws\Result([
+                'Body' => $body,
+                'ContentLength' => 16,
+            ]));
+
+        $this->logService->shouldReceive('logOperationStart')->andReturn('op-123');
+
+        $reflection = new \ReflectionClass($this->provider);
+        $property = $reflection->getProperty('s3Client');
+        $property->setAccessible(true);
+        $property->setValue($this->provider, $mockS3Client);
+
+        $configProperty = $reflection->getProperty('config');
+        $configProperty->setAccessible(true);
+        $configProperty->setValue($this->provider, [
+            'region' => 'us-east-1',
+            'bucket' => 'test-bucket',
+        ]);
+
+        $download = $this->provider->downloadFileStream($this->user, 'client_example_com/report.pdf');
+
+        $this->assertSame($body, $download['body']);
+        $this->assertSame(16, $download['content_length']);
+        $this->assertSame(0, $body->tell(), 'Body should not be read by the provider');
+    }
 }

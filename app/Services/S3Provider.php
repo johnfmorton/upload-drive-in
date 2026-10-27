@@ -217,6 +217,79 @@ class S3Provider implements CloudStorageProviderInterface
     }
 
     /**
+     * Open a streaming download of a file from Amazon S3
+     *
+     * Unlike downloadFile(), the object body is not buffered in memory or a temp
+     * file; it is read from the network as the caller consumes the stream.
+     *
+     * @param User $user The user whose S3 to use
+     * @param string $fileId The S3 object key
+     * @return array{body: \Psr\Http\Message\StreamInterface, content_length: int|null}
+     * @throws CloudStorageException
+     */
+    public function downloadFileStream(User $user, string $fileId): array
+    {
+        $startTime = microtime(true);
+        $operationId = $this->logService->logOperationStart('download_stream', self::PROVIDER_NAME, $user, [
+            'file_id' => $fileId,
+        ]);
+
+        try {
+            $this->ensureInitialized($user);
+
+            // '@http' => ['stream' => true] stops the SDK from buffering the whole body
+            $result = $this->s3Client->getObject([
+                'Bucket' => $this->getBucket($user),
+                'Key' => $fileId,
+                '@http' => ['stream' => true],
+            ]);
+
+            $contentLength = isset($result['ContentLength']) ? (int) $result['ContentLength'] : null;
+
+            $durationMs = (microtime(true) - $startTime) * 1000;
+            $this->logService->logOperationSuccess($operationId, 'download_stream', self::PROVIDER_NAME, $user, [
+                'key' => $fileId,
+                'file_size' => $contentLength,
+            ], $durationMs);
+
+            return [
+                'body' => $result['Body'],
+                'content_length' => $contentLength,
+            ];
+
+        } catch (Exception $e) {
+            $errorType = $this->errorHandler->classifyError($e);
+            $durationMs = (microtime(true) - $startTime) * 1000;
+
+            $this->logService->logOperationFailure(
+                $operationId,
+                'download_stream',
+                self::PROVIDER_NAME,
+                $user,
+                $errorType,
+                $e->getMessage(),
+                [
+                    'file_id' => $fileId,
+                ],
+                $durationMs,
+                $e
+            );
+
+            throw CloudStorageException::create(
+                $errorType,
+                self::PROVIDER_NAME,
+                [
+                    'operation' => 'download',
+                    'file_id' => $fileId,
+                    'user_id' => $user->id,
+                    'original_message' => $e->getMessage()
+                ],
+                $e
+            );
+        }
+    }
+
+    /**
      * Delete a file from Amazon S3
      *
      * @param User $user The user whose S3 to use
