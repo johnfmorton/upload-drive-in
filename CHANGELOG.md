@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Uploaded files never recorded which cloud provider they went to: `cloud_storage_provider` was missing from `FileUpload::$fillable`, so the upload job's update silently dropped it. Filtering files by provider and the per-provider counts on the cloud storage pages were working from empty values. New uploads now save it, and a migration fills it in for existing files: keys containing `/` are S3, and everything else is Google Drive (downloads already used this rule)
 - The unsubscribe link in upload emails turned the emails off and then showed a server error, because it redirected to a profile route that doesn't exist. It now shows a confirmation page that works without signing in
 - Turning off upload emails in the employee or client profile was never saved: an unchecked box isn't submitted, so the setting stayed on. The admin profile had no notification settings at all; it now has both (upload emails and share-download emails)
+- Large Google Drive downloads from the admin or employee file manager could run out of memory: the "streaming" download read the whole file into PHP memory twice before sending it. It now streams from Drive as it's sent, like S3 downloads and share links
 
 ## [1.2.6] - 2026-10-14
 

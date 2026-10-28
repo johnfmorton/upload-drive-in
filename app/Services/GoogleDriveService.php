@@ -1495,14 +1495,9 @@ class GoogleDriveService
                 throw new Exception("File not found: {$fileId}");
             }
 
-            // Get the file content as a stream
-            $response = $service->files->get($fileId, ['alt' => 'media']);
-            
-            // Extract the actual content from the response and create a stream
-            $content = $response->getBody()->getContents();
-            $stream = fopen('php://memory', 'r+');
-            fwrite($stream, $content);
-            rewind($stream);
+            // A real network stream: files->get(alt=media) would buffer the whole file in memory
+            $response = $this->openFileMediaStream($user, $fileId);
+            $stream = \GuzzleHttp\Psr7\StreamWrapper::getResource($response->getBody());
 
             Log::info('File stream successfully created from Google Drive.', [
                 'file_id' => $fileId,
@@ -1519,6 +1514,24 @@ class GoogleDriveService
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Open a Drive file's content as an HTTP response whose body is read from
+     * the network as it is consumed, so nothing is buffered in memory.
+     *
+     * @param string|null $range An HTTP Range header value, e.g. "bytes=1000-"
+     * @param bool $httpErrors Throw on 4xx/5xx responses (false lets the caller inspect the status)
+     */
+    public function openFileMediaStream(User $user, string $fileId, ?string $range = null, bool $httpErrors = true): \Psr\Http\Message\ResponseInterface
+    {
+        $http = $this->getDriveService($user)->getClient()->authorize();
+
+        return $http->request('GET', 'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId) . '?alt=media', [
+            'headers' => $range ? ['Range' => $range] : [],
+            'stream' => true,
+            'http_errors' => $httpErrors,
+        ]);
     }
 
     /**
