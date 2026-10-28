@@ -1,11 +1,10 @@
-<x-app-layout>
-    <div class="container mx-auto px-4 py-8">
-        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-            <h1 class="text-xl font-bold mb-4">{{ __('messages.unsubscribe_success_heading') }}</h1>
-            <p class="mb-6">{{ $message }}</p>
-            <a href="{{ route('home') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                {{ __('messages.notification_go_home') }}
-            </a>
-        </div>
+{{-- Confirmation after clicking an email's unsubscribe link. The clicker usually isn't signed in, so this uses the public layout. --}}
+<x-share-public-layout :title="__('messages.unsubscribe_success_heading')">
+    <div class="max-w-md mx-auto bg-white border border-cream-200 rounded-3xl shadow-[0_2px_8px_rgba(28,25,23,0.04),0_12px_40px_rgba(28,25,23,0.06)] px-8 py-10 text-center">
+        <h1 class="font-display text-3xl leading-tight">{{ __('messages.unsubscribe_success_heading') }}</h1>
+        <p class="mt-3 text-warm-700">{{ $message }}</p>
+        <a href="{{ route('home') }}" class="mt-6 inline-flex items-center px-5 py-2.5 bg-warm-900 rounded-full font-semibold text-sm text-white hover:bg-warm-800 focus:outline-none focus:ring-2 focus:ring-warm-500 focus:ring-offset-2 transition">
+            {{ __('messages.notification_go_home') }}
+        </a>
     </div>
-</x-app-layout>
+</x-share-public-layout>
