@@ -16,9 +16,12 @@ class ShareFactory extends Factory
 
     public function definition(): array
     {
+        $token = Str::random(43);
+
         return [
             'user_id' => User::factory(),
-            'token_hash' => Share::hashToken(Str::random(43)),
+            'token_hash' => Share::hashToken($token),
+            'token_encrypted' => $token,
             'title' => $this->faker->sentence(3),
             'message' => null,
             'password' => null,
@@ -36,6 +39,7 @@ class ShareFactory extends Factory
     {
         return $this->state(fn () => [
             'token_hash' => Share::hashToken($token),
+            'token_encrypted' => $token,
             'status' => Share::STATUS_READY,
             'ready_at' => now(),
         ]);

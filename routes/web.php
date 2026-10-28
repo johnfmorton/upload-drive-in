@@ -24,6 +24,23 @@ Route::post('/upload/{name}/chunk', [\App\Http\Controllers\PublicEmployeeUploadC
     ->middleware('throttle:upload-chunks')
     ->name('upload.employee.chunk');
 
+// Outgoing file shares (recipient side). Links are unguessable 43-character tokens.
+Route::prefix('s/{token}')
+    ->where(['token' => '[A-Za-z0-9_-]{43}'])
+    ->name('shares.public.')
+    ->group(function () {
+        Route::get('/', [\App\Http\Controllers\PublicShareController::class, 'show'])
+            ->middleware('throttle:share-pages')
+            ->name('show');
+        Route::post('/unlock', [\App\Http\Controllers\PublicShareController::class, 'unlock'])
+            ->middleware('throttle:share-pages')
+            ->name('unlock');
+        Route::get('/files/{fileId}', [\App\Http\Controllers\PublicShareController::class, 'download'])
+            ->whereNumber('fileId')
+            ->middleware('throttle:share-downloads')
+            ->name('download');
+    });
+
 // Token-based login route (needs to be accessible to everyone)
 Route::get('/login/token/{user}', [AuthenticatedSessionController::class, 'loginViaToken'])
     ->middleware(['signed', 'throttle:6,1'])

@@ -18,8 +18,10 @@ return new class extends Migration
             $table->id();
             $table->ulid('ulid')->unique();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            // SHA-256 of the link token; the token itself is never stored
+            // Links are looked up by the token's SHA-256; the token itself is only
+            // stored encrypted (APP_KEY), so the sender can copy the link again
             $table->string('token_hash', 64)->unique();
+            $table->text('token_encrypted');
             $table->string('title');
             $table->text('message')->nullable();
             $table->string('password')->nullable();

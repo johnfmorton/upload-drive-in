@@ -36,6 +36,7 @@ class Share extends Model
     protected $fillable = [
         'user_id',
         'token_hash',
+        'token_encrypted',
         'title',
         'message',
         'password',
@@ -55,10 +56,12 @@ class Share extends Model
 
     protected $hidden = [
         'token_hash',
+        'token_encrypted',
         'password',
     ];
 
     protected $casts = [
+        'token_encrypted' => 'encrypted',
         'password' => 'hashed',
         'recipient_emails' => 'array',
         'expires_at' => 'datetime',
@@ -140,6 +143,14 @@ class Share extends Model
     public function isEnded(): bool
     {
         return in_array($this->status, [self::STATUS_EXPIRED, self::STATUS_REVOKED, self::STATUS_FAILED], true);
+    }
+
+    /**
+     * The public download link for this share.
+     */
+    public function publicUrl(): string
+    {
+        return route('shares.public.show', ['token' => $this->token_encrypted]);
     }
 
     public static function hashToken(string $token): string

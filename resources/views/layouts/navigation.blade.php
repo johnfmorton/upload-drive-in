@@ -19,6 +19,9 @@
                         <x-nav-link :href="route('admin.file-manager.index')" :active="request()->routeIs('admin.file-manager.*')">
                             {{ __('File Manager') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.shares.index')" :active="request()->routeIs('admin.shares.*')">
+                            {{ __('messages.shares_title') }}
+                        </x-nav-link>
                     @elseif(auth()->user()->isClient())
                         <x-nav-link :href="route('client.upload-files')" :active="request()->routeIs('client.upload-files') || request()->routeIs('upload.employee')">
                             {{ __('Upload Files') }}
@@ -32,6 +35,9 @@
                         </x-nav-link>
                         <x-nav-link :href="route('employee.file-manager.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.file-manager.*')">
                             {{ __('File Manager') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('employee.shares.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.shares.*')">
+                            {{ __('messages.shares_title') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -163,6 +169,9 @@
                     <x-responsive-nav-link :href="route('admin.file-manager.index')" :active="request()->routeIs('admin.file-manager.*')">
                         {{ __('File Manager') }}
                     </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.shares.index')" :active="request()->routeIs('admin.shares.*')">
+                        {{ __('messages.shares_title') }}
+                    </x-responsive-nav-link>
                 @elseif (Auth::user()->isClient())
                     <x-responsive-nav-link :href="route('client.dashboard')" :active="request()->routeIs('client.dashboard')">
                         {{ __('messages.nav_dashboard') }}
@@ -179,6 +188,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('employee.file-manager.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.file-manager.*')">
                         {{ __('File Manager') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('employee.shares.index', ['username' => auth()->user()->username])" :active="request()->routeIs('employee.shares.*')">
+                        {{ __('messages.shares_title') }}
                     </x-responsive-nav-link>
                 @endif
             </div>

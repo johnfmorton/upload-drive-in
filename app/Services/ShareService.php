@@ -29,7 +29,7 @@ class ShareService
      * Create a draft share that files can be uploaded into.
      *
      * @param  array{title: string, message?: ?string, password?: ?string, expiry_days: int, recipient_emails?: array}  $data
-     * @return array{0: Share, 1: string} The share and its link token (shown once, never stored)
+     * @return array{0: Share, 1: string} The share and its link token
      */
     public function create(User $sender, array $data): array
     {
@@ -39,6 +39,7 @@ class ShareService
         $share = Share::create([
             'user_id' => $sender->id,
             'token_hash' => Share::hashToken($token),
+            'token_encrypted' => $token,
             'title' => $data['title'],
             'message' => $data['message'] ?? null,
             'password' => ! empty($data['password']) ? $data['password'] : null,
@@ -60,9 +61,12 @@ class ShareService
     /**
      * Check whether a file of the given size can be added to a share.
      *
+     * Pass $checkDisk = false once the file is already on disk, so its own
+     * size isn't counted against the free-space floor a second time.
+     *
      * @return string|null An error message, or null if the file is allowed
      */
-    public function uploadError(Share $share, int $incomingBytes): ?string
+    public function uploadError(Share $share, int $incomingBytes, bool $checkDisk = true): ?string
     {
         if (! $share->isDraft()) {
             return __('messages.shares_not_accepting_files');
@@ -77,7 +81,7 @@ class ShareService
             return __('messages.shares_share_too_large', ['max' => format_bytes(config('shares.max_share_size'))]);
         }
 
-        if ($this->freeDiskSpace() - $incomingBytes < config('shares.min_free_disk')) {
+        if ($checkDisk && $this->freeDiskSpace() - $incomingBytes < config('shares.min_free_disk')) {
             return __('messages.shares_disk_full');
         }
 

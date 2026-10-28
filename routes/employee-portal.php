@@ -101,3 +101,6 @@ Route::get('/email/verify', [App\Http\Controllers\Auth\EmailVerificationPromptCo
 Route::get('/email/verify/{id}/{hash}', [App\Http\Controllers\Auth\VerifyEmailController::class, 'verify'])
     ->middleware(['signed', 'throttle:6,1'])
     ->name('verification.verify');
+
+// Outgoing file shares (sender side)
+require __DIR__.'/shares.php';

@@ -64,6 +64,14 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(600)->by('upload-chunks|'.($request->user()?->id ?: $request->ip()));
         });
 
+        // Outgoing file share links (public): page views/password attempts, and downloads
+        RateLimiter::for('share-pages', function (Request $request) {
+            return Limit::perMinute(60)->by('share-pages|'.$request->ip());
+        });
+        RateLimiter::for('share-downloads', function (Request $request) {
+            return Limit::perMinute(60)->by('share-downloads|'.$request->ip());
+        });
+
         // Register model observers
         \App\Models\FileUpload::observe(\App\Observers\FileUploadObserver::class);
         \App\Models\DomainAccessRule::observe(\App\Observers\DomainAccessRuleObserver::class);
