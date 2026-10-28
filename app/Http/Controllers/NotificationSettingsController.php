@@ -21,9 +21,11 @@ class NotificationSettingsController extends Controller
         $user->receive_upload_notifications = false;
         $user->save();
 
-        // Redirect to profile page with a success message
-        return redirect()->route('profile.edit')
-            ->with('status', __('messages.unsubscribe_success_message'));
+        // There is no generic profile.edit route, and the clicker usually isn't
+        // signed in, so confirm on a page of its own
+        return view('notifications.unsubscribed', [
+            'message' => __('messages.unsubscribe_success_message'),
+        ]);
     }
 
     /**
@@ -37,6 +39,8 @@ class NotificationSettingsController extends Controller
         $user->save();
 
         // The person clicking an email link usually isn't signed in, so confirm on a page of its own
-        return view('shares.public.unsubscribed');
+        return view('notifications.unsubscribed', [
+            'message' => __('messages.shares_unsubscribe_success'),
+        ]);
     }
 }
