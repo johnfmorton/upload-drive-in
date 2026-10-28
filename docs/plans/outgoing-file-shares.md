@@ -19,6 +19,9 @@ automatically.
 | Who can create shares | Admins and employees (employees see/manage only their own) |
 | Recipient access | Anyone with the link; optional per-share password |
 | Expiry | Link expires; scheduled job deletes the files from cloud storage |
+| Revoke | Deletes the files immediately (after a confirmation prompt) |
+| Size limits | 5 GB per file, 10 GB per share, 5 GB free-disk floor; all set in `.env` (server may change) |
+| Download email | Phase 1: email the sender on a share's first download, reusing the upload notification pattern |
 
 ## 1. Data model
 
@@ -28,7 +31,8 @@ automatically.
 - `title`, `message`, `password` (hashed, nullable)
 - `provider`, `cloud_folder_id` (pinned at creation)
 - `status`: `uploading` → `ready` → `expired` / `revoked` → `purged`
-- `expires_at`, `purged_at`, `download_count`, `last_accessed_at`, timestamps
+- `expires_at`, `purged_at`, `first_downloaded_at`, `download_count`,
+  `last_accessed_at`, timestamps
 
 **`share_files`**
 - `share_id`, `original_filename`, `mime_type`, `file_size`
@@ -53,8 +57,20 @@ automatically.
   client email.
 - A share becomes `ready` only once every file is uploaded; only then is the
   link shown or emailed. The local copy is deleted after a successful upload.
-  Large uploads are checked against `DiskSpaceMonitorService` before they are
-  accepted.
+- Size limits live in a new `config/shares.php`, read from `.env` so they can
+  change with the server without a code change:
+
+  | Variable | Default | Meaning |
+  |---|---|---|
+  | `SHARES_MAX_FILE_SIZE` | 5 GB | Largest single file (Google Drive's limit in `config/cloud-storage.php`) |
+  | `SHARES_MAX_SHARE_SIZE` | 10 GB | Largest total size of one share |
+  | `SHARES_MIN_FREE_DISK` | 5 GB | Refuse an upload if accepting it would leave less free disk than this |
+
+  The caps are checked on the client and again on the server; the free-disk
+  floor is checked on the server with `DiskSpaceMonitorService`. Files sit on
+  the server until they've been copied to the cloud, so until phase 3, server
+  disk is the practical limit. (Production on 2026-10-28: 77 GB disk, 36 GB
+  free.)
 - Form fields: files, title, optional message, optional password, expiry
   (7 / 14 / 30 days, default 14), optional recipient emails (the app emails
   them the link).
@@ -81,12 +97,32 @@ automatically.
 - `PurgeExpiredSharesJob` runs hourly. It marks overdue shares `expired`,
   deletes their cloud files and folder, and sets `purged_at` only after the
   deletes succeed. Failures are retried on the next run.
-- Revoke stops the link immediately. Files are purged after a grace period
-  (default 24h).
+- Revoke stops the link immediately and queues deletion of the cloud files
+  right away; no grace period. The UI asks for confirmation first, since it
+  can't be undone. If a deletion fails, the hourly purge job retries it.
 - Shares stuck in `uploading` for more than 24h, and their leftover local
   chunks, are cleaned up.
 
-## 5. Security
+## 5. Download notification (phase 1)
+
+Reuses the existing upload notification pattern (`BatchUploadComplete` →
+`SendBatchUploadNotifications` → `AdminBatchUploadNotification`):
+
+- `ShareFirstDownloaded` event → queued `SendShareDownloadedNotification`
+  listener → `ShareDownloadedNotification` email using the same template
+  layout under `resources/views/emails/`.
+- Sent once per share: the event fires only when a single database update
+  that sets `first_downloaded_at` where it is still empty succeeds, so
+  downloads that start at the same moment can't send two emails.
+- The email says which share, when it was downloaded, and which file (or
+  "all files"), and links to the share's detail page.
+- Opt-out: a new `users.receive_share_download_notifications` setting
+  (default true) with an unsubscribe link built the same way as
+  `NotificationSettingsController::unsubscribeUploads`. It's kept separate from
+  `receive_upload_notifications` so turning off one doesn't turn off the
+  other.
+
+## 6. Security
 
 - Tokens are 32 random bytes, encoded base64url; only the hash is stored.
 - Public routes send `X-Robots-Tag: noindex` and `Referrer-Policy: no-referrer`.
@@ -97,14 +133,14 @@ automatically.
 - Download URLs are generated fresh on each click and never embedded in the
   page ahead of time.
 
-## 6. Performance
+## 7. Performance
 
 - The recipient page is server-rendered Blade with minimal JS. A share with
   many files gets a paginated list.
 - Large downloads never pass through PHP memory (S3 presigned redirect / Drive
   streaming).
 
-## 7. Phases
+## 8. Phases
 
 0. **Prerequisite:** stream S3 downloads instead of loading the whole object
    into memory (`FileManagerService::downloadS3File`). This also fixes large S3
@@ -116,27 +152,25 @@ automatically.
    - public page with per-file download, including Drive Range support
    - password and expiry
    - purge job, recipient email, revoke
+   - first-download email to the sender
 2. **Phase 2:**
    - "Download all" streamed zip
-   - email to the sender on first download
    - access log on the share detail page
    - extend expiry
 3. **Phase 3 (optional):** the browser uploads straight to S3 (Uppy S3
    multipart with presigned parts), bypassing the app server and its disk.
 
-## 8. Testing
+## 9. Testing
 
 - PHPUnit feature tests:
   - token lookup and the 404/410 behavior
   - password gate and its rate limit
   - employee scoping (an employee can't see another employee's shares)
   - purge job state changes, with mocked providers
+  - the first-download email is sent exactly once, and respects the opt-out
 - Jest: the create-share upload code.
 - Update `CHANGELOG.md`.
 
-## Open questions (defaults assumed)
+## Open questions
 
-1. Size limits per share? Default: no cap, just the disk-space check.
-2. Revoke: delete files immediately or after the grace period? Default: 24h
-   grace period.
-3. Email to the sender on first download: MVP or phase 2? Default: phase 2.
+None at the moment.
