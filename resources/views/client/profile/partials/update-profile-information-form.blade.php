@@ -47,14 +47,7 @@
             @endif
         </div>
 
-        <!-- Add Checkbox for Notification Preference -->
-        <div class="block mt-4">
-            <label for="receive_upload_notifications" class="inline-flex items-center">
-                <input id="receive_upload_notifications" type="checkbox" class="rounded border-gray-300 text-[var(--brand-color)] shadow-sm focus:ring-[var(--brand-color)]" name="receive_upload_notifications" value="1" {{ old('receive_upload_notifications', $user->receive_upload_notifications) ? 'checked' : '' }}>
-                <span class="ms-2 text-sm text-gray-600">{{ __('messages.profile_receive_notifications_label') }}</span>
-            </label>
-        </div>
-        <!-- End Checkbox -->
+        @include('profile.partials.notification-preferences')
 
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('messages.profile_save') }}</x-primary-button>

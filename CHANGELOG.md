@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security docs said to set `TRUSTED_PROXIES`; that variable was only read by the dead `TrustProxies` class. Laravel trusts no proxies by default, so client-supplied `X-Forwarded-For` was already ignored. The production security and server migration checklists now say so, and explain how to trust a proxy in `bootstrap/app.php` if one is added
 - `SetupSecurityTest` checked for CSRF protection in the dead kernel, so it would have passed even without it; it now checks the live `web` middleware group. Tests that disabled the app's CSRF/cookie middleware now target the framework classes that actually run
 - Uploaded files never recorded which cloud provider they went to: `cloud_storage_provider` was missing from `FileUpload::$fillable`, so the upload job's update silently dropped it. Filtering files by provider and the per-provider counts on the cloud storage pages were working from empty values. New uploads now save it, and a migration fills it in for existing files: keys containing `/` are S3, and everything else is Google Drive (downloads already used this rule)
+- Turning off upload emails in the employee or client profile was never saved: an unchecked box isn't submitted, so the setting stayed on. The admin profile had no notification settings at all; it now has both (upload emails and share-download emails)
 
 ## [1.2.6] - 2026-10-14
 
