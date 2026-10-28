@@ -1258,4 +1258,11 @@ return [
     'provider_available_and_ready' => 'est disponible et prêt à être utilisé.',
     'provider_not_available_prefix' => 'est',
     'provider_not_available_suffix' => 'Veuillez sélectionner un fournisseur disponible.',
+
+    // Outgoing file shares
+    'shares_no_cloud_storage' => 'Aucun compte de stockage cloud n\'est disponible pour envoyer des fichiers. Demandez à un administrateur de connecter Google Drive.',
+    'shares_not_accepting_files' => 'Ce partage n\'accepte plus de fichiers.',
+    'shares_file_too_large' => 'Ce fichier dépasse la limite de :max par fichier.',
+    'shares_share_too_large' => 'L\'ajout de ce fichier ferait dépasser au partage la limite de :max.',
+    'shares_disk_full' => 'Le serveur n\'a pas assez d\'espace libre pour ce fichier pour le moment. Réessayez plus tard ou contactez votre administrateur.',
 ];

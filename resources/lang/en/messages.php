@@ -1709,4 +1709,11 @@
     'provider_available_and_ready' => 'is available and ready to use.',
     'provider_not_available_prefix' => 'is',
     'provider_not_available_suffix' => 'Please select an available provider.',
+
+    // Outgoing file shares
+    'shares_no_cloud_storage' => 'No cloud storage account is available for sending files. Ask an admin to connect Google Drive.',
+    'shares_not_accepting_files' => 'This share is no longer accepting files.',
+    'shares_file_too_large' => 'This file is larger than the :max limit for a single file.',
+    'shares_share_too_large' => 'Adding this file would make the share larger than the :max limit.',
+    'shares_disk_full' => 'The server doesn\'t have enough free space for this file right now. Try again later or contact your administrator.',
 ];

@@ -2,6 +2,7 @@
 
 use App\Jobs\CleanupFailedRefreshAttemptsJob;
 use App\Jobs\HealthStatusValidationJob;
+use App\Jobs\PurgeExpiredShares;
 use App\Jobs\TokenMaintenanceJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -29,6 +30,13 @@ Schedule::command('uploads:process-pending --limit=25')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/pending-uploads.log'));
+
+// Outgoing shares: expire overdue links and delete ended shares' files
+Schedule::job(new PurgeExpiredShares)
+    ->hourly()
+    ->withoutOverlapping()
+    ->name('purge-expired-shares')
+    ->onFailure(fn () => Log::error('PurgeExpiredShares failed'));
 
 // Google Drive tokens: refresh before they expire (emails admins only on failure)
 Schedule::command('google-drive:refresh-tokens')

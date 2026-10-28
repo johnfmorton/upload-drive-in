@@ -1021,4 +1021,11 @@ return [
     'file_manager_no_files_for_download' => 'Keine Dateien zum Herunterladen gefunden.',
     'file_manager_zip_creation_failed' => 'ZIP-Archiv kann nicht erstellt werden: :error',
     'file_manager_no_files_added_to_zip' => 'Keine Dateien konnten zum Archiv hinzugefügt werden. Alle Dateien können im Cloud-Speicher gespeichert oder nicht zugänglich sein.',
+
+    // Outgoing file shares
+    'shares_no_cloud_storage' => 'Für das Senden von Dateien ist kein Cloud-Speicherkonto verfügbar. Bitten Sie einen Administrator, Google Drive zu verbinden.',
+    'shares_not_accepting_files' => 'Diese Freigabe nimmt keine Dateien mehr an.',
+    'shares_file_too_large' => 'Diese Datei überschreitet das Limit von :max für eine einzelne Datei.',
+    'shares_share_too_large' => 'Mit dieser Datei würde die Freigabe das Limit von :max überschreiten.',
+    'shares_disk_full' => 'Auf dem Server ist derzeit nicht genug freier Speicher für diese Datei. Versuchen Sie es später erneut oder wenden Sie sich an Ihren Administrator.',
 ];

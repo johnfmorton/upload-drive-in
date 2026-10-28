@@ -1029,4 +1029,11 @@ return [
     'file_manager_no_files_for_download' => 'No se encontraron archivos para descargar.',
     'file_manager_zip_creation_failed' => 'No se puede crear el archivo ZIP: :error',
     'file_manager_no_files_added_to_zip' => 'No se pudieron agregar archivos al archivo. Todos los archivos pueden estar almacenados en el almacenamiento en la nube o ser inaccesibles.',
+
+    // Outgoing file shares
+    'shares_no_cloud_storage' => 'No hay ninguna cuenta de almacenamiento en la nube disponible para enviar archivos. Pida a un administrador que conecte Google Drive.',
+    'shares_not_accepting_files' => 'Este envío ya no acepta archivos.',
+    'shares_file_too_large' => 'Este archivo supera el límite de :max por archivo.',
+    'shares_share_too_large' => 'Al añadir este archivo, el envío superaría el límite de :max.',
+    'shares_disk_full' => 'El servidor no tiene suficiente espacio libre para este archivo en este momento. Inténtelo más tarde o contacte con su administrador.',
 ];
