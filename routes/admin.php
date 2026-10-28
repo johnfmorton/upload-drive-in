@@ -162,3 +162,6 @@ Route::prefix('cloud-storage')
         Route::post('/providers/{provider}/validate', [CloudStorageController::class, 'validateProviderConfig'])->name('providers.validate');
         Route::put('/providers/{provider}/config', [CloudStorageController::class, 'updateProviderConfig'])->name('providers.config.update');
     });
+
+// Outgoing file shares (sender side)
+require __DIR__.'/shares.php';

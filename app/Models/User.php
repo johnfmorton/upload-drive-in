@@ -33,6 +33,7 @@ class User extends Authenticatable
         'password',
         'role',
         'receive_upload_notifications',
+        'receive_share_download_notifications',
         'owner_id',
         'google_drive_root_folder_id',
         'two_factor_confirmed_at',
@@ -64,6 +65,7 @@ class User extends Authenticatable
         'password' => 'hashed',
         'role' => UserRole::class,
         'receive_upload_notifications' => 'boolean',
+        'receive_share_download_notifications' => 'boolean',
         'google_drive_root_folder_id' => 'string',
         'two_factor_enabled' => 'boolean',
         'two_factor_recovery_codes' => 'array',
@@ -165,6 +167,14 @@ class User extends Authenticatable
     public function getResetUrlAttribute(): string
     {
         return $this->generateResetUrl();
+    }
+
+    /**
+     * Get the outgoing file shares this user created.
+     */
+    public function shares(): HasMany
+    {
+        return $this->hasMany(Share::class);
     }
 
     /**

@@ -24,6 +24,12 @@ class EventServiceProvider extends ServiceProvider
         BatchUploadComplete::class => [ // <-- Add NEW mapping
             SendBatchUploadNotifications::class,
         ],
+        \App\Events\ShareReady::class => [
+            \App\Listeners\SendShareLinkToRecipients::class,
+        ],
+        \App\Events\ShareFirstDownloaded::class => [
+            \App\Listeners\SendShareDownloadedNotification::class,
+        ],
         Logout::class => [
             \App\Listeners\ClearTwoFactorSession::class,
         ],

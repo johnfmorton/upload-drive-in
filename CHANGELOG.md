@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Send files by link.** Admins and employees can upload one or more large files and get a link to send to anyone ("Sent files" in the navigation). See `docs/plans/outgoing-file-shares.md`.
+  - Files upload in 5MB chunks, are copied to the configured cloud storage (Google Drive or S3), and the link works once every file is there
+  - Optional password (5 wrong tries per visitor, or 20 per share, then a lockout), and an expiry of 7, 14 or 30 days
+  - Optionally emails the link to recipients, and emails the sender the first time someone downloads (can be turned off in the profile or from the email)
+  - S3 downloads come straight from S3 through a short-lived link; Google Drive downloads stream through the app and can resume
+  - Revoking a link deletes its files immediately; an hourly job expires overdue links, deletes their files, and cleans up uploads that were never finished
+  - Limits are set in `.env`: `SHARES_MAX_FILE_SIZE` (default 5 GB), `SHARES_MAX_SHARE_SIZE` (10 GB) and `SHARES_MIN_FREE_DISK` (5 GB, uploads are refused below this)
+  - The recipient's page loads no JavaScript
+
 ### Removed
 - Dead `app/Http/Kernel.php` and the six middleware classes only it referenced (`TrustProxies`, `VerifyCsrfToken`, `EncryptCookies`, `TrimStrings`, `PreventRequestsDuringMaintenance`, `QueueWorkerPerformanceHeaders`). Laravel 12 never loads that file; the framework's own middleware was already handling every request, so behavior is unchanged
 

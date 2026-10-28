@@ -65,7 +65,8 @@ class GoogleDriveChunkedUploadService
         ?int $chunkSize = null
     ): string {
         $startTime = microtime(true);
-        $fullPath = Storage::disk('public')->path($localPath);
+        // Accept an absolute path (e.g. a share file staged on the private disk) or a public disk path
+        $fullPath = file_exists($localPath) ? $localPath : Storage::disk('public')->path($localPath);
         
         if (!file_exists($fullPath)) {
             throw new Exception(__('messages.chunked_upload_local_file_not_found', ['path' => $localPath]));

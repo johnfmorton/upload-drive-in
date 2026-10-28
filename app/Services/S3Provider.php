@@ -857,6 +857,57 @@ class S3Provider implements CloudStorageProviderInterface
     // ========================================
 
     /**
+     * Generate a presigned download URL that saves the file under its original name
+     *
+     * Unlike generatePresignedUrl(), this sets the response's Content-Disposition
+     * so the browser downloads the object as $downloadName instead of its key.
+     *
+     * @param User $user The user whose S3 to use
+     * @param string $fileId The S3 object key
+     * @param string $downloadName The filename the browser should save
+     * @param int $expirationMinutes URL expiration time in minutes
+     * @return string Presigned URL
+     * @throws CloudStorageException
+     */
+    public function generateDownloadUrl(User $user, string $fileId, string $downloadName, int $expirationMinutes = 5): string
+    {
+        try {
+            $this->ensureInitialized($user);
+
+            // RFC 6266: ASCII fallback plus UTF-8 filename* for non-ASCII names
+            $fallback = str_replace(['"', '\\'], '_', Str::ascii($downloadName));
+            $disposition = sprintf(
+                'attachment; filename="%s"; filename*=UTF-8\'\'%s',
+                $fallback,
+                rawurlencode($downloadName)
+            );
+
+            $command = $this->s3Client->getCommand('GetObject', [
+                'Bucket' => $this->getBucket($user),
+                'Key' => $fileId,
+                'ResponseContentDisposition' => $disposition,
+            ]);
+
+            return (string) $this->s3Client
+                ->createPresignedRequest($command, "+{$expirationMinutes} minutes")
+                ->getUri();
+
+        } catch (Exception $e) {
+            throw CloudStorageException::create(
+                $this->errorHandler->classifyError($e),
+                self::PROVIDER_NAME,
+                [
+                    'operation' => 'generate_download_url',
+                    'file_id' => $fileId,
+                    'user_id' => $user->id,
+                    'original_message' => $e->getMessage()
+                ],
+                $e
+            );
+        }
+    }
+
+    /**
      * Generate a presigned URL for S3 file access
      *
      * @param User $user The user whose S3 to use

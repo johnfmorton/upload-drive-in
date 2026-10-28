@@ -27,7 +27,10 @@ automatically.
 
 **`shares`**
 - `id`, `ulid` (public id), `user_id` (creator)
-- `token_hash`: SHA-256 of the link token; the raw token is never stored
+- `token_hash`: SHA-256 of the link token, used to look shares up
+- `token_encrypted`: the token encrypted with `APP_KEY`, so the sender can copy
+  the link again later (changed during the build; a database leak alone still
+  doesn't expose links)
 - `title`, `message`, `password` (hashed, nullable)
 - `provider`, `cloud_folder_id` (pinned at creation)
 - `status`: `uploading` → `ready` → `expired` / `revoked` → `purged`
@@ -128,7 +131,8 @@ Reuses the existing upload notification pattern (`BatchUploadComplete` →
 - Public routes send `X-Robots-Tag: noindex` and `Referrer-Policy: no-referrer`.
 - Rate limiters, defined in `AppServiceProvider` like the existing ones:
   - share page views, per IP
-  - password attempts, per share and IP; failures are logged
+  - password attempts: 5 per share and IP per 15 minutes, plus 20 per share
+    from all IPs per hour; failures are logged
   - downloads
 - Download URLs are generated fresh on each click and never embedded in the
   page ahead of time.
