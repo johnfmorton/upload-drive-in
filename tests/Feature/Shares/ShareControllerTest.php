@@ -126,7 +126,7 @@ class ShareControllerTest extends TestCase
 
         $this->actingAs($this->employee)
             ->post($this->employeeRoute('files.store', ['share' => $share]), [
-                'file' => UploadedFile::fake()->create('photo.jpg', 20, 'image/jpeg'),
+                'file' => UploadedFile::fake()->createWithContent('photo.jpg', str_repeat('x', 20 * 1024)),
                 'dzuuid' => 'abc-123',
                 'dzchunkindex' => 0,
                 'dztotalfilesize' => 20 * 1024,
@@ -158,6 +158,51 @@ class ShareControllerTest extends TestCase
             ], ['Accept' => 'application/json'])
             ->assertUnprocessable()
             ->assertJsonStructure(['error']);
+
+        $this->assertSame(0, ShareFile::count());
+    }
+
+    public function test_limits_are_checked_on_later_chunks_too()
+    {
+        config(['shares.max_file_size' => 8 * 1024 * 1024]);
+        $share = Share::factory()->create(['user_id' => $this->employee->id]);
+
+        // Declares a small file but sends a chunk that runs past it
+        $this->actingAs($this->employee)
+            ->post($this->employeeRoute('files.store', ['share' => $share]), [
+                'file' => UploadedFile::fake()->create('lie.bin', 5 * 1024),
+                'dzuuid' => 'abc-123',
+                'dzchunkindex' => 1,
+                'dztotalfilesize' => 1024,
+                'dzchunksize' => 5 * 1024 * 1024,
+                'dztotalchunkcount' => 2,
+                'dzchunkbyteoffset' => 5 * 1024 * 1024,
+            ], ['Accept' => 'application/json'])
+            ->assertUnprocessable();
+
+        // Declares a size over the cap on a later chunk
+        $this->actingAs($this->employee)
+            ->post($this->employeeRoute('files.store', ['share' => $share]), [
+                'file' => UploadedFile::fake()->create('big.bin', 5 * 1024),
+                'dzuuid' => 'abc-456',
+                'dzchunkindex' => 3,
+                'dztotalfilesize' => 20 * 1024 * 1024,
+                'dzchunksize' => 5 * 1024 * 1024,
+                'dztotalchunkcount' => 4,
+                'dzchunkbyteoffset' => 15 * 1024 * 1024,
+            ], ['Accept' => 'application/json'])
+            ->assertUnprocessable();
+    }
+
+    public function test_uploads_without_chunk_parameters_are_refused()
+    {
+        $share = Share::factory()->create(['user_id' => $this->employee->id]);
+
+        $this->actingAs($this->employee)
+            ->post($this->employeeRoute('files.store', ['share' => $share]), [
+                'file' => UploadedFile::fake()->create('plain.pdf', 10),
+            ], ['Accept' => 'application/json'])
+            ->assertUnprocessable();
 
         $this->assertSame(0, ShareFile::count());
     }

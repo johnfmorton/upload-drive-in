@@ -26,6 +26,8 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
             'receive_upload_notifications' => ['sometimes', 'boolean'],
+            // Sent as a hidden 0 plus the checkbox, so unchecking it is saved
+            'receive_share_download_notifications' => ['sometimes', 'boolean'],
         ];
     }
 }

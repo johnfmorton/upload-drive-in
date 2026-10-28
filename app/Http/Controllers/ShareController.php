@@ -101,12 +101,21 @@ class ShareController extends Controller
     {
         Gate::authorize('update', $share);
 
-        // Refuse oversized files and full disks on the first chunk, not after the whole upload
-        if ((int) $request->input('dzchunkindex', 0) === 0) {
-            $error = $this->shares->uploadError($share, (int) $request->input('dztotalfilesize', 0));
-            if ($error) {
-                return response()->json(['error' => $error], 422);
-            }
+        // Only Dropzone chunk uploads, so every chunk can be checked against the declared size
+        $chunk = $request->file('file');
+        $declaredSize = (int) $request->input('dztotalfilesize', 0);
+        $offset = (int) $request->input('dzchunkbyteoffset', 0);
+
+        if (! $request->filled('dzuuid') || ! $chunk || $declaredSize <= 0 || $offset < 0
+            || $offset + $chunk->getSize() > $declaredSize) {
+            return response()->json(['error' => __('messages.shares_upload_failed')], 422);
+        }
+
+        // Check the limits on every chunk, so a too-small declared size can't be
+        // used to keep writing chunks to disk; the disk floor counts only what's still to come
+        $error = $this->shares->uploadError($share, $declaredSize, diskBytes: $declaredSize - $offset);
+        if ($error) {
+            return response()->json(['error' => $error], 422);
         }
 
         $receiver = new FileReceiver('file', $request, HandlerFactory::classFromRequest($request));
@@ -124,7 +133,9 @@ class ShareController extends Controller
         $upload = $save->getFile();
 
         // The client-reported size can't be trusted; check the real one
-        $error = $this->shares->uploadError($share, $upload->getSize(), checkDisk: false);
+        $error = $upload->getSize() !== $declaredSize
+            ? __('messages.shares_upload_failed')
+            : $this->shares->uploadError($share, $upload->getSize(), checkDisk: false);
         if ($error) {
             @unlink($upload->getPathname());
 

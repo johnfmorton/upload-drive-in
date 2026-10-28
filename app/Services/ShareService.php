@@ -61,12 +61,13 @@ class ShareService
     /**
      * Check whether a file of the given size can be added to a share.
      *
-     * Pass $checkDisk = false once the file is already on disk, so its own
-     * size isn't counted against the free-space floor a second time.
+     * The free-disk check counts $diskBytes (default: the whole file). While
+     * a file is arriving in chunks, pass only the bytes still to come; pass
+     * $checkDisk = false once the file is already on disk.
      *
      * @return string|null An error message, or null if the file is allowed
      */
-    public function uploadError(Share $share, int $incomingBytes, bool $checkDisk = true): ?string
+    public function uploadError(Share $share, int $incomingBytes, bool $checkDisk = true, ?int $diskBytes = null): ?string
     {
         if (! $share->isDraft()) {
             return __('messages.shares_not_accepting_files');
@@ -81,7 +82,7 @@ class ShareService
             return __('messages.shares_share_too_large', ['max' => format_bytes(config('shares.max_share_size'))]);
         }
 
-        if ($checkDisk && $this->freeDiskSpace() - $incomingBytes < config('shares.min_free_disk')) {
+        if ($checkDisk && $this->freeDiskSpace() - ($diskBytes ?? $incomingBytes) < config('shares.min_free_disk')) {
             return __('messages.shares_disk_full');
         }
 

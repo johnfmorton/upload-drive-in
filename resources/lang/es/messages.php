@@ -1121,4 +1121,19 @@ return [
     'shares_public_unlock' => 'Abrir',
     'shares_public_unavailable_title' => 'Este enlace no está disponible',
     'shares_public_unavailable_body' => 'Puede que haya caducado o que el remitente lo haya revocado. Pídale que le envíe los archivos de nuevo.',
+
+    // Outgoing file shares: emails
+    'shares_email_link_subject' => ':name le ha enviado archivos: :title',
+    'shares_email_link_intro' => ':name le ha enviado archivos para descargar.',
+    'shares_email_link_button' => 'Ver y descargar',
+    'shares_email_link_expires' => 'El enlace funciona hasta el :date.',
+    'shares_email_link_password' => 'Los archivos están protegidos con contraseña. El remitente le dará la contraseña por separado.',
+    'shares_email_downloaded_subject' => 'Sus archivos se han descargado: :title',
+    'shares_email_downloaded_heading' => 'Sus archivos se han descargado',
+    'shares_email_downloaded_body' => 'Alguien descargó :file de ":title" el :date.',
+    'shares_email_downloaded_button' => 'Ver el envío',
+    'shares_email_downloaded_once' => 'Este correo solo se envía con la primera descarga. Puede ver todas las descargas en la página del envío.',
+    'shares_email_unsubscribe' => 'Dejar de avisarme por correo cuando se descarguen mis archivos enviados',
+    'shares_unsubscribe_success' => 'Ya no recibirá correos cuando se descarguen sus archivos enviados. Puede volver a activarlos en su perfil.',
+    'shares_profile_notifications_label' => 'Avisarme por correo la primera vez que se descarguen los archivos que envío',
 ];

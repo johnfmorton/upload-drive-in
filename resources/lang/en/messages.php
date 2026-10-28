@@ -1801,4 +1801,19 @@
     'shares_public_unlock' => 'Open',
     'shares_public_unavailable_title' => 'This link isn\'t available',
     'shares_public_unavailable_body' => 'It may have expired or been revoked by the sender. Ask them to send the files again.',
+
+    // Outgoing file shares: emails
+    'shares_email_link_subject' => ':name sent you files: :title',
+    'shares_email_link_intro' => ':name sent you files to download.',
+    'shares_email_link_button' => 'View and download',
+    'shares_email_link_expires' => 'The link works until :date.',
+    'shares_email_link_password' => 'The files are password protected. The sender will give you the password separately.',
+    'shares_email_downloaded_subject' => 'Your files were downloaded: :title',
+    'shares_email_downloaded_heading' => 'Your files were downloaded',
+    'shares_email_downloaded_body' => 'Someone downloaded :file from ":title" on :date.',
+    'shares_email_downloaded_button' => 'View the share',
+    'shares_email_downloaded_once' => 'This email is sent only for the first download. You can see every download on the share\'s page.',
+    'shares_email_unsubscribe' => 'Stop emailing me when my shared files are downloaded',
+    'shares_unsubscribe_success' => 'You won\'t get emails when your shared files are downloaded. You can turn them back on in your profile.',
+    'shares_profile_notifications_label' => 'Email me the first time files I send are downloaded',
 ];

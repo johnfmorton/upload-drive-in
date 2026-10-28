@@ -1350,4 +1350,19 @@ return [
     'shares_public_unlock' => 'Ouvrir',
     'shares_public_unavailable_title' => 'Ce lien n\'est pas disponible',
     'shares_public_unavailable_body' => 'Il a peut-être expiré ou été révoqué par l\'expéditeur. Demandez-lui de renvoyer les fichiers.',
+
+    // Outgoing file shares: emails
+    'shares_email_link_subject' => ':name vous a envoyé des fichiers : :title',
+    'shares_email_link_intro' => ':name vous a envoyé des fichiers à télécharger.',
+    'shares_email_link_button' => 'Voir et télécharger',
+    'shares_email_link_expires' => 'Le lien fonctionne jusqu\'au :date.',
+    'shares_email_link_password' => 'Les fichiers sont protégés par un mot de passe. L\'expéditeur vous le communiquera séparément.',
+    'shares_email_downloaded_subject' => 'Vos fichiers ont été téléchargés : :title',
+    'shares_email_downloaded_heading' => 'Vos fichiers ont été téléchargés',
+    'shares_email_downloaded_body' => 'Quelqu\'un a téléchargé :file depuis « :title » le :date.',
+    'shares_email_downloaded_button' => 'Voir le partage',
+    'shares_email_downloaded_once' => 'Cet e-mail n\'est envoyé que pour le premier téléchargement. Tous les téléchargements sont visibles sur la page du partage.',
+    'shares_email_unsubscribe' => 'Ne plus m\'envoyer d\'e-mail quand mes fichiers partagés sont téléchargés',
+    'shares_unsubscribe_success' => 'Vous ne recevrez plus d\'e-mail quand vos fichiers partagés sont téléchargés. Vous pouvez les réactiver dans votre profil.',
+    'shares_profile_notifications_label' => 'M\'envoyer un e-mail la première fois que les fichiers que j\'envoie sont téléchargés',
 ];

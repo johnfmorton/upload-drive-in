@@ -1113,4 +1113,19 @@ return [
     'shares_public_unlock' => 'Öffnen',
     'shares_public_unavailable_title' => 'Dieser Link ist nicht verfügbar',
     'shares_public_unavailable_body' => 'Er ist möglicherweise abgelaufen oder wurde vom Absender widerrufen. Bitten Sie ihn, die Dateien erneut zu senden.',
+
+    // Outgoing file shares: emails
+    'shares_email_link_subject' => ':name hat Ihnen Dateien gesendet: :title',
+    'shares_email_link_intro' => ':name hat Ihnen Dateien zum Herunterladen gesendet.',
+    'shares_email_link_button' => 'Ansehen und herunterladen',
+    'shares_email_link_expires' => 'Der Link funktioniert bis :date.',
+    'shares_email_link_password' => 'Die Dateien sind passwortgeschützt. Der Absender teilt Ihnen das Passwort separat mit.',
+    'shares_email_downloaded_subject' => 'Ihre Dateien wurden heruntergeladen: :title',
+    'shares_email_downloaded_heading' => 'Ihre Dateien wurden heruntergeladen',
+    'shares_email_downloaded_body' => 'Jemand hat :file aus „:title“ am :date heruntergeladen.',
+    'shares_email_downloaded_button' => 'Freigabe ansehen',
+    'shares_email_downloaded_once' => 'Diese E-Mail wird nur beim ersten Download gesendet. Alle Downloads sehen Sie auf der Seite der Freigabe.',
+    'shares_email_unsubscribe' => 'Keine E-Mails mehr senden, wenn meine geteilten Dateien heruntergeladen werden',
+    'shares_unsubscribe_success' => 'Sie erhalten keine E-Mails mehr, wenn Ihre geteilten Dateien heruntergeladen werden. Sie können sie in Ihrem Profil wieder aktivieren.',
+    'shares_profile_notifications_label' => 'Mir eine E-Mail senden, wenn von mir gesendete Dateien zum ersten Mal heruntergeladen werden',
 ];

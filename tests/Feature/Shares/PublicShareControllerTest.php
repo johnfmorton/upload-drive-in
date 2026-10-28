@@ -107,6 +107,22 @@ class PublicShareControllerTest extends TestCase
             ->assertSessionHasErrors('password');
     }
 
+    public function test_password_guesses_spread_over_many_ips_are_limited_per_share()
+    {
+        $this->readyShare(['password' => 'open-sesame']);
+
+        // 20 wrong guesses from 5 IPs: each IP stays under its own limit of 5
+        for ($i = 0; $i < 20; $i++) {
+            $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.'.($i % 5)])
+                ->post('/s/'.self::TOKEN.'/unlock', ['password' => 'wrong']);
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.99'])
+            ->from('/s/'.self::TOKEN)
+            ->post('/s/'.self::TOKEN.'/unlock', ['password' => 'open-sesame'])
+            ->assertSessionHasErrors('password');
+    }
+
     public function test_download_without_unlocking_goes_back_to_the_password_page()
     {
         $share = $this->readyShare(['password' => 'open-sesame']);

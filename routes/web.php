@@ -113,6 +113,10 @@ Route::get('/notifications/upload/unsubscribe/{user}', [NotificationSettingsCont
     ->name('notifications.upload.unsubscribe')
     ->middleware('signed');
 
+Route::get('/notifications/share-downloads/unsubscribe/{user}', [NotificationSettingsController::class, 'unsubscribeShareDownloads'])
+    ->name('notifications.share-downloads.unsubscribe')
+    ->middleware('signed');
+
 // File preview and thumbnail routes (accessible to all authenticated users)
 Route::middleware(['auth', \App\Http\Middleware\FileDownloadRateLimitMiddleware::class . ':120,1'])->group(function () {
     Route::get('/files/{file}/preview', [\App\Http\Controllers\Admin\FileManagerController::class, 'preview'])

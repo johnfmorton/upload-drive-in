@@ -27,6 +27,11 @@ class PublicShareController extends Controller
 
     private const PASSWORD_DECAY_SECONDS = 900;
 
+    // Wrong passwords allowed per share from all IPs combined before a one-hour lockout
+    private const SHARE_PASSWORD_ATTEMPTS = 20;
+
+    private const SHARE_PASSWORD_DECAY_SECONDS = 3600;
+
     public function __construct(
         private ShareService $shares,
         private ShareStorageService $storage
@@ -73,24 +78,35 @@ class PublicShareController extends Controller
             return $this->unavailable($share);
         }
 
-        $limiterKey = "share-password:{$share->id}:{$request->ip()}";
+        // Per IP, plus per share across all IPs so guesses can't be spread over many addresses
+        $limits = [
+            "share-password:{$share->id}:{$request->ip()}" => [self::PASSWORD_ATTEMPTS, self::PASSWORD_DECAY_SECONDS],
+            "share-password:{$share->id}" => [self::SHARE_PASSWORD_ATTEMPTS, self::SHARE_PASSWORD_DECAY_SECONDS],
+        ];
 
-        if (RateLimiter::tooManyAttempts($limiterKey, self::PASSWORD_ATTEMPTS)) {
-            return back()->withErrors([
-                'password' => __('messages.shares_password_locked', [
-                    'minutes' => (int) ceil(RateLimiter::availableIn($limiterKey) / 60),
-                ]),
-            ]);
+        foreach ($limits as $key => [$maxAttempts]) {
+            if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+                return back()->withErrors([
+                    'password' => __('messages.shares_password_locked', [
+                        'minutes' => (int) ceil(RateLimiter::availableIn($key) / 60),
+                    ]),
+                ]);
+            }
         }
 
+        $ipKey = array_key_first($limits);
+
         if (! $share->hasPassword() || Hash::check((string) $request->input('password'), $share->password)) {
-            RateLimiter::clear($limiterKey);
+            // Only this visitor's count resets; the share-wide count keeps running
+            RateLimiter::clear($ipKey);
             $request->session()->put("shares.unlocked.{$share->id}", true);
 
             return redirect()->route('shares.public.show', ['token' => $token]);
         }
 
-        RateLimiter::hit($limiterKey, self::PASSWORD_DECAY_SECONDS);
+        foreach ($limits as $key => [, $decaySeconds]) {
+            RateLimiter::hit($key, $decaySeconds);
+        }
         $this->shares->logAccess($share, ShareAccessLog::EVENT_BAD_PASSWORD, $request);
 
         return back()->withErrors(['password' => __('messages.shares_password_wrong')]);
