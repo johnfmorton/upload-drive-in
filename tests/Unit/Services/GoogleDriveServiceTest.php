@@ -125,27 +125,49 @@ class GoogleDriveServiceTest extends TestCase
             ->once()
             ->andReturn($mockFile);
 
-        // Mock response with body
-        $mockResponse = Mockery::mock();
-        $mockBody = Mockery::mock();
-        $mockBody->shouldReceive('getContents')->andReturn('large file content');
-        $mockResponse->shouldReceive('getBody')->andReturn($mockBody);
+        // The content must come from the streaming request, never files->get(alt=media)
+        $mockFilesResource->shouldNotReceive('get')->with('large-file-id', ['alt' => 'media']);
 
-        $mockFilesResource->shouldReceive('get')
-            ->with('large-file-id', ['alt' => 'media'])
-            ->once()
-            ->andReturn($mockResponse);
-
-        // Mock the service creation
         $partialMock = Mockery::mock(GoogleDriveService::class)->makePartial();
         $partialMock->shouldReceive('getDriveService')
             ->with($this->user)
             ->andReturn($mockDriveService);
+        $partialMock->shouldReceive('openFileMediaStream')
+            ->with($this->user, 'large-file-id')
+            ->once()
+            ->andReturn(new \GuzzleHttp\Psr7\Response(200, [], \GuzzleHttp\Psr7\Utils::streamFor('large file content')));
 
         $result = $partialMock->downloadFileStream($this->user, 'large-file-id');
 
         $this->assertIsResource($result);
+        $this->assertSame('large file content', stream_get_contents($result));
         fclose($result);
+    }
+
+    public function test_open_file_media_stream_requests_an_unbuffered_body()
+    {
+        $http = Mockery::mock(\GuzzleHttp\ClientInterface::class);
+        $http->shouldReceive('request')
+            ->once()
+            ->with('GET', 'https://www.googleapis.com/drive/v3/files/abc%2F123?alt=media', [
+                'headers' => ['Range' => 'bytes=100-'],
+                'stream' => true,
+                'http_errors' => false,
+            ])
+            ->andReturn(new \GuzzleHttp\Psr7\Response(206));
+
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('authorize')->andReturn($http);
+
+        $mockDriveService = Mockery::mock(Drive::class);
+        $mockDriveService->shouldReceive('getClient')->andReturn($client);
+
+        $partialMock = Mockery::mock(GoogleDriveService::class)->makePartial();
+        $partialMock->shouldReceive('getDriveService')->with($this->user)->andReturn($mockDriveService);
+
+        $response = $partialMock->openFileMediaStream($this->user, 'abc/123', 'bytes=100-', httpErrors: false);
+
+        $this->assertSame(206, $response->getStatusCode());
     }
 
     public function test_get_file_metadata_success()

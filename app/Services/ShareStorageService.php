@@ -27,8 +27,6 @@ class ShareStorageService
 {
     public const PARENT_FOLDER_NAME = 'Outgoing shares';
 
-    private const DRIVE_DOWNLOAD_URL = 'https://www.googleapis.com/drive/v3/files/%s?alt=media';
-
     public function __construct(
         private CloudStorageManager $storageManager,
         private GoogleDriveService $driveService,
@@ -115,16 +113,12 @@ class ShareStorageService
      */
     public function openDriveStream(ShareFile $file, ?string $range = null): ResponseInterface
     {
-        $cloudUser = $this->cloudUserFor($file->share);
-        $http = $this->driveService->getDriveService($cloudUser)->getClient()->authorize();
-
-        $headers = $range ? ['Range' => $range] : [];
-
-        return $http->request('GET', sprintf(self::DRIVE_DOWNLOAD_URL, rawurlencode($file->provider_file_id)), [
-            'headers' => $headers,
-            'stream' => true,
-            'http_errors' => false,
-        ]);
+        return $this->driveService->openFileMediaStream(
+            $this->cloudUserFor($file->share),
+            $file->provider_file_id,
+            $range,
+            httpErrors: false
+        );
     }
 
     /**
