@@ -43,8 +43,8 @@ class ProfileController extends Controller
         // Get validated data
         $validated_data = $request->validated();
 
-        // Ensure 'receive_upload_notifications' is set to false if not present in the request
-        $validated_data['receive_upload_notifications'] = $request->has('receive_upload_notifications');
+        // The form sends a hidden 0 before the checkbox, so read the value rather than its presence
+        $validated_data['receive_upload_notifications'] = $request->boolean('receive_upload_notifications');
 
         // Fill the user model using the processed data
         $request->user()->fill($validated_data);

@@ -36,6 +36,8 @@
                                 <x-input-error class="mt-2" :messages="$errors->get('email')" />
                             </div>
 
+                            @include('profile.partials.notification-preferences')
+
                             <div class="flex items-center gap-4">
                                 <x-primary-button>{{ __('Save') }}</x-primary-button>
 
