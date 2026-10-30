@@ -1,6 +1,8 @@
 # Plan: Outgoing File Shares ("Send files")
 
-Status: planned (2026-10-27)
+Status: phases 0 and 1 shipped (2026-10-29); phases 2 and 3 not started.
+Planned 2026-10-27. This doc describes what was built; where the build
+changed the original plan, the change is noted.
 
 ## Goal
 
@@ -31,35 +33,58 @@ automatically.
 - `token_encrypted`: the token encrypted with `APP_KEY`, so the sender can copy
   the link again later (changed during the build; a database leak alone still
   doesn't expose links)
-- `title`, `message`, `password` (hashed, nullable)
-- `provider`, `cloud_folder_id` (pinned at creation)
-- `status`: `uploading` → `ready` → `expired` / `revoked` → `purged`
-- `expires_at`, `purged_at`, `first_downloaded_at`, `download_count`,
-  `last_accessed_at`, timestamps
+- `title`, `message`, `password` (hashed, nullable), `recipient_emails` (JSON)
+- `provider`, `cloud_user_id` (the account whose storage holds the files),
+  `cloud_folder_id`; all pinned at creation
+- `status`: `draft` → `uploading` → `ready` → `expired` / `revoked`, or
+  `failed`. There is no `purged` status: a purged share keeps its status and
+  gets `purged_at`.
+- `expires_at`, `ready_at`, `revoked_at`, `purged_at`, `first_downloaded_at`,
+  `download_count`, `last_accessed_at`, timestamps
 
 **`share_files`**
 - `share_id`, `original_filename`, `mime_type`, `file_size`
 - `provider_file_id`, `local_path` (until the cloud upload finishes)
-- `status`, `download_count`
+- `status` (`pending` / `uploaded` / `failed`), `last_error`, `download_count`
 
 **`share_access_logs`**
-- `share_id`, `share_file_id` (nullable for zip), `event`
-  (view / download / zip / bad_password), `ip`, `user_agent`, `created_at`
+- `share_id`, `share_file_id` (nullable, for a future zip download), `event`
+  (`view` / `download` / `bad_password`; `zip` comes with phase 2), `ip`,
+  `user_agent`, `created_at`
+
+**`users.receive_share_download_notifications`** (boolean, default true)
 
 ## 2. Sender side (admin + employee)
 
-- Routes in `routes/admin.php` and `routes/employee-portal.php` point to a
-  shared controller: index / create / store / show / revoke / extend / destroy.
-  A policy scopes employees to their own shares.
-- Uploads reuse the existing 5MB chunked upload (`pion/laravel-chunk-upload`,
-  same pattern as `upload.employee.chunk`), which works around the 20MB nginx
-  limit. Uppy is loaded only on the create page.
-- The `UploadShareFileToCloud` job copies each assembled file to the provider.
-  Drive uploads use `GoogleDriveChunkedUploadService` (resumable). Drive folder
-  layout: `Outgoing/<share-ulid>/`, kept separate from the folders organized by
-  client email.
-- A share becomes `ready` only once every file is uploaded; only then is the
-  link shown or emailed. The local copy is deleted after a successful upload.
+- `routes/shares.php` is included from both `routes/admin.php`
+  (`admin.shares.*`) and `routes/employee-portal.php` (`employee.shares.*`),
+  and every route goes to one `ShareController`: index / create / store /
+  show / status / finalize / revoke, plus per-file upload, remove and retry.
+  `SharePolicy` limits employees to their own shares. Extending expiry is
+  phase 2. There is no route that deletes a share record: revoke deletes the
+  files, and the record stays in the list.
+- The create page works in three steps:
+  1. "Upload and create" saves the details as a `draft` share.
+  2. The files upload into it in 5MB chunks (`pion/laravel-chunk-upload`,
+     which works around the 20MB nginx limit). Every chunk is checked against
+     the size limits.
+  3. `finalize` moves the share to `uploading`.
+- The upload code is `resources/js/share-upload.js`, its own Vite entry, so
+  only the create page loads it. It uses Dropzone, which the app already uses
+  elsewhere; the plan had said Uppy.
+- The `UploadShareFileToCloud` job copies each assembled file to the
+  provider. A per-file lock stops two copies running at once. The job has a
+  1 hour timeout and retries for up to 12 hours.
+  - **Drive:** uploads use `GoogleDriveChunkedUploadService` (resumable). The
+    files go in the sender's own Drive, or the first admin's Drive if the
+    sender hasn't connected one. Each share gets its own folder,
+    `Outgoing shares/<title> (<ulid>)/`, kept separate from the folders
+    organized by client email.
+  - **S3:** files are stored under the key prefix `outgoing-share-<ulid>/`.
+- A share becomes `ready` once every file is uploaded, and only then is the
+  link shown or emailed. A single database update makes that change, so it
+  can only happen once. The local copy is deleted after a successful upload.
+  The detail page checks the status regularly while the upload is running.
 - Size limits live in a new `config/shares.php`, read from `.env` so they can
   change with the server without a code change:
 
@@ -80,9 +105,11 @@ automatically.
 
 ## 3. Recipient side (public)
 
-- `GET /s/{token}`: landing page that lists files and sizes. If the share has
-  a password, the page asks for it first and keeps it unlocked for the session.
-- `GET /s/{token}/files/{file}`: single-file download.
+- `GET /s/{token}`: landing page that lists files and sizes, 100 per page.
+  If the share has a password, the page asks for it first and keeps it
+  unlocked for the session (`POST /s/{token}/unlock`). The page uses its own
+  `share-public` layout, which loads only CSS, no app JavaScript.
+- `GET /s/{token}/files/{fileId}`: single-file download.
   - **S3:** redirect to a short-lived (~5 min) presigned URL with
     `ResponseContentDisposition` set to the original filename. The file never
     passes through the app server.
@@ -97,14 +124,18 @@ automatically.
 
 ## 4. Expiry and cleanup
 
-- `PurgeExpiredSharesJob` runs hourly. It marks overdue shares `expired`,
+- `PurgeExpiredShares` (scheduled hourly in `routes/console.php`) queues a
+  `PurgeShareFiles` job per share. It marks overdue shares `expired`,
   deletes their cloud files and folder, and sets `purged_at` only after the
   deletes succeed. Failures are retried on the next run.
 - Revoke stops the link immediately and queues deletion of the cloud files
   right away; no grace period. The UI asks for confirmation first, since it
   can't be undone. If a deletion fails, the hourly purge job retries it.
-- Shares stuck in `uploading` for more than 24h, and their leftover local
-  chunks, are cleaned up.
+- Shares stuck in `draft` or `uploading` for more than 24h
+  (`stale_upload_hours` in `config/shares.php`) are marked `failed` and
+  cleaned up, including their local files.
+- The same job also picks up any `expired`, `revoked` or `failed` share whose
+  `purged_at` is still empty, so failed deletions are retried.
 
 ## 5. Download notification (phase 1)
 
@@ -112,8 +143,9 @@ Reuses the existing upload notification pattern (`BatchUploadComplete` →
 `SendBatchUploadNotifications` → `AdminBatchUploadNotification`):
 
 - `ShareFirstDownloaded` event → queued `SendShareDownloadedNotification`
-  listener → `ShareDownloadedNotification` email using the same template
-  layout under `resources/views/emails/`.
+  listener → `ShareDownloadedMail` (`resources/views/emails/shares/downloaded`).
+- The link email to recipients works the same way: `ShareReady` →
+  `SendShareLinkToRecipients` → `ShareLinkMail`.
 - Sent once per share: the event fires only when a single database update
   that sets `first_downloaded_at` where it is still empty succeeds, so
   downloads that start at the same moment can't send two emails.
@@ -127,13 +159,17 @@ Reuses the existing upload notification pattern (`BatchUploadComplete` →
 
 ## 6. Security
 
-- Tokens are 32 random bytes, encoded base64url; only the hash is stored.
-- Public routes send `X-Robots-Tag: noindex` and `Referrer-Policy: no-referrer`.
+- Tokens are 32 random bytes, encoded base64url, which gives a 43-character
+  token; the route only matches that shape. The database stores the token's
+  hash plus a copy encrypted with `APP_KEY` (see section 1).
+- Public pages send `X-Robots-Tag: noindex, nofollow`. They set the referrer
+  policy to no-referrer with a `<meta name="referrer">` tag in the
+  `share-public` layout instead of a header.
 - Rate limiters, defined in `AppServiceProvider` like the existing ones:
-  - share page views, per IP
+  - `share-pages` (page views and unlock attempts): 60 a minute per IP
   - password attempts: 5 per share and IP per 15 minutes, plus 20 per share
-    from all IPs per hour; failures are logged
-  - downloads
+    from all IPs per hour; failures are logged as `bad_password`
+  - `share-downloads`: 60 a minute per IP
 - Download URLs are generated fresh on each click and never embedded in the
   page ahead of time.
 
@@ -146,10 +182,10 @@ Reuses the existing upload notification pattern (`BatchUploadComplete` →
 
 ## 8. Phases
 
-0. **Prerequisite:** stream S3 downloads instead of loading the whole object
+0. **Prerequisite (done):** stream S3 downloads instead of loading the whole object
    into memory (`FileManagerService::downloadS3File`). This also fixes large S3
    downloads in the admin and employee file managers.
-1. **MVP:**
+1. **MVP (done):**
    - migrations and models
    - create share with chunked upload to the cloud
    - share list and detail pages for the sender
@@ -157,9 +193,9 @@ Reuses the existing upload notification pattern (`BatchUploadComplete` →
    - password and expiry
    - purge job, recipient email, revoke
    - first-download email to the sender
-2. **Phase 2:**
+2. **Phase 2 (not started):**
    - "Download all" streamed zip
-   - access log on the share detail page
+   - access log on the share detail page (the data is already logged)
    - extend expiry
 3. **Phase 3 (optional):** the browser uploads straight to S3 (Uppy S3
    multipart with presigned parts), bypassing the app server and its disk.
@@ -172,8 +208,26 @@ Reuses the existing upload notification pattern (`BatchUploadComplete` →
   - employee scoping (an employee can't see another employee's shares)
   - purge job state changes, with mocked providers
   - the first-download email is sent exactly once, and respects the opt-out
-- Jest: the create-share upload code.
+- Jest: the create-share upload code (`tests/js/share-upload.test.js`).
 - Update `CHANGELOG.md`.
+
+The PHPUnit tests are in `tests/Feature/Shares/` and
+`tests/Unit/Services/ShareStorageServiceTest.php`.
+
+## Deployment notes
+
+- Raise the queue's `retry_after` (`REDIS_QUEUE_RETRY_AFTER` or
+  `DB_QUEUE_RETRY_AFTER`) to about 3700 seconds, and run the Forge queue
+  worker with `--timeout=3600`. Otherwise a large Drive upload gets retried
+  while it is still running.
+- Files are staged in `storage/app/private/shares` until they are copied to
+  the cloud.
+
+## Still to verify by hand
+
+- A full share through Google Drive, including resuming an interrupted
+  download (S3 was tested end to end against the dev bucket).
+- The recipient email and the first-download email arriving in a real inbox.
 
 ## Open questions
 
