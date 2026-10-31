@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamInterface;
 
 /**
  * Moves outgoing share files between the local staging disk and the share's
@@ -119,6 +120,29 @@ class ShareStorageService
             $range,
             httpErrors: false
         );
+    }
+
+    /**
+     * Open a share file from either provider as a stream, read from the
+     * network as it is consumed. Used to build "Download all" zips.
+     *
+     * @throws Exception When the provider refuses the download
+     */
+    public function openFileStream(ShareFile $file): StreamInterface
+    {
+        if ($file->share->provider === 'google-drive') {
+            $response = $this->openDriveStream($file);
+
+            if ($response->getStatusCode() >= 400) {
+                throw new Exception("Google Drive refused share file {$file->id} with HTTP {$response->getStatusCode()}");
+            }
+
+            return $response->getBody();
+        }
+
+        $cloudUser = $this->cloudUserFor($file->share);
+
+        return $this->s3Provider($cloudUser)->downloadFileStream($cloudUser, $file->provider_file_id)['body'];
     }
 
     /**

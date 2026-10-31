@@ -1,6 +1,7 @@
 # Plan: Outgoing File Shares ("Send files")
 
-Status: phases 0 and 1 shipped (2026-10-29); phases 2 and 3 not started.
+Status: phases 0 and 1 shipped (2026-10-29), phase 2 built (2026-10-30);
+phase 3 (optional) not started.
 Planned 2026-10-27. This doc describes what was built; where the build
 changed the original plan, the change is noted.
 
@@ -48,8 +49,8 @@ automatically.
 - `status` (`pending` / `uploaded` / `failed`), `last_error`, `download_count`
 
 **`share_access_logs`**
-- `share_id`, `share_file_id` (nullable, for a future zip download), `event`
-  (`view` / `download` / `bad_password`; `zip` comes with phase 2), `ip`,
+- `share_id`, `share_file_id` (null for a zip download), `event`
+  (`view` / `download` / `zip` / `bad_password`), `ip`,
   `user_agent`, `created_at`
 
 **`users.receive_share_download_notifications`** (boolean, default true)
@@ -59,10 +60,10 @@ automatically.
 - `routes/shares.php` is included from both `routes/admin.php`
   (`admin.shares.*`) and `routes/employee-portal.php` (`employee.shares.*`),
   and every route goes to one `ShareController`: index / create / store /
-  show / status / finalize / revoke, plus per-file upload, remove and retry.
-  `SharePolicy` limits employees to their own shares. Extending expiry is
-  phase 2. There is no route that deletes a share record: revoke deletes the
-  files, and the record stays in the list.
+  show / status / finalize / revoke / extend, plus per-file upload, remove
+  and retry. `SharePolicy` limits employees to their own shares. There is no
+  route that deletes a share record: revoke deletes the files, and the record
+  stays in the list.
 - The create page works in three steps:
   1. "Upload and create" saves the details as a `draft` share.
   2. The files upload into it in 5MB chunks (`pion/laravel-chunk-upload`,
@@ -115,10 +116,20 @@ automatically.
     passes through the app server.
   - **Google Drive:** stream through the app in pieces, with **Range** support
     so interrupted downloads can resume.
-- `GET /s/{token}/zip` (phase 2): "Download all" as a zip built while it
-  downloads (`maennchen/zipstream-php`, no compression). It reads from the
-  cloud file by file, with no temp zip on disk. Needs `set_time_limit(0)` and
-  a longer nginx `fastcgi_read_timeout` on Forge.
+- `GET /s/{token}/zip` (phase 2): "Download all", shown when a share has
+  more than one file. `ShareZipService` builds the zip as it downloads
+  (`maennchen/zipstream-php`), storing files uncompressed and reading them
+  from the cloud one at a time, with no temp zip on disk.
+  - A dry run first works out the zip's exact size, so the response sends a
+    `Content-Length` and browsers show progress.
+  - Files with the same name (ignoring case) get " (2)", " (3)" and so on;
+    path separators in names become `_`.
+  - It counts as one download of the share (logged as `zip`, not counted
+    against each file) and can trigger the first-download email, which then
+    says "all the files". HEAD requests get the headers and aren't counted.
+  - It sends `X-Accel-Buffering: no` so nginx doesn't buffer the zip to disk.
+  - It can't resume after an interruption; the page says so and suggests
+    single-file downloads on a poor connection.
 - An expired, revoked or unknown token returns the same generic "no longer
   available" page (410/404), so the page doesn't reveal which shares exist.
 
@@ -193,10 +204,15 @@ Reuses the existing upload notification pattern (`BatchUploadComplete` →
    - password and expiry
    - purge job, recipient email, revoke
    - first-download email to the sender
-2. **Phase 2 (not started):**
-   - "Download all" streamed zip
-   - access log on the share detail page (the data is already logged)
-   - extend expiry
+2. **Phase 2 (done):**
+   - "Download all" streamed zip (section 3)
+   - access log: the detail page's "Activity" section lists every view,
+     download, zip download and wrong password, newest first, 25 per page,
+     with the IP and browser
+   - extend expiry: the sender adds 7, 14 or 30 days to the later of now and
+     the current expiry. It's a single conditional update, so it can't revive
+     a share the purge job has already marked expired. A link that has run
+     out but hasn't been purged yet can still be extended.
 3. **Phase 3 (optional):** the browser uploads straight to S3 (Uppy S3
    multipart with presigned parts), bypassing the app server and its disk.
 
@@ -222,6 +238,11 @@ The PHPUnit tests are in `tests/Feature/Shares/` and
   while it is still running.
 - Files are staged in `storage/app/private/shares` until they are copied to
   the cloud.
+- Drive downloads and zip downloads run as long as the download takes. The
+  app turns off PHP's `max_execution_time` for them, but a PHP-FPM
+  `request_terminate_timeout` would still cut them off. Check that it is 0
+  (the default) on the Forge server. nginx's `fastcgi_read_timeout` only
+  matters if data stops flowing, which streaming avoids.
 
 ## Still to verify by hand
 

@@ -100,6 +100,19 @@ class ShareNotificationTest extends TestCase
         $mail->assertSeeInHtml('notifications/share-downloads/unsubscribe');
     }
 
+    public function test_downloaded_email_for_a_zip_says_all_files()
+    {
+        $this->freezeSecond();
+        $share = Share::factory()->ready()->create(['title' => 'Site photos', 'first_downloaded_at' => now()]);
+
+        $mail = new ShareDownloadedMail($share->fresh(), null);
+
+        $mail->assertSeeInHtml(__('messages.shares_email_downloaded_body_all', [
+            'title' => 'Site photos',
+            'date' => now()->toDayDateTimeString(),
+        ]), false);
+    }
+
     public function test_unsubscribe_link_turns_the_emails_off()
     {
         $user = User::factory()->employee()->create();

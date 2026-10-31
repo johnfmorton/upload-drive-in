@@ -20,7 +20,7 @@ class ShareDownloadedMail extends Mailable
 
     public function __construct(
         public Share $share,
-        public ShareFile $file
+        public ?ShareFile $file
     ) {}
 
     public function envelope(): Envelope
@@ -38,7 +38,7 @@ class ShareDownloadedMail extends Mailable
             markdown: 'emails.shares.downloaded',
             with: [
                 'share' => $this->share,
-                'fileName' => $this->file->original_filename,
+                'fileName' => $this->file?->original_filename,
                 'downloadedAt' => $this->share->first_downloaded_at ?? now(),
                 'shareUrl' => $sender->isAdmin()
                     ? route('admin.shares.show', ['share' => $this->share])

@@ -191,14 +191,39 @@ class ShareService
     }
 
     /**
-     * Record a download, and fire ShareFirstDownloaded the first time only.
+     * Push the expiry date back by the given number of days, counted from the
+     * current expiry, or from now if the link has already run out but its
+     * files haven't been deleted yet.
+     *
+     * @return bool False if the share has ended and can't be extended
      */
-    public function recordDownload(Share $share, ShareFile $file, Request $request): void
+    public function extend(Share $share, int $days): bool
     {
-        $file->increment('download_count');
+        if ($share->isEnded()) {
+            return false;
+        }
+
+        $expiresAt = $share->expires_at->copy()->max(now())->addDays($days);
+
+        // Conditional, so it can't revive a share the purge job has just marked expired
+        $extended = Share::whereKey($share->id)
+            ->whereIn('status', [Share::STATUS_DRAFT, Share::STATUS_UPLOADING, Share::STATUS_READY])
+            ->update(['expires_at' => $expiresAt]);
+
+        return (bool) $extended;
+    }
+
+    /**
+     * Record a download of one file, or of all files as a zip ($file null),
+     * and fire ShareFirstDownloaded the first time only.
+     */
+    public function recordDownload(Share $share, ?ShareFile $file, Request $request): void
+    {
+        $file?->increment('download_count');
         Share::whereKey($share->id)->increment('download_count', 1, ['last_accessed_at' => now()]);
 
-        $this->logAccess($share, ShareAccessLog::EVENT_DOWNLOAD, $request, $file);
+        $event = $file ? ShareAccessLog::EVENT_DOWNLOAD : ShareAccessLog::EVENT_ZIP;
+        $this->logAccess($share, $event, $request, $file);
 
         // Conditional update so simultaneous first downloads send one email
         $first = Share::whereKey($share->id)

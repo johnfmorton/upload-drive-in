@@ -134,6 +134,23 @@
                     </div>
 
                     @unless ($share->isEnded())
+                        <form method="POST" action="{{ route($routePrefix . '.extend', $routeParams + ['share' => $share]) }}" class="bg-white shadow sm:rounded-lg p-6 text-sm">
+                            @csrf
+                            <h3 class="text-lg font-medium text-gray-900">{{ __('messages.shares_extend') }}</h3>
+                            <p class="mt-1 text-gray-500">{{ __('messages.shares_extend_hint') }}</p>
+                            <div class="mt-4 flex gap-3">
+                                <label for="extend-days" class="sr-only">{{ __('messages.shares_extend_by') }}</label>
+                                <select id="extend-days" name="days"
+                                        class="flex-1 min-w-0 border-cream-300 focus:border-accent-500 focus:ring-accent-500 rounded-xl shadow-sm text-sm">
+                                    @foreach ($expiryChoices as $days)
+                                        <option value="{{ $days }}">+ {{ trans_choice('messages.shares_expiry_days', $days, ['count' => $days]) }}</option>
+                                    @endforeach
+                                </select>
+                                <x-secondary-button type="submit">{{ __('messages.shares_extend_button') }}</x-secondary-button>
+                            </div>
+                            <x-input-error class="mt-2" :messages="$errors->get('days')" />
+                        </form>
+
                         <div x-data="{ confirming: false }" class="bg-white shadow sm:rounded-lg p-6 text-sm">
                             <h3 class="text-lg font-medium text-gray-900">{{ __('messages.shares_revoke') }}</h3>
                             <p class="mt-1 text-gray-500">{{ __('messages.shares_revoke_hint') }}</p>
@@ -153,22 +170,38 @@
                 </div>
             </div>
 
-            {{-- Recent activity --}}
-            @if ($recentAccess->isNotEmpty())
-                <div class="bg-white shadow sm:rounded-lg overflow-hidden">
-                    <h3 class="px-6 py-4 border-b border-cream-200 text-lg font-medium text-gray-900">{{ __('messages.shares_activity') }}</h3>
+            {{-- Activity: every view, download and wrong password, newest first --}}
+            <div id="activity" class="bg-white shadow sm:rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-cream-200 flex items-baseline justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">{{ __('messages.shares_activity') }}</h3>
+                    @if ($activity->total())
+                        <span class="text-sm text-gray-500">{{ $activity->total() }}</span>
+                    @endif
+                </div>
+                @if ($activity->isEmpty())
+                    <p class="px-6 py-4 text-sm text-gray-500">{{ __('messages.shares_activity_none') }}</p>
+                @else
                     <ul class="divide-y divide-cream-200 text-sm">
-                        @foreach ($recentAccess as $entry)
+                        @foreach ($activity as $entry)
                             <li class="px-6 py-3 flex justify-between gap-4">
-                                <span class="text-warm-900">
-                                    {{ __('messages.shares_event_' . $entry->event, ['file' => $entry->shareFile?->original_filename ?? '']) }}
-                                </span>
-                                <span class="text-gray-500 whitespace-nowrap" title="{{ $entry->ip }}">{{ $entry->created_at->diffForHumans() }}</span>
+                                <div class="min-w-0">
+                                    <p class="text-warm-900 truncate">
+                                        {{ __('messages.shares_event_' . $entry->event, ['file' => $entry->shareFile?->original_filename ?? __('messages.shares_deleted_file')]) }}
+                                    </p>
+                                    <p class="text-xs text-gray-500 truncate" title="{{ $entry->user_agent }}">
+                                        {{ $entry->ip }}@if ($entry->user_agent) · {{ $entry->user_agent }}@endif
+                                    </p>
+                                </div>
+                                <time datetime="{{ $entry->created_at->toIso8601String() }}" title="{{ $entry->created_at->diffForHumans() }}"
+                                      class="shrink-0 text-gray-500 whitespace-nowrap">{{ $entry->created_at->toDayDateTimeString() }}</time>
                             </li>
                         @endforeach
                     </ul>
-                </div>
-            @endif
+                    @if ($activity->hasPages())
+                        <div class="px-6 py-4 border-t border-cream-200">{{ $activity->links() }}</div>
+                    @endif
+                @endif
+            </div>
         </div>
     </div>
 

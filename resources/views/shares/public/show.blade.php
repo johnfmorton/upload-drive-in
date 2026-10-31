@@ -11,6 +11,16 @@
                 · {{ format_bytes($totalSize) }}
                 · {{ __('messages.shares_public_available_until', ['date' => $share->expires_at->toFormattedDateString()]) }}
             </p>
+            @if ($files->total() > 1)
+                <div class="mt-6">
+                    <a href="{{ route('shares.public.download-all', ['token' => $token]) }}"
+                       rel="nofollow"
+                       class="inline-flex items-center px-5 py-2.5 bg-accent-600 rounded-full font-semibold text-sm text-white hover:bg-warm-900 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 transition">
+                        {{ __('messages.shares_public_download_all', ['size' => format_bytes($totalSize)]) }}
+                    </a>
+                    <p class="mt-2 text-xs text-gray-500">{{ __('messages.shares_public_download_all_hint') }}</p>
+                </div>
+            @endif
         </div>
 
         <ul class="border-t border-cream-200 divide-y divide-cream-200">
