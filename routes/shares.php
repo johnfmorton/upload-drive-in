@@ -23,6 +23,7 @@ Route::prefix('shares')
         Route::get('/{share}/status', [ShareController::class, 'status'])->name('status');
         Route::post('/{share}/finalize', [ShareController::class, 'finalize'])->name('finalize');
         Route::post('/{share}/revoke', [ShareController::class, 'revoke'])->name('revoke');
+        Route::post('/{share}/extend', [ShareController::class, 'extend'])->name('extend');
 
         // One request per 5MB chunk, so it uses the chunk limiter
         Route::post('/{share}/files', [ShareController::class, 'uploadChunk'])

@@ -39,6 +39,9 @@ Route::prefix('s/{token}')
             ->whereNumber('fileId')
             ->middleware('throttle:share-downloads')
             ->name('download');
+        Route::get('/zip', [\App\Http\Controllers\PublicShareController::class, 'downloadAll'])
+            ->middleware('throttle:share-downloads')
+            ->name('download-all');
     });
 
 // Token-based login route (needs to be accessible to everyone)

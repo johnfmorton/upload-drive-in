@@ -7,6 +7,7 @@ use App\Models\ShareAccessLog;
 use App\Models\ShareFile;
 use App\Services\ShareService;
 use App\Services\ShareStorageService;
+use App\Services\ShareZipService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -34,7 +35,8 @@ class PublicShareController extends Controller
 
     public function __construct(
         private ShareService $shares,
-        private ShareStorageService $storage
+        private ShareStorageService $storage,
+        private ShareZipService $zips
     ) {}
 
     public function show(Request $request, string $token): Response
@@ -140,6 +142,67 @@ class PublicShareController extends Controller
 
         // S3 serves the file directly, so it never passes through this server
         return redirect()->away($this->storage->temporaryS3Url($file));
+    }
+
+    /**
+     * "Download all": every file in one zip, built while it downloads.
+     *
+     * Unlike single files, a zip download can't resume after an interruption,
+     * since it is rebuilt for every request.
+     */
+    public function downloadAll(Request $request, string $token): Response
+    {
+        $share = $this->shares->findByToken($token);
+
+        if (! $share || ! $share->isAvailable()) {
+            return $this->unavailable($share);
+        }
+
+        if (! $this->isUnlocked($request, $share)) {
+            return redirect()->route('shares.public.show', ['token' => $token]);
+        }
+
+        $files = $share->files()
+            ->where('status', ShareFile::STATUS_UPLOADED)
+            ->orderBy('original_filename')
+            ->get();
+
+        abort_if($files->isEmpty(), 404);
+
+        [$zip, $size] = $this->zips->prepare($files);
+        $filename = trim(str_replace(['/', '\\'], '-', $share->title)).'.zip';
+
+        $headers = [
+            'Content-Type' => 'application/zip',
+            'Content-Length' => (string) $size,
+            'Content-Disposition' => $this->contentDisposition($filename),
+            'Cache-Control' => 'private, no-store',
+            'X-Robots-Tag' => 'noindex, nofollow',
+            // Stop nginx buffering the zip to its temp files
+            'X-Accel-Buffering' => 'no',
+        ];
+
+        // A HEAD request only wants the headers, and isn't a download
+        if ($request->isMethod('HEAD')) {
+            return response('', 200, $headers);
+        }
+
+        $this->shares->recordDownload($share, null, $request);
+
+        return new StreamedResponse(function () use ($zip, $share) {
+            // A multi-GB download can outlast max_execution_time
+            set_time_limit(0);
+
+            try {
+                $zip->executeSimulation();
+            } catch (\Throwable $e) {
+                // Headers are already sent, so the browser sees a short (failed) download
+                Log::error('Share zip download failed', [
+                    'share_id' => $share->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }, 200, $headers);
     }
 
     /**

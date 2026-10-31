@@ -195,7 +195,13 @@ class ShareController extends Controller
 
         return view('shares.show', [
             'share' => $share,
-            'recentAccess' => $share->accessLogs()->with('shareFile:id,original_filename')->latest('created_at')->limit(20)->get(),
+            'activity' => $share->accessLogs()
+                ->with('shareFile:id,original_filename')
+                ->latest('created_at')
+                ->latest('id')
+                ->paginate(25, pageName: 'activity')
+                ->fragment('activity'),
+            'expiryChoices' => config('shares.expiry_days'),
         ] + $this->routeContext($request));
     }
 
@@ -220,6 +226,27 @@ class ShareController extends Controller
 
         return redirect($this->shareRoute($request, 'show', $share))
             ->with('status', __('messages.shares_revoked_message'));
+    }
+
+    /**
+     * Keep the link working for longer.
+     */
+    public function extend(Request $request, Share $share): RedirectResponse
+    {
+        Gate::authorize('update', $share);
+
+        $validated = $request->validate([
+            'days' => ['required', 'integer', Rule::in(config('shares.expiry_days'))],
+        ]);
+
+        if (! $this->shares->extend($share, (int) $validated['days'])) {
+            return back()->withErrors(['days' => __('messages.shares_extend_ended')]);
+        }
+
+        return redirect($this->shareRoute($request, 'show', $share))
+            ->with('status', __('messages.shares_extended_message', [
+                'date' => $share->fresh()->expires_at->toDayDateTimeString(),
+            ]));
     }
 
     /**

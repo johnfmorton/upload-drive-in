@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Revoking a link deletes its files immediately; an hourly job expires overdue links, deletes their files, and cleans up uploads that were never finished
   - Limits are set in `.env`: `SHARES_MAX_FILE_SIZE` (default 5 GB), `SHARES_MAX_SHARE_SIZE` (10 GB) and `SHARES_MIN_FREE_DISK` (5 GB, uploads are refused below this)
   - The recipient's page loads no JavaScript
+  - "Download all" gets every file in one .zip, built while it downloads (nothing is written to the server's disk). It shows its size up front, so browsers show progress; files with the same name are renamed in the zip
+  - The share's page has a full activity log: every view, download, zip download and wrong password, with the IP and browser, 25 per page
+  - Senders can extend a link by 7, 14 or 30 days while it's still active
 
 ### Removed
 - Dead `app/Http/Kernel.php` and the six middleware classes only it referenced (`TrustProxies`, `VerifyCsrfToken`, `EncryptCookies`, `TrimStrings`, `PreventRequestsDuringMaintenance`, `QueueWorkerPerformanceHeaders`). Laravel 12 never loads that file; the framework's own middleware was already handling every request, so behavior is unchanged
