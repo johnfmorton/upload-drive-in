@@ -73,13 +73,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Each zip pulls every file through this server and holds a PHP worker
-        // for the whole download, so allow far fewer: per IP, and per share
-        // across all IPs so one link can't be used to tie up every worker
+        // for the whole download, so allow far fewer. The per-share limit is in
+        // PublicShareController::downloadAll(), after the password check.
         RateLimiter::for('share-zips', function (Request $request) {
-            return [
-                Limit::perHour(10)->by('share-zips|'.$request->ip()),
-                Limit::perHour(30)->by('share-zips|share|'.hash('sha256', (string) $request->route('token'))),
-            ];
+            return Limit::perHour(10)->by('share-zips|'.$request->ip());
         });
 
         // Register model observers
