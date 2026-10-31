@@ -33,6 +33,12 @@ class PublicShareController extends Controller
 
     private const SHARE_PASSWORD_DECAY_SECONDS = 3600;
 
+    // Zips allowed per share from all IPs combined, per hour, so one link
+    // can't be used to tie up every PHP worker
+    private const SHARE_ZIP_ATTEMPTS = 30;
+
+    private const SHARE_ZIP_DECAY_SECONDS = 3600;
+
     public function __construct(
         private ShareService $shares,
         private ShareStorageService $storage,
@@ -186,6 +192,14 @@ class PublicShareController extends Controller
         if ($request->isMethod('HEAD')) {
             return response('', 200, $headers);
         }
+
+        // Counted only once the visitor is past the password, so someone with
+        // just the link can't use up the recipients' allowance
+        $zipKey = "share-zips|share|{$share->id}";
+        if (RateLimiter::tooManyAttempts($zipKey, self::SHARE_ZIP_ATTEMPTS)) {
+            abort(429, headers: ['Retry-After' => RateLimiter::availableIn($zipKey)]);
+        }
+        RateLimiter::hit($zipKey, self::SHARE_ZIP_DECAY_SECONDS);
 
         $this->shares->recordDownload($share, null, $request);
 

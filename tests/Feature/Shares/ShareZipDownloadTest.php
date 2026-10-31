@@ -9,6 +9,7 @@ use App\Services\ShareStorageService;
 use GuzzleHttp\Psr7\Utils;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Mockery;
 use Tests\TestCase;
 use ZipArchive;
@@ -181,11 +182,23 @@ class ShareZipDownloadTest extends TestCase
 
         for ($i = 1; $i <= 30; $i++) {
             $this->withServerVariables(['REMOTE_ADDR' => "198.51.100.{$i}"])
-                ->head('/s/'.self::TOKEN.'/zip')->assertOk();
+                ->get('/s/'.self::TOKEN.'/zip')->assertOk();
         }
 
         $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.31'])
-            ->head('/s/'.self::TOKEN.'/zip')->assertStatus(429);
+            ->get('/s/'.self::TOKEN.'/zip')->assertStatus(429);
+    }
+
+    public function test_requests_without_the_password_do_not_use_up_the_share_limit()
+    {
+        $share = $this->shareWithFiles(['a.txt' => 'a', 'b.txt' => 'b'], ['password' => 'open-sesame']);
+
+        for ($i = 1; $i <= 31; $i++) {
+            $this->withServerVariables(['REMOTE_ADDR' => "198.51.100.{$i}"])
+                ->get('/s/'.self::TOKEN.'/zip')->assertRedirect('/s/'.self::TOKEN);
+        }
+
+        $this->assertFalse(RateLimiter::tooManyAttempts("share-zips|share|{$share->id}", 30));
     }
 
     public function test_share_page_offers_download_all_only_for_more_than_one_file()
