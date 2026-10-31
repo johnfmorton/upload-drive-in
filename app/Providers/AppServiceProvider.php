@@ -72,6 +72,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by('share-downloads|'.$request->ip());
         });
 
+        // Each zip pulls every file through this server and holds a PHP worker
+        // for the whole download, so allow far fewer: per IP, and per share
+        // across all IPs so one link can't be used to tie up every worker
+        RateLimiter::for('share-zips', function (Request $request) {
+            return [
+                Limit::perHour(10)->by('share-zips|'.$request->ip()),
+                Limit::perHour(30)->by('share-zips|share|'.hash('sha256', (string) $request->route('token'))),
+            ];
+        });
+
         // Register model observers
         \App\Models\FileUpload::observe(\App\Observers\FileUploadObserver::class);
         \App\Models\DomainAccessRule::observe(\App\Observers\DomainAccessRuleObserver::class);

@@ -40,7 +40,7 @@ Route::prefix('s/{token}')
             ->middleware('throttle:share-downloads')
             ->name('download');
         Route::get('/zip', [\App\Http\Controllers\PublicShareController::class, 'downloadAll'])
-            ->middleware('throttle:share-downloads')
+            ->middleware('throttle:share-zips')
             ->name('download-all');
     });
 
