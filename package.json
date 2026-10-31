@@ -30,7 +30,7 @@
     "laravel-vite-plugin": "^1.2.0",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.1.1",
-    "vite": "^6.4.1"
+    "vite": "^6.4.5"
   },
   "dependencies": {
     "@alpinejs/persist": "^3.14.9",
