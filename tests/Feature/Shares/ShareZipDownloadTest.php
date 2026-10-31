@@ -162,6 +162,32 @@ class ShareZipDownloadTest extends TestCase
         $this->get('/s/'.self::TOKEN.'/zip')->assertStatus(410);
     }
 
+    public function test_zip_downloads_are_limited_per_ip()
+    {
+        Event::fake([ShareFirstDownloaded::class]);
+        $this->shareWithFiles(['a.txt' => 'a', 'b.txt' => 'b']);
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->head('/s/'.self::TOKEN.'/zip')->assertOk();
+        }
+
+        $this->head('/s/'.self::TOKEN.'/zip')->assertStatus(429);
+    }
+
+    public function test_zip_downloads_are_limited_per_share_across_ips()
+    {
+        Event::fake([ShareFirstDownloaded::class]);
+        $this->shareWithFiles(['a.txt' => 'a', 'b.txt' => 'b']);
+
+        for ($i = 1; $i <= 30; $i++) {
+            $this->withServerVariables(['REMOTE_ADDR' => "198.51.100.{$i}"])
+                ->head('/s/'.self::TOKEN.'/zip')->assertOk();
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '198.51.100.31'])
+            ->head('/s/'.self::TOKEN.'/zip')->assertStatus(429);
+    }
+
     public function test_share_page_offers_download_all_only_for_more_than_one_file()
     {
         $share = $this->shareWithFiles(['a.txt' => 'a']);
