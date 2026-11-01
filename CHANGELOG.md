@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Turning off upload emails in the employee or client profile was never saved: an unchecked box isn't submitted, so the setting stayed on. The admin profile had no notification settings at all; it now has both (upload emails and share-download emails)
 - Large Google Drive downloads from the admin or employee file manager could run out of memory: the "streaming" download read the whole file into PHP memory twice before sending it. It now streams from Drive as it's sent, like S3 downloads and share links
 
+### Security
+- Updated build and test tooling to fix seven Dependabot alerts and one `npm audit` finding. None of these packages are served to visitors; they only run during development, builds and tests:
+  - Vite 6.4.5 (was 6.4.3): dev-server file access outside `server.fs.allow`, cross-origin script execution, and `launch-editor` command-injection issues
+  - npm `overrides` force patched versions pulled in by other packages: `minimatch` 11.0.3 (via Jest), `postcss-selector-parser` 6.1.5 (pinned to 6.0.10 by `@tailwindcss/typography`) and `glob` 14.0.3 (via Jest)
+  - `deepmerge` (used only by Jest's config loader) still has a low-severity alert, because no fixed version exists
+
 ## [1.2.6] - 2026-10-14
 
 ### Changed

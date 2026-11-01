@@ -30,12 +30,17 @@
     "laravel-vite-plugin": "^1.2.0",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.1.1",
-    "vite": "^6.4.1"
+    "vite": "^6.4.5"
   },
   "dependencies": {
     "@alpinejs/persist": "^3.14.9",
     "@shoelace-style/shoelace": "^2.20.1",
     "@tailwindcss/vite": "^4.1.3",
     "dropzone": "^6.0.0-beta.2"
+  },
+  "overrides": {
+    "minimatch": "^11.0.3",
+    "postcss-selector-parser": "^6.1.5",
+    "glob": "^14.0.3"
   }
 }
