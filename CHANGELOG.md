@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2026-11-01
 
 ### Added
 - **Send files by link.** Admins and employees can upload one or more large files and get a link to send to anyone ("Sent files" in the navigation). See `docs/plans/outgoing-file-shares.md`.
@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Vite 6.4.5 (was 6.4.3): dev-server file access outside `server.fs.allow`, cross-origin script execution, and `launch-editor` command-injection issues
   - npm `overrides` force patched versions pulled in by other packages: `minimatch` 11.0.3 (via Jest), `postcss-selector-parser` 6.1.5 (pinned to 6.0.10 by `@tailwindcss/typography`) and `glob` 14.0.3 (via Jest)
   - `deepmerge` (used only by Jest's config loader) still has a low-severity alert, because no fixed version exists
+
+[1.3.0]: https://github.com/johnfmorton/upload-drive-in/releases/tag/v1.3.0
 
 ## [1.2.6] - 2026-10-14
 
